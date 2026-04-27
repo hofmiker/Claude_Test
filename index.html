@@ -54,7 +54,7 @@
 
         const LETTER_RADIUS = 120;
         const LETTER_STRENGTH = 80;
-        const POINTER_RADIUS = 100;
+        const POINTER_RADIUS = Math.min(window.innerWidth, window.innerHeight) * 0.25;
         const POINTER_STRENGTH = 90;
 
         let pointerX = -999, pointerY = -999;
@@ -148,30 +148,35 @@
                 const homeX = lc.x + this.offsetX;
                 const homeY = lc.y + this.offsetY;
 
-                /* spring pull toward home */
+                /* spring pull toward home — weaker so particles spread further */
                 const hx = homeX - this.x;
                 const hy = homeY - this.y;
-                this.vx += hx * 0.04;
-                this.vy += hy * 0.04;
+                this.vx += hx * 0.012;
+                this.vy += hy * 0.012;
 
                 /* pointer repulsion */
                 const dpx = this.x - pointerX;
                 const dpy = this.y - pointerY;
                 const dp = Math.sqrt(dpx * dpx + dpy * dpy);
                 if (dp < POINTER_RADIUS && dp > 0) {
-                    const f = (1 - dp / POINTER_RADIUS) * POINTER_STRENGTH * 0.12;
+                    const f = (1 - dp / POINTER_RADIUS) * POINTER_STRENGTH * 0.22;
                     this.vx += (dpx / dp) * f;
                     this.vy += (dpy / dp) * f;
                 }
 
                 /* damping */
-                this.vx *= 0.82;
-                this.vy *= 0.82;
+                this.vx *= 0.88;
+                this.vy *= 0.88;
 
                 this.x += this.vx;
                 this.y += this.vy;
 
-                /* energy based on distance from home */
+                /* bounce off edges */
+                const margin = this.r;
+                if (this.x < margin)                        { this.x = margin;                        this.vx *= -0.6; }
+                if (this.x > canvas.width  - margin)        { this.x = canvas.width  - margin;        this.vx *= -0.6; }
+                if (this.y < margin)                        { this.y = margin;                        this.vy *= -0.6; }
+                if (this.y > canvas.height - margin)        { this.y = canvas.height - margin;        this.vy *= -0.6; }
                 const homeDist = Math.sqrt(hx * hx + hy * hy);
                 const nearPointer = dp < POINTER_RADIUS ? (1 - dp / POINTER_RADIUS) : 0;
                 const targetEnergy = Math.min(1, homeDist * 0.015 + nearPointer * 0.9);
