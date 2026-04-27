@@ -134,8 +134,7 @@
                 this.vx = (Math.random() - 0.5) * 0.6;
                 this.vy = (Math.random() - 0.5) * 0.6;
                 this.r = Math.random() * 2.5 + 1;
-                this.alpha = Math.random() * 0.5 + 0.2;
-                this.hue = Math.random() * 60 + 200;
+                this.energy = 0;
             }
             update() {
                 /* pointer repulsion */
@@ -173,15 +172,21 @@
                 if (this.y < -10) this.y = window.innerHeight + 10;
                 if (this.y > window.innerHeight + 10) this.y = -10;
 
-                /* color shift near pointer */
-                const nearPointer = Math.max(0, 1 - dp / POINTER_RADIUS);
-                this.hue = 210 + nearPointer * 150;
-                this.alpha = 0.25 + nearPointer * 0.5;
+                /* energy: how much the particle is being pushed */
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const nearPointer = dp < POINTER_RADIUS ? (1 - dp / POINTER_RADIUS) : 0;
+                const targetEnergy = Math.min(1, speed * 0.8 + nearPointer * 0.8);
+                this.energy += (targetEnergy - this.energy) * 0.08;
             }
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-                ctx.fillStyle = `hsla(${this.hue}, 70%, 55%, ${this.alpha})`;
+                /* black at rest → colorful when moving/touched */
+                const hue = 220 + this.energy * 140;
+                const sat = Math.round(this.energy * 75);
+                const light = Math.round(this.energy * 45);
+                const alpha = 0.35 + this.energy * 0.55;
+                ctx.fillStyle = `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
                 ctx.fill();
             }
         }
