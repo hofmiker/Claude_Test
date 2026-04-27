@@ -147,15 +147,15 @@
                     this.vy += (dpy / dp) * f;
                 }
 
-                /* letter repulsion */
+                /* letter attraction (magnetic) */
                 getLetterCenters().forEach(lc => {
                     const dlx = this.x - lc.x;
                     const dly = this.y - lc.y;
                     const dl = Math.sqrt(dlx * dlx + dly * dly);
-                    if (dl < 70 && dl > 0) {
-                        const f = (1 - dl / 70) * 1.5;
-                        this.vx += (dlx / dl) * f;
-                        this.vy += (dly / dl) * f;
+                    if (dl > 10 && dl < 160) {
+                        const f = (1 - dl / 160) * 0.25;
+                        this.vx -= (dlx / dl) * f;
+                        this.vy -= (dly / dl) * f;
                     }
                 });
 
@@ -185,7 +185,7 @@
                 const hue = 220 + this.energy * 140;
                 const sat = Math.round(this.energy * 75);
                 const light = Math.round(this.energy * 45);
-                const alpha = 0.35 + this.energy * 0.55;
+                const alpha = 1 - this.energy * 0.3;
                 ctx.fillStyle = `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
                 ctx.fill();
             }
