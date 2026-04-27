@@ -6,14 +6,16 @@
     <title>Hallo</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+        }
         body {
-            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             background-color: white;
             font-family: Georgia, "Times New Roman", serif;
-            font-size: 3rem;
+            font-size: clamp(2.5rem, 8vmin, 7rem);
             overflow: hidden;
         }
         canvas {
@@ -25,7 +27,7 @@
         #text {
             position: relative;
             display: flex;
-            gap: 2px;
+            gap: 0.05em;
             z-index: 1;
         }
         .letter {
@@ -41,15 +43,31 @@
     <div id="text"></div>
 
     <script>
-        /* --- Shared color formula ---
-           energy 0 = at rest → black
-           energy 1 = max displaced → deep blue-violet
-           Used identically for letters and particles.                    */
+        /* --- Shared color ramp: 0=black, 0.25=violet, 0.5=red, 0.75=yellow, 1=green --- */
+        const COLOR_STOPS = [
+            { t: 0.00, h:   0, s:  0, l:  0 },
+            { t: 0.25, h: 270, s: 80, l: 40 },
+            { t: 0.50, h:   0, s: 85, l: 45 },
+            { t: 0.75, h:  55, s: 90, l: 50 },
+            { t: 1.00, h: 120, s: 80, l: 42 }
+        ];
+
+        function lerp(a, b, t) { return a + (b - a) * t; }
+
         function colorFromEnergy(e) {
-            const hue   = Math.round(e * 260);
-            const sat   = Math.round(e * 82);
-            const light = Math.round(e * 44);
-            return `hsl(${hue}, ${sat}%, ${light}%)`;
+            e = Math.max(0, Math.min(1, e));
+            let i = 0;
+            while (i < COLOR_STOPS.length - 2 && e > COLOR_STOPS[i + 1].t) i++;
+            const a = COLOR_STOPS[i], b = COLOR_STOPS[i + 1];
+            const f = (e - a.t) / (b.t - a.t);
+            /* hue needs shortest-path interpolation */
+            let dh = b.h - a.h;
+            if (dh > 180) dh -= 360;
+            if (dh < -180) dh += 360;
+            const h = Math.round(a.h + dh * f);
+            const s = Math.round(lerp(a.s, b.s, f));
+            const l = Math.round(lerp(a.l, b.l, f));
+            return `hsl(${h}, ${s}%, ${l}%)`;
         }
 
         /* --- Letters --- */
@@ -63,11 +81,13 @@
         });
         const letters = document.querySelectorAll(".letter");
 
-        const LETTER_RADIUS   = 130;
-        const LETTER_STRENGTH = 75;
-        const SHORT_SIDE      = Math.min(window.innerWidth, window.innerHeight);
-        const POINTER_RADIUS  = SHORT_SIDE * 0.28;
-        const POINTER_FORCE   = 5.5;
+        const W           = window.innerWidth;
+        const H           = window.innerHeight;
+        const SHORT_SIDE  = Math.min(W, H);
+        const LETTER_RADIUS   = SHORT_SIDE * 0.18;
+        const LETTER_STRENGTH = SHORT_SIDE * 0.10;
+        const POINTER_RADIUS  = SHORT_SIDE * 0.30;
+        const POINTER_FORCE   = SHORT_SIDE * 0.006;
 
         let pointerX = -9999, pointerY = -9999;
 
@@ -83,17 +103,14 @@
                 const rect = letter.getBoundingClientRect();
                 const cx   = rect.left + rect.width  / 2;
                 const cy   = rect.top  + rect.height / 2;
-                const dx   = cx - x;
-                const dy   = cy - y;
+                const dx   = cx - x, dy = cy - y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < LETTER_RADIUS) {
                     const e     = 1 - dist / LETTER_RADIUS;
                     const force = e * LETTER_STRENGTH;
                     const angle = Math.atan2(dy, dx);
-                    const tx    = Math.cos(angle) * force;
-                    const ty    = Math.sin(angle) * force;
-                    const scale = 1 + e * 0.4;
-                    letter.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+                    const scale = 1 + e * 0.35;
+                    letter.style.transform = `translate(${Math.cos(angle)*force}px, ${Math.sin(angle)*force}px) scale(${scale})`;
                     letter.style.color     = colorFromEnergy(e);
                 } else {
                     letter.style.transform = "";
@@ -111,8 +128,7 @@
             reactLetters(pointerX, pointerY);
         });
         document.addEventListener("mouseleave", () => {
-            pointerX = -9999; pointerY = -9999;
-            resetLetters();
+            pointerX = -9999; pointerY = -9999; resetLetters();
         });
         document.addEventListener("touchmove", e => {
             e.preventDefault();
@@ -121,17 +137,14 @@
             reactLetters(pointerX, pointerY);
         }, { passive: false });
         document.addEventListener("touchend", () => {
-            pointerX = -9999; pointerY = -9999;
-            resetLetters();
+            pointerX = -9999; pointerY = -9999; resetLetters();
         });
 
         /* --- Particles --- */
         const canvas = document.getElementById("canvas");
         const ctx    = canvas.getContext("2d");
-        const NUM    = 120;
-
-        /* max expected displacement for color scaling */
-        const MAX_DISP = SHORT_SIDE * 0.55;
+        const NUM    = 140;
+        const MAX_SPEED = SHORT_SIDE * 0.025;   /* reference speed for full color */
 
         function resize() {
             canvas.width  = window.innerWidth;
@@ -143,18 +156,14 @@
         class Particle {
             constructor(index) {
                 this.letterIndex = index % letters.length;
-                /* spread: varied radius 10–90 px, angle based on index for even coverage */
-                const baseAngle  = (index / NUM) * Math.PI * 2;
-                const jitter     = (Math.random() - 0.5) * 1.2;
-                const spreadDist = Math.pow(Math.random(), 0.6) * 80 + 10;
-                this.offsetX = Math.cos(baseAngle + jitter) * spreadDist;
-                this.offsetY = Math.sin(baseAngle + jitter) * spreadDist;
-                /* start scattered */
-                this.x  = Math.random() * window.innerWidth;
-                this.y  = Math.random() * window.innerHeight;
-                this.vx = 0;
-                this.vy = 0;
-                this.r      = Math.random() * 2.2 + 1;
+                const angle      = (index / NUM) * Math.PI * 2 + (Math.random() - 0.5) * 1.5;
+                const spread     = Math.pow(Math.random(), 0.5) * SHORT_SIDE * 0.18 + SHORT_SIDE * 0.02;
+                this.offsetX     = Math.cos(angle) * spread;
+                this.offsetY     = Math.sin(angle) * spread;
+                this.x  = Math.random() * W;
+                this.y  = Math.random() * H;
+                this.vx = 0; this.vy = 0;
+                this.r      = Math.random() * 2.4 + 1.2;
                 this.energy = 0;
             }
 
@@ -164,11 +173,9 @@
                 const homeX   = lc.x + this.offsetX;
                 const homeY   = lc.y + this.offsetY;
 
-                /* weak spring toward home */
-                const hx = homeX - this.x;
-                const hy = homeY - this.y;
-                this.vx += hx * 0.005;
-                this.vy += hy * 0.005;
+                /* very weak spring toward home */
+                this.vx += (homeX - this.x) * 0.003;
+                this.vy += (homeY - this.y) * 0.003;
 
                 /* pointer repulsion */
                 const dpx = this.x - pointerX;
@@ -180,24 +187,24 @@
                     this.vy += (dpy / dp) * f;
                 }
 
-                /* damping — gentle slowdown */
-                this.vx *= 0.92;
-                this.vy *= 0.92;
+                /* gentle damping */
+                this.vx *= 0.94;
+                this.vy *= 0.94;
 
                 this.x += this.vx;
                 this.y += this.vy;
 
-                /* bounce off screen edges */
+                /* bounce off edges */
                 const m = this.r;
-                if (this.x < m)                   { this.x = m;                   this.vx *= -0.55; }
-                if (this.x > canvas.width  - m)   { this.x = canvas.width  - m;   this.vx *= -0.55; }
-                if (this.y < m)                   { this.y = m;                   this.vy *= -0.55; }
-                if (this.y > canvas.height - m)   { this.y = canvas.height - m;   this.vy *= -0.55; }
+                if (this.x < m)                  { this.x = m;                  this.vx *= -0.5; }
+                if (this.x > canvas.width  - m)  { this.x = canvas.width  - m;  this.vx *= -0.5; }
+                if (this.y < m)                  { this.y = m;                  this.vy *= -0.5; }
+                if (this.y > canvas.height - m)  { this.y = canvas.height - m;  this.vy *= -0.5; }
 
-                /* energy = how far from home, scaled to [0,1] */
-                const homeDist    = Math.sqrt(hx * hx + hy * hy);
-                const targetEnergy = Math.min(1, homeDist / MAX_DISP);
-                this.energy += (targetEnergy - this.energy) * 0.07;
+                /* energy = speed normalized to [0,1] */
+                const speed       = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const targetEnergy = Math.min(1, speed / MAX_SPEED);
+                this.energy += (targetEnergy - this.energy) * 0.08;
             }
 
             draw() {
