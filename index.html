@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hallo</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            margin: 0;
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -16,9 +16,17 @@
             font-size: 3rem;
             overflow: hidden;
         }
+        canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
         #text {
+            position: relative;
             display: flex;
             gap: 2px;
+            z-index: 1;
         }
         .letter {
             display: inline-block;
@@ -29,24 +37,36 @@
     </style>
 </head>
 <body>
+    <canvas id="canvas"></canvas>
     <div id="text"></div>
 
     <script>
+        /* --- Letters --- */
         const word = "Hallo";
         const container = document.getElementById("text");
-
         word.split("").forEach(char => {
             const span = document.createElement("span");
             span.className = "letter";
             span.textContent = char;
             container.appendChild(span);
         });
-
         const letters = document.querySelectorAll(".letter");
-        const radius = 120;
-        const strength = 80;
 
-        function react(x, y) {
+        const LETTER_RADIUS = 120;
+        const LETTER_STRENGTH = 80;
+        const POINTER_RADIUS = 100;
+        const POINTER_STRENGTH = 90;
+
+        let pointerX = -999, pointerY = -999;
+
+        function getLetterCenters() {
+            return Array.from(letters).map(l => {
+                const r = l.getBoundingClientRect();
+                return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+            });
+        }
+
+        function reactLetters(x, y) {
             letters.forEach(letter => {
                 const rect = letter.getBoundingClientRect();
                 const cx = rect.left + rect.width / 2;
@@ -54,14 +74,13 @@
                 const dx = cx - x;
                 const dy = cy - y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist < radius) {
-                    const force = (1 - dist / radius) * strength;
+                if (dist < LETTER_RADIUS) {
+                    const force = (1 - dist / LETTER_RADIUS) * LETTER_STRENGTH;
                     const angle = Math.atan2(dy, dx);
                     const tx = Math.cos(angle) * force;
                     const ty = Math.sin(angle) * force;
-                    const scale = 1 + (1 - dist / radius) * 0.4;
-                    const hue = Math.round((1 - dist / radius) * 260);
+                    const scale = 1 + (1 - dist / LETTER_RADIUS) * 0.4;
+                    const hue = Math.round((1 - dist / LETTER_RADIUS) * 260);
                     letter.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
                     letter.style.color = `hsl(${hue}, 80%, 45%)`;
                 } else {
@@ -71,23 +90,110 @@
             });
         }
 
-        function reset() {
-            letters.forEach(l => {
-                l.style.transform = "";
-                l.style.color = "";
-            });
+        function resetLetters() {
+            letters.forEach(l => { l.style.transform = ""; l.style.color = ""; });
         }
 
-        document.addEventListener("mousemove", e => react(e.clientX, e.clientY));
-        document.addEventListener("mouseleave", reset);
-
+        document.addEventListener("mousemove", e => {
+            pointerX = e.clientX; pointerY = e.clientY;
+            reactLetters(pointerX, pointerY);
+        });
+        document.addEventListener("mouseleave", () => {
+            pointerX = -999; pointerY = -999;
+            resetLetters();
+        });
         document.addEventListener("touchmove", e => {
             e.preventDefault();
             const t = e.touches[0];
-            react(t.clientX, t.clientY);
+            pointerX = t.clientX; pointerY = t.clientY;
+            reactLetters(pointerX, pointerY);
         }, { passive: false });
+        document.addEventListener("touchend", () => {
+            pointerX = -999; pointerY = -999;
+            resetLetters();
+        });
 
-        document.addEventListener("touchend", reset);
+        /* --- Particles --- */
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const NUM = 120;
+        const particles = [];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener("resize", resize);
+
+        class Particle {
+            constructor() { this.reset(true); }
+            reset(initial) {
+                this.x = Math.random() * window.innerWidth;
+                this.y = Math.random() * window.innerHeight;
+                this.vx = (Math.random() - 0.5) * 0.6;
+                this.vy = (Math.random() - 0.5) * 0.6;
+                this.r = Math.random() * 2.5 + 1;
+                this.alpha = Math.random() * 0.5 + 0.2;
+                this.hue = Math.random() * 60 + 200;
+            }
+            update() {
+                /* pointer repulsion */
+                const dpx = this.x - pointerX;
+                const dpy = this.y - pointerY;
+                const dp = Math.sqrt(dpx * dpx + dpy * dpy);
+                if (dp < POINTER_RADIUS && dp > 0) {
+                    const f = (1 - dp / POINTER_RADIUS) * POINTER_STRENGTH * 0.08;
+                    this.vx += (dpx / dp) * f;
+                    this.vy += (dpy / dp) * f;
+                }
+
+                /* letter repulsion */
+                getLetterCenters().forEach(lc => {
+                    const dlx = this.x - lc.x;
+                    const dly = this.y - lc.y;
+                    const dl = Math.sqrt(dlx * dlx + dly * dly);
+                    if (dl < 70 && dl > 0) {
+                        const f = (1 - dl / 70) * 1.5;
+                        this.vx += (dlx / dl) * f;
+                        this.vy += (dly / dl) * f;
+                    }
+                });
+
+                /* damping */
+                this.vx *= 0.94;
+                this.vy *= 0.94;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                /* wrap around edges */
+                if (this.x < -10) this.x = window.innerWidth + 10;
+                if (this.x > window.innerWidth + 10) this.x = -10;
+                if (this.y < -10) this.y = window.innerHeight + 10;
+                if (this.y > window.innerHeight + 10) this.y = -10;
+
+                /* color shift near pointer */
+                const nearPointer = Math.max(0, 1 - dp / POINTER_RADIUS);
+                this.hue = 210 + nearPointer * 150;
+                this.alpha = 0.25 + nearPointer * 0.5;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${this.hue}, 70%, 55%, ${this.alpha})`;
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < NUM; i++) particles.push(new Particle());
+
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(loop);
+        }
+        loop();
     </script>
 </body>
 </html>
