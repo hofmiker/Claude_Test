@@ -5,21 +5,229 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hallo</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: 100%;
+        }
         body {
-            margin: 0;
-            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             background-color: white;
             font-family: Georgia, "Times New Roman", serif;
-            font-size: 3rem;
+            font-size: clamp(2.5rem, 8vmin, 7rem);
+            overflow: hidden;
+        }
+        canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+        }
+        #text {
+            position: relative;
+            display: flex;
+            gap: 0.05em;
+            z-index: 1;
+        }
+        .letter {
+            display: inline-block;
+            transition: transform 0.18s ease-out, color 0.18s ease-out;
+            cursor: default;
+            user-select: none;
         }
     </style>
 </head>
 <body>
-    <p>Hallo</p>
-    <a href="seite2.html" style="margin-top: 1rem; font-size: 1rem; color: #3498db; text-decoration: none;">Zu Seite 2</a>
-    <a href="Sonnensystem.html" style="margin-top: 0.5rem; font-size: 1rem; color: #3498db; text-decoration: none;">Zum Sonnensystem</a>
+    <canvas id="canvas"></canvas>
+    <div id="text"></div>
+    <nav style="position:fixed;bottom:20px;right:24px;display:flex;gap:16px;z-index:10;">
+      <a href="seite2.html" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.35);text-decoration:none;">Seite 2</a>
+      <a href="Sonnensystem.html" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(0,0,0,.35);text-decoration:none;">Sonnensystem</a>
+    </nav>
+
+    <script>
+        /* --- Shared color ramp: 0=black, 0.25=violet, 0.5=red, 0.75=yellow, 1=green --- */
+        const COLOR_STOPS = [
+            { t: 0.00, h:   0, s:  0, l:  0 },
+            { t: 0.25, h: 270, s: 80, l: 40 },
+            { t: 0.50, h:   0, s: 85, l: 45 },
+            { t: 0.75, h:  55, s: 90, l: 50 },
+            { t: 1.00, h: 120, s: 80, l: 42 }
+        ];
+
+        function lerp(a, b, t) { return a + (b - a) * t; }
+
+        function colorFromEnergy(e) {
+            e = Math.max(0, Math.min(1, e));
+            let i = 0;
+            while (i < COLOR_STOPS.length - 2 && e > COLOR_STOPS[i + 1].t) i++;
+            const a = COLOR_STOPS[i], b = COLOR_STOPS[i + 1];
+            const f = (e - a.t) / (b.t - a.t);
+            /* hue needs shortest-path interpolation */
+            let dh = b.h - a.h;
+            if (dh > 180) dh -= 360;
+            if (dh < -180) dh += 360;
+            const h = Math.round(a.h + dh * f);
+            const s = Math.round(lerp(a.s, b.s, f));
+            const l = Math.round(lerp(a.l, b.l, f));
+            return `hsl(${h}, ${s}%, ${l}%)`;
+        }
+
+        /* --- Letters --- */
+        const word = "Hallo";
+        const container = document.getElementById("text");
+        word.split("").forEach(char => {
+            const span = document.createElement("span");
+            span.className = "letter";
+            span.textContent = char;
+            container.appendChild(span);
+        });
+        const letters = document.querySelectorAll(".letter");
+
+        const W           = window.innerWidth;
+        const H           = window.innerHeight;
+        const SHORT_SIDE  = Math.min(W, H);
+        const LETTER_RADIUS   = SHORT_SIDE * 0.18;
+        const LETTER_STRENGTH = SHORT_SIDE * 0.10;
+        const POINTER_RADIUS  = SHORT_SIDE * 0.30;
+        const POINTER_FORCE   = SHORT_SIDE * 0.006;
+
+        let pointerX = -9999, pointerY = -9999;
+
+        function getLetterCenters() {
+            return Array.from(letters).map(l => {
+                const r = l.getBoundingClientRect();
+                return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+            });
+        }
+
+        function reactLetters(x, y) {
+            letters.forEach(letter => {
+                const rect = letter.getBoundingClientRect();
+                const cx   = rect.left + rect.width  / 2;
+                const cy   = rect.top  + rect.height / 2;
+                const dx   = cx - x, dy = cy - y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < LETTER_RADIUS) {
+                    const e     = 1 - dist / LETTER_RADIUS;
+                    const force = e * LETTER_STRENGTH;
+                    const angle = Math.atan2(dy, dx);
+                    const scale = 1 + e * 0.35;
+                    letter.style.transform = `translate(${Math.cos(angle)*force}px, ${Math.sin(angle)*force}px) scale(${scale})`;
+                    letter.style.color     = colorFromEnergy(e);
+                } else {
+                    letter.style.transform = "";
+                    letter.style.color     = "";
+                }
+            });
+        }
+
+        function resetLetters() {
+            letters.forEach(l => { l.style.transform = ""; l.style.color = ""; });
+        }
+
+        document.addEventListener("mousemove", e => {
+            pointerX = e.clientX; pointerY = e.clientY;
+            reactLetters(pointerX, pointerY);
+        });
+        document.addEventListener("mouseleave", () => {
+            pointerX = -9999; pointerY = -9999; resetLetters();
+        });
+        document.addEventListener("touchmove", e => {
+            e.preventDefault();
+            const t = e.touches[0];
+            pointerX = t.clientX; pointerY = t.clientY;
+            reactLetters(pointerX, pointerY);
+        }, { passive: false });
+        document.addEventListener("touchend", () => {
+            pointerX = -9999; pointerY = -9999; resetLetters();
+        });
+
+        /* --- Particles --- */
+        const canvas = document.getElementById("canvas");
+        const ctx    = canvas.getContext("2d");
+        const NUM    = 140;
+        const MAX_SPEED = SHORT_SIDE * 0.025;   /* reference speed for full color */
+
+        function resize() {
+            canvas.width  = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener("resize", resize);
+
+        class Particle {
+            constructor(index) {
+                this.letterIndex = index % letters.length;
+                const angle      = (index / NUM) * Math.PI * 2 + (Math.random() - 0.5) * 1.5;
+                const spread     = Math.pow(Math.random(), 0.5) * SHORT_SIDE * 0.18 + SHORT_SIDE * 0.02;
+                this.offsetX     = Math.cos(angle) * spread;
+                this.offsetY     = Math.sin(angle) * spread;
+                this.x  = Math.random() * W;
+                this.y  = Math.random() * H;
+                this.vx = 0; this.vy = 0;
+                this.r      = Math.random() * 2.4 + 1.2;
+                this.energy = 0;
+            }
+
+            update() {
+                const centers = getLetterCenters();
+                const lc      = centers[this.letterIndex] || centers[0];
+                const homeX   = lc.x + this.offsetX;
+                const homeY   = lc.y + this.offsetY;
+
+                /* very weak spring toward home */
+                this.vx += (homeX - this.x) * 0.003;
+                this.vy += (homeY - this.y) * 0.003;
+
+                /* pointer repulsion */
+                const dpx = this.x - pointerX;
+                const dpy = this.y - pointerY;
+                const dp  = Math.sqrt(dpx * dpx + dpy * dpy);
+                if (dp < POINTER_RADIUS && dp > 0) {
+                    const f = (1 - dp / POINTER_RADIUS) * POINTER_FORCE;
+                    this.vx += (dpx / dp) * f;
+                    this.vy += (dpy / dp) * f;
+                }
+
+                /* gentle damping */
+                this.vx *= 0.94;
+                this.vy *= 0.94;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                /* bounce off edges */
+                const m = this.r;
+                if (this.x < m)                  { this.x = m;                  this.vx *= -0.5; }
+                if (this.x > canvas.width  - m)  { this.x = canvas.width  - m;  this.vx *= -0.5; }
+                if (this.y < m)                  { this.y = m;                  this.vy *= -0.5; }
+                if (this.y > canvas.height - m)  { this.y = canvas.height - m;  this.vy *= -0.5; }
+
+                /* energy = speed normalized to [0,1] */
+                const speed       = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const targetEnergy = Math.min(1, speed / MAX_SPEED);
+                this.energy += (targetEnergy - this.energy) * 0.08;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fillStyle = colorFromEnergy(this.energy);
+                ctx.fill();
+            }
+        }
+
+        const particles = [];
+        for (let i = 0; i < NUM; i++) particles.push(new Particle(i));
+
+        function loop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(loop);
+        }
+        loop();
+    </script>
 </body>
 </html>
