@@ -19,8 +19,18 @@
             gap: 18px;
             z-index: 10;
         }
+        #time-label {
+            position: fixed;
+            bottom: 72px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 10;
+            pointer-events: none;
+        }
         .lbl {
-            color: rgba(255,255,255,0.35);
+            color: rgba(255,255,255,0.38);
             font-family: -apple-system, Helvetica, sans-serif;
             font-size: 10px;
             letter-spacing: 0.14em;
@@ -54,10 +64,11 @@
 </head>
 <body>
 
+<span id="time-label" class="lbl"></span>
+
 <div id="ui">
     <span class="lbl">Pause</span>
     <input type="range" id="speed" min="0" max="2" step="0.01" value="1">
-    <span class="lbl">2×</span>
 </div>
 
 <script type="importmap">
@@ -82,9 +93,9 @@ document.body.appendChild(renderer.domElement);
 
 const scene  = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
-camera.position.set(0, 38, 80);
+camera.position.set(0, 42, 90);
 
-// ── Controls: 1 finger = rotate all axes, 2 fingers = pinch zoom ──────────
+// ── Controls ──────────────────────────────────────────────────────────────
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.07;
@@ -98,8 +109,7 @@ controls.touches = {
     TWO: THREE.TOUCH.DOLLY_ROTATE,
 };
 
-// ── Planet data (real relative values) ───────────────────────────────────
-// relR: radius relative to Earth · au: semi-major axis · period: Earth years
+// ── Planet data ───────────────────────────────────────────────────────────
 const PLANETS = [
     { relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5 },   // Merkur
     { relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0 },   // Venus
@@ -111,13 +121,18 @@ const PLANETS = [
     { relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4 },   // Neptun
 ];
 
-// ── Power-law orbit compression (all 8 orbits fit, spacing stays relative) ─
+// ── Scale constants ───────────────────────────────────────────────────────
+// Sun radius 10 × Earth display radius 0.40 = Sun is ~25× Earth visually,
+// real ratio is 109× — compressed for clarity while keeping Sun >> all planets
+const SUN_R   = 10;
+const EARTH_R = 0.40;   // Earth sphere radius in scene units
+
+// Orbit compression: power law so all 8 orbits fit but spacing stays relative
 const K       = 0.42;
 const AU_MIN  = Math.pow(PLANETS[0].au, K);
 const AU_MAX  = Math.pow(PLANETS[PLANETS.length - 1].au, K);
-const ORB_MIN = 9;    // Mercury orbit (scene units)
-const ORB_MAX = 55;   // Neptune orbit (scene units)
-const EARTH_R = 0.55; // Earth sphere radius (scene units)
+const ORB_MIN = 15;   // Mercury orbit — well outside sun radius
+const ORB_MAX = 65;   // Neptune orbit
 
 function orbitRadius(au) {
     return ORB_MIN + (Math.pow(au, K) - AU_MIN) / (AU_MAX - AU_MIN) * (ORB_MAX - ORB_MIN);
@@ -141,7 +156,7 @@ function orbitRadius(au) {
 
 // ── Sun ───────────────────────────────────────────────────────────────────
 scene.add(new THREE.Mesh(
-    new THREE.SphereGeometry(5, 64, 64),
+    new THREE.SphereGeometry(SUN_R, 64, 64),
     new THREE.MeshBasicMaterial({ color: 0xffaa20 })
 ));
 
@@ -160,7 +175,7 @@ function addOrbitRing(radius) {
 
 // ── Build planets ─────────────────────────────────────────────────────────
 const pivots = PLANETS.map(p => {
-    const r   = Math.max(0.22, p.relR * EARTH_R);
+    const r   = Math.max(0.18, p.relR * EARTH_R);
     const orb = orbitRadius(p.au);
 
     addOrbitRing(orb);
@@ -181,7 +196,7 @@ const pivots = PLANETS.map(p => {
                 opacity: 0.48,
             })
         );
-        ring.rotation.x = -Math.PI / 2; // flat in XZ plane
+        ring.rotation.x = -Math.PI / 2;
         mesh.add(ring);
     }
 
@@ -193,15 +208,34 @@ const pivots = PLANETS.map(p => {
     return pivot;
 });
 
-// ── Speed slider ──────────────────────────────────────────────────────────
+// ── Speed control with dynamic label ─────────────────────────────────────
+// DAYS_PER_FRAME=15 → slider range gives ~0 to 5 Erdenjahre/s
+const DAYS_PER_FRAME = 15;
 let speedMult = 1;
-document.getElementById('speed').addEventListener('input', e => {
+
+const speedEl  = document.getElementById('speed');
+const timeLbl  = document.getElementById('time-label');
+
+function formatYPS(mult) {
+    const yps = (DAYS_PER_FRAME * mult * 60) / 365.25;
+    if (yps < 0.005) return '0 Erdenjahre / s';
+    if (yps < 1)     return yps.toFixed(2) + ' Erdenjahre / s';
+    return yps.toFixed(1) + ' Erdenjahre / s';
+}
+
+let dragging = false;
+
+speedEl.addEventListener('mousedown',  () => { dragging = true;  timeLbl.style.opacity = '1'; });
+speedEl.addEventListener('touchstart', () => { dragging = true;  timeLbl.style.opacity = '1'; }, { passive: true });
+window .addEventListener('mouseup',    () => { if (dragging) { dragging = false; timeLbl.style.opacity = '0'; } });
+window .addEventListener('touchend',   () => { if (dragging) { dragging = false; timeLbl.style.opacity = '0'; } });
+
+speedEl.addEventListener('input', e => {
     speedMult = parseFloat(e.target.value);
+    timeLbl.textContent = formatYPS(speedMult);
 });
 
 // ── Animation loop ────────────────────────────────────────────────────────
-// 5 Earth days / frame at 1× → Mercury ~0.3 s/orbit, Neptune ~3 min/orbit
-const DAYS_PER_FRAME = 5;
 let gameTime = 0;
 
 function animate() {
