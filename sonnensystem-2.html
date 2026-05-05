@@ -9,12 +9,23 @@
         body { background: #05050f; overflow: hidden; }
         #three   { position: fixed; top: 0; left: 0; touch-action: none; z-index: 1; }
         #overlay { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 5; }
+
         #label {
             position: fixed; display: none; pointer-events: none; z-index: 10;
-            color: rgba(255,255,255,0.9);
             font-family: -apple-system, Helvetica, sans-serif;
-            font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
         }
+        #label-name {
+            display: block;
+            color: rgba(255,255,255,0.92);
+            font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+        }
+        #label-info {
+            display: block;
+            color: rgba(255,255,255,0.50);
+            font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+            margin-top: 5px; line-height: 1.7;
+        }
+
         #ui {
             position: fixed; bottom: 36px; left: 50%;
             transform: translateX(-50%);
@@ -50,7 +61,10 @@
 <body>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
-    <div id="label"></div>
+    <div id="label">
+        <span id="label-name"></span>
+        <span id="label-info"></span>
+    </div>
     <span id="time-label" class="lbl"></span>
     <div id="ui">
         <span class="lbl">Pause</span>
@@ -68,7 +82,7 @@
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    // ── Renderer / Canvas ─────────────────────────────────────────────────
+    // ── Renderer ──────────────────────────────────────────────────────────
     const threeCanvas   = document.getElementById('three');
     const overlayCanvas = document.getElementById('overlay');
     const oc = overlayCanvas.getContext('2d');
@@ -80,17 +94,19 @@
 
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 42, 90);
+
+    // ── Home position (tap sun → return here) ─────────────────────────────
+    const HOME_POS    = new THREE.Vector3(0, 42, 90);
+    const HOME_TARGET = new THREE.Vector3(0,  0,  0);
+    camera.position.copy(HOME_POS);
 
     // ── Controls ──────────────────────────────────────────────────────────
-    // 1 finger  → rotate on all axes
-    // 2 fingers → pinch = zoom  |  parallel drag = pan (left/right/up/down)
     const controls = new OrbitControls(camera, threeCanvas);
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
     controls.enablePan     = true;
     controls.panSpeed      = 0.6;
-    controls.minDistance   = 8;   // prevents getting lost when zooming in
+    controls.minDistance   = 8;
     controls.maxDistance   = 400;
     controls.rotateSpeed   = 0.55;
     controls.zoomSpeed     = 1.2;
@@ -110,15 +126,16 @@
     overlayCanvas.height = window.innerHeight;
 
     // ── Planet data ───────────────────────────────────────────────────────
+    // kmh: mean orbital velocity in km/h (real values)
     const PLANETS = [
-        { name: 'Merkur',  relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5 },
-        { name: 'Venus',   relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0 },
-        { name: 'Erde',    relR:  1.000, au:  1.000, period:   1.000, color: 0x6b93d6 },
-        { name: 'Mars',    relR:  0.532, au:  1.524, period:   1.881, color: 0xc04a1a },
-        { name: 'Jupiter', relR: 11.210, au:  5.203, period:  11.860, color: 0xc88b3a },
-        { name: 'Saturn',  relR:  9.450, au:  9.537, period:  29.460, color: 0xe4d191, rings: true },
-        { name: 'Uranus',  relR:  4.010, au: 19.190, period:  84.010, color: 0xa0e8e8 },
-        { name: 'Neptun',  relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4 },
+        { name: 'Merkur',  relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5, kmh: 172332 },
+        { name: 'Venus',   relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0, kmh: 126072 },
+        { name: 'Erde',    relR:  1.000, au:  1.000, period:   1.000, color: 0x6b93d6, kmh: 107208 },
+        { name: 'Mars',    relR:  0.532, au:  1.524, period:   1.881, color: 0xc04a1a, kmh:  86652 },
+        { name: 'Jupiter', relR: 11.210, au:  5.203, period:  11.860, color: 0xc88b3a, kmh:  47052 },
+        { name: 'Saturn',  relR:  9.450, au:  9.537, period:  29.460, color: 0xe4d191, kmh:  34884, rings: true },
+        { name: 'Uranus',  relR:  4.010, au: 19.190, period:  84.010, color: 0xa0e8e8, kmh:  24516 },
+        { name: 'Neptun',  relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4, kmh:  19548 },
     ];
 
     const K       = 0.42;
@@ -129,6 +146,13 @@
 
     function orbitR(au) {
         return ORB_MIN + (Math.pow(au, K) - AU_MIN) / (AU_MAX - AU_MIN) * (ORB_MAX - ORB_MIN);
+    }
+
+    function fmtPeriod(y) {
+        const opts = y < 1   ? { maximumFractionDigits: 3 }
+                   : y < 10  ? { maximumFractionDigits: 2 }
+                              : { maximumFractionDigits: 1 };
+        return y.toLocaleString('de-DE', opts);
     }
 
     // ── Starfield ─────────────────────────────────────────────────────────
@@ -166,9 +190,19 @@
         ));
     }
 
-    // ── Build planets ─────────────────────────────────────────────────────
+    // ── Planets ───────────────────────────────────────────────────────────
     const hitboxes = [];
-    const pivots   = PLANETS.map((p, idx) => {
+
+    // Sun hitbox — tap returns to home view
+    const sunHit = new THREE.Mesh(
+        new THREE.SphereGeometry(10, 8, 8),
+        new THREE.MeshBasicMaterial({ visible: false })
+    );
+    sunHit.userData.isSun = true;
+    scene.add(sunHit);
+    hitboxes.push(sunHit);
+
+    const pivots = PLANETS.map((p, idx) => {
         const r   = Math.max(0.18, p.relR * EARTH_R);
         const orb = orbitR(p.au);
 
@@ -191,7 +225,7 @@
             mesh.add(ring);
         }
 
-        // Invisible, larger hitbox so small planets are still tappable
+        // Enlarged invisible hitbox — easier to tap small planets
         const hit = new THREE.Mesh(
             new THREE.SphereGeometry(Math.max(1.2, r * 1.5), 8, 8),
             new THREE.MeshBasicMaterial({ visible: false })
@@ -208,71 +242,89 @@
         return pivot;
     });
 
-    // ── Focus / defocus ───────────────────────────────────────────────────
-    let focused = null;   // { idx, mesh, dispR, prevPos, savedCamPos, savedTarget }
+    // ── Focus / home ──────────────────────────────────────────────────────
+    let focused = null;   // { idx, mesh, dispR, prevPos }
     let camAnim = null;   // { from, to, camOffset?, followMesh?, t, dur, onDone? }
 
-    const labelEl = document.getElementById('label');
-    const tmpV    = new THREE.Vector3();
+    const labelEl     = document.getElementById('label');
+    const labelNameEl = document.getElementById('label-name');
+    const labelInfoEl = document.getElementById('label-info');
 
     function easeIO(t) { return t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; }
+
+    function goHome(dur = 1.0) {
+        focused = null;
+        labelEl.style.display = 'none';
+        controls.minDistance  = 8;
+        camAnim = {
+            from: { pos: camera.position.clone(), tgt: controls.target.clone() },
+            to:   { pos: HOME_POS.clone(),        tgt: HOME_TARGET.clone() },
+            t: 0, dur,
+        };
+    }
 
     function focusPlanet(idx) {
         if (camAnim) return;
         const { mesh, dispR } = pivots[idx].userData;
-        mesh.getWorldPosition(tmpV);
+        const wp = new THREE.Vector3();
+        mesh.getWorldPosition(wp);
 
-        // Camera stays in its current direction from planet, just moves closer
-        const camOffset = camera.position.clone().sub(tmpV).normalize()
-                                   .multiplyScalar(dispR * 5 + 2);
+        // Camera approaches from its current direction; distance fills ~60% of screen
+        const focusDist  = Math.max(3.0, dispR * 3.5);
+        const camOffset  = camera.position.clone().sub(wp).normalize().multiplyScalar(focusDist);
 
-        focused = {
-            idx, mesh, dispR,
-            prevPos:    tmpV.clone(),
-            savedCamPos: camera.position.clone(),
-            savedTarget: controls.target.clone(),
-        };
+        const p = PLANETS[idx];
+        focused = { idx, mesh, dispR, prevPos: wp.clone() };
         labelEl.style.display  = 'block';
-        labelEl.textContent    = PLANETS[idx].name;
+        labelNameEl.textContent = p.name;
+        labelInfoEl.innerHTML   =
+            p.kmh.toLocaleString('de-DE') + '&thinsp;km/h<br>' +
+            fmtPeriod(p.period) + ' Erdenjahre';
 
         camAnim = {
             from:       { pos: camera.position.clone(), tgt: controls.target.clone() },
-            to:         { pos: tmpV.clone().add(camOffset), tgt: tmpV.clone() },
+            to:         { pos: wp.clone().add(camOffset), tgt: wp.clone() },
             camOffset,
             followMesh: mesh,
             t: 0, dur: 1.2,
-            onDone: () => { controls.minDistance = Math.max(1.5, dispR * 2); },
+            onDone: () => { controls.minDistance = Math.max(1.0, dispR * 1.5); },
         };
     }
 
-    function defocusPlanet() {
-        if (!focused || camAnim) return;
-        const from = { pos: camera.position.clone(), tgt: controls.target.clone() };
-        const to   = { pos: focused.savedCamPos,     tgt: focused.savedTarget };
-        focused = null;
-        labelEl.style.display = 'none';
-        controls.minDistance  = 8;
-        camAnim = { from, to, t: 0, dur: 1.0 };
-    }
-
-    // ── Tap detection ─────────────────────────────────────────────────────
-    const raycaster  = new THREE.Raycaster();
-    let touchStart   = null;
-    let touchDone    = false;
+    // ── Tap ───────────────────────────────────────────────────────────────
+    const raycaster = new THREE.Raycaster();
+    let touchStart  = null;
+    let touchDone   = false;
 
     function handleTap(cx, cy) {
         if (camAnim) return;
         raycaster.setFromCamera(
-            new THREE.Vector2((cx / window.innerWidth) * 2 - 1,
+            new THREE.Vector2((cx / window.innerWidth)  * 2 - 1,
                               -(cy / window.innerHeight) * 2 + 1),
             camera
         );
         const hits = raycaster.intersectObjects(hitboxes, false);
-        if (hits.length) {
-            const idx = hits[0].object.userData.planetIndex;
-            (focused && focused.idx === idx) ? defocusPlanet() : focusPlanet(idx);
+
+        if (!hits.length) {
+            if (focused) goHome();
+            return;
+        }
+
+        const obj = hits[0].object;
+        if (obj.userData.isSun) {
+            goHome();
         } else {
-            defocusPlanet();
+            const idx = obj.userData.planetIndex;
+            if (focused && focused.idx === idx) {
+                goHome();           // tap same planet again → release & home
+            } else {
+                if (focused) {
+                    focused = null;
+                    labelEl.style.display = 'none';
+                    controls.minDistance  = 8;
+                }
+                focusPlanet(idx);   // tap different planet → focus it
+            }
         }
     }
 
@@ -296,9 +348,14 @@
 
     threeCanvas.addEventListener('click', e => { if (!touchDone) handleTap(e.clientX, e.clientY); });
 
-    // ── Speed slider ──────────────────────────────────────────────────────
+    // ── Speed slider with inertia ─────────────────────────────────────────
+    // speedMult lerps toward targetSpeedMult at SPEED_LERP per frame
+    // → gradual onset / decay when slider is moved
     const DAYS_PER_FRAME = 15;
-    let speedMult = 1;
+    let targetSpeedMult = 1;
+    let speedMult       = 1;
+    const SPEED_LERP    = 0.04;   // ~1 s to reach new target
+
     const speedEl = document.getElementById('speed');
     const timeLbl = document.getElementById('time-label');
     let sliderDrag = false;
@@ -313,34 +370,41 @@
     speedEl.addEventListener('touchstart', () => { sliderDrag = true;  timeLbl.style.opacity = '1'; }, { passive: true });
     window .addEventListener('mouseup',    () => { if (sliderDrag) { sliderDrag = false; timeLbl.style.opacity = '0'; } });
     window .addEventListener('touchend',   () => { if (sliderDrag) { sliderDrag = false; timeLbl.style.opacity = '0'; } });
-    speedEl.addEventListener('input', e => { speedMult = +e.target.value; timeLbl.textContent = fmtYPS(speedMult); });
+    speedEl.addEventListener('input', e => {
+        targetSpeedMult = +e.target.value;
+        timeLbl.textContent = fmtYPS(targetSpeedMult);
+    });
 
-    // ── Label + connecting line ───────────────────────────────────────────
+    // ── Label + line overlay ──────────────────────────────────────────────
     function updateLabel() {
         oc.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
         if (!focused) return;
 
-        focused.mesh.getWorldPosition(tmpV);
-        const sp  = tmpV.clone().project(camera);
+        const wp = new THREE.Vector3();
+        focused.mesh.getWorldPosition(wp);
+        const sp  = wp.clone().project(camera);
         const sx  = (sp.x + 1) / 2 * window.innerWidth;
         const sy  = (1 - sp.y) / 2 * window.innerHeight;
 
-        // Screen radius of planet
-        const dist    = camera.position.distanceTo(tmpV);
+        // Screen-space radius
+        const dist    = camera.position.distanceTo(wp);
         const screenH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
         const sr      = Math.max(4, (focused.dispR / screenH) * window.innerHeight);
 
-        // Place label to the left if planet is near right edge
-        const goLeft = sx > window.innerWidth * 0.65;
-        const lx = goLeft ? sx - sr - 14 - (labelEl.offsetWidth || 60) : sx + sr + 14;
-        const ly = sy - (labelEl.offsetHeight || 14) / 2;
+        // Label placement: flip to left if planet is near right edge
+        const lw      = labelEl.offsetWidth  || 80;
+        const lh      = labelEl.offsetHeight || 30;
+        const margin  = 18;
+        const goLeft  = sx > window.innerWidth * 0.65;
+        const lx      = goLeft ? sx - sr - margin - lw : sx + sr + margin;
+        const ly      = sy - lh / 2;
 
         labelEl.style.left = Math.round(lx) + 'px';
         labelEl.style.top  = Math.round(ly) + 'px';
 
-        // Connector line: planet edge → label
-        const lcx = goLeft ? lx + (labelEl.offsetWidth || 60) + 4 : lx - 4;
-        const lcy = ly + (labelEl.offsetHeight || 14) / 2;
+        // Connector: from planet edge → label edge
+        const lcx = goLeft ? lx + lw + 4 : lx - 4;
+        const lcy = ly + lh / 2;
         const dx  = lcx - sx, dy = lcy - sy;
         const len = Math.hypot(dx, dy);
         const ex  = sx + (dx / len) * (sr + 2);
@@ -349,14 +413,13 @@
         oc.beginPath();
         oc.moveTo(ex, ey);
         oc.lineTo(lcx, lcy);
-        oc.strokeStyle = 'rgba(255,255,255,0.5)';
+        oc.strokeStyle = 'rgba(255,255,255,0.45)';
         oc.lineWidth   = 0.9;
         oc.stroke();
 
-        // Dot at planet edge
         oc.beginPath();
         oc.arc(ex, ey, 2, 0, Math.PI * 2);
-        oc.fillStyle = 'rgba(255,255,255,0.75)';
+        oc.fillStyle = 'rgba(255,255,255,0.7)';
         oc.fill();
     }
 
@@ -365,6 +428,13 @@
 
     function animate() {
         requestAnimationFrame(animate);
+
+        // Speed inertia: lerp toward target, snap when close
+        if (Math.abs(speedMult - targetSpeedMult) > 0.001) {
+            speedMult += (targetSpeedMult - speedMult) * SPEED_LERP;
+        } else {
+            speedMult = targetSpeedMult;
+        }
 
         gameTime += DAYS_PER_FRAME * speedMult;
 
@@ -378,11 +448,12 @@
             camAnim.t = Math.min(1, camAnim.t + 0.016 / camAnim.dur);
             const t  = easeIO(camAnim.t);
 
-            // Re-anchor to planet's current position during focus animation
+            // Re-anchor to planet's live position during focus zoom
             if (camAnim.followMesh) {
-                camAnim.followMesh.getWorldPosition(tmpV);
-                camAnim.to.tgt.copy(tmpV);
-                camAnim.to.pos.copy(tmpV).add(camAnim.camOffset);
+                const wp = new THREE.Vector3();
+                camAnim.followMesh.getWorldPosition(wp);
+                camAnim.to.tgt.copy(wp);
+                camAnim.to.pos.copy(wp).add(camAnim.camOffset);
             }
 
             camera.position.lerpVectors(camAnim.from.pos, camAnim.to.pos, t);
@@ -394,13 +465,14 @@
                 controls.enabled = true;
             }
         } else {
-            // Camera follows focused planet frame-by-frame
+            // While focused: keep camera locked to planet, let controls orbit around it
             if (focused) {
-                focused.mesh.getWorldPosition(tmpV);
-                const delta = tmpV.clone().sub(focused.prevPos);
+                const wp = new THREE.Vector3();
+                focused.mesh.getWorldPosition(wp);
+                const delta = wp.clone().sub(focused.prevPos);
                 camera.position.add(delta);
-                controls.target.add(delta);
-                focused.prevPos.copy(tmpV);
+                controls.target.copy(wp);   // direct set keeps planet exactly centred
+                focused.prevPos.copy(wp);
             }
             controls.update();
         }
