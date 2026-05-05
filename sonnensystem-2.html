@@ -7,258 +7,410 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #05050f; overflow: hidden; }
-        canvas { display: block; touch-action: none; }
-
+        #three   { position: fixed; top: 0; left: 0; touch-action: none; z-index: 1; }
+        #overlay { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 5; }
+        #label {
+            position: fixed; display: none; pointer-events: none; z-index: 10;
+            color: rgba(255,255,255,0.9);
+            font-family: -apple-system, Helvetica, sans-serif;
+            font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+        }
         #ui {
-            position: fixed;
-            bottom: 36px;
-            left: 50%;
+            position: fixed; bottom: 36px; left: 50%;
             transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            z-index: 10;
+            display: flex; align-items: center; gap: 18px; z-index: 20;
         }
         #time-label {
-            position: fixed;
-            bottom: 72px;
-            left: 50%;
+            position: fixed; bottom: 72px; left: 50%;
             transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.15s;
-            z-index: 10;
-            pointer-events: none;
+            opacity: 0; transition: opacity 0.15s; z-index: 20; pointer-events: none;
         }
         .lbl {
             color: rgba(255,255,255,0.38);
             font-family: -apple-system, Helvetica, sans-serif;
-            font-size: 10px;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            white-space: nowrap;
+            font-size: 10px; letter-spacing: 0.14em;
+            text-transform: uppercase; white-space: nowrap;
         }
         #speed {
-            width: 220px;
-            height: 2px;
-            cursor: pointer;
-            -webkit-appearance: none;
-            appearance: none;
-            background: rgba(255,255,255,0.2);
-            border-radius: 1px;
-            outline: none;
+            width: 220px; height: 2px; cursor: pointer;
+            -webkit-appearance: none; appearance: none;
+            background: rgba(255,255,255,0.2); border-radius: 1px; outline: none;
         }
         #speed::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 22px; height: 22px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.9);
+            -webkit-appearance: none; width: 22px; height: 22px;
+            border-radius: 50%; background: rgba(255,255,255,0.9);
             box-shadow: 0 0 10px rgba(255,255,255,0.35);
         }
         #speed::-moz-range-thumb {
-            width: 22px; height: 22px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.9);
-            border: none;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: rgba(255,255,255,0.9); border: none;
         }
     </style>
 </head>
 <body>
+    <canvas id="three"></canvas>
+    <canvas id="overlay"></canvas>
+    <div id="label"></div>
+    <span id="time-label" class="lbl"></span>
+    <div id="ui">
+        <span class="lbl">Pause</span>
+        <input type="range" id="speed" min="0" max="2" step="0.01" value="1">
+    </div>
 
-<span id="time-label" class="lbl"></span>
-
-<div id="ui">
-    <span class="lbl">Pause</span>
-    <input type="range" id="speed" min="0" max="2" step="0.01" value="1">
-</div>
-
-<script type="importmap">
-{
-    "imports": {
+    <script type="importmap">
+    { "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
         "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    } }
+    </script>
+
+    <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // ── Renderer / Canvas ─────────────────────────────────────────────────
+    const threeCanvas   = document.getElementById('three');
+    const overlayCanvas = document.getElementById('overlay');
+    const oc = overlayCanvas.getContext('2d');
+
+    const renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x05050f);
+
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 42, 90);
+
+    // ── Controls ──────────────────────────────────────────────────────────
+    // 1 finger  → rotate on all axes
+    // 2 fingers → pinch = zoom  |  parallel drag = pan (left/right/up/down)
+    const controls = new OrbitControls(camera, threeCanvas);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.enablePan     = true;
+    controls.panSpeed      = 0.6;
+    controls.minDistance   = 8;   // prevents getting lost when zooming in
+    controls.maxDistance   = 400;
+    controls.rotateSpeed   = 0.55;
+    controls.zoomSpeed     = 1.2;
+    controls.touches = {
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN,
+    };
+
+    function resizeAll() {
+        overlayCanvas.width  = window.innerWidth;
+        overlayCanvas.height = window.innerHeight;
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
     }
-}
-</script>
+    overlayCanvas.width  = window.innerWidth;
+    overlayCanvas.height = window.innerHeight;
 
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    // ── Planet data ───────────────────────────────────────────────────────
+    const PLANETS = [
+        { name: 'Merkur',  relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5 },
+        { name: 'Venus',   relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0 },
+        { name: 'Erde',    relR:  1.000, au:  1.000, period:   1.000, color: 0x6b93d6 },
+        { name: 'Mars',    relR:  0.532, au:  1.524, period:   1.881, color: 0xc04a1a },
+        { name: 'Jupiter', relR: 11.210, au:  5.203, period:  11.860, color: 0xc88b3a },
+        { name: 'Saturn',  relR:  9.450, au:  9.537, period:  29.460, color: 0xe4d191, rings: true },
+        { name: 'Uranus',  relR:  4.010, au: 19.190, period:  84.010, color: 0xa0e8e8 },
+        { name: 'Neptun',  relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4 },
+    ];
 
-// ── Renderer ──────────────────────────────────────────────────────────────
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x05050f);
-document.body.appendChild(renderer.domElement);
+    const K       = 0.42;
+    const AU_MIN  = Math.pow(PLANETS[0].au, K);
+    const AU_MAX  = Math.pow(PLANETS[PLANETS.length - 1].au, K);
+    const ORB_MIN = 15, ORB_MAX = 65;
+    const EARTH_R = 0.40;
 
-const scene  = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
-camera.position.set(0, 42, 90);
-
-// ── Controls ──────────────────────────────────────────────────────────────
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.07;
-controls.enablePan     = false;
-controls.minDistance   = 1.5;
-controls.maxDistance   = 600;
-controls.rotateSpeed   = 0.55;
-controls.zoomSpeed     = 1.2;
-controls.touches = {
-    ONE: THREE.TOUCH.ROTATE,
-    TWO: THREE.TOUCH.DOLLY_ROTATE,
-};
-
-// ── Planet data ───────────────────────────────────────────────────────────
-const PLANETS = [
-    { relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5 },   // Merkur
-    { relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0 },   // Venus
-    { relR:  1.000, au:  1.000, period:   1.000, color: 0x6b93d6 },   // Erde
-    { relR:  0.532, au:  1.524, period:   1.881, color: 0xc04a1a },   // Mars
-    { relR: 11.210, au:  5.203, period:  11.860, color: 0xc88b3a },   // Jupiter
-    { relR:  9.450, au:  9.537, period:  29.460, color: 0xe4d191, rings: true }, // Saturn
-    { relR:  4.010, au: 19.190, period:  84.010, color: 0xa0e8e8 },   // Uranus
-    { relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4 },   // Neptun
-];
-
-// ── Scale constants ───────────────────────────────────────────────────────
-// Sun radius 10 × Earth display radius 0.40 = Sun is ~25× Earth visually,
-// real ratio is 109× — compressed for clarity while keeping Sun >> all planets
-const SUN_R   = 10;
-const EARTH_R = 0.40;   // Earth sphere radius in scene units
-
-// Orbit compression: power law so all 8 orbits fit but spacing stays relative
-const K       = 0.42;
-const AU_MIN  = Math.pow(PLANETS[0].au, K);
-const AU_MAX  = Math.pow(PLANETS[PLANETS.length - 1].au, K);
-const ORB_MIN = 15;   // Mercury orbit — well outside sun radius
-const ORB_MAX = 65;   // Neptune orbit
-
-function orbitRadius(au) {
-    return ORB_MIN + (Math.pow(au, K) - AU_MIN) / (AU_MAX - AU_MIN) * (ORB_MAX - ORB_MIN);
-}
-
-// ── Starfield ─────────────────────────────────────────────────────────────
-{
-    const pos = new Float32Array(2000 * 3);
-    for (let i = 0; i < 2000; i++) {
-        const theta = Math.random() * Math.PI * 2;
-        const phi   = Math.acos(2 * Math.random() - 1);
-        const r     = 280 + Math.random() * 220;
-        pos[i*3]     = r * Math.sin(phi) * Math.cos(theta);
-        pos[i*3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-        pos[i*3 + 2] = r * Math.cos(phi);
+    function orbitR(au) {
+        return ORB_MIN + (Math.pow(au, K) - AU_MIN) / (AU_MAX - AU_MIN) * (ORB_MAX - ORB_MIN);
     }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.28 })));
-}
 
-// ── Sun ───────────────────────────────────────────────────────────────────
-scene.add(new THREE.Mesh(
-    new THREE.SphereGeometry(SUN_R, 64, 64),
-    new THREE.MeshBasicMaterial({ color: 0xffaa20 })
-));
-
-// ── Orbit ring helper ─────────────────────────────────────────────────────
-function addOrbitRing(radius) {
-    const pts = [];
-    for (let i = 0; i <= 256; i++) {
-        const a = (i / 256) * Math.PI * 2;
-        pts.push(new THREE.Vector3(Math.cos(a) * radius, 0, Math.sin(a) * radius));
+    // ── Starfield ─────────────────────────────────────────────────────────
+    {
+        const pos = new Float32Array(2000 * 3);
+        for (let i = 0; i < 2000; i++) {
+            const th = Math.random() * Math.PI * 2;
+            const ph = Math.acos(2 * Math.random() - 1);
+            const r  = 280 + Math.random() * 220;
+            pos[i*3]   = r * Math.sin(ph) * Math.cos(th);
+            pos[i*3+1] = r * Math.sin(ph) * Math.sin(th);
+            pos[i*3+2] = r * Math.cos(ph);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.28 })));
     }
-    scene.add(new THREE.LineLoop(
-        new THREE.BufferGeometry().setFromPoints(pts),
-        new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.18, transparent: true })
+
+    // ── Sun ───────────────────────────────────────────────────────────────
+    scene.add(new THREE.Mesh(
+        new THREE.SphereGeometry(10, 64, 64),
+        new THREE.MeshBasicMaterial({ color: 0xffaa20 })
     ));
-}
 
-// ── Build planets ─────────────────────────────────────────────────────────
-const pivots = PLANETS.map(p => {
-    const r   = Math.max(0.18, p.relR * EARTH_R);
-    const orb = orbitRadius(p.au);
-
-    addOrbitRing(orb);
-
-    const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(r, 32, 32),
-        new THREE.MeshBasicMaterial({ color: p.color })
-    );
-    mesh.position.x = orb;
-
-    if (p.rings) {
-        const ring = new THREE.Mesh(
-            new THREE.RingGeometry(r * 1.35, r * 2.3, 128),
-            new THREE.MeshBasicMaterial({
-                color: 0xc8b87a,
-                side: THREE.DoubleSide,
-                transparent: true,
-                opacity: 0.48,
-            })
-        );
-        ring.rotation.x = -Math.PI / 2;
-        mesh.add(ring);
+    // ── Orbit rings ───────────────────────────────────────────────────────
+    function addOrbitRing(radius) {
+        const pts = [];
+        for (let i = 0; i <= 256; i++) {
+            const a = (i / 256) * Math.PI * 2;
+            pts.push(new THREE.Vector3(Math.cos(a) * radius, 0, Math.sin(a) * radius));
+        }
+        scene.add(new THREE.LineLoop(
+            new THREE.BufferGeometry().setFromPoints(pts),
+            new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.18, transparent: true })
+        ));
     }
 
-    const pivot = new THREE.Group();
-    pivot.add(mesh);
-    pivot.userData.period = p.period;
-    pivot.userData.theta0 = Math.random() * Math.PI * 2;
-    scene.add(pivot);
-    return pivot;
-});
+    // ── Build planets ─────────────────────────────────────────────────────
+    const hitboxes = [];
+    const pivots   = PLANETS.map((p, idx) => {
+        const r   = Math.max(0.18, p.relR * EARTH_R);
+        const orb = orbitR(p.au);
 
-// ── Speed control with dynamic label ─────────────────────────────────────
-// DAYS_PER_FRAME=15 → slider range gives ~0 to 5 Erdenjahre/s
-const DAYS_PER_FRAME = 15;
-let speedMult = 1;
+        addOrbitRing(orb);
 
-const speedEl  = document.getElementById('speed');
-const timeLbl  = document.getElementById('time-label');
+        const mesh = new THREE.Mesh(
+            new THREE.SphereGeometry(r, 32, 32),
+            new THREE.MeshBasicMaterial({ color: p.color })
+        );
+        mesh.position.x = orb;
 
-function formatYPS(mult) {
-    const yps = (DAYS_PER_FRAME * mult * 60) / 365.25;
-    if (yps < 0.005) return '0 Erdenjahre / s';
-    if (yps < 1)     return yps.toFixed(2) + ' Erdenjahre / s';
-    return yps.toFixed(1) + ' Erdenjahre / s';
-}
+        if (p.rings) {
+            const ring = new THREE.Mesh(
+                new THREE.RingGeometry(r * 1.35, r * 2.3, 128),
+                new THREE.MeshBasicMaterial({
+                    color: 0xc8b87a, side: THREE.DoubleSide, transparent: true, opacity: 0.48
+                })
+            );
+            ring.rotation.x = -Math.PI / 2;
+            mesh.add(ring);
+        }
 
-let dragging = false;
+        // Invisible, larger hitbox so small planets are still tappable
+        const hit = new THREE.Mesh(
+            new THREE.SphereGeometry(Math.max(1.2, r * 1.5), 8, 8),
+            new THREE.MeshBasicMaterial({ visible: false })
+        );
+        hit.position.x = orb;
+        hit.userData.planetIndex = idx;
+        hitboxes.push(hit);
 
-speedEl.addEventListener('mousedown',  () => { dragging = true;  timeLbl.style.opacity = '1'; });
-speedEl.addEventListener('touchstart', () => { dragging = true;  timeLbl.style.opacity = '1'; }, { passive: true });
-window .addEventListener('mouseup',    () => { if (dragging) { dragging = false; timeLbl.style.opacity = '0'; } });
-window .addEventListener('touchend',   () => { if (dragging) { dragging = false; timeLbl.style.opacity = '0'; } });
-
-speedEl.addEventListener('input', e => {
-    speedMult = parseFloat(e.target.value);
-    timeLbl.textContent = formatYPS(speedMult);
-});
-
-// ── Animation loop ────────────────────────────────────────────────────────
-let gameTime = 0;
-
-function animate() {
-    requestAnimationFrame(animate);
-    gameTime += DAYS_PER_FRAME * speedMult;
-
-    pivots.forEach(pivot => {
-        pivot.rotation.y = pivot.userData.theta0
-            + (gameTime / (pivot.userData.period * 365.25)) * Math.PI * 2;
+        const pivot = new THREE.Group();
+        pivot.add(mesh);
+        pivot.add(hit);
+        pivot.userData = { period: p.period, theta0: Math.random() * Math.PI * 2, mesh, dispR: r };
+        scene.add(pivot);
+        return pivot;
     });
 
-    controls.update();
-    renderer.render(scene, camera);
-}
+    // ── Focus / defocus ───────────────────────────────────────────────────
+    let focused = null;   // { idx, mesh, dispR, prevPos, savedCamPos, savedTarget }
+    let camAnim = null;   // { from, to, camOffset?, followMesh?, t, dur, onDone? }
 
-animate();
+    const labelEl = document.getElementById('label');
+    const tmpV    = new THREE.Vector3();
 
-// ── Resize ────────────────────────────────────────────────────────────────
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
-</script>
+    function easeIO(t) { return t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; }
+
+    function focusPlanet(idx) {
+        if (camAnim) return;
+        const { mesh, dispR } = pivots[idx].userData;
+        mesh.getWorldPosition(tmpV);
+
+        // Camera stays in its current direction from planet, just moves closer
+        const camOffset = camera.position.clone().sub(tmpV).normalize()
+                                   .multiplyScalar(dispR * 5 + 2);
+
+        focused = {
+            idx, mesh, dispR,
+            prevPos:    tmpV.clone(),
+            savedCamPos: camera.position.clone(),
+            savedTarget: controls.target.clone(),
+        };
+        labelEl.style.display  = 'block';
+        labelEl.textContent    = PLANETS[idx].name;
+
+        camAnim = {
+            from:       { pos: camera.position.clone(), tgt: controls.target.clone() },
+            to:         { pos: tmpV.clone().add(camOffset), tgt: tmpV.clone() },
+            camOffset,
+            followMesh: mesh,
+            t: 0, dur: 1.2,
+            onDone: () => { controls.minDistance = Math.max(1.5, dispR * 2); },
+        };
+    }
+
+    function defocusPlanet() {
+        if (!focused || camAnim) return;
+        const from = { pos: camera.position.clone(), tgt: controls.target.clone() };
+        const to   = { pos: focused.savedCamPos,     tgt: focused.savedTarget };
+        focused = null;
+        labelEl.style.display = 'none';
+        controls.minDistance  = 8;
+        camAnim = { from, to, t: 0, dur: 1.0 };
+    }
+
+    // ── Tap detection ─────────────────────────────────────────────────────
+    const raycaster  = new THREE.Raycaster();
+    let touchStart   = null;
+    let touchDone    = false;
+
+    function handleTap(cx, cy) {
+        if (camAnim) return;
+        raycaster.setFromCamera(
+            new THREE.Vector2((cx / window.innerWidth) * 2 - 1,
+                              -(cy / window.innerHeight) * 2 + 1),
+            camera
+        );
+        const hits = raycaster.intersectObjects(hitboxes, false);
+        if (hits.length) {
+            const idx = hits[0].object.userData.planetIndex;
+            (focused && focused.idx === idx) ? defocusPlanet() : focusPlanet(idx);
+        } else {
+            defocusPlanet();
+        }
+    }
+
+    threeCanvas.addEventListener('touchstart', e => {
+        if (e.touches.length === 1)
+            touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+        else touchStart = null;
+    }, { passive: true });
+
+    threeCanvas.addEventListener('touchend', e => {
+        if (!touchStart || e.changedTouches.length !== 1) { touchStart = null; return; }
+        const t = e.changedTouches[0];
+        if (Math.hypot(t.clientX - touchStart.x, t.clientY - touchStart.y) < 12
+            && Date.now() - touchStart.t < 300) {
+            touchDone = true;
+            handleTap(t.clientX, t.clientY);
+            setTimeout(() => { touchDone = false; }, 400);
+        }
+        touchStart = null;
+    });
+
+    threeCanvas.addEventListener('click', e => { if (!touchDone) handleTap(e.clientX, e.clientY); });
+
+    // ── Speed slider ──────────────────────────────────────────────────────
+    const DAYS_PER_FRAME = 15;
+    let speedMult = 1;
+    const speedEl = document.getElementById('speed');
+    const timeLbl = document.getElementById('time-label');
+    let sliderDrag = false;
+
+    function fmtYPS(m) {
+        const y = (DAYS_PER_FRAME * m * 60) / 365.25;
+        if (y < 0.005) return '0 Erdenjahre / s';
+        return (y < 1 ? y.toFixed(2) : y.toFixed(1)) + ' Erdenjahre / s';
+    }
+
+    speedEl.addEventListener('mousedown',  () => { sliderDrag = true;  timeLbl.style.opacity = '1'; });
+    speedEl.addEventListener('touchstart', () => { sliderDrag = true;  timeLbl.style.opacity = '1'; }, { passive: true });
+    window .addEventListener('mouseup',    () => { if (sliderDrag) { sliderDrag = false; timeLbl.style.opacity = '0'; } });
+    window .addEventListener('touchend',   () => { if (sliderDrag) { sliderDrag = false; timeLbl.style.opacity = '0'; } });
+    speedEl.addEventListener('input', e => { speedMult = +e.target.value; timeLbl.textContent = fmtYPS(speedMult); });
+
+    // ── Label + connecting line ───────────────────────────────────────────
+    function updateLabel() {
+        oc.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        if (!focused) return;
+
+        focused.mesh.getWorldPosition(tmpV);
+        const sp  = tmpV.clone().project(camera);
+        const sx  = (sp.x + 1) / 2 * window.innerWidth;
+        const sy  = (1 - sp.y) / 2 * window.innerHeight;
+
+        // Screen radius of planet
+        const dist    = camera.position.distanceTo(tmpV);
+        const screenH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
+        const sr      = Math.max(4, (focused.dispR / screenH) * window.innerHeight);
+
+        // Place label to the left if planet is near right edge
+        const goLeft = sx > window.innerWidth * 0.65;
+        const lx = goLeft ? sx - sr - 14 - (labelEl.offsetWidth || 60) : sx + sr + 14;
+        const ly = sy - (labelEl.offsetHeight || 14) / 2;
+
+        labelEl.style.left = Math.round(lx) + 'px';
+        labelEl.style.top  = Math.round(ly) + 'px';
+
+        // Connector line: planet edge → label
+        const lcx = goLeft ? lx + (labelEl.offsetWidth || 60) + 4 : lx - 4;
+        const lcy = ly + (labelEl.offsetHeight || 14) / 2;
+        const dx  = lcx - sx, dy = lcy - sy;
+        const len = Math.hypot(dx, dy);
+        const ex  = sx + (dx / len) * (sr + 2);
+        const ey  = sy + (dy / len) * (sr + 2);
+
+        oc.beginPath();
+        oc.moveTo(ex, ey);
+        oc.lineTo(lcx, lcy);
+        oc.strokeStyle = 'rgba(255,255,255,0.5)';
+        oc.lineWidth   = 0.9;
+        oc.stroke();
+
+        // Dot at planet edge
+        oc.beginPath();
+        oc.arc(ex, ey, 2, 0, Math.PI * 2);
+        oc.fillStyle = 'rgba(255,255,255,0.75)';
+        oc.fill();
+    }
+
+    // ── Animation loop ────────────────────────────────────────────────────
+    let gameTime = 0;
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        gameTime += DAYS_PER_FRAME * speedMult;
+
+        pivots.forEach(pv => {
+            pv.rotation.y = pv.userData.theta0
+                + (gameTime / (pv.userData.period * 365.25)) * Math.PI * 2;
+        });
+
+        if (camAnim) {
+            controls.enabled = false;
+            camAnim.t = Math.min(1, camAnim.t + 0.016 / camAnim.dur);
+            const t  = easeIO(camAnim.t);
+
+            // Re-anchor to planet's current position during focus animation
+            if (camAnim.followMesh) {
+                camAnim.followMesh.getWorldPosition(tmpV);
+                camAnim.to.tgt.copy(tmpV);
+                camAnim.to.pos.copy(tmpV).add(camAnim.camOffset);
+            }
+
+            camera.position.lerpVectors(camAnim.from.pos, camAnim.to.pos, t);
+            controls.target.lerpVectors(camAnim.from.tgt, camAnim.to.tgt, t);
+
+            if (camAnim.t >= 1) {
+                if (camAnim.onDone) camAnim.onDone();
+                camAnim = null;
+                controls.enabled = true;
+            }
+        } else {
+            // Camera follows focused planet frame-by-frame
+            if (focused) {
+                focused.mesh.getWorldPosition(tmpV);
+                const delta = tmpV.clone().sub(focused.prevPos);
+                camera.position.add(delta);
+                controls.target.add(delta);
+                focused.prevPos.copy(tmpV);
+            }
+            controls.update();
+        }
+
+        updateLabel();
+        renderer.render(scene, camera);
+    }
+
+    animate();
+    window.addEventListener('resize', resizeAll);
+    </script>
 </body>
 </html>
