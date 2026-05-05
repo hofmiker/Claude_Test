@@ -144,20 +144,22 @@ function hexRgb(h) {
   return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
 }
 
-// ── Rocky base texture (B&W, 512x512, built once) ────────────────────────────
+// ── Rocky base texture (B&W, 512×512, generated once) ────────────────────────
 const ROCKY = (() => {
   const SZ=512, buf=document.createElement('canvas');
   buf.width=SZ; buf.height=SZ;
   const ctx=buf.getContext('2d');
   const rng=seededRand(42);
+
   ctx.fillStyle='#1e1e1e'; ctx.fillRect(0,0,SZ,SZ);
-  // large dark patches
+
+  // large dark patches first
   for(let i=0;i<320;i++){
     const x=rng()*SZ, y=rng()*SZ, r=rng()*20+6;
     ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
     ctx.fillStyle=`rgba(0,0,0,${(rng()*0.45+0.1).toFixed(2)})`; ctx.fill();
   }
-  // medium aggregate blobs
+  // medium light aggregates
   for(let i=0;i<SZ*SZ/60;i++){
     const x=rng()*SZ, y=rng()*SZ;
     const r=Math.pow(rng(),1.8)*9+0.4;
@@ -165,14 +167,14 @@ const ROCKY = (() => {
     ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
     ctx.fillStyle=`rgb(${v},${v},${v})`; ctx.fill();
   }
-  // bright highlight specks
+  // bright highlight dots
   for(let i=0;i<SZ*SZ/280;i++){
     const x=rng()*SZ, y=rng()*SZ, r=rng()*2+0.3;
-    const v=Math.floor(rng()*60+185);
+    const v=Math.floor(rng()*60+180);
     ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
     ctx.fillStyle=`rgb(${v},${v},${v})`; ctx.fill();
   }
-  // noise grain
+  // noise grain overlay
   const n=makeNoise(77), id=ctx.getImageData(0,0,SZ,SZ), d=id.data;
   for(let py=0;py<SZ;py++) for(let px=0;px<SZ;px++){
     const i=(py*SZ+px)*4, b=n(px*0.10,py*0.10)*28;
@@ -184,13 +186,15 @@ const ROCKY = (() => {
   return buf;
 })();
 
-// ── Colorized scrolling strip ─────────────────────────────────────────────────
+// ── Build colorized scrolling strip for a body ────────────────────────────────
 function buildStrip(body, diam) {
   const W=Math.max(diam*4,32), H=Math.max(diam,4);
   const buf=document.createElement('canvas'); buf.width=W; buf.height=H;
   const ctx=buf.getContext('2d');
+  // tile rocky texture scaled to planet size
   const tile=Math.max(diam,32);
   for(let tx=0;tx<W;tx+=tile) ctx.drawImage(ROCKY,0,0,512,512,tx,0,tile,H);
+  // colorize: dark→c2, bright→c1
   const [r1,g1,b1]=hexRgb(body.c1), [r2,g2,b2]=hexRgb(body.c2);
   const id=ctx.getImageData(0,0,W,H), d=id.data;
   for(let i=0;i<d.length;i+=4){
@@ -204,29 +208,31 @@ function buildStrip(body, diam) {
   return buf;
 }
 
-// ── Layout (portrait = vertical stack, landscape = horizontal row) ────────────
+// ── Layout ────────────────────────────────────────────────────────────────────
 function computeLayout() {
   const W=window.innerWidth, H=window.innerHeight;
-  const isPortrait = H >= W;
+  const isPortrait = window.matchMedia('(orientation: portrait)').matches;
   let sunR, sunX, sunY, maxOrbit;
   if(isPortrait){
-    sunR     = W * 0.42;
-    sunX     = W / 2;
-    sunY     = H - sunR - 28;
+    sunR   = W * 0.42;
+    sunX   = W / 2;
+    sunY   = H - sunR - 28;
     maxOrbit = sunY - 48;
   } else {
-    sunR     = H * 0.36;
-    sunX     = sunR + 28;
-    sunY     = H / 2;
+    sunR   = H * 0.36;
+    sunX   = sunR + 28;
+    sunY   = H / 2;
     maxOrbit = W - sunX - 48;
   }
+  // cube-root distance scaling → preserves relative order, fits screen
   const cbMin=Math.cbrt(AU_MIN), cbMax=Math.cbrt(AU_MAX);
   function orbitPx(au){
     const t=(Math.cbrt(au)-cbMin)/(cbMax-cbMin);
     return sunR*1.08 + t*(maxOrbit - sunR*1.08);
   }
+  // power-law planet size
   function planetPx(r){
-    return Math.max(5, Math.round(Math.pow(r/696340, 0.42)*sunR*2));
+    return Math.max(5, Math.round(Math.pow(r/696340,0.42)*sunR*2));
   }
   function bodyPos(au){
     const d=orbitPx(au);
@@ -235,7 +241,7 @@ function computeLayout() {
   return {W,H,isPortrait,sunR,sunX,sunY,orbitPx,planetPx,bodyPos};
 }
 
-// ── Stars (fixed, outside scene so they don't zoom) ───────────────────────────
+// ── Stars ─────────────────────────────────────────────────────────────────────
 function drawStars(){
   const cv=document.getElementById('stars-canvas');
   cv.width=window.innerWidth; cv.height=window.innerHeight;
@@ -252,7 +258,7 @@ function drawRings(lay){
   const cv=document.getElementById('rings-canvas');
   cv.width=lay.W; cv.height=lay.H;
   const ctx=cv.getContext('2d');
-  ctx.strokeStyle='rgba(255,255,255,0.11)'; ctx.lineWidth=0.6;
+  ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.lineWidth=1.2;
   for(const b of PLANETS){
     ctx.beginPath();
     ctx.arc(lay.sunX, lay.sunY, lay.orbitPx(b.au), 0, Math.PI*2);
@@ -261,15 +267,15 @@ function drawRings(lay){
 }
 
 // ── Scene ─────────────────────────────────────────────────────────────────────
-const scene=document.getElementById('scene');
-const svgNS='http://www.w3.org/2000/svg';
-const renderQ=[];
-let lay=computeLayout();
+const scene   = document.getElementById('scene');
+const svgNS   = 'http://www.w3.org/2000/svg';
+const renderQ = []; // {body,diam,strip,canvas,phase,speed}
+let lay = computeLayout();
 
 function buildScene(){
   scene.querySelectorAll('.pw').forEach(e=>e.remove());
-  renderQ.length=0;
-  lay=computeLayout();
+  renderQ.length = 0;
+  lay = computeLayout();
   drawStars();
   drawRings(lay);
   for(const body of BODIES) addBody(body);
@@ -277,7 +283,8 @@ function buildScene(){
 
 function addBody(body){
   const diam = body.au===0 ? lay.sunR*2 : lay.planetPx(body.r);
-  const pos  = body.au===0 ? {x:lay.sunX, y:lay.sunY} : lay.bodyPos(body.au);
+  const rr   = diam/2;
+  const pos  = body.au===0 ? {x:lay.sunX,y:lay.sunY} : lay.bodyPos(body.au);
 
   const pw=document.createElement('div');
   pw.className='pw'; pw.dataset.id=body.id;
@@ -289,6 +296,7 @@ function addBody(body){
   cv.style.cssText=`width:${diam}px;height:${diam}px;display:block;`;
   pw.appendChild(cv);
 
+  // Saturn ring SVG
   if(body.ring){
     const rW=diam*2.4, rH=diam*0.36;
     const svg=document.createElementNS(svgNS,'svg');
@@ -309,8 +317,9 @@ function addBody(body){
   scene.appendChild(pw);
 
   const strip=buildStrip(body,diam);
-  const spd=(body.au===0?0.25:0.7+Math.random()*0.5)*(38/Math.max(diam,8));
-  renderQ.push({diam,strip,canvas:cv,phase:Math.random()*strip.width,speed:spd});
+  // slower for large bodies, faster for small
+  const speed=(body.au===0 ? 0.25 : 0.7+Math.random()*0.6)*(38/Math.max(diam,8));
+  renderQ.push({body,diam,strip,canvas:cv,phase:Math.random()*strip.width,speed});
 }
 
 // ── Render loop ───────────────────────────────────────────────────────────────
@@ -320,6 +329,7 @@ function renderPlanet(p){
   ctx.clearRect(0,0,diam,diam);
   ctx.save();
   ctx.beginPath(); ctx.arc(rr,rr,rr,0,Math.PI*2); ctx.clip();
+  // scrolling texture
   const sw=strip.width, off=Math.floor(p.phase)%sw;
   if(off+diam<=sw){
     ctx.drawImage(strip,off,0,diam,diam,0,0,diam,diam);
@@ -328,6 +338,7 @@ function renderPlanet(p){
     ctx.drawImage(strip,off,0,p1,diam,0,0,p1,diam);
     ctx.drawImage(strip,0,0,diam-p1,diam,p1,0,diam-p1,diam);
   }
+  // fixed radial: bright centre, dark edge
   const g=ctx.createRadialGradient(rr*.58,rr*.52,0,rr,rr,rr);
   g.addColorStop(0,'rgba(255,255,255,0.18)');
   g.addColorStop(.42,'rgba(0,0,0,0.0)');
@@ -344,11 +355,13 @@ let lastT=performance.now();
 })(lastT);
 
 // ── Touch / hover ─────────────────────────────────────────────────────────────
-function setPwScale(pw,s){ pw.style.transform=`translate(-50%,-50%) scale(${s})`; }
-scene.addEventListener('mouseover',e=>{ const pw=e.target.closest('.pw'); if(pw&&pw!==zoomedPw) setPwScale(pw,1.09); });
-scene.addEventListener('mouseout', e=>{ const pw=e.target.closest('.pw'); if(pw&&pw!==zoomedPw) setPwScale(pw,1.0);  });
+function setPwScale(pw, s){
+  pw.style.transform=`translate(-50%,-50%) scale(${s})`;
+}
+scene.addEventListener('mouseover', e=>{ const pw=e.target.closest('.pw'); if(pw&&pw!==zoomedPw) setPwScale(pw,1.09); });
+scene.addEventListener('mouseout',  e=>{ const pw=e.target.closest('.pw'); if(pw&&pw!==zoomedPw) setPwScale(pw,1.0); });
 scene.addEventListener('touchstart',e=>{ const pw=e.target.closest('.pw'); if(pw) setPwScale(pw,1.09); },{passive:true});
-scene.addEventListener('touchend',  e=>{ const pw=e.target.closest('.pw'); if(pw&&pw!==zoomedPw) setPwScale(pw,1.0);  },{passive:true});
+scene.addEventListener('touchend',  e=>{ const pw=e.target.closest('.pw'); if(pw&&pw!==zoomedPw) setPwScale(pw,1.0); },{passive:true});
 
 // ── Zoom ──────────────────────────────────────────────────────────────────────
 let zoomedPw=null;
@@ -356,12 +369,16 @@ let zoomedPw=null;
 function zoomTo(pw){
   if(zoomedPw) setPwScale(zoomedPw,1.0);
   zoomedPw=pw;
+
   const cx=parseFloat(pw.style.left), cy=parseFloat(pw.style.top);
   const diam=parseFloat(pw.style.width);
+  // target: planet fills ~28% of shorter side
   const target=Math.min(lay.W,lay.H)*0.28;
-  const s=Math.max(1.6, target/diam);
+  const s=Math.max(1.5, target/diam);
+  // translate so planet centre lands at viewport centre
   const tx=s*(lay.W/2-cx), ty=s*(lay.H/2-cy);
   scene.style.transform=`translate(${tx}px,${ty}px) scale(${s})`;
+
   setTimeout(()=>showPanel(BODIES.find(b=>b.id===pw.dataset.id)), 640);
 }
 
@@ -389,14 +406,19 @@ function hidePanel(){ panel.classList.remove('on'); hint.classList.remove('on');
 document.getElementById('p-close').addEventListener('click',zoomOut);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') zoomOut(); });
 
-scene.addEventListener('click',e=>{
+// ── Click ─────────────────────────────────────────────────────────────────────
+scene.addEventListener('click', e=>{
   const pw=e.target.closest('.pw');
-  if(pw){ if(pw===zoomedPw) zoomOut(); else zoomTo(pw); }
-  else if(zoomedPw) zoomOut();
+  if(pw){
+    if(pw===zoomedPw) zoomOut(); else zoomTo(pw);
+  } else {
+    if(zoomedPw) zoomOut();
+  }
 });
 
 // ── Init & resize ─────────────────────────────────────────────────────────────
 buildScene();
+
 let resizeTimer;
 window.addEventListener('resize',()=>{
   clearTimeout(resizeTimer);
