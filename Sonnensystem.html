@@ -2,237 +2,303 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Sonnensystem</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#06080f; font-family:Helvetica,Arial,sans-serif; overflow:hidden; width:100vw; height:100vh; user-select:none; }
-#bg { position:fixed; inset:0; z-index:0; pointer-events:none; }
+html, body { width:100%; height:100%; overflow:hidden; background:#05060e; touch-action:none; user-select:none; }
 
-/* Viewport: overflow hidden for horizontal clip, padded so planets never clip */
-#viewport {
-  position:fixed;
-  /* extend beyond screen top/bottom so overflow:hidden doesn't clip planets */
-  top: -200px; bottom: -200px; left: 0; right: 0;
-  z-index:1; overflow:hidden; cursor:grab;
-}
-#viewport.dragging { cursor:grabbing; }
+#stars-canvas { position:fixed; inset:0; pointer-events:none; z-index:0; }
 
-/* Track: full height visible, moved by JS translateX */
-#track {
-  position:absolute;
-  top:50%; left:0;
-  transform:translateY(-50%) translateX(0px);
-  display:flex; align-items:center;
-  padding:0 80px;
+#scene {
+  position:fixed; inset:0; z-index:1;
+  transform-origin:50% 50%;
   will-change:transform;
+  transition:transform 0.65s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* Planet wrapper */
+#rings-canvas { position:absolute; inset:0; pointer-events:none; }
+
 .pw {
-  position:relative; flex-shrink:0; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  transition:transform 0.42s cubic-bezier(0.34,1.28,0.64,1);
-  transform-origin:center center;
-}
-
-/* Focus ring */
-.pw .focus-ring {
-  position:absolute; top:50%; left:50%;
+  position:absolute;
   transform:translate(-50%,-50%);
-  border-radius:50%;
-  border:1.5px solid transparent;
-  pointer-events:none;
-  opacity:0;
-  transition:border-color .3s, opacity .3s,
-             width .4s cubic-bezier(.34,1.2,.64,1),
-             height .4s cubic-bezier(.34,1.2,.64,1);
+  cursor:pointer;
+  transition:transform 0.32s cubic-bezier(0.34,1.28,0.64,1);
+  z-index:2;
 }
-.pw:hover .focus-ring, .pw.active .focus-ring {
-  border-color:rgba(255,255,255,.30); opacity:1;
-}
-.pw.active .focus-ring {
-  border-color:rgba(255,255,255,.55);
-  animation:rpulse 2.4s ease-in-out infinite;
-}
-@keyframes rpulse { 0%,100%{opacity:.55} 50%{opacity:.18} }
+.pw canvas { display:block; }
 
-/* Info panel */
 #panel {
-  position:fixed; z-index:200; top:50%; transform:translateY(-50%);
-  width:252px;
-  background:rgba(8,10,20,0.78);
-  backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:2px; padding:26px 28px 30px;
+  position:fixed; z-index:300;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:min(272px, 88vw);
+  background:rgba(6,8,18,0.88);
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:3px; padding:22px 24px 26px;
   opacity:0; pointer-events:none;
-  transition:opacity .35s ease;
-  left:-400px;
+  transition:opacity .32s;
 }
 #panel.on { opacity:1; pointer-events:all; }
-#p-name { font-size:30px; font-weight:300; letter-spacing:-.015em; color:#eceef6; line-height:1; margin-bottom:5px; }
-#p-type { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:rgba(190,198,220,.35); margin-bottom:22px; }
-.fact-row { padding:7px 0; border-top:1px solid rgba(255,255,255,.055); }
-.fact-row:last-of-type { border-bottom:1px solid rgba(255,255,255,.055); }
-.fact-label { font-size:8px; letter-spacing:.14em; text-transform:uppercase; color:rgba(190,198,220,.28); margin-bottom:3px; }
-.fact-val { font-size:13px; font-weight:300; color:rgba(215,220,235,.80); }
-#p-desc { margin-top:18px; font-size:11px; line-height:1.8; color:rgba(190,198,220,.40); }
+#p-close {
+  position:absolute; top:10px; right:13px;
+  font-size:20px; line-height:1; color:rgba(255,255,255,.35);
+  background:none; border:none; cursor:pointer; font-family:Helvetica,Arial,sans-serif;
+}
+#p-close:hover { color:rgba(255,255,255,.7); }
+#p-name { font-family:Helvetica,Arial,sans-serif; font-size:28px; font-weight:300; letter-spacing:-.01em; color:#eceef6; line-height:1; margin-bottom:4px; }
+#p-type { font-family:Helvetica,Arial,sans-serif; font-size:8px; letter-spacing:.18em; text-transform:uppercase; color:rgba(190,200,220,.32); margin-bottom:20px; }
+.fact-row { padding:6px 0; border-top:1px solid rgba(255,255,255,.055); font-family:Helvetica,Arial,sans-serif; }
+.fact-row:last-child { border-bottom:1px solid rgba(255,255,255,.055); }
+.fact-label { font-size:7px; letter-spacing:.16em; text-transform:uppercase; color:rgba(190,200,220,.26); margin-bottom:2px; }
+.fact-val { font-size:12px; font-weight:300; color:rgba(215,222,238,.76); }
+#p-desc { margin-top:16px; font-family:Helvetica,Arial,sans-serif; font-size:10px; line-height:1.8; color:rgba(190,200,220,.38); }
 
 #hint {
-  position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
-  font-size:9px; letter-spacing:.14em; text-transform:uppercase;
-  color:rgba(190,198,220,.18); z-index:300; pointer-events:none;
+  position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+  font-family:Helvetica,Arial,sans-serif;
+  font-size:8px; letter-spacing:.14em; text-transform:uppercase;
+  color:rgba(190,200,220,.18); z-index:400; pointer-events:none;
   opacity:0; transition:opacity .4s;
 }
 #hint.on { opacity:1; }
 </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
+
+<canvas id="stars-canvas"></canvas>
+<div id="scene"><canvas id="rings-canvas"></canvas></div>
+
 <div id="panel">
+  <button id="p-close">×</button>
   <div id="p-name"></div>
   <div id="p-type"></div>
   <div id="p-facts"></div>
   <div id="p-desc"></div>
 </div>
-<div id="hint">esc oder klick zum schließen</div>
-<div id="viewport"><div id="track"></div></div>
+<div id="hint">tippen zum schließen</div>
 
 <script>
+// ── Bodies (real orbital order) ───────────────────────────────────────────────
 const BODIES = [
-  { id:'sonne',   name:'Sonne',   type:'Stern',         r:696340,
-    c1:'#f5c030',c2:'#c06808', nF:.018,nS:2, nSX:1,  nST:.28, spd:.4,
-    facts:[{l:'Durchmesser',v:'1 392 680 km'},{l:'Masse',v:'1,99 × 10³⁰ kg'},{l:'Oberfläche',v:'5 778 K'},{l:'Rotation',v:'25–35 Tage'}],
-    desc:'Die Sonne enthält 99,86 % der Masse unseres Sonnensystems. Ihr Kern erreicht 15 Millionen Kelvin — genug für anhaltende Kernfusion.' },
-  { id:'jupiter', name:'Jupiter', type:'Gasriese',      r:71492,
-    c1:'#e0b070',c2:'#8a5020', nF:.008,nS:5, nSX:12, nST:.22, spd:1.8,
-    facts:[{l:'Durchmesser',v:'142 984 km'},{l:'Monde',v:'95'},{l:'Umlaufzeit',v:'11,86 Jahre'},{l:'Rotation',v:'9 h 56 min'}],
-    desc:'Der Große Rote Fleck ist ein Sturm größer als die Erde — er tobt seit mindestens 350 Jahren.' },
-  { id:'saturn',  name:'Saturn',  type:'Gasriese',      r:60268, ring:true,
-    c1:'#e8c878',c2:'#906820', nF:.008,nS:8, nSX:12, nST:.18, spd:1.9,
-    facts:[{l:'Durchmesser',v:'120 536 km'},{l:'Monde',v:'146'},{l:'Umlaufzeit',v:'29,46 Jahre'},{l:'Ringdurchm.',v:'bis 480 000 km'}],
-    desc:'Saturns Ringe bestehen aus Eis und Gestein — trotz ihres Durchmessers oft weniger als 100 Meter dünn.' },
-  { id:'uranus',  name:'Uranus',  type:'Eisriese',      r:25559,
-    c1:'#90dce8',c2:'#2888a0', nF:.022,nS:9, nSX:1,  nST:.12, spd:1.4,
-    facts:[{l:'Durchmesser',v:'51 118 km'},{l:'Monde',v:'28'},{l:'Umlaufzeit',v:'84 Jahre'},{l:'Achsenneigung',v:'97,8°'}],
-    desc:'Uranus rotiert quasi auf der Seite. Methan in der Atmosphäre absorbiert rotes Licht und erzeugt das charakteristische Blaugrün.' },
-  { id:'neptun',  name:'Neptun',  type:'Eisriese',      r:24764,
-    c1:'#4a72e0',c2:'#101880', nF:.024,nS:3, nSX:1,  nST:.15, spd:1.5,
-    facts:[{l:'Durchmesser',v:'49 528 km'},{l:'Monde',v:'16'},{l:'Umlaufzeit',v:'164,8 Jahre'},{l:'Windgeschw.',v:'bis 2 100 km/h'}],
-    desc:'Neptun besitzt die stärksten Winde im Sonnensystem. Triton, sein größter Mond, umkreist den Planeten rückläufig.' },
-  { id:'erde',    name:'Erde',    type:'Gesteinsplanet',r:6371,
-    c1:'#4090d8',c2:'#102858', nF:.055,nS:14,nSX:1,  nST:.18, spd:2.2,
-    facts:[{l:'Durchmesser',v:'12 742 km'},{l:'Monde',v:'1'},{l:'Umlaufzeit',v:'365,25 Tage'},{l:'Temperatur',v:'−88 bis +58 °C'}],
-    desc:'Die Erde ist der einzige bekannte Planet mit Leben. Ihre tektonischen Platten formen kontinuierlich die Oberfläche.' },
-  { id:'venus',   name:'Venus',   type:'Gesteinsplanet',r:6051,
-    c1:'#e8c050',c2:'#906010', nF:.050,nS:22,nSX:1,  nST:.16, spd:.5,
-    facts:[{l:'Durchmesser',v:'12 104 km'},{l:'Umlaufzeit',v:'224,7 Tage'},{l:'Rotation',v:'243 Tage'},{l:'Temperatur',v:'465 °C'}],
-    desc:'Die Venus ist heißer als Merkur. Ihr extremer Treibhauseffekt und rückläufige Rotation machen sie einzigartig.' },
-  { id:'mars',    name:'Mars',    type:'Gesteinsplanet',r:3390,
-    c1:'#d85030',c2:'#701008', nF:.065,nS:18,nSX:1,  nST:.20, spd:2.1,
-    facts:[{l:'Durchmesser',v:'6 779 km'},{l:'Monde',v:'2'},{l:'Umlaufzeit',v:'686,9 Tage'},{l:'Temperatur',v:'−140 bis +20 °C'}],
-    desc:'Der Olympus Mons ist mit 22 km der größte Vulkan im Sonnensystem. Die dünne Atmosphäre besteht zu 95 % aus CO₂.' },
-  { id:'merkur',  name:'Merkur',  type:'Gesteinsplanet',r:2440,
-    c1:'#b0a8a0',c2:'#504848', nF:.085,nS:31,nSX:1,  nST:.18, spd:.8,
-    facts:[{l:'Durchmesser',v:'4 879 km'},{l:'Umlaufzeit',v:'88 Tage'},{l:'Rotation',v:'59 Tage'},{l:'Temperatur',v:'−173 bis +427 °C'}],
+  { id:'sonne',   name:'Sonne',   type:'Stern',         r:696340, au:0,
+    c1:'#ffd04a', c2:'#7a2800',
+    facts:[{l:'Durchmesser',v:'1 392 680 km'},{l:'Masse',v:'1,99 × 10³⁰ kg'},{l:'Oberfl.-Temp.',v:'5 778 K'},{l:'Rotation',v:'25–35 Tage'}],
+    desc:'Die Sonne enthält 99,86 % der Masse unseres Sonnensystems. Ihr Kern erreicht 15 Millionen Kelvin.' },
+  { id:'merkur',  name:'Merkur',  type:'Gesteinsplanet',r:2440,  au:0.387,
+    c1:'#ccc4b4', c2:'#302828',
+    facts:[{l:'Durchmesser',v:'4 879 km'},{l:'Abstand',v:'0,387 AE'},{l:'Umlaufzeit',v:'88 Tage'},{l:'Temp.',v:'−173 bis +427 °C'}],
     desc:'Merkur hat keine Atmosphäre und damit die extremsten Temperaturschwankungen aller Planeten.' },
-  { id:'pluto',   name:'Pluto',   type:'Zwergplanet',   r:1188,
-    c1:'#c0a080',c2:'#604838', nF:.10, nS:44,nSX:1,  nST:.16, spd:.3,
-    facts:[{l:'Durchmesser',v:'2 376 km'},{l:'Monde',v:'5'},{l:'Umlaufzeit',v:'248 Jahre'},{l:'Status',v:'Zwergplanet seit 2006'}],
-    desc:'New Horizons enthüllte 2015 Plutos herzförmige Stickstoffebene Tombaugh Regio.' },
+  { id:'venus',   name:'Venus',   type:'Gesteinsplanet',r:6051,  au:0.723,
+    c1:'#f0d060', c2:'#604010',
+    facts:[{l:'Durchmesser',v:'12 104 km'},{l:'Abstand',v:'0,723 AE'},{l:'Umlaufzeit',v:'225 Tage'},{l:'Temp.',v:'465 °C'}],
+    desc:'Die Venus ist heißer als Merkur. Ihr extremer Treibhauseffekt und die rückläufige Rotation machen sie einzigartig.' },
+  { id:'erde',    name:'Erde',    type:'Gesteinsplanet',r:6371,  au:1.000,
+    c1:'#5090e0', c2:'#102848',
+    facts:[{l:'Durchmesser',v:'12 742 km'},{l:'Abstand',v:'1,000 AE'},{l:'Umlaufzeit',v:'365 Tage'},{l:'Monde',v:'1'}],
+    desc:'Die Erde ist der einzige bekannte Planet mit Leben. Ihre tektonischen Platten formen kontinuierlich die Oberfläche.' },
+  { id:'mars',    name:'Mars',    type:'Gesteinsplanet',r:3390,  au:1.524,
+    c1:'#e05030', c2:'#500808',
+    facts:[{l:'Durchmesser',v:'6 779 km'},{l:'Abstand',v:'1,524 AE'},{l:'Umlaufzeit',v:'687 Tage'},{l:'Monde',v:'2'}],
+    desc:'Der Olympus Mons ist mit 22 km der größte Vulkan im Sonnensystem. Die Atmosphäre besteht zu 95 % aus CO₂.' },
+  { id:'jupiter', name:'Jupiter', type:'Gasriese',      r:71492, au:5.203,
+    c1:'#e8b868', c2:'#6a2808',
+    facts:[{l:'Durchmesser',v:'142 984 km'},{l:'Abstand',v:'5,203 AE'},{l:'Umlaufzeit',v:'11,9 Jahre'},{l:'Monde',v:'95'}],
+    desc:'Der Große Rote Fleck ist ein Sturm größer als die Erde — er tobt seit mindestens 350 Jahren.' },
+  { id:'saturn',  name:'Saturn',  type:'Gasriese',      r:60268, au:9.537, ring:true,
+    c1:'#f0d080', c2:'#806020',
+    facts:[{l:'Durchmesser',v:'120 536 km'},{l:'Abstand',v:'9,537 AE'},{l:'Umlaufzeit',v:'29,5 Jahre'},{l:'Monde',v:'146'}],
+    desc:'Saturns Ringe bestehen aus Eis und Gestein — trotz ihres Durchmessers oft weniger als 100 Meter dünn.' },
+  { id:'uranus',  name:'Uranus',  type:'Eisriese',      r:25559, au:19.19,
+    c1:'#98e0ec', c2:'#186878',
+    facts:[{l:'Durchmesser',v:'51 118 km'},{l:'Abstand',v:'19,19 AE'},{l:'Umlaufzeit',v:'84 Jahre'},{l:'Achsenneigung',v:'97,8°'}],
+    desc:'Uranus rotiert quasi auf der Seite. Methan in der Atmosphäre absorbiert rotes Licht und erzeugt das Blaugrün.' },
+  { id:'neptun',  name:'Neptun',  type:'Eisriese',      r:24764, au:30.07,
+    c1:'#4870e8', c2:'#101468',
+    facts:[{l:'Durchmesser',v:'49 528 km'},{l:'Abstand',v:'30,07 AE'},{l:'Umlaufzeit',v:'165 Jahre'},{l:'Wind',v:'bis 2 100 km/h'}],
+    desc:'Neptun besitzt die stärksten Winde im Sonnensystem. Triton, sein größter Mond, umkreist ihn rückläufig.' },
 ];
 
-// ── Noise ─────────────────────────────────────────────────────────────────────
+const PLANETS = BODIES.filter(b => b.au > 0);
+const AU_MIN = 0.387, AU_MAX = 30.07;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function seededRand(seed) {
   let s = (seed|0)+1;
-  return ()=>{ s=Math.imul(s^(s>>>15),s|1); s^=s+Math.imul(s^(s>>>7),s|61); return ((s^(s>>>14))>>>0)/0xffffffff; };
+  return () => { s=Math.imul(s^(s>>>15),s|1); s^=s+Math.imul(s^(s>>>7),s|61); return ((s^(s>>>14))>>>0)/0xffffffff; };
 }
 function makeNoise(seed) {
-  const SZ=256,rng=seededRand(seed),t=new Float32Array(SZ*SZ);
+  const SZ=256, rng=seededRand(seed), t=new Float32Array(SZ*SZ);
   for(let i=0;i<t.length;i++) t[i]=rng()*2-1;
   return (nx,ny)=>{
-    const xi=Math.floor(nx)&(SZ-1),yi=Math.floor(ny)&(SZ-1);
-    const fx=nx-Math.floor(nx),fy=ny-Math.floor(ny);
-    const ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy);
-    const x1=(xi+1)&(SZ-1),y1=(yi+1)&(SZ-1);
+    const xi=Math.floor(nx)&(SZ-1), yi=Math.floor(ny)&(SZ-1);
+    const fx=nx-Math.floor(nx), fy=ny-Math.floor(ny);
+    const ux=fx*fx*(3-2*fx), uy=fy*fy*(3-2*fy);
+    const x1=(xi+1)&(SZ-1), y1=(yi+1)&(SZ-1);
     const v00=t[yi*SZ+xi],v10=t[yi*SZ+x1],v01=t[y1*SZ+xi],v11=t[y1*SZ+x1];
     return v00+(v10-v00)*ux+(v01-v00)*uy+(v00-v10-v01+v11)*ux*uy;
   };
 }
-
-// ── Stars ─────────────────────────────────────────────────────────────────────
-(function(){
-  const cv=document.getElementById('bg');
-  const rng=seededRand(77);
-  cv.width=window.innerWidth||1440; cv.height=window.innerHeight||900;
-  const ctx=cv.getContext('2d');
-  for(let i=0;i<550;i++){
-    const x=rng()*cv.width,y=rng()*cv.height,r=rng()*.7+.1,a=rng()*.14+.03;
-    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-    ctx.fillStyle=`rgba(210,218,238,${a.toFixed(3)})`; ctx.fill();
-  }
-})();
-
-// ── Scale ─────────────────────────────────────────────────────────────────────
-const MAX_R = BODIES[0].r;
-function scalePx(r) {
-  const H = Math.max(window.innerHeight||0, document.documentElement.clientHeight||0, 300);
-  const W = Math.max(window.innerWidth||0,  document.documentElement.clientWidth||0,  400);
-  // Sun: max 78% of viewport height, max 32% of viewport width
-  const maxD = Math.min(H * 0.78, W * 0.32);
-  return Math.max(Math.round((r / MAX_R) * maxD), 4);
+function hexRgb(h) {
+  return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
 }
 
-// ── Texture strip ─────────────────────────────────────────────────────────────
-function buildStrip(body, diam) {
-  // 4× wide so the loop is barely noticeable
-  const W=Math.max(diam*4, 64), H=Math.max(diam, 4);
-  const buf=document.createElement('canvas');
-  buf.width=W; buf.height=H;
+// ── Rocky base texture (B&W, 512×512, generated once) ────────────────────────
+const ROCKY = (() => {
+  const SZ=512, buf=document.createElement('canvas');
+  buf.width=SZ; buf.height=SZ;
   const ctx=buf.getContext('2d');
-  // Flat base-color fill — gradient is applied as a fixed overlay in renderPlanet
-  ctx.fillStyle=body.c1;
-  ctx.fillRect(0,0,W,H);
-  // Two noise octaves, brightness-only (equal delta on R/G/B → no hue shift)
-  const na=makeNoise(body.nS||1);
-  const nb=makeNoise((body.nS||1)+137);
-  const imgd=ctx.getImageData(0,0,W,H); const d=imgd.data;
-  const amp=(body.nST||.18)*110;
-  const fx=body.nF*(body.nSX||1), fy=body.nF;
-  for(let py=0;py<H;py++) for(let px=0;px<W;px++){
-    const i=(py*W+px)*4;
-    const n=na(px*fx,py*fy)*0.65 + nb(px*fx*2.1,py*fy*2.1)*0.35;
-    const b=n*amp;
-    d[i  ]=Math.min(255,Math.max(0,d[i  ]+b));
+  const rng=seededRand(42);
+
+  ctx.fillStyle='#1e1e1e'; ctx.fillRect(0,0,SZ,SZ);
+
+  // large dark patches first
+  for(let i=0;i<320;i++){
+    const x=rng()*SZ, y=rng()*SZ, r=rng()*20+6;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(0,0,0,${(rng()*0.45+0.1).toFixed(2)})`; ctx.fill();
+  }
+  // medium light aggregates
+  for(let i=0;i<SZ*SZ/60;i++){
+    const x=rng()*SZ, y=rng()*SZ;
+    const r=Math.pow(rng(),1.8)*9+0.4;
+    const v=Math.floor(rng()*130+80);
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgb(${v},${v},${v})`; ctx.fill();
+  }
+  // bright highlight dots
+  for(let i=0;i<SZ*SZ/280;i++){
+    const x=rng()*SZ, y=rng()*SZ, r=rng()*2+0.3;
+    const v=Math.floor(rng()*60+180);
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgb(${v},${v},${v})`; ctx.fill();
+  }
+  // noise grain overlay
+  const n=makeNoise(77), id=ctx.getImageData(0,0,SZ,SZ), d=id.data;
+  for(let py=0;py<SZ;py++) for(let px=0;px<SZ;px++){
+    const i=(py*SZ+px)*4, b=n(px*0.10,py*0.10)*28;
+    d[i]=Math.min(255,Math.max(0,d[i]+b));
     d[i+1]=Math.min(255,Math.max(0,d[i+1]+b));
     d[i+2]=Math.min(255,Math.max(0,d[i+2]+b));
   }
-  ctx.putImageData(imgd,0,0);
+  ctx.putImageData(id,0,0);
+  return buf;
+})();
+
+// ── Build colorized scrolling strip for a body ────────────────────────────────
+function buildStrip(body, diam) {
+  const W=Math.max(diam*4,32), H=Math.max(diam,4);
+  const buf=document.createElement('canvas'); buf.width=W; buf.height=H;
+  const ctx=buf.getContext('2d');
+  // tile rocky texture scaled to planet size
+  const tile=Math.max(diam,32);
+  for(let tx=0;tx<W;tx+=tile) ctx.drawImage(ROCKY,0,0,512,512,tx,0,tile,H);
+  // colorize: dark→c2, bright→c1
+  const [r1,g1,b1]=hexRgb(body.c1), [r2,g2,b2]=hexRgb(body.c2);
+  const id=ctx.getImageData(0,0,W,H), d=id.data;
+  for(let i=0;i<d.length;i+=4){
+    const t=d[i]/255;
+    d[i  ]=Math.round(r2+(r1-r2)*t);
+    d[i+1]=Math.round(g2+(g1-g2)*t);
+    d[i+2]=Math.round(b2+(b1-b2)*t);
+    d[i+3]=255;
+  }
+  ctx.putImageData(id,0,0);
   return buf;
 }
 
-// ── Planet rendering ──────────────────────────────────────────────────────────
-const planets=[];
-const GAP=28;
-const track=document.getElementById('track');
-const svgNS='http://www.w3.org/2000/svg';
+// ── Layout ────────────────────────────────────────────────────────────────────
+function computeLayout() {
+  const W=window.innerWidth, H=window.innerHeight;
+  const isPortrait = H >= W;
+  let sunR, sunX, sunY, maxOrbit;
+  if(isPortrait){
+    sunR   = W * 0.42;
+    sunX   = W / 2;
+    sunY   = H - sunR - 28;
+    maxOrbit = sunY - 48;
+  } else {
+    sunR   = H * 0.36;
+    sunX   = sunR + 28;
+    sunY   = H / 2;
+    maxOrbit = W - sunX - 48;
+  }
+  // cube-root distance scaling → preserves relative order, fits screen
+  const cbMin=Math.cbrt(AU_MIN), cbMax=Math.cbrt(AU_MAX);
+  function orbitPx(au){
+    const t=(Math.cbrt(au)-cbMin)/(cbMax-cbMin);
+    return sunR*1.08 + t*(maxOrbit - sunR*1.08);
+  }
+  // power-law planet size
+  function planetPx(r){
+    return Math.max(5, Math.round(Math.pow(r/696340,0.42)*sunR*2));
+  }
+  function bodyPos(au){
+    const d=orbitPx(au);
+    return isPortrait ? {x:sunX, y:sunY-d} : {x:sunX+d, y:sunY};
+  }
+  return {W,H,isPortrait,sunR,sunX,sunY,orbitPx,planetPx,bodyPos};
+}
 
-BODIES.forEach((body,idx)=>{
-  const diam=scalePx(body.r), rr=diam/2;
+// ── Stars ─────────────────────────────────────────────────────────────────────
+function drawStars(){
+  const cv=document.getElementById('stars-canvas');
+  cv.width=window.innerWidth; cv.height=window.innerHeight;
+  const ctx=cv.getContext('2d'), rng=seededRand(77);
+  for(let i=0;i<380;i++){
+    const x=rng()*cv.width, y=rng()*cv.height, r=rng()*.55+.08, a=rng()*.11+.02;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(210,218,240,${a.toFixed(3)})`; ctx.fill();
+  }
+}
+
+// ── Orbital rings ─────────────────────────────────────────────────────────────
+function drawRings(lay){
+  const cv=document.getElementById('rings-canvas');
+  cv.width=lay.W; cv.height=lay.H;
+  const ctx=cv.getContext('2d');
+  ctx.strokeStyle='rgba(255,255,255,0.11)'; ctx.lineWidth=0.6;
+  for(const b of PLANETS){
+    ctx.beginPath();
+    ctx.arc(lay.sunX, lay.sunY, lay.orbitPx(b.au), 0, Math.PI*2);
+    ctx.stroke();
+  }
+}
+
+// ── Scene ─────────────────────────────────────────────────────────────────────
+const scene   = document.getElementById('scene');
+const svgNS   = 'http://www.w3.org/2000/svg';
+const renderQ = []; // {body,diam,strip,canvas,phase,speed}
+let lay = computeLayout();
+
+function buildScene(){
+  scene.querySelectorAll('.pw').forEach(e=>e.remove());
+  renderQ.length = 0;
+  lay = computeLayout();
+  drawStars();
+  drawRings(lay);
+  for(const body of BODIES) addBody(body);
+}
+
+function addBody(body){
+  const diam = body.au===0 ? lay.sunR*2 : lay.planetPx(body.r);
+  const rr   = diam/2;
+  const pos  = body.au===0 ? {x:lay.sunX,y:lay.sunY} : lay.bodyPos(body.au);
 
   const pw=document.createElement('div');
-  pw.className='pw'; pw.dataset.idx=idx;
-  pw.style.cssText=`width:${diam}px;height:${diam}px;`;
+  pw.className='pw'; pw.dataset.id=body.id;
+  pw.style.left=pos.x+'px'; pw.style.top=pos.y+'px';
+  pw.style.width=diam+'px'; pw.style.height=diam+'px';
 
-  // Canvas
   const cv=document.createElement('canvas');
   cv.width=diam; cv.height=diam;
   cv.style.cssText=`width:${diam}px;height:${diam}px;display:block;`;
   pw.appendChild(cv);
 
-  // Saturn ring
+  // Saturn ring SVG
   if(body.ring){
-    const rW=diam*2.4, rH=diam*0.38;
+    const rW=diam*2.4, rH=diam*0.36;
     const svg=document.createElementNS(svgNS,'svg');
     svg.setAttribute('width',rW); svg.setAttribute('height',rH);
     svg.style.cssText=`position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;overflow:visible;`;
@@ -240,49 +306,31 @@ BODIES.forEach((body,idx)=>{
       const e=document.createElementNS(svgNS,'ellipse');
       e.setAttribute('cx',rW/2); e.setAttribute('cy',rH/2);
       e.setAttribute('rx',rx); e.setAttribute('ry',ry);
-      e.setAttribute('fill','none'); e.setAttribute('stroke',s);
-      e.setAttribute('stroke-width',sw); svg.appendChild(e);
+      e.setAttribute('fill','none'); e.setAttribute('stroke',s); e.setAttribute('stroke-width',sw);
+      svg.appendChild(e);
     };
-    mkE(rW/2-1,rH/2-1,'rgba(218,196,120,0.42)',Math.max(3,diam*.065));
-    mkE(rW*.36,rH*.28,'rgba(218,196,120,0.20)',Math.max(1.5,diam*.025));
+    mkE(rW/2-1,rH/2-1,'rgba(220,198,110,0.40)',Math.max(3,diam*.06));
+    mkE(rW*.36,rH*.27,'rgba(220,198,110,0.18)',Math.max(1.5,diam*.023));
     pw.appendChild(svg);
-    pw._ringExtra=Math.ceil((rW-diam)/2);
   }
 
-  // Focus ring
-  const fr=document.createElement('div');
-  fr.className='focus-ring';
-  const frd=diam+20;
-  fr.style.cssText=`width:${frd}px;height:${frd}px;`;
-  pw.appendChild(fr);
+  scene.appendChild(pw);
 
-  // Texture + state
   const strip=buildStrip(body,diam);
-  const speed=body.spd*(60/Math.max(diam,8));
-  planets.push({body,diam,strip,canvas:cv,phase:Math.random()*strip.width,speed});
-
-  track.appendChild(pw);
-});
-
-// ── Gap between planet outer edges ───────────────────────────────────────────
-const pwEls=[...track.querySelectorAll('.pw')];
-pwEls.forEach((pw,i)=>{
-  if(i<pwEls.length-1){
-    const re=pw._ringExtra||0, ne=pwEls[i+1]._ringExtra||0;
-    pw.style.marginRight=(GAP+re+ne)+'px';
-  }
-});
+  // slower for large bodies, faster for small
+  const speed=(body.au===0 ? 0.25 : 0.7+Math.random()*0.6)*(38/Math.max(diam,8));
+  renderQ.push({body,diam,strip,canvas:cv,phase:Math.random()*strip.width,speed});
+}
 
 // ── Render loop ───────────────────────────────────────────────────────────────
 function renderPlanet(p){
-  const {diam,strip,canvas,body}=p; const rr=diam/2;
+  const {diam,strip,canvas}=p, rr=diam/2;
   const ctx=canvas.getContext('2d');
   ctx.clearRect(0,0,diam,diam);
   ctx.save();
   ctx.beginPath(); ctx.arc(rr,rr,rr,0,Math.PI*2); ctx.clip();
-  // Scrolling grain strip with correct wrap-around
-  const sw=strip.width;
-  const off=Math.floor(p.phase)%sw;
+  // scrolling texture
+  const sw=strip.width, off=Math.floor(p.phase)%sw;
   if(off+diam<=sw){
     ctx.drawImage(strip,off,0,diam,diam,0,0,diam,diam);
   } else {
@@ -290,142 +338,92 @@ function renderPlanet(p){
     ctx.drawImage(strip,off,0,p1,diam,0,0,p1,diam);
     ctx.drawImage(strip,0,0,diam-p1,diam,p1,0,diam-p1,diam);
   }
-  // Fixed radial overlay: subtle highlight centre + edge vignette
-  const g=ctx.createRadialGradient(rr*.62,rr*.55,0,rr,rr,rr);
-  g.addColorStop(0,'rgba(255,255,255,0.13)');
-  g.addColorStop(.45,'rgba(0,0,0,0.0)');
-  g.addColorStop(1,'rgba(0,0,0,0.38)');
+  // fixed radial: bright centre, dark edge
+  const g=ctx.createRadialGradient(rr*.58,rr*.52,0,rr,rr,rr);
+  g.addColorStop(0,'rgba(255,255,255,0.18)');
+  g.addColorStop(.42,'rgba(0,0,0,0.0)');
+  g.addColorStop(1,'rgba(0,0,0,0.50)');
   ctx.fillStyle=g; ctx.fillRect(0,0,diam,diam);
   ctx.restore();
 }
 
 let lastT=performance.now();
-function tick(now){
+(function tick(now){
   const dt=Math.min(now-lastT,60); lastT=now;
-  for(const p of planets){
-    p.phase=(p.phase+p.speed*dt*.016)%p.strip.width;
-    renderPlanet(p);
-  }
+  for(const p of renderQ){ p.phase=(p.phase+p.speed*dt*.016)%p.strip.width; renderPlanet(p); }
   requestAnimationFrame(tick);
+})(lastT);
+
+// ── Touch / hover ─────────────────────────────────────────────────────────────
+function setPwScale(pw, s){
+  pw.style.transform=`translate(-50%,-50%) scale(${s})`;
 }
-requestAnimationFrame(t=>{lastT=t;tick(t);});
+scene.addEventListener('mouseover', e=>{ const pw=e.target.closest('.pw'); if(pw&&pw!==zoomedPw) setPwScale(pw,1.09); });
+scene.addEventListener('mouseout',  e=>{ const pw=e.target.closest('.pw'); if(pw&&pw!==zoomedPw) setPwScale(pw,1.0); });
+scene.addEventListener('touchstart',e=>{ const pw=e.target.closest('.pw'); if(pw) setPwScale(pw,1.09); },{passive:true});
+scene.addEventListener('touchend',  e=>{ const pw=e.target.closest('.pw'); if(pw&&pw!==zoomedPw) setPwScale(pw,1.0); },{passive:true});
 
-// ── JS horizontal scroll (pointer drag + wheel) ───────────────────────────────
-const viewport=document.getElementById('viewport');
-let scrollX=0, maxScroll=0;
-function getMaxScroll(){
-  return Math.max(0, track.scrollWidth - window.innerWidth);
+// ── Zoom ──────────────────────────────────────────────────────────────────────
+let zoomedPw=null;
+
+function zoomTo(pw){
+  if(zoomedPw) setPwScale(zoomedPw,1.0);
+  zoomedPw=pw;
+
+  const cx=parseFloat(pw.style.left), cy=parseFloat(pw.style.top);
+  const diam=parseFloat(pw.style.width);
+  // target: planet fills ~28% of shorter side
+  const target=Math.min(lay.W,lay.H)*0.28;
+  const s=Math.max(1.5, target/diam);
+  // translate so planet centre lands at viewport centre
+  const tx=s*(lay.W/2-cx), ty=s*(lay.H/2-cy);
+  scene.style.transform=`translate(${tx}px,${ty}px) scale(${s})`;
+
+  setTimeout(()=>showPanel(BODIES.find(b=>b.id===pw.dataset.id)), 640);
 }
-function applyScroll(animate){
-  maxScroll=getMaxScroll();
-  scrollX=Math.max(0,Math.min(scrollX,maxScroll));
-  if(animate){
-    track.style.transition='transform 0.55s cubic-bezier(0.4,0,0.2,1)';
-    track.style.transform=`translateY(-50%) translateX(${-scrollX}px)`;
-    setTimeout(()=>track.style.transition='',600);
-  } else {
-    track.style.transition='';
-    track.style.transform=`translateY(-50%) translateX(${-scrollX}px)`;
-  }
+
+function zoomOut(){
+  scene.style.transform='';
+  if(zoomedPw){ setPwScale(zoomedPw,1.0); zoomedPw=null; }
+  hidePanel();
 }
-applyScroll(false);
 
-// Wheel scroll
-viewport.addEventListener('wheel',e=>{
-  e.preventDefault();
-  scrollX += e.deltaX||e.deltaY;
-  applyScroll(false);
-},{passive:false});
-
-// Pointer drag
-let dragStart=null, scrollAtDrag=0;
-viewport.addEventListener('pointerdown',e=>{
-  dragStart={x:e.clientX}; scrollAtDrag=scrollX;
-  viewport.setPointerCapture(e.pointerId);
-  viewport.classList.add('dragging');
-});
-viewport.addEventListener('pointermove',e=>{
-  if(!dragStart) return;
-  scrollX=scrollAtDrag-(e.clientX-dragStart.x);
-  applyScroll(false);
-});
-viewport.addEventListener('pointerup',()=>{ dragStart=null; viewport.classList.remove('dragging'); });
-viewport.addEventListener('pointercancel',()=>{ dragStart=null; viewport.classList.remove('dragging'); });
-
-// ── Hover scale ───────────────────────────────────────────────────────────────
-pwEls.forEach(pw=>{
-  pw.addEventListener('mouseenter',()=>{ if(!pw.classList.contains('active')) pw.style.transform='scale(1.10)'; });
-  pw.addEventListener('mouseleave',()=>{ if(!pw.classList.contains('active')) pw.style.transform='scale(1.0)'; });
-});
-
-// ── Detail panel ─────────────────────────────────────────────────────────────
+// ── Panel ─────────────────────────────────────────────────────────────────────
 const panel=document.getElementById('panel');
-const hint=document.getElementById('hint');
-let activePw=null;
+const hint =document.getElementById('hint');
 
-function openPanel(pw){
-  const body=BODIES[parseInt(pw.dataset.idx)];
+function showPanel(body){
   document.getElementById('p-name').textContent=body.name;
   document.getElementById('p-type').textContent=body.type;
   document.getElementById('p-desc').textContent=body.desc;
-  const fc=document.getElementById('p-facts');
-  fc.innerHTML='';
-  body.facts.forEach(f=>{
-    fc.insertAdjacentHTML('beforeend',
-      `<div class="fact-row"><div class="fact-label">${f.l}</div><div class="fact-val">${f.v}</div></div>`);
-  });
-
-  // Scroll planet into center view with room for panel on right
-  const pW = 252 + 56; // panel width incl padding
-  const gap = 24;
-  const diam = parseInt(pw.style.width);
-  const pwLeft = pw.offsetLeft; // position in track (before scroll)
-  // Target: planet center at ~35% from left (panel takes right 40%)
-  const targetX = pwLeft + diam/2 - window.innerWidth * 0.35;
-  scrollX = Math.max(0, targetX);
-  applyScroll(true);
-
-  // Position panel AFTER scroll animation settles (600ms)
-  setTimeout(()=>{
-    const rect = pw.getBoundingClientRect();
-    let left = rect.right + gap;
-    if(left + pW > window.innerWidth - 12) left = rect.left - pW - gap;
-    left = Math.max(12, left);
-    panel.style.left = left + 'px';
-    panel.classList.add('on');
-    hint.classList.add('on');
-  }, 580);
-
-  if(activePw){ activePw.classList.remove('active'); activePw.style.transform='scale(1.0)'; }
-  pw.classList.add('active'); pw.style.transform='scale(1.18)';
-  activePw=pw;
+  const fc=document.getElementById('p-facts'); fc.innerHTML='';
+  body.facts.forEach(f=>fc.insertAdjacentHTML('beforeend',
+    `<div class="fact-row"><div class="fact-label">${f.l}</div><div class="fact-val">${f.v}</div></div>`));
+  panel.classList.add('on'); hint.classList.add('on');
 }
+function hidePanel(){ panel.classList.remove('on'); hint.classList.remove('on'); }
 
-function closePanel(){
-  panel.classList.remove('on'); hint.classList.remove('on');
-  if(activePw){ activePw.classList.remove('active'); activePw.style.transform='scale(1.0)'; activePw=null; }
-}
+document.getElementById('p-close').addEventListener('click',zoomOut);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') zoomOut(); });
 
-viewport.addEventListener('click',e=>{
-  if(viewport.classList.contains('dragging')) return;
+// ── Click ─────────────────────────────────────────────────────────────────────
+scene.addEventListener('click', e=>{
   const pw=e.target.closest('.pw');
-  if(!pw) return;
-  if(activePw===pw){ closePanel(); return; }
-  openPanel(pw);
+  if(pw){
+    if(pw===zoomedPw) zoomOut(); else zoomTo(pw);
+  } else {
+    if(zoomedPw) zoomOut();
+  }
 });
 
-document.addEventListener('click',e=>{
-  if(!activePw) return;
-  if(e.target.closest('.pw')||e.target.closest('#panel')) return;
-  closePanel();
+// ── Init & resize ─────────────────────────────────────────────────────────────
+buildScene();
+
+let resizeTimer;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{ if(zoomedPw) zoomOut(); buildScene(); },200);
 });
-
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePanel(); });
-
-// Prevent click after drag
-let didDrag=false;
-viewport.addEventListener('pointerdown',()=>{ didDrag=false; });
-viewport.addEventListener('pointermove',e=>{ if(dragStart && Math.abs(e.clientX-dragStart.x)>4) didDrag=true; });
 </script>
 </body>
 </html>
