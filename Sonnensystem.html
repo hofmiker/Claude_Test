@@ -211,7 +211,7 @@ function buildStrip(body, diam) {
 // ── Layout ────────────────────────────────────────────────────────────────────
 function computeLayout() {
   const W=window.innerWidth, H=window.innerHeight;
-  const isPortrait = H >= W;
+  const isPortrait = window.matchMedia('(orientation: portrait)').matches;
   let sunR, sunX, sunY, maxOrbit;
   if(isPortrait){
     sunR   = W * 0.42;
@@ -258,7 +258,7 @@ function drawRings(lay){
   const cv=document.getElementById('rings-canvas');
   cv.width=lay.W; cv.height=lay.H;
   const ctx=cv.getContext('2d');
-  ctx.strokeStyle='rgba(255,255,255,0.11)'; ctx.lineWidth=0.6;
+  ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.lineWidth=1.2;
   for(const b of PLANETS){
     ctx.beginPath();
     ctx.arc(lay.sunX, lay.sunY, lay.orbitPx(b.au), 0, Math.PI*2);
