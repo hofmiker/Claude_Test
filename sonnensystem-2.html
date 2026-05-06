@@ -56,9 +56,26 @@
             width: 22px; height: 22px; border-radius: 50%;
             background: rgba(255,255,255,0.9); border: none;
         }
+
+        #deploy-time {
+            position: fixed; top: 14px; left: 16px;
+            font-family: -apple-system, Helvetica, sans-serif;
+            font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+            color: rgba(255,255,255,0.25); pointer-events: none; z-index: 20;
+        }
+        #headline {
+            position: fixed; top: 14px; left: 50%;
+            transform: translateX(-50%);
+            font-family: -apple-system, Helvetica, sans-serif;
+            font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase;
+            color: rgba(255,255,255,0.40); pointer-events: none; z-index: 20;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
+    <div id="deploy-time">Deployed: 06.05.2026</div>
+    <div id="headline">Solar Eclipse</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label">
@@ -141,7 +158,7 @@
     const K       = 0.42;
     const AU_MIN  = Math.pow(PLANETS[0].au, K);
     const AU_MAX  = Math.pow(PLANETS[PLANETS.length - 1].au, K);
-    const ORB_MIN = 15, ORB_MAX = 65;
+    const ORB_MIN = 11, ORB_MAX = 46;
     const EARTH_R = 0.40;
 
     function orbitR(au) {
@@ -252,14 +269,24 @@
 
     function easeIO(t) { return t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; }
 
+    // Flush OrbitControls' internal damping velocity so re-enabling never jumps
+    function zeroControlsVelocity() {
+        controls.enableDamping = false;
+        controls.update();
+        controls.enableDamping = true;
+    }
+
     function goHome(dur = 1.0) {
         focused = null;
         labelEl.style.display = 'none';
         controls.minDistance  = 8;
+        zeroControlsVelocity();
+        controls.enabled = false;
         camAnim = {
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
             to:   { pos: HOME_POS.clone(),        tgt: HOME_TARGET.clone() },
             t: 0, dur,
+            onDone: () => { zeroControlsVelocity(); controls.enabled = true; },
         };
     }
 
@@ -269,25 +296,40 @@
         const wp = new THREE.Vector3();
         mesh.getWorldPosition(wp);
 
-        // Camera approaches from its current direction; distance fills ~60% of screen
-        const focusDist  = Math.max(3.0, dispR * 3.5);
-        const camOffset  = camera.position.clone().sub(wp).normalize().multiplyScalar(focusDist);
+        // Distance: planet fills 70 % of the short screen side (diameter)
+        // fillR = target screen-radius / (min(W,H)/2) → 0.70 means 70 % diameter
+        const tanHalfFov = Math.tan((camera.fov / 2) * Math.PI / 180);
+        const shortHalf  = Math.min(window.innerWidth, window.innerHeight) / 2;
+        const halfH      = window.innerHeight / 2;
+        const focusDist  = Math.max(dispR * 1.5,
+                               dispR * halfH / (0.70 * shortHalf * tanHalfFov));
+
+        // Always approach from the home-view direction so the orbital plane
+        // stays consistently framed (camera never spins to a random angle)
+        const HOME_DIR  = HOME_POS.clone().normalize();
+        const camOffset = HOME_DIR.multiplyScalar(focusDist);
 
         const p = PLANETS[idx];
         focused = { idx, mesh, dispR, prevPos: wp.clone() };
-        labelEl.style.display  = 'block';
+        labelEl.style.display   = 'block';
         labelNameEl.textContent = p.name;
         labelInfoEl.innerHTML   =
             p.kmh.toLocaleString('de-DE') + '&thinsp;km/h<br>' +
             fmtPeriod(p.period) + ' Erdenjahre';
 
+        zeroControlsVelocity();
+        controls.enabled = false;
         camAnim = {
             from:       { pos: camera.position.clone(), tgt: controls.target.clone() },
             to:         { pos: wp.clone().add(camOffset), tgt: wp.clone() },
             camOffset,
             followMesh: mesh,
             t: 0, dur: 1.2,
-            onDone: () => { controls.minDistance = Math.max(1.0, dispR * 1.5); },
+            onDone: () => {
+                controls.minDistance = Math.max(1.0, dispR * 1.4);
+                zeroControlsVelocity();
+                controls.enabled = true;
+            },
         };
     }
 
@@ -391,31 +433,44 @@
         const screenH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
         const sr      = Math.max(4, (focused.dispR / screenH) * window.innerHeight);
 
-        // Label placement: flip to left if planet is near right edge
-        const lw      = labelEl.offsetWidth  || 80;
-        const lh      = labelEl.offsetHeight || 30;
-        const margin  = 18;
-        const goLeft  = sx > window.innerWidth * 0.65;
-        const lx      = goLeft ? sx - sr - margin - lw : sx + sr + margin;
-        const ly      = sy - lh / 2;
+        const lw     = labelEl.offsetWidth  || 80;
+        const lh     = labelEl.offsetHeight || 30;
+        const margin = 16;
+        const W      = window.innerWidth, H = window.innerHeight;
+        const isLandscape = W > H;
+
+        let lx, ly, ex, ey, lcx, lcy;
+        if (isLandscape) {
+            // Label beside planet: right side by default, flip left near right edge
+            const goLeft = sx > W * 0.62;
+            lx   = goLeft ? sx - sr - margin - lw : sx + sr + margin;
+            ly   = Math.max(8, Math.min(H - lh - 8, sy - lh / 2));
+            lx   = Math.max(8, Math.min(W - lw - 8, lx));
+            ex   = goLeft ? sx - sr - 2 : sx + sr + 2;
+            ey   = sy;
+            lcx  = goLeft ? lx + lw + 4 : lx - 4;
+            lcy  = ly + lh / 2;
+        } else {
+            // Label below planet, horizontally centred
+            lx   = Math.max(8, Math.min(W - lw - 8, sx - lw / 2));
+            ly   = Math.min(H - lh - 8, sy + sr + margin);
+            ex   = sx;
+            ey   = sy + sr + 2;
+            lcx  = lx + lw / 2;
+            lcy  = ly;
+        }
 
         labelEl.style.left = Math.round(lx) + 'px';
         labelEl.style.top  = Math.round(ly) + 'px';
 
-        // Connector: from planet edge → label edge
-        const lcx = goLeft ? lx + lw + 4 : lx - 4;
-        const lcy = ly + lh / 2;
-        const dx  = lcx - sx, dy = lcy - sy;
-        const len = Math.hypot(dx, dy);
-        const ex  = sx + (dx / len) * (sr + 2);
-        const ey  = sy + (dy / len) * (sr + 2);
-
-        oc.beginPath();
-        oc.moveTo(ex, ey);
-        oc.lineTo(lcx, lcy);
-        oc.strokeStyle = 'rgba(255,255,255,0.45)';
-        oc.lineWidth   = 0.9;
-        oc.stroke();
+        if (Math.hypot(lcx - ex, lcy - ey) > 4) {
+            oc.beginPath();
+            oc.moveTo(ex, ey);
+            oc.lineTo(lcx, lcy);
+            oc.strokeStyle = 'rgba(255,255,255,0.45)';
+            oc.lineWidth   = 0.9;
+            oc.stroke();
+        }
 
         oc.beginPath();
         oc.arc(ex, ey, 2, 0, Math.PI * 2);
@@ -444,7 +499,6 @@
         });
 
         if (camAnim) {
-            controls.enabled = false;
             camAnim.t = Math.min(1, camAnim.t + 0.016 / camAnim.dur);
             const t  = easeIO(camAnim.t);
 
@@ -460,18 +514,21 @@
             controls.target.lerpVectors(camAnim.from.tgt, camAnim.to.tgt, t);
 
             if (camAnim.t >= 1) {
-                if (camAnim.onDone) camAnim.onDone();
+                // Snap to exact destination, then cleanly re-enable controls
+                camera.position.copy(camAnim.to.pos);
+                controls.target.copy(camAnim.to.tgt);
+                const done = camAnim.onDone;
                 camAnim = null;
-                controls.enabled = true;
+                if (done) done();
             }
         } else {
-            // While focused: keep camera locked to planet, let controls orbit around it
+            // While focused: camera tracks planet; 1-finger drag orbits around it
             if (focused) {
                 const wp = new THREE.Vector3();
                 focused.mesh.getWorldPosition(wp);
                 const delta = wp.clone().sub(focused.prevPos);
                 camera.position.add(delta);
-                controls.target.copy(wp);   // direct set keeps planet exactly centred
+                controls.target.copy(wp);
                 focused.prevPos.copy(wp);
             }
             controls.update();
