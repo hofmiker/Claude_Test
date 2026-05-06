@@ -23,7 +23,7 @@
             display: block;
             color: rgba(255,255,255,0.50);
             font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
-            margin-top: 5px; line-height: 1.7;
+            margin-top: 2px; line-height: 1.35;
         }
 
         #ui {
@@ -57,12 +57,6 @@
             background: rgba(255,255,255,0.9); border: none;
         }
 
-        #deploy-time {
-            position: fixed; top: 14px; left: 16px;
-            font-family: -apple-system, Helvetica, sans-serif;
-            font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
-            color: rgba(255,255,255,0.25); pointer-events: none; z-index: 20;
-        }
         #headline {
             position: fixed; top: 14px; left: 50%;
             transform: translateX(-50%);
@@ -71,11 +65,19 @@
             color: rgba(255,255,255,0.40); pointer-events: none; z-index: 20;
             white-space: nowrap;
         }
+        #deploy-time {
+            position: fixed; top: 30px; left: 50%;
+            transform: translateX(-50%);
+            font-family: -apple-system, Helvetica, sans-serif;
+            font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+            color: rgba(255,255,255,0.22); pointer-events: none; z-index: 20;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
-    <div id="deploy-time">Deployed: 06.05.2026</div>
     <div id="headline">Solar Eclipse</div>
+    <div id="deploy-time">Deployed: 06.05.2026</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label">
@@ -143,16 +145,16 @@
     overlayCanvas.height = window.innerHeight;
 
     // ── Planet data ───────────────────────────────────────────────────────
-    // kmh: mean orbital velocity in km/h (real values)
+    // relR: radius relative to Earth; km_d: equatorial diameter in km (real values)
     const PLANETS = [
-        { name: 'Merkur',  relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5, kmh: 172332 },
-        { name: 'Venus',   relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0, kmh: 126072 },
-        { name: 'Erde',    relR:  1.000, au:  1.000, period:   1.000, color: 0x6b93d6, kmh: 107208 },
-        { name: 'Mars',    relR:  0.532, au:  1.524, period:   1.881, color: 0xc04a1a, kmh:  86652 },
-        { name: 'Jupiter', relR: 11.210, au:  5.203, period:  11.860, color: 0xc88b3a, kmh:  47052 },
-        { name: 'Saturn',  relR:  9.450, au:  9.537, period:  29.460, color: 0xe4d191, kmh:  34884, rings: true },
-        { name: 'Uranus',  relR:  4.010, au: 19.190, period:  84.010, color: 0xa0e8e8, kmh:  24516 },
-        { name: 'Neptun',  relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4, kmh:  19548 },
+        { name: 'Merkur',  relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5, kmh: 172332, km_d:   4879 },
+        { name: 'Venus',   relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0, kmh: 126072, km_d:  12104 },
+        { name: 'Erde',    relR:  1.000, au:  1.000, period:   1.000, color: 0x6b93d6, kmh: 107208, km_d:  12756 },
+        { name: 'Mars',    relR:  0.532, au:  1.524, period:   1.881, color: 0xc04a1a, kmh:  86652, km_d:   6792 },
+        { name: 'Jupiter', relR: 11.210, au:  5.203, period:  11.860, color: 0xc88b3a, kmh:  47052, km_d: 142984 },
+        { name: 'Saturn',  relR:  9.450, au:  9.537, period:  29.460, color: 0xe4d191, kmh:  34884, km_d: 120536, rings: true },
+        { name: 'Uranus',  relR:  4.010, au: 19.190, period:  84.010, color: 0xa0e8e8, kmh:  24516, km_d:  51118 },
+        { name: 'Neptun',  relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4, kmh:  19548, km_d:  49528 },
     ];
 
     const K       = 0.42;
@@ -189,10 +191,12 @@
     }
 
     // ── Sun ───────────────────────────────────────────────────────────────
-    scene.add(new THREE.Mesh(
-        new THREE.SphereGeometry(10, 64, 64),
+    const SUN_R = 10;
+    const sunMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(SUN_R, 64, 64),
         new THREE.MeshBasicMaterial({ color: 0xffaa20 })
-    ));
+    );
+    scene.add(sunMesh);
 
     // ── Orbit rings ───────────────────────────────────────────────────────
     function addOrbitRing(radius) {
@@ -314,7 +318,8 @@
         labelEl.style.display   = 'block';
         labelNameEl.textContent = p.name;
         labelInfoEl.innerHTML   =
-            p.kmh.toLocaleString('de-DE') + '&thinsp;km/h<br>' +
+            p.km_d.toLocaleString('de-DE') + '&thinsp;km &#8960;<br>' +
+            p.kmh.toLocaleString('de-DE')  + '&thinsp;km/h<br>' +
             fmtPeriod(p.period) + ' Erdenjahre';
 
         zeroControlsVelocity();
@@ -327,6 +332,35 @@
             t: 0, dur: 1.2,
             onDone: () => {
                 controls.minDistance = Math.max(1.0, dispR * 1.4);
+                zeroControlsVelocity();
+                controls.enabled = true;
+            },
+        };
+    }
+
+    function focusSun() {
+        if (camAnim) return;
+        // Pure dolly along current view direction (perspective/angle unchanged)
+        const tanHalfFov  = Math.tan((camera.fov / 2) * Math.PI / 180);
+        const shortHalf   = Math.min(window.innerWidth, window.innerHeight) / 2;
+        const halfH       = window.innerHeight / 2;
+        const sunFocusDist = Math.max(SUN_R * 1.4,
+                                SUN_R * halfH / (0.50 * shortHalf * tanHalfFov));
+        const targetPos   = camera.position.clone().normalize().multiplyScalar(sunFocusDist);
+
+        focused = { isSun: true };
+        labelEl.style.display   = 'block';
+        labelNameEl.textContent = 'Sonne';
+        labelInfoEl.innerHTML   = '1.392.700&thinsp;km &#8960;<br>G2V Gelber Zwerg';
+
+        zeroControlsVelocity();
+        controls.enabled = false;
+        camAnim = {
+            from: { pos: camera.position.clone(), tgt: controls.target.clone() },
+            to:   { pos: targetPos,               tgt: HOME_TARGET.clone() },
+            t: 0, dur: 1.0,
+            onDone: () => {
+                controls.minDistance = SUN_R * 1.3;
                 zeroControlsVelocity();
                 controls.enabled = true;
             },
@@ -354,7 +388,7 @@
 
         const obj = hits[0].object;
         if (obj.userData.isSun) {
-            goHome();
+            if (focused && focused.isSun) goHome(); else focusSun();
         } else {
             const idx = obj.userData.planetIndex;
             if (focused && focused.idx === idx) {
@@ -422,8 +456,11 @@
         oc.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
         if (!focused) return;
 
-        const wp = new THREE.Vector3();
-        focused.mesh.getWorldPosition(wp);
+        // World position + visual radius differ between planet and sun
+        const wp    = new THREE.Vector3();
+        if (!focused.isSun) focused.mesh.getWorldPosition(wp);
+        const subjR = focused.isSun ? SUN_R : focused.dispR;
+
         const sp  = wp.clone().project(camera);
         const sx  = (sp.x + 1) / 2 * window.innerWidth;
         const sy  = (1 - sp.y) / 2 * window.innerHeight;
@@ -431,7 +468,7 @@
         // Screen-space radius
         const dist    = camera.position.distanceTo(wp);
         const screenH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
-        const sr      = Math.max(4, (focused.dispR / screenH) * window.innerHeight);
+        const sr      = Math.max(4, (subjR / screenH) * window.innerHeight);
 
         const lw     = labelEl.offsetWidth  || 80;
         const lh     = labelEl.offsetHeight || 30;
@@ -523,7 +560,7 @@
             }
         } else {
             // While focused: camera tracks planet; 1-finger drag orbits around it
-            if (focused) {
+            if (focused && !focused.isSun) {
                 const wp = new THREE.Vector3();
                 focused.mesh.getWorldPosition(wp);
                 const delta = wp.clone().sub(focused.prevPos);
