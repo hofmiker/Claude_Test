@@ -56,9 +56,26 @@
             width: 22px; height: 22px; border-radius: 50%;
             background: rgba(255,255,255,0.9); border: none;
         }
+
+        #deploy-time {
+            position: fixed; top: 14px; left: 16px;
+            font-family: -apple-system, Helvetica, sans-serif;
+            font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+            color: rgba(255,255,255,0.25); pointer-events: none; z-index: 20;
+        }
+        #headline {
+            position: fixed; top: 14px; left: 50%;
+            transform: translateX(-50%);
+            font-family: -apple-system, Helvetica, sans-serif;
+            font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase;
+            color: rgba(255,255,255,0.40); pointer-events: none; z-index: 20;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
+    <div id="deploy-time">Deployed: 06.05.2026</div>
+    <div id="headline">Solar Eclipse</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label">
@@ -141,7 +158,7 @@
     const K       = 0.42;
     const AU_MIN  = Math.pow(PLANETS[0].au, K);
     const AU_MAX  = Math.pow(PLANETS[PLANETS.length - 1].au, K);
-    const ORB_MIN = 15, ORB_MAX = 65;
+    const ORB_MIN = 11, ORB_MAX = 46;
     const EARTH_R = 0.40;
 
     function orbitR(au) {
@@ -279,21 +296,21 @@
         const wp = new THREE.Vector3();
         mesh.getWorldPosition(wp);
 
-        // Distance so planet fills ~78 % of the short screen side
+        // Distance: planet fills 70 % of the short screen side (diameter)
+        // fillR = target screen-radius / (min(W,H)/2) → 0.70 means 70 % diameter
         const tanHalfFov = Math.tan((camera.fov / 2) * Math.PI / 180);
         const shortHalf  = Math.min(window.innerWidth, window.innerHeight) / 2;
         const halfH      = window.innerHeight / 2;
-        const focusDist  = Math.max(dispR * 1.6,
-                               dispR * halfH / (0.39 * shortHalf * tanHalfFov));
+        const focusDist  = Math.max(dispR * 1.5,
+                               dispR * halfH / (0.70 * shortHalf * tanHalfFov));
 
-        // Approach from current view direction; shift target up → planet sits lower,
-        // leaving headroom above for the label
-        const targetShift = dispR * 0.4;
-        const camOffset   = camera.position.clone().sub(wp).normalize().multiplyScalar(focusDist);
-        const adjustedTgt = wp.clone(); adjustedTgt.y += targetShift;
+        // Always approach from the home-view direction so the orbital plane
+        // stays consistently framed (camera never spins to a random angle)
+        const HOME_DIR  = HOME_POS.clone().normalize();
+        const camOffset = HOME_DIR.multiplyScalar(focusDist);
 
         const p = PLANETS[idx];
-        focused = { idx, mesh, dispR, prevPos: wp.clone(), targetShift };
+        focused = { idx, mesh, dispR, prevPos: wp.clone() };
         labelEl.style.display   = 'block';
         labelNameEl.textContent = p.name;
         labelInfoEl.innerHTML   =
@@ -304,8 +321,8 @@
         controls.enabled = false;
         camAnim = {
             from:       { pos: camera.position.clone(), tgt: controls.target.clone() },
-            to:         { pos: wp.clone().add(camOffset), tgt: adjustedTgt.clone() },
-            camOffset, targetShift,
+            to:         { pos: wp.clone().add(camOffset), tgt: wp.clone() },
+            camOffset,
             followMesh: mesh,
             t: 0, dur: 1.2,
             onDone: () => {
@@ -416,21 +433,35 @@
         const screenH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
         const sr      = Math.max(4, (focused.dispR / screenH) * window.innerHeight);
 
-        // Label above the planet, horizontally centred, clamped to screen edges
         const lw     = labelEl.offsetWidth  || 80;
         const lh     = labelEl.offsetHeight || 30;
-        const margin = 14;
-        const lx     = Math.max(8, Math.min(window.innerWidth  - lw - 8, sx - lw / 2));
-        const ly     = Math.max(8, sy - sr - margin - lh);
+        const margin = 16;
+        const W      = window.innerWidth, H = window.innerHeight;
+        const isLandscape = W > H;
+
+        let lx, ly, ex, ey, lcx, lcy;
+        if (isLandscape) {
+            // Label beside planet: right side by default, flip left near right edge
+            const goLeft = sx > W * 0.62;
+            lx   = goLeft ? sx - sr - margin - lw : sx + sr + margin;
+            ly   = Math.max(8, Math.min(H - lh - 8, sy - lh / 2));
+            lx   = Math.max(8, Math.min(W - lw - 8, lx));
+            ex   = goLeft ? sx - sr - 2 : sx + sr + 2;
+            ey   = sy;
+            lcx  = goLeft ? lx + lw + 4 : lx - 4;
+            lcy  = ly + lh / 2;
+        } else {
+            // Label below planet, horizontally centred
+            lx   = Math.max(8, Math.min(W - lw - 8, sx - lw / 2));
+            ly   = Math.min(H - lh - 8, sy + sr + margin);
+            ex   = sx;
+            ey   = sy + sr + 2;
+            lcx  = lx + lw / 2;
+            lcy  = ly;
+        }
 
         labelEl.style.left = Math.round(lx) + 'px';
         labelEl.style.top  = Math.round(ly) + 'px';
-
-        // Connector: from planet top edge → label bottom centre
-        const lcx = lx + lw / 2;
-        const lcy = ly + lh;
-        const ex  = sx;
-        const ey  = sy - sr - 2;
 
         if (Math.hypot(lcx - ex, lcy - ey) > 4) {
             oc.beginPath();
@@ -475,8 +506,7 @@
             if (camAnim.followMesh) {
                 const wp = new THREE.Vector3();
                 camAnim.followMesh.getWorldPosition(wp);
-                const adjTgt = wp.clone(); adjTgt.y += (camAnim.targetShift || 0);
-                camAnim.to.tgt.copy(adjTgt);
+                camAnim.to.tgt.copy(wp);
                 camAnim.to.pos.copy(wp).add(camAnim.camOffset);
             }
 
@@ -498,8 +528,7 @@
                 focused.mesh.getWorldPosition(wp);
                 const delta = wp.clone().sub(focused.prevPos);
                 camera.position.add(delta);
-                const tgt = wp.clone(); tgt.y += focused.targetShift;
-                controls.target.copy(tgt);
+                controls.target.copy(wp);
                 focused.prevPos.copy(wp);
             }
             controls.update();
