@@ -26,24 +26,30 @@
             margin-top: 2px; line-height: 1.35;
         }
 
+        @keyframes yearPop {
+            0%   { transform: translateX(-50%) scale(1.22); color: rgba(255,255,255,0.90); }
+            100% { transform: translateX(-50%) scale(1);    color: rgba(255,255,255,0.55); }
+        }
         #year-display {
             position: fixed; bottom: 60px; left: 50%;
             transform: translateX(-50%);
             font-family: -apple-system, Helvetica, sans-serif;
-            font-size: 16px; letter-spacing: 0.06em;
+            font-size: 16px; letter-spacing: 0.20em;
             color: rgba(255,255,255,0.55);
             z-index: 20; pointer-events: none;
             min-width: 6ch; text-align: center;
         }
+        #year-display.year-pop {
+            animation: yearPop 0.40s ease-out forwards;
+        }
+
         #ui {
             position: fixed; bottom: 28px; left: 50%;
             transform: translateX(-50%);
             display: flex; align-items: center; gap: 18px; z-index: 20;
         }
-        #time-label {
-            position: fixed; bottom: 90px; left: 50%;
-            transform: translateX(-50%);
-            opacity: 0; transition: opacity 0.15s; z-index: 20; pointer-events: none;
+        .speed-label-wrap {
+            display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
         }
         .lbl {
             color: rgba(255,255,255,0.38);
@@ -51,6 +57,13 @@
             font-size: 10px; letter-spacing: 0.14em;
             text-transform: uppercase; white-space: nowrap;
         }
+        .lbl-sub {
+            color: rgba(255,255,255,0.20);
+            font-family: -apple-system, Helvetica, sans-serif;
+            font-size: 8px; letter-spacing: 0.08em;
+            white-space: nowrap;
+        }
+
         #speed {
             width: 220px; height: 2px; cursor: pointer;
             -webkit-appearance: none; appearance: none;
@@ -64,6 +77,15 @@
         #speed::-moz-range-thumb {
             width: 22px; height: 22px; border-radius: 50%;
             background: rgba(255,255,255,0.9); border: none;
+        }
+
+        #thumb-label {
+            position: fixed; display: none; pointer-events: none; z-index: 30;
+            font-family: -apple-system, Helvetica, sans-serif;
+            font-size: 10px; letter-spacing: 0.10em;
+            color: rgba(255,255,255,0.72);
+            transform: translateX(-50%);
+            white-space: nowrap;
         }
 
         #headline {
@@ -86,7 +108,7 @@
 </head>
 <body>
     <div id="headline">Solar Eclipse</div>
-    <div id="deploy-time">Deployed: 06.05.2026</div>
+    <div id="deploy-time">Deployed: 07.05.2026</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label">
@@ -94,9 +116,12 @@
         <span id="label-info"></span>
     </div>
     <div id="year-display"></div>
-    <span id="time-label" class="lbl"></span>
+    <div id="thumb-label"></div>
     <div id="ui">
-        <span class="lbl">Speed</span>
+        <div class="speed-label-wrap">
+            <span class="lbl">Speed</span>
+            <span class="lbl-sub">earth orbits / s</span>
+        </div>
         <input type="range" id="speed" min="0" max="2" step="0.01" value="1">
     </div>
 
@@ -126,6 +151,7 @@
 
     const HOME_POS    = new THREE.Vector3(0, 42, 90);
     const HOME_TARGET = new THREE.Vector3(0,  0,  0);
+    const HOME_DIST   = HOME_POS.length();
     camera.position.copy(HOME_POS);
 
     // ── Controls ──────────────────────────────────────────────────────────
@@ -150,8 +176,47 @@
     overlayCanvas.width  = window.innerWidth;
     overlayCanvas.height = window.innerHeight;
 
+    // ── Audio ─────────────────────────────────────────────────────────────
+    let audioCtx = null;
+
+    function ensureAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        return audioCtx;
+    }
+
+    // km_d → frequency: large body = deep, small = bright
+    function playBell(km_d) {
+        const ctx   = ensureAudio();
+        const t0    = ctx.currentTime;
+        const lo    = Math.log(2376),    hi = Math.log(1392700);
+        const tVal  = Math.max(0, Math.min(1, (Math.log(Math.max(1, km_d)) - lo) / (hi - lo)));
+        const freq  = 1800 - tVal * 1700;    // 100 Hz (Sun) … 1800 Hz (Pluto)
+        const decay = 0.6  + tVal * 1.6;     // 0.6 s … 2.2 s
+
+        const master = ctx.createGain();
+        master.gain.value = 0.30;
+        master.connect(ctx.destination);
+
+        // Bell timbre: fundamental + inharmonic overtone + perfect fifth
+        [{ ratio: 1.000, gain: 0.55 },
+         { ratio: 2.756, gain: 0.25 },
+         { ratio: 1.500, gain: 0.20 }].forEach(({ ratio, gain }) => {
+            const osc = ctx.createOscillator();
+            const env = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq * ratio;
+            env.gain.setValueAtTime(0, t0);
+            env.gain.linearRampToValueAtTime(gain, t0 + 0.004);
+            env.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
+            osc.connect(env);
+            env.connect(master);
+            osc.start(t0);
+            osc.stop(t0 + decay + 0.05);
+        });
+    }
+
     // ── Planet data ───────────────────────────────────────────────────────
-    // relR: radius relative to Earth; km_d: equatorial diameter in km
     const PLANETS = [
         { name: 'Merkur',  relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5, kmh: 172332, km_d:    4879 },
         { name: 'Venus',   relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0, kmh: 126072, km_d:   12104 },
@@ -166,7 +231,7 @@
 
     const K       = 0.42;
     const AU_MIN  = Math.pow(PLANETS[0].au, K);
-    const AU_MAX  = Math.pow(PLANETS[PLANETS.length - 1].au, K); // Pluto
+    const AU_MAX  = Math.pow(PLANETS[PLANETS.length - 1].au, K);
     const ORB_MIN = 11, ORB_MAX = 52;
     const EARTH_R = 0.40;
 
@@ -261,12 +326,12 @@
     });
 
     // ── Moon (orbits Earth) ───────────────────────────────────────────────
-    const EARTH_DISP_R  = pivots[2].userData.dispR;   // 0.40
-    const MOON_ORB_R    = EARTH_DISP_R * 4.5;         // visual orbit around Earth
-    const MOON_DISP_R   = Math.max(0.06, 0.272 * EARTH_DISP_R);
-    const MOON_PERIOD   = 27.32 / 365.25;             // Earth years
+    const EARTH_DISP_R   = pivots[2].userData.dispR;
+    const MOON_ORB_R     = EARTH_DISP_R * 4.5;
+    const MOON_DISP_R    = Math.max(0.06, 0.272 * EARTH_DISP_R);
+    const MOON_PERIOD    = 27.32 / 365.25;
 
-    const earthMesh     = pivots[2].userData.mesh;
+    const earthMesh      = pivots[2].userData.mesh;
     const moonOrbitPivot = new THREE.Group();
     earthMesh.add(moonOrbitPivot);
     makeRing(MOON_ORB_R, moonOrbitPivot, 0.12);
@@ -300,18 +365,21 @@
 
     function easeIO(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
-    // Re-enable controls cleanly after animation: apply+zero any residual velocity,
-    // then restore exact final camera position so there is no jump.
     function cleanEndAnimation() {
-        const fp = camera.position.clone();
-        const ft = controls.target.clone();
+        const fp    = camera.position.clone();
+        const ft    = controls.target.clone();
         const saved = controls.dampingFactor;
         controls.dampingFactor = 1.0;
-        controls.update(); // applies and zeroes all pending velocity in one shot
+        controls.update();
         controls.dampingFactor = saved;
         camera.position.copy(fp);
         controls.target.copy(ft);
         controls.enabled = true;
+    }
+
+    // Direction vector from current OrbitControls target toward camera (preserved on all moves)
+    function camDirVec() {
+        return camera.position.clone().sub(controls.target).normalize();
     }
 
     function goHome(dur = 1.0) {
@@ -319,9 +387,12 @@
         labelEl.style.display = 'none';
         controls.minDistance  = 8;
         controls.enabled = false;
+        // Keep current camera direction, just pull back to home distance
+        const dir    = camDirVec();
+        const toPos  = dir.multiplyScalar(HOME_DIST);
         camAnim = {
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
-            to:   { pos: HOME_POS.clone(),        tgt: HOME_TARGET.clone() },
+            to:   { pos: toPos,                   tgt: HOME_TARGET.clone() },
             t: 0, dur,
             onDone: cleanEndAnimation,
         };
@@ -338,8 +409,9 @@
         const focusDist  = Math.max(dispR * 1.5,
                                dispR * halfH / (0.70 * shortHalf * tanHalfFov));
 
-        const HOME_DIR  = HOME_POS.clone().normalize();
-        const camOffset = HOME_DIR.multiplyScalar(focusDist);
+        // Preserve current camera direction — only shift target and adjust distance
+        const dir       = camDirVec();
+        const camOffset = dir.multiplyScalar(focusDist);
 
         focused = { mesh, dispR, prevPos: wp.clone() };
         labelEl.style.display   = 'block';
@@ -357,6 +429,13 @@
                 cleanEndAnimation();
             },
         };
+    }
+
+    function fmtPeriod(y) {
+        const opts = y < 1  ? { maximumFractionDigits: 3 }
+                   : y < 10 ? { maximumFractionDigits: 2 }
+                             : { maximumFractionDigits: 1 };
+        return y.toLocaleString('de-DE', opts);
     }
 
     function focusPlanet(idx) {
@@ -383,12 +462,15 @@
 
     function focusSun() {
         if (camAnim) return;
-        const tanHalfFov  = Math.tan((camera.fov / 2) * Math.PI / 180);
-        const shortHalf   = Math.min(window.innerWidth, window.innerHeight) / 2;
-        const halfH       = window.innerHeight / 2;
+        const tanHalfFov   = Math.tan((camera.fov / 2) * Math.PI / 180);
+        const shortHalf    = Math.min(window.innerWidth, window.innerHeight) / 2;
+        const halfH        = window.innerHeight / 2;
         const sunFocusDist = Math.max(SUN_R * 1.4,
                                 SUN_R * halfH / (0.50 * shortHalf * tanHalfFov));
-        const targetPos   = camera.position.clone().normalize().multiplyScalar(sunFocusDist);
+
+        // Sun is at origin — move along current camera direction
+        const dir     = camDirVec();
+        const toPos   = dir.multiplyScalar(sunFocusDist);
 
         focused = { isSun: true };
         labelEl.style.display   = 'block';
@@ -398,13 +480,41 @@
         controls.enabled = false;
         camAnim = {
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
-            to:   { pos: targetPos,               tgt: HOME_TARGET.clone() },
+            to:   { pos: toPos,                   tgt: HOME_TARGET.clone() },
             t: 0, dur: 1.0,
             onDone: () => {
                 controls.minDistance = SUN_R * 1.3;
                 cleanEndAnimation();
             },
         };
+    }
+
+    // ── Visual pulse feedback ─────────────────────────────────────────────
+    let pulses = [];
+
+    function triggerPulse(obj) {
+        const wp = new THREE.Vector3();
+        let dispR, r8, g8, b8;
+        if (obj.userData.isSun) {
+            wp.set(0, 0, 0); dispR = SUN_R;
+            r8 = 255; g8 = 170; b8 = 32;
+        } else if (obj.userData.isMoon) {
+            moonMesh.getWorldPosition(wp); dispR = MOON_DISP_R;
+            r8 = 184; g8 = 184; b8 = 184;
+        } else {
+            const idx = obj.userData.planetIndex;
+            pivots[idx].userData.mesh.getWorldPosition(wp);
+            dispR = pivots[idx].userData.dispR;
+            const c = PLANETS[idx].color;
+            r8 = (c >> 16) & 0xff; g8 = (c >> 8) & 0xff; b8 = c & 0xff;
+        }
+        const sp = wp.clone().project(camera);
+        const sx = (sp.x + 1) / 2 * window.innerWidth;
+        const sy = (1 - sp.y) / 2 * window.innerHeight;
+        const dist    = camera.position.distanceTo(wp);
+        const screenH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
+        const sr      = Math.max(10, (dispR / screenH) * window.innerHeight);
+        pulses.push({ sx, sy, sr, t: 0, dur: 0.65, r8, g8, b8 });
     }
 
     // ── Tap ───────────────────────────────────────────────────────────────
@@ -424,12 +534,17 @@
         if (!hits.length) { if (focused) goHome(); return; }
 
         const obj = hits[0].object;
+        triggerPulse(obj);
+
         if (obj.userData.isSun) {
+            playBell(1392700);
             if (focused && focused.isSun) goHome(); else focusSun();
         } else if (obj.userData.isMoon) {
+            playBell(3474);
             if (focused && focused.mesh === moonMesh) goHome(); else focusMoon();
         } else {
             const idx = obj.userData.planetIndex;
+            playBell(PLANETS[idx].km_d);
             if (focused && focused.planetIdx === idx) {
                 goHome();
             } else {
@@ -466,103 +581,122 @@
     let speedMult        = 1;
     const SPEED_LERP     = 0.04;
 
-    const speedEl = document.getElementById('speed');
-    const timeLbl = document.getElementById('time-label');
+    const speedEl  = document.getElementById('speed');
+    const thumbLbl = document.getElementById('thumb-label');
     let sliderDrag = false;
 
-    function fmtPeriod(y) {
-        const opts = y < 1  ? { maximumFractionDigits: 3 }
-                   : y < 10 ? { maximumFractionDigits: 2 }
-                             : { maximumFractionDigits: 1 };
-        return y.toLocaleString('de-DE', opts);
+    function fmtMult(v) {
+        return v.toFixed(1).replace('.', ',') + ' ×';
     }
 
-    function fmtYPS(m) {
-        const y = (DAYS_PER_FRAME * m * 60) / 365.25;
-        if (y < 0.005) return '0 Erdenjahre / s';
-        return (y < 1 ? y.toFixed(2) : y.toFixed(1)) + ' Erdenjahre / s';
+    function updateThumbLabel() {
+        const rect    = speedEl.getBoundingClientRect();
+        const val     = +speedEl.value;
+        const thumbCX = rect.left + 11 + (val / 2) * (rect.width - 22);
+        thumbLbl.style.left = Math.round(thumbCX) + 'px';
+        thumbLbl.style.top  = Math.round(rect.top - 30) + 'px';
+        thumbLbl.textContent = fmtMult(val);
     }
 
-    speedEl.addEventListener('mousedown',  () => { sliderDrag = true;  timeLbl.style.opacity = '1'; });
-    speedEl.addEventListener('touchstart', () => { sliderDrag = true;  timeLbl.style.opacity = '1'; }, { passive: true });
-    window.addEventListener('mouseup',     () => { if (sliderDrag) { sliderDrag = false; timeLbl.style.opacity = '0'; } });
-    window.addEventListener('touchend',    () => { if (sliderDrag) { sliderDrag = false; timeLbl.style.opacity = '0'; } });
+    speedEl.addEventListener('mousedown',  () => { sliderDrag = true;  thumbLbl.style.display = 'block'; updateThumbLabel(); });
+    speedEl.addEventListener('touchstart', () => { sliderDrag = true;  thumbLbl.style.display = 'block'; updateThumbLabel(); }, { passive: true });
+    window.addEventListener('mouseup',     () => { if (sliderDrag) { sliderDrag = false; thumbLbl.style.display = 'none'; } });
+    window.addEventListener('touchend',    () => { if (sliderDrag) { sliderDrag = false; thumbLbl.style.display = 'none'; } });
     speedEl.addEventListener('input', e => {
         targetSpeedMult = +e.target.value;
-        timeLbl.textContent = fmtYPS(targetSpeedMult);
+        if (sliderDrag) updateThumbLabel();
     });
 
-    // ── Label + line overlay ──────────────────────────────────────────────
-    function updateLabel() {
+    // ── Overlay: label connector + pulse effects ──────────────────────────
+    function drawOverlay(dt) {
         oc.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-        if (!focused) return;
 
-        const wp    = new THREE.Vector3();
-        if (!focused.isSun) focused.mesh.getWorldPosition(wp);
-        const subjR = focused.isSun ? SUN_R : focused.dispR;
+        if (focused) {
+            const wp = new THREE.Vector3();
+            if (!focused.isSun) focused.mesh.getWorldPosition(wp);
+            const subjR = focused.isSun ? SUN_R : focused.dispR;
 
-        const sp  = wp.clone().project(camera);
-        const sx  = (sp.x + 1) / 2 * window.innerWidth;
-        const sy  = (1 - sp.y) / 2 * window.innerHeight;
+            const sp  = wp.clone().project(camera);
+            const sx  = (sp.x + 1) / 2 * window.innerWidth;
+            const sy  = (1 - sp.y) / 2 * window.innerHeight;
 
-        const dist    = camera.position.distanceTo(wp);
-        const screenH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
-        const sr      = Math.max(4, (subjR / screenH) * window.innerHeight);
+            const dist    = camera.position.distanceTo(wp);
+            const screenH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
+            const sr      = Math.max(4, (subjR / screenH) * window.innerHeight);
 
-        const lw = labelEl.offsetWidth  || 80;
-        const lh = labelEl.offsetHeight || 30;
-        const margin = 16;
-        const W = window.innerWidth, H = window.innerHeight;
-        const isLandscape = W > H;
+            const lw = labelEl.offsetWidth  || 80;
+            const lh = labelEl.offsetHeight || 30;
+            const margin = 16;
+            const W = window.innerWidth, H = window.innerHeight;
+            const isLandscape = W > H;
 
-        let lx, ly, ex, ey, lcx, lcy;
-        if (isLandscape) {
-            const goLeft = sx > W * 0.62;
-            lx   = goLeft ? sx - sr - margin - lw : sx + sr + margin;
-            ly   = Math.max(8, Math.min(H - lh - 8, sy - lh / 2));
-            lx   = Math.max(8, Math.min(W - lw - 8, lx));
-            ex   = goLeft ? sx - sr - 2 : sx + sr + 2;
-            ey   = sy;
-            lcx  = goLeft ? lx + lw + 4 : lx - 4;
-            lcy  = ly + lh / 2;
-        } else {
-            lx   = Math.max(8, Math.min(W - lw - 8, sx - lw / 2));
-            ly   = Math.min(H - lh - 8, sy + sr + margin);
-            ex   = sx;
-            ey   = sy + sr + 2;
-            lcx  = lx + lw / 2;
-            lcy  = ly;
-        }
+            let lx, ly, ex, ey, lcx, lcy;
+            if (isLandscape) {
+                const goLeft = sx > W * 0.62;
+                lx   = goLeft ? sx - sr - margin - lw : sx + sr + margin;
+                ly   = Math.max(8, Math.min(H - lh - 8, sy - lh / 2));
+                lx   = Math.max(8, Math.min(W - lw - 8, lx));
+                ex   = goLeft ? sx - sr - 2 : sx + sr + 2;
+                ey   = sy;
+                lcx  = goLeft ? lx + lw + 4 : lx - 4;
+                lcy  = ly + lh / 2;
+            } else {
+                lx   = Math.max(8, Math.min(W - lw - 8, sx - lw / 2));
+                ly   = Math.min(H - lh - 8, sy + sr + margin);
+                ex   = sx;
+                ey   = sy + sr + 2;
+                lcx  = lx + lw / 2;
+                lcy  = ly;
+            }
 
-        labelEl.style.left = Math.round(lx) + 'px';
-        labelEl.style.top  = Math.round(ly) + 'px';
+            labelEl.style.left = Math.round(lx) + 'px';
+            labelEl.style.top  = Math.round(ly) + 'px';
 
-        if (Math.hypot(lcx - ex, lcy - ey) > 4) {
+            if (Math.hypot(lcx - ex, lcy - ey) > 4) {
+                oc.beginPath();
+                oc.moveTo(ex, ey);
+                oc.lineTo(lcx, lcy);
+                oc.strokeStyle = 'rgba(255,255,255,0.45)';
+                oc.lineWidth   = 0.9;
+                oc.stroke();
+            }
             oc.beginPath();
-            oc.moveTo(ex, ey);
-            oc.lineTo(lcx, lcy);
-            oc.strokeStyle = 'rgba(255,255,255,0.45)';
-            oc.lineWidth   = 0.9;
-            oc.stroke();
+            oc.arc(ex, ey, 2, 0, Math.PI * 2);
+            oc.fillStyle = 'rgba(255,255,255,0.7)';
+            oc.fill();
         }
-        oc.beginPath();
-        oc.arc(ex, ey, 2, 0, Math.PI * 2);
-        oc.fillStyle = 'rgba(255,255,255,0.7)';
-        oc.fill();
+
+        // Expanding glow rings on tap
+        pulses = pulses.filter(p => {
+            p.t = Math.min(1, p.t + dt / p.dur);
+            const scale = 1 + p.t * 2.5;
+            const alpha = (1 - p.t) * 0.72;
+            const r     = p.sr * scale;
+            const grad  = oc.createRadialGradient(p.sx, p.sy, r * 0.15, p.sx, p.sy, r);
+            grad.addColorStop(0, `rgba(${p.r8},${p.g8},${p.b8},${alpha.toFixed(3)})`);
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            oc.beginPath();
+            oc.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+            oc.fillStyle = grad;
+            oc.fill();
+            return p.t < 1;
+        });
     }
 
     // ── Animation loop ────────────────────────────────────────────────────
-    let gameTime  = 0;
-    let lastTime  = performance.now();
+    const START_YEAR_CONST = START_YEAR;
+    yearEl.textContent = String(START_YEAR_CONST);
+    let lastYear = START_YEAR_CONST;
+    let gameTime = 0;
+    let lastTime = performance.now();
 
     function animate() {
         requestAnimationFrame(animate);
 
         const now = performance.now();
-        const dt  = Math.min((now - lastTime) / 1000, 0.05); // cap at 50 ms
+        const dt  = Math.min((now - lastTime) / 1000, 0.05);
         lastTime  = now;
 
-        // Speed inertia
         if (Math.abs(speedMult - targetSpeedMult) > 0.001)
             speedMult += (targetSpeedMult - speedMult) * SPEED_LERP;
         else
@@ -570,34 +704,34 @@
 
         gameTime += DAYS_PER_FRAME * speedMult;
 
-        // Update planet orbits
         pivots.forEach(pv => {
             pv.rotation.y = pv.userData.theta0
                 + (gameTime / (pv.userData.period * 365.25)) * Math.PI * 2;
         });
 
-        // Update Moon orbit
         moonOrbitPivot.rotation.y = moonTheta0
             + (gameTime / (MOON_PERIOD * 365.25)) * Math.PI * 2;
 
-        // Year counter
-        yearEl.textContent = String(Math.floor(START_YEAR + gameTime / 365.25));
+        const year = Math.floor(START_YEAR_CONST + gameTime / 365.25);
+        if (year !== lastYear) {
+            lastYear = year;
+            yearEl.textContent = String(year);
+            yearEl.classList.remove('year-pop');
+            void yearEl.offsetWidth; // restart animation
+            yearEl.classList.add('year-pop');
+        }
 
         if (camAnim) {
-            // dt-based progress (frame-rate independent)
             camAnim.t = Math.min(1, camAnim.t + dt / camAnim.dur);
             const t   = easeIO(camAnim.t);
 
-            // Track planet during zoom: move BOTH ends of lerp by planet's delta
-            // so the interpolation path shifts with the planet (no t-scaling discontinuity)
             if (camAnim.followMesh) {
-                const wp  = new THREE.Vector3();
+                const wp    = new THREE.Vector3();
                 camAnim.followMesh.getWorldPosition(wp);
                 const delta = wp.clone().sub(camAnim.to.tgt);
                 camAnim.from.pos.add(delta);
                 camAnim.to.pos.add(delta);
                 camAnim.to.tgt.copy(wp);
-                // from.tgt unchanged → smooth interpolation from original camera target
             }
 
             camera.position.lerpVectors(camAnim.from.pos, camAnim.to.pos, t);
@@ -622,7 +756,7 @@
             controls.update();
         }
 
-        updateLabel();
+        drawOverlay(dt);
         renderer.render(scene, camera);
     }
 
