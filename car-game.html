@@ -257,8 +257,8 @@ function drawMM(t) {
 
 // ── Game state ────────────────────────────────────────────────────────────
 let phase = 'countdown', cdNum = 3, cdTimer = 0, elapsed = 0, lapCount = 1;
-let trackT = 0, spd = 0, leanZ = 0;
-const MAXSPD = 0.022, ACC = 0.000034, BRK = 0.00006, FRIC = 0.000018;
+let trackT = 0, spd = 0, steerYaw = 0, carSide = 0;
+const MAXSPD = 0.010, ACC = 0.000020, BRK = 0.000055, FRIC = 0.000014;
 
 const cdEl = document.getElementById('countdown');
 const timerEl = document.getElementById('timer');
@@ -276,6 +276,7 @@ let prev = performance.now();
 const camTarget = new THREE.Vector3();
 const lookPt = new THREE.Vector3();
 const ax1 = new THREE.Vector3();
+const ax2 = new THREE.Vector3();
 const ax3 = new THREE.Vector3();
 const tmpVec = new THREE.Vector3();
 
@@ -309,23 +310,29 @@ function tick(now) {
     const left  = K['ArrowLeft'] || K['KeyA'];
     const right = K['ArrowRight']|| K['KeyD'];
 
-    if (gas)      spd = Math.min(spd + ACC * dt, MAXSPD);
-    else if (brk) spd = Math.max(spd - BRK * dt, -MAXSPD * 0.3);
-    else {
+    if (gas) {
+      if (spd < 0) spd = Math.min(spd + BRK * dt, 0);       // brake out of reverse
+      else spd = Math.min(spd + ACC * dt, MAXSPD);
+    } else if (brk) {
+      if (spd > 0.00005) spd = Math.max(spd - BRK * dt, 0); // hard brake
+      else spd = Math.max(spd - ACC * 0.4 * dt, -MAXSPD * 0.35); // reverse
+    } else {
       const f = FRIC * dt;
       spd = Math.abs(spd) < f ? 0 : spd - Math.sign(spd) * f;
     }
 
-    const leanSpeed = 0.0025 * dt;
-    leanZ = left  ? Math.min(leanZ + leanSpeed, 0.28)
-          : right ? Math.max(leanZ - leanSpeed, -0.28)
-          : leanZ * Math.pow(0.92, dt / 16);
+    // Steering: Y-rotation + lateral offset on track
+    const str = Math.max(0.25, Math.abs(spd) / MAXSPD);
+    const yawSpd = 0.0022 * dt, decay = Math.pow(0.90, dt / 16);
+    if (left)  { carSide = Math.max(carSide - str * 0.038 * dt, -(ROAD_W/2 - 1.5)); steerYaw = Math.min(steerYaw + yawSpd, 0.30); }
+    else if (right) { carSide = Math.min(carSide + str * 0.038 * dt,  ROAD_W/2 - 1.5); steerYaw = Math.max(steerYaw - yawSpd, -0.30); }
+    else { carSide *= decay; steerYaw *= decay; }
 
     const prevT = trackT;
     trackT = ((trackT + spd) % 1 + 1) % 1;
     if (prevT > 0.92 && trackT < 0.08) { lapCount++; lapEl.textContent = `RUNDE ${lapCount}`; }
 
-    if (K['KeyR']) { trackT = 0; spd = 0; elapsed = 0; lapCount = 1; lapEl.textContent = 'RUNDE 1'; }
+    if (K['KeyR']) { trackT = 0; spd = 0; elapsed = 0; lapCount = 1; carSide = 0; steerYaw = 0; lapEl.textContent = 'RUNDE 1'; }
 
     spdEl.textContent = `${Math.round(Math.abs(spd) / MAXSPD * 180)} km/h`;
   }
@@ -337,18 +344,24 @@ function tick(now) {
   const nrm  = frames.normals[fi];
   const bin  = frames.binormals[fi];
 
-  car.position.copy(p).addScaledVector(nrm, 0.5);
+  // -nrm = road surface up (Frenet normal points INTO ground on flat sections)
   ax1.copy(bin).negate();
+  ax2.copy(nrm).negate();
   ax3.copy(tang).negate();
-  car.setRotationFromMatrix(new THREE.Matrix4().makeBasis(ax1, nrm, ax3));
-  car.rotateZ(leanZ);
+  car.position.copy(p).addScaledVector(bin, carSide).addScaledVector(nrm, -0.5);
+  car.setRotationFromMatrix(new THREE.Matrix4().makeBasis(ax1, ax2, ax3));
+  car.rotateY(steerYaw);
 
-  // Camera follow (smooth)
-  camTarget.copy(p)
-    .addScaledVector(tmpVec.copy(tang).negate(), 10)
-    .addScaledVector(nrm, 5);
+  // Camera: behind + world-up offset (stable through loops)
+  tmpVec.copy(tang).negate().normalize();
+  camTarget.set(
+    car.position.x + tmpVec.x * 11,
+    car.position.y + tmpVec.y * 11 + 5,
+    car.position.z + tmpVec.z * 11
+  );
   camera.position.lerp(camTarget, 0.1);
-  lookPt.copy(p).addScaledVector(tang, 4).addScaledVector(nrm, 1.2);
+  lookPt.copy(car.position).addScaledVector(tang, 5);
+  lookPt.y = car.position.y + 1.5;
   camera.lookAt(lookPt);
 
   drawMM(trackT);
