@@ -43,8 +43,8 @@ canvas { display: block; }
   <canvas id="minimap" width="130" height="130"></canvas>
   <div id="countdown">3</div>
   <div id="speedo">0 km/h</div>
-  <div id="hint">W/↑ Gas · S/↓ Bremse · R Reset</div>
-  <div id="ver">v2026-05-08 06:15 UTC</div>
+  <div id="hint">W/↑ Gas · S/↓ Bremse · A/← D/→ Lenken (nötig!) · R Reset</div>
+  <div id="ver">v2026-05-12 – aktive Steuerung</div>
 </div>
 <div class="btn" id="bL">◄</div>
 <div class="btn" id="bR">►</div>
@@ -260,8 +260,8 @@ function drawMM(t) {
 
 // ── Game state ────────────────────────────────────────────────────────────
 let phase='countdown', cdNum=3, cdTimer=0, elapsed=0, lapCount=1;
-let trackT=0, spd=0, steerYaw=0, carSide=0;
-const MAXSPD=0.005, ACC=0.000010, BRK=0.000028, FRIC=0.000007;
+let trackT=0, spd=0, steerYaw=0, carSide=0, driftVel=0;
+const MAXSPD=0.0025, ACC=0.000008, BRK=0.000028, FRIC=0.000007;
 
 const cdEl    = document.getElementById('countdown');
 const timerEl = document.getElementById('timer');
@@ -282,6 +282,8 @@ const ax1 = new THREE.Vector3();
 const ax2 = new THREE.Vector3();
 const ax3 = new THREE.Vector3();
 const tmpV = new THREE.Vector3();
+const _ct = new THREE.Vector3();
+const _cr = new THREE.Vector3();
 
 function tick(now) {
   requestAnimationFrame(tick);
@@ -328,21 +330,28 @@ function tick(now) {
       spd = Math.abs(spd) < f ? 0 : spd - Math.sign(spd)*f;
     }
 
-    // Steering: carSide in roadRight direction (tang×worldUp)
-    // positive carSide = car's right, negative = car's left
-    const str = Math.max(0.25, Math.abs(spd)/MAXSPD);
-    const yawSpd = 0.002*dt, decay = Math.pow(0.90, dt/16);
-    const maxSide = ROAD_W/2 - 2.0;
-    if (left)  { carSide = Math.max(carSide - str*0.04*dt, -maxSide); steerYaw = Math.min(steerYaw + yawSpd, 0.28); }
-    else if (right) { carSide = Math.min(carSide + str*0.04*dt, maxSide);  steerYaw = Math.max(steerYaw - yawSpd, -0.28); }
-    else { carSide *= decay; steerYaw *= decay; }
+    // Active steering: centrifugal drift pushes car outward in curves, no auto-centering
+    const tangNow = curve.getTangent(trackT);
+    _cr.copy(tangNow).cross(WORLD_UP).normalize();
+    _ct.copy(curve.getTangent((trackT + 0.004) % 1)).sub(tangNow);
+    const curvDrift = _ct.dot(_cr) * Math.abs(spd) * 14000;
+    driftVel += curvDrift * dt;
+
+    const steerAcc = 0.0012 * Math.max(0.2, Math.abs(spd) / MAXSPD);
+    if (left)  { driftVel -= steerAcc * dt; steerYaw = Math.min(steerYaw + 0.003*dt, 0.35); }
+    else if (right) { driftVel += steerAcc * dt; steerYaw = Math.max(steerYaw - 0.003*dt, -0.35); }
+    else { steerYaw *= Math.pow(0.88, dt/16); }
+
+    driftVel *= Math.pow(0.986, dt);
+    carSide = Math.max(-(ROAD_W/2+6), Math.min(ROAD_W/2+6, carSide + driftVel * dt));
+    const onGrass = Math.abs(carSide) > ROAD_W / 2;
 
     const prevT = trackT;
-    trackT = ((trackT + spd) % 1 + 1) % 1;
+    trackT = ((trackT + (onGrass ? spd * 0.5 : spd)) % 1 + 1) % 1;
     if (prevT > 0.92 && trackT < 0.08) { lapCount++; lapEl.textContent = `RUNDE ${lapCount}`; }
 
-    if (K['KeyR']) { trackT=0; spd=0; elapsed=0; lapCount=1; carSide=0; steerYaw=0; lapEl.textContent='RUNDE 1'; }
-    spdEl.textContent = `${Math.round(Math.abs(spd)/MAXSPD*180)} km/h`;
+    if (K['KeyR']) { trackT=0; spd=0; elapsed=0; lapCount=1; carSide=0; steerYaw=0; driftVel=0; lapEl.textContent='RUNDE 1'; }
+    spdEl.textContent = `${Math.round(Math.abs(spd)*(onGrass?0.5:1)/MAXSPD*180)} km/h${onGrass ? ' [GRAS]' : ''}`;
   }
 
   // ── Car placement ─────────────────────────────────────────────────────
