@@ -119,7 +119,7 @@
 </head>
 <body>
     <div id="headline">Solar Orbit</div>
-    <div id="deploy-time">v1.15&thinsp;|&thinsp;13.05.2026</div>
+    <div id="deploy-time">v1.16&thinsp;|&thinsp;13.05.2026</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label"><span id="label-name"></span><span id="label-info"></span></div>
@@ -162,7 +162,7 @@
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 2000);
 
-    const HOME_POS    = new THREE.Vector3(0, 42, 90);
+    const HOME_POS    = new THREE.Vector3(0, 58, 135);
     const HOME_TARGET = new THREE.Vector3(0, 0, 0);
     const BASE_HOME_DIST = HOME_POS.length();
     function getHomeDist() {
@@ -179,7 +179,7 @@
     const controls = new OrbitControls(camera, threeCanvas);
     controls.enableDamping = true; controls.dampingFactor = 0.07;
     controls.enablePan = true;     controls.panSpeed      = 0.6;
-    controls.minDistance = 8;      controls.maxDistance   = 400;
+    controls.minDistance = 30;     controls.maxDistance   = 700;
     controls.rotateSpeed = 0.55;   controls.zoomSpeed     = 1.2;
     controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
@@ -226,21 +226,21 @@
 
     // ── Planet data ───────────────────────────────────────────────────────
     const PLANETS = [
-        { name: 'Merkur',  relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5, kmh: 172332, km_d:    4879 },
+        { name: 'Mercury', relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5, kmh: 172332, km_d:    4879 },
         { name: 'Venus',   relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0, kmh: 126072, km_d:   12104 },
-        { name: 'Erde',    relR:  1.000, au:  1.000, period:   1.000, color: 0x6b93d6, kmh: 107208, km_d:   12756 },
+        { name: 'Earth',   relR:  1.000, au:  1.000, period:   1.000, color: 0x6b93d6, kmh: 107208, km_d:   12756 },
         { name: 'Mars',    relR:  0.532, au:  1.524, period:   1.881, color: 0xc04a1a, kmh:  86652, km_d:    6792 },
         { name: 'Jupiter', relR: 11.210, au:  5.203, period:  11.860, color: 0xc88b3a, kmh:  47052, km_d:  142984 },
         { name: 'Saturn',  relR:  9.450, au:  9.537, period:  29.460, color: 0xe4d191, kmh:  34884, km_d:  120536, rings: true },
         { name: 'Uranus',  relR:  4.010, au: 19.190, period:  84.010, color: 0xa0e8e8, kmh:  24516, km_d:   51118 },
-        { name: 'Neptun',  relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4, kmh:  19548, km_d:   49528 },
+        { name: 'Neptune', relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4, kmh:  19548, km_d:   49528 },
         { name: 'Pluto',   relR:  0.186, au: 39.480, period: 247.940, color: 0x9a8d7a, kmh:  17100, km_d:    2376 },
     ];
 
     const K = 0.42;
     const AU_MIN = Math.pow(PLANETS[0].au, K);
     const AU_MAX = Math.pow(PLANETS[PLANETS.length - 1].au, K);
-    const ORB_MIN = 11, ORB_MAX = 52, EARTH_R = 0.40;
+    const ORB_MIN = 32, ORB_MAX = 80, EARTH_R = 0.22;
     function orbitR(au) { return ORB_MIN + (Math.pow(au, K) - AU_MIN) / (AU_MAX - AU_MIN) * (ORB_MAX - ORB_MIN); }
 
     // ── Starfield ─────────────────────────────────────────────────────────
@@ -257,24 +257,43 @@
     }
 
     // ── Sun ───────────────────────────────────────────────────────────────
-    const SUN_R = 10;
+    const SUN_R = 24;
     scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 64, 64), new THREE.MeshBasicMaterial({ color: 0xffb336 })));
 
     // Soft radial glow (billboard sprite, smooth gradient)
     {
-        const gc = Object.assign(document.createElement('canvas'), { width: 256, height: 256 }).getContext('2d');
-        const gr = gc.createRadialGradient(128, 128, 0, 128, 128, 128);
-        gr.addColorStop(0,    'rgba(255,195,80,0.55)');
-        gr.addColorStop(0.18, 'rgba(255,170,50,0.20)');
-        gr.addColorStop(0.45, 'rgba(255,140,30,0.06)');
-        gr.addColorStop(1,    'rgba(255,120,0,0)');
-        gc.fillStyle = gr; gc.fillRect(0, 0, 256, 256);
+        // Outer corona — large soft halo
+        const gcO = Object.assign(document.createElement('canvas'), { width: 256, height: 256 }).getContext('2d');
+        const grO = gcO.createRadialGradient(128, 128, 0, 128, 128, 128);
+        // Sun disc occupies r < 24/36 = 0.67 of sprite half-extent (SUN_R * 3.0 / 2 = 36)
+        grO.addColorStop(0,    'rgba(255,225,130,0.92)');
+        grO.addColorStop(0.38, 'rgba(255,200,90,0.60)');
+        grO.addColorStop(0.67, 'rgba(255,175,55,0.28)');
+        grO.addColorStop(0.82, 'rgba(255,150,30,0.09)');
+        grO.addColorStop(0.94, 'rgba(255,125,10,0.02)');
+        grO.addColorStop(1.0,  'rgba(255,110,0,0)');
+        gcO.fillStyle = grO; gcO.fillRect(0, 0, 256, 256);
         const glowSprite = new THREE.Sprite(new THREE.SpriteMaterial({
-            map: new THREE.CanvasTexture(gc.canvas),
+            map: new THREE.CanvasTexture(gcO.canvas),
             blending: THREE.AdditiveBlending, depthWrite: false, transparent: true,
         }));
-        glowSprite.scale.set(SUN_R * 3.2, SUN_R * 3.2, 1);
+        glowSprite.scale.set(SUN_R * 3.0, SUN_R * 3.0, 1);
         scene.add(glowSprite);
+        // Inner tight corona — punchy close halo just beyond the sun disc
+        const gcI = Object.assign(document.createElement('canvas'), { width: 256, height: 256 }).getContext('2d');
+        const grI = gcI.createRadialGradient(128, 128, 0, 128, 128, 128);
+        grI.addColorStop(0,    'rgba(255,240,160,0)');
+        grI.addColorStop(0.55, 'rgba(255,220,120,0.22)');
+        grI.addColorStop(0.75, 'rgba(255,190,70,0.38)');
+        grI.addColorStop(0.90, 'rgba(255,165,40,0.14)');
+        grI.addColorStop(1.0,  'rgba(255,140,20,0)');
+        gcI.fillStyle = grI; gcI.fillRect(0, 0, 256, 256);
+        const innerGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: new THREE.CanvasTexture(gcI.canvas),
+            blending: THREE.AdditiveBlending, depthWrite: false, transparent: true,
+        }));
+        innerGlow.scale.set(SUN_R * 1.55, SUN_R * 1.55, 1);
+        scene.add(innerGlow);
     }
 
     // ── Toon gradient: hard terminator, dark side ~20% brightness ─────────
@@ -312,7 +331,7 @@
     const SATURN_TILT = 26.73 * Math.PI / 180;
 
     const pivots = PLANETS.map((p, idx) => {
-        const r = Math.max(0.18, p.relR * EARTH_R), orb = orbitR(p.au);
+        const r = Math.max(0.06, p.relR * EARTH_R), orb = orbitR(p.au);
         makeRing(orb);
         const mesh = new THREE.Mesh(
             new THREE.SphereGeometry(r, 32, 32),
@@ -327,7 +346,7 @@
             );
             ring.rotation.x = -Math.PI / 2; mesh.add(ring);
         }
-        const hit = new THREE.Mesh(new THREE.SphereGeometry(Math.max(1.2, r * 1.65), 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+        const hit = new THREE.Mesh(new THREE.SphereGeometry(Math.max(0.5, r * 1.65), 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
         hit.position.x = orb; hit.userData.planetIndex = idx; hitboxes.push(hit);
         const pivot = new THREE.Group();
         pivot.add(mesh); pivot.add(hit);
@@ -524,7 +543,7 @@
                 t: 0, dur: 0.9
             };
         }
-        focused = null; labelEl.style.display = 'none'; controls.minDistance = 8;
+        focused = null; labelEl.style.display = 'none'; controls.minDistance = 30;
         endFocus();
         controls.enabled = false;
         camAnim = {
@@ -542,7 +561,7 @@
         const tanH  = Math.tan((camera.fov / 2) * Math.PI / 180);
         const minEdge = Math.min(window.innerWidth, window.innerHeight) / 2;
         const halfH   = window.innerHeight / 2;
-        const minDist = Math.max(2.0, dispR * 1.8);
+        const minDist = Math.max(0.6, dispR * 1.8);
         const dist    = Math.max(minDist, dispR * halfH / (0.60 * minEdge * tanH));
         const offset  = camDir().multiplyScalar(dist);
         focused = { mesh, dispR, prevPos: wp.clone() };
@@ -558,7 +577,7 @@
             onDone: () => {
                 const wp2 = new THREE.Vector3(); mesh.getWorldPosition(wp2);
                 if (focused) focused.prevPos = wp2.clone();
-                controls.minDistance = Math.max(1.2, dispR * 1.4);
+                controls.minDistance = Math.max(0.3, dispR * 1.4);
                 cleanEnd();
             },
         };
