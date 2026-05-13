@@ -25,7 +25,7 @@
         }
 
         #year-display {
-            position: fixed; bottom: 96px; left: 50%;
+            position: fixed; bottom: 72px; left: 50%;
             transform: translateX(-50%);
             font-family: -apple-system, Helvetica, sans-serif;
             font-size: 16px; letter-spacing: 0.20em;
@@ -105,7 +105,7 @@
         @media (min-width: 768px) {
             #label-name  { font-size: 16.5px; }
             #label-info  { font-size: 13.5px; }
-            #year-display{ font-size: 24px; bottom: 110px; }
+            #year-display{ font-size: 24px; bottom: 88px; }
             .lbl         { font-size: 15px; }
             .lbl-sub     { font-size: 12px; }
             #headline    { font-size: 16.5px; }
@@ -117,7 +117,7 @@
 </head>
 <body>
     <div id="headline">Solar Eclipse</div>
-    <div id="deploy-time">v1.11 &nbsp;·&nbsp; 13.05.2026</div>
+    <div id="deploy-time">v1.12 &nbsp;·&nbsp; 13.05.2026</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label"><span id="label-name"></span><span id="label-info"></span></div>
@@ -251,9 +251,9 @@
     const SUN_R = 10;
     scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 64, 64), new THREE.MeshBasicMaterial({ color: 0xffaa20 })));
 
-    // ── Toon gradient: hard terminator, dark side 60% brightness ─────────
+    // ── Toon gradient: hard terminator, dark side ~20% brightness ─────────
     const toonGradient = (() => {
-        const data = new Uint8Array([154, 154, 154, 255,  255, 255, 255, 255]);
+        const data = new Uint8Array([50, 50, 50, 255,  255, 255, 255, 255]);
         const t = new THREE.DataTexture(data, 2, 1, THREE.RGBAFormat);
         t.minFilter = t.magFilter = THREE.NearestFilter;
         t.needsUpdate = true;
@@ -269,8 +269,8 @@
             pts.push(new THREE.Vector3(Math.cos(a) * radius, 0, Math.sin(a) * radius));
         }
         const mat = new THREE.LineDashedMaterial({
-            color: 0xffffff, opacity: opacity ?? 0.18, transparent: true,
-            dashSize: 0.7, gapSize: 2.2,
+            color: 0xffffff, opacity: opacity ?? 0.38, transparent: true,
+            dashSize: 0.12, gapSize: 0.42,
         });
         if (!parent) orbitMats.push(mat);
         const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat);
@@ -585,23 +585,28 @@
             return Math.hypot(a.x - b.x, a.y - b.y);
         });
 
-        // ── Ring-blur effect (fast small planets become semi-transparent ring) ──
-        pivots.forEach((pv, i) => {
+        // Adaptive ring mix per planet: thresholds scale with planet screen radius
+        const ringMixes = pivots.map((pv, i) => {
             const vel = screenVels[i];
-            const RING_START = 18, RING_FULL = 36;
-            const mix = Math.min(1, Math.max(0, (vel - RING_START) / (RING_FULL - RING_START)));
-            pv.userData.mesh.material.opacity = 1 - mix * 0.92;
+            const th  = trails[i];
+            const wp0 = th.length ? th[0] : new THREE.Vector3(pv.userData.orb, 0, 0);
+            const psr = scrR(wp0, pv.userData.dispR);
+            const rs  = Math.max(18, psr * 1.2), rf = Math.max(36, psr * 2.4);
+            return Math.min(1, Math.max(0, (vel - rs) / (rf - rs)));
+        });
+
+        // ── Ring-blur effect (fast planets become semi-transparent orbit ring) ──
+        pivots.forEach((pv, i) => {
+            const mix = ringMixes[i];
+            pv.userData.mesh.material.opacity = 1 - mix;
 
             if (mix > 0.02) {
                 const c  = PLANETS[i].color;
                 const r8 = (c >> 16) & 0xff, g8 = (c >> 8) & 0xff, b8 = c & 0xff;
                 const pts = orbitPts[i];
-                const th = trails[i];
+                const th  = trails[i];
                 const wp0 = th.length ? th[0] : new THREE.Vector3(pv.userData.orb, 0, 0);
-
-                // Use trail history for head position width
                 const headR = scrR(wp0, pv.userData.dispR);
-
                 oc.beginPath();
                 let first = true;
                 pts.forEach(pt => {
@@ -681,11 +686,15 @@
         // ── Speed trails (screen-velocity based) ──────────────────────────
         if (speedMult > 0.05) {
             pivots.forEach((pv, i) => {
+                if (ringMixes[i] > 0.3) return; // suppress trail when ring is active
                 const h = trails[i];
                 if (h.length < 3) return;
                 const vel = screenVels[i];
-                if (vel < 3) return;
-                const str = Math.min(1, (vel - 3) / 14);
+                const wp0 = h.length ? h[0] : new THREE.Vector3(pv.userData.orb, 0, 0);
+                const psr = scrR(wp0, pv.userData.dispR);
+                const TRAIL_MIN = Math.max(3, psr * 0.25);
+                if (vel < TRAIL_MIN) return;
+                const str = Math.min(1, (vel - TRAIL_MIN) / 14);
                 const c   = PLANETS[i].color;
                 const r8  = (c >> 16) & 0xff, g8 = (c >> 8) & 0xff, b8 = c & 0xff;
                 const limit = Math.min(h.length - 1, 16);
@@ -702,10 +711,10 @@
             // Boost orbit ring brightness when planet is fast on screen
             orbitMats.forEach((mat, i) => {
                 const boost = Math.min(0.60, Math.max(0, (screenVels[i] - 8) / 20));
-                mat.opacity = 0.18 + boost * Math.min(1, (speedMult - 0.05) / 0.5);
+                mat.opacity = 0.38 + boost * Math.min(1, (speedMult - 0.05) / 0.5);
             });
         } else {
-            orbitMats.forEach(m => { m.opacity = 0.18; });
+            orbitMats.forEach(m => { m.opacity = 0.38; });
         }
     }
 
