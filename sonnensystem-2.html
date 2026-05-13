@@ -118,8 +118,8 @@
     </style>
 </head>
 <body>
-    <div id="headline">Sonnenfinsternis</div>
-    <div id="deploy-time">v1.14&thinsp;|&thinsp;13.05.2026</div>
+    <div id="headline">Solar Orbit</div>
+    <div id="deploy-time">v1.15&thinsp;|&thinsp;13.05.2026</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label"><span id="label-name"></span><span id="label-info"></span></div>
@@ -133,9 +133,9 @@
     <div id="ui">
         <input type="range" id="speed" min="0" max="2" step="0.01" value="0.1">
         <div class="speed-label-wrap">
-            <span class="lbl">Tempo</span>
+            <span class="lbl">Speed</span>
             <span class="lbl-dot">|</span>
-            <span class="lbl-sub">Erdumläufe / s</span>
+            <span class="lbl-sub">earth orbits / s</span>
         </div>
     </div>
 
@@ -260,13 +260,22 @@
     const SUN_R = 10;
     scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 64, 64), new THREE.MeshBasicMaterial({ color: 0xffb336 })));
 
-    // Glow layers (additive, distance-dependent via perspective)
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R * 1.45, 32, 32),
-        new THREE.MeshBasicMaterial({ color: 0xffb336, transparent: true, opacity: 0.13,
-            blending: THREE.AdditiveBlending, depthWrite: false })));
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R * 2.3, 32, 32),
-        new THREE.MeshBasicMaterial({ color: 0xff9900, transparent: true, opacity: 0.06,
-            blending: THREE.AdditiveBlending, depthWrite: false })));
+    // Soft radial glow (billboard sprite, smooth gradient)
+    {
+        const gc = Object.assign(document.createElement('canvas'), { width: 256, height: 256 }).getContext('2d');
+        const gr = gc.createRadialGradient(128, 128, 0, 128, 128, 128);
+        gr.addColorStop(0,    'rgba(255,195,80,0.55)');
+        gr.addColorStop(0.18, 'rgba(255,170,50,0.20)');
+        gr.addColorStop(0.45, 'rgba(255,140,30,0.06)');
+        gr.addColorStop(1,    'rgba(255,120,0,0)');
+        gc.fillStyle = gr; gc.fillRect(0, 0, 256, 256);
+        const glowSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: new THREE.CanvasTexture(gc.canvas),
+            blending: THREE.AdditiveBlending, depthWrite: false, transparent: true,
+        }));
+        glowSprite.scale.set(SUN_R * 3.2, SUN_R * 3.2, 1);
+        scene.add(glowSprite);
+    }
 
     // ── Toon gradient: hard terminator, dark side ~20% brightness ─────────
     const toonGradient = (() => {
@@ -557,18 +566,18 @@
 
     function fmtPeriod(y) {
         const o = y < 1 ? { maximumFractionDigits: 3 } : y < 10 ? { maximumFractionDigits: 2 } : { maximumFractionDigits: 1 };
-        return y.toLocaleString('de-DE', o);
+        return y.toLocaleString('en-US', o);
     }
     function focusPlanet(idx) {
         const p = PLANETS[idx];
         focusBody(pivots[idx].userData.mesh, pivots[idx].userData.dispR, p.name,
-            p.km_d.toLocaleString('de-DE') + '&thinsp;km &#8960;<br>' +
-            p.kmh.toLocaleString('de-DE')  + '&thinsp;km/h<br>' +
-            fmtPeriod(p.period) + ' Erdenjahre');
+            p.km_d.toLocaleString('en-US') + '&thinsp;km &#8960;<br>' +
+            p.kmh.toLocaleString('en-US')  + '&thinsp;km/h<br>' +
+            fmtPeriod(p.period) + ' years / orbit');
         if (focused) focused.planetIdx = idx;
     }
     function focusMoon() {
-        focusBody(moonMesh, MOON_DISP_R, 'Mond', '3.474&thinsp;km &#8960;<br>3.683&thinsp;km/h<br>27,32 Tage');
+        focusBody(moonMesh, MOON_DISP_R, 'Moon', '3,474&thinsp;km &#8960;<br>3,683&thinsp;km/h<br>27.32 days');
     }
     function focusSun() {
         if (camAnim) return;
@@ -580,8 +589,8 @@
         focused = { isSun: true }; fadingRing = null;
         setBottomFocus(true);
         labelEl.style.display = 'block';
-        labelNameEl.textContent = 'Sonne';
-        labelInfoEl.innerHTML = '1.392.700&thinsp;km &#8960;<br>G2V Gelber Zwerg';
+        labelNameEl.textContent = 'Sun';
+        labelInfoEl.innerHTML = '1,392,700&thinsp;km &#8960;<br>G2V Yellow Dwarf';
         controls.enabled = false;
         camAnim = {
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
@@ -671,8 +680,8 @@
         // ── 3D speed rings + planet fade ──────────────────────────────────
         pivots.forEach((pv, i) => {
             const mix = ringMixes[i];
-            pv.userData.mesh.material.opacity = 1 - mix;
-            speedRings[i].material.opacity    = mix * 0.65;
+            pv.userData.mesh.material.opacity = Math.max(0, 1 - mix * 1.4);
+            speedRings[i].material.opacity    = mix * 0.45;
         });
 
         // ── 3D trails ─────────────────────────────────────────────────────
