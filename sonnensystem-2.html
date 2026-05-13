@@ -118,8 +118,8 @@
     </style>
 </head>
 <body>
-    <div id="headline">Sonnenfinsternis</div>
-    <div id="deploy-time">v1.14&thinsp;|&thinsp;13.05.2026</div>
+    <div id="headline">Solar Orbit</div>
+    <div id="deploy-time">v1.15&thinsp;|&thinsp;13.05.2026</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label"><span id="label-name"></span><span id="label-info"></span></div>
@@ -133,9 +133,9 @@
     <div id="ui">
         <input type="range" id="speed" min="0" max="2" step="0.01" value="0.1">
         <div class="speed-label-wrap">
-            <span class="lbl">Tempo</span>
+            <span class="lbl">Speed</span>
             <span class="lbl-dot">|</span>
-            <span class="lbl-sub">Erdumläufe / s</span>
+            <span class="lbl-sub">earth orbits / s</span>
         </div>
     </div>
 
@@ -171,7 +171,6 @@
     }
     camera.position.copy(HOME_POS.clone().normalize().multiplyScalar(getHomeDist()));
 
-    // Sun light + tiny ambient so dark side isn't pure black
     const sunLight = new THREE.PointLight(0xfff5e0, 2, 0, 0);
     scene.add(sunLight);
     scene.add(new THREE.AmbientLight(0x060615, 1));
@@ -207,7 +206,7 @@
         const ctx  = ensureAudio(), t0 = ctx.currentTime;
         const lo   = Math.log(2376), hi = Math.log(1392700);
         const tVal = Math.max(0, Math.min(1, (Math.log(Math.max(1, km_d)) - lo) / (hi - lo)));
-        const freq  = (300 - tVal * 230) * (dir < 0 ? 0.75 : 1.0); // zoom out = perfect fourth lower
+        const freq  = (300 - tVal * 230) * (dir < 0 ? 0.75 : 1.0);
         const decay = 1.4 + tVal * 2.8;
         const master = ctx.createGain();
         master.gain.value = 0.30;
@@ -226,14 +225,14 @@
 
     // ── Planet data ───────────────────────────────────────────────────────
     const PLANETS = [
-        { name: 'Merkur',  relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5, kmh: 172332, km_d:    4879 },
+        { name: 'Mercury', relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5, kmh: 172332, km_d:    4879 },
         { name: 'Venus',   relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0, kmh: 126072, km_d:   12104 },
-        { name: 'Erde',    relR:  1.000, au:  1.000, period:   1.000, color: 0x6b93d6, kmh: 107208, km_d:   12756 },
+        { name: 'Earth',   relR:  1.000, au:  1.000, period:   1.000, color: 0x6b93d6, kmh: 107208, km_d:   12756 },
         { name: 'Mars',    relR:  0.532, au:  1.524, period:   1.881, color: 0xc04a1a, kmh:  86652, km_d:    6792 },
         { name: 'Jupiter', relR: 11.210, au:  5.203, period:  11.860, color: 0xc88b3a, kmh:  47052, km_d:  142984 },
         { name: 'Saturn',  relR:  9.450, au:  9.537, period:  29.460, color: 0xe4d191, kmh:  34884, km_d:  120536, rings: true },
         { name: 'Uranus',  relR:  4.010, au: 19.190, period:  84.010, color: 0xa0e8e8, kmh:  24516, km_d:   51118 },
-        { name: 'Neptun',  relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4, kmh:  19548, km_d:   49528 },
+        { name: 'Neptune', relR:  3.880, au: 30.070, period: 164.800, color: 0x4b6cd4, kmh:  19548, km_d:   49528 },
         { name: 'Pluto',   relR:  0.186, au: 39.480, period: 247.940, color: 0x9a8d7a, kmh:  17100, km_d:    2376 },
     ];
 
@@ -260,13 +259,22 @@
     const SUN_R = 10;
     scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 64, 64), new THREE.MeshBasicMaterial({ color: 0xffb336 })));
 
-    // Glow layers (additive, distance-dependent via perspective)
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R * 1.45, 32, 32),
-        new THREE.MeshBasicMaterial({ color: 0xffb336, transparent: true, opacity: 0.13,
-            blending: THREE.AdditiveBlending, depthWrite: false })));
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R * 2.3, 32, 32),
-        new THREE.MeshBasicMaterial({ color: 0xff9900, transparent: true, opacity: 0.06,
-            blending: THREE.AdditiveBlending, depthWrite: false })));
+    // Soft radial glow (billboard sprite, smooth gradient)
+    {
+        const gc = Object.assign(document.createElement('canvas'), { width: 256, height: 256 }).getContext('2d');
+        const gr = gc.createRadialGradient(128, 128, 0, 128, 128, 128);
+        gr.addColorStop(0,    'rgba(255,195,80,0.55)');
+        gr.addColorStop(0.18, 'rgba(255,170,50,0.20)');
+        gr.addColorStop(0.45, 'rgba(255,140,30,0.06)');
+        gr.addColorStop(1,    'rgba(255,120,0,0)');
+        gc.fillStyle = gr; gc.fillRect(0, 0, 256, 256);
+        const glowSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: new THREE.CanvasTexture(gc.canvas),
+            blending: THREE.AdditiveBlending, depthWrite: false, transparent: true,
+        }));
+        glowSprite.scale.set(SUN_R * 3.2, SUN_R * 3.2, 1);
+        scene.add(glowSprite);
+    }
 
     // ── Toon gradient: hard terminator, dark side ~20% brightness ─────────
     const toonGradient = (() => {
@@ -461,7 +469,7 @@
     window.addEventListener('touchend',    () => { if (sliderDrag) { sliderDrag = false; thumbLbl.style.display = 'none'; } });
     speedEl.addEventListener('input', e => {
         targetSpeedMult = +e.target.value;
-        if (preFocusSpeed !== null) preFocusSpeed = targetSpeedMult; // keep save in sync if user adjusts
+        if (preFocusSpeed !== null) preFocusSpeed = targetSpeedMult;
         if (sliderDrag) updateThumbLabel();
     });
 
@@ -488,8 +496,6 @@
     const labelInfoEl  = document.getElementById('label-info');
     const uiEl         = document.getElementById('ui');
     const yearDisplayEl = document.getElementById('year-display');
-    // Title (headline + deploy-time) always stays visible.
-    // Only bottom area (year + speed) fades on zoom transitions.
     function setBottomFocus(isFocused) {
         const o = isFocused ? '0' : '1';
         yearDisplayEl.style.opacity = o;
@@ -557,18 +563,18 @@
 
     function fmtPeriod(y) {
         const o = y < 1 ? { maximumFractionDigits: 3 } : y < 10 ? { maximumFractionDigits: 2 } : { maximumFractionDigits: 1 };
-        return y.toLocaleString('de-DE', o);
+        return y.toLocaleString('en-US', o);
     }
     function focusPlanet(idx) {
         const p = PLANETS[idx];
         focusBody(pivots[idx].userData.mesh, pivots[idx].userData.dispR, p.name,
-            p.km_d.toLocaleString('de-DE') + '&thinsp;km &#8960;<br>' +
-            p.kmh.toLocaleString('de-DE')  + '&thinsp;km/h<br>' +
-            fmtPeriod(p.period) + ' Erdenjahre');
+            p.km_d.toLocaleString('en-US') + '&thinsp;km &#8960;<br>' +
+            p.kmh.toLocaleString('en-US')  + '&thinsp;km/h<br>' +
+            fmtPeriod(p.period) + ' years / orbit');
         if (focused) focused.planetIdx = idx;
     }
     function focusMoon() {
-        focusBody(moonMesh, MOON_DISP_R, 'Mond', '3.474&thinsp;km &#8960;<br>3.683&thinsp;km/h<br>27,32 Tage');
+        focusBody(moonMesh, MOON_DISP_R, 'Moon', '3,474&thinsp;km &#8960;<br>3,683&thinsp;km/h<br>27.32 days');
     }
     function focusSun() {
         if (camAnim) return;
@@ -580,8 +586,8 @@
         focused = { isSun: true }; fadingRing = null;
         setBottomFocus(true);
         labelEl.style.display = 'block';
-        labelNameEl.textContent = 'Sonne';
-        labelInfoEl.innerHTML = '1.392.700&thinsp;km &#8960;<br>G2V Gelber Zwerg';
+        labelNameEl.textContent = 'Sun';
+        labelInfoEl.innerHTML = '1,392,700&thinsp;km &#8960;<br>G2V Yellow Dwarf';
         controls.enabled = false;
         camAnim = {
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
@@ -658,7 +664,6 @@
         const W = window.innerWidth, H = window.innerHeight;
         oc.clearRect(0, 0, W, H);
 
-        // Angular velocity in degrees per frame — view-angle independent
         const RING_DEG_START = 6, RING_DEG_FULL = 16;
         const TRAIL_DEG_MIN  = 2, TRAIL_DEG_RANGE = 8;
         const angVels = pivots.map(pv =>
@@ -671,8 +676,8 @@
         // ── 3D speed rings + planet fade ──────────────────────────────────
         pivots.forEach((pv, i) => {
             const mix = ringMixes[i];
-            pv.userData.mesh.material.opacity = 1 - mix;
-            speedRings[i].material.opacity    = mix * 0.65;
+            pv.userData.mesh.material.opacity = Math.max(0, 1 - mix * 1.4);
+            speedRings[i].material.opacity    = mix * 0.45;
         });
 
         // ── 3D trails ─────────────────────────────────────────────────────
