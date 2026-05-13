@@ -117,7 +117,7 @@
 </head>
 <body>
     <div id="headline">Solar Eclipse</div>
-    <div id="deploy-time">v1.12 &nbsp;&middot;&nbsp; 13.05.2026</div>
+    <div id="deploy-time">v1.13 &nbsp;&middot;&nbsp; 13.05.2026</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label"><span id="label-name"></span><span id="label-info"></span></div>
@@ -162,8 +162,12 @@
 
     const HOME_POS    = new THREE.Vector3(0, 42, 90);
     const HOME_TARGET = new THREE.Vector3(0, 0, 0);
-    const HOME_DIST   = HOME_POS.length();
-    camera.position.copy(HOME_POS);
+    const BASE_HOME_DIST = HOME_POS.length();
+    function getHomeDist() {
+        return (window.innerWidth > window.innerHeight && window.innerHeight < 500)
+            ? BASE_HOME_DIST * 0.58 : BASE_HOME_DIST;
+    }
+    camera.position.copy(HOME_POS.clone().normalize().multiplyScalar(getHomeDist()));
 
     // Sun light + tiny ambient so dark side isn't pure black
     const sunLight = new THREE.PointLight(0xfff5e0, 2, 0, 0);
@@ -183,6 +187,9 @@
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        if (!focused && !camAnim) {
+            camera.position.normalize().multiplyScalar(getHomeDist());
+        }
     }
     overlayCanvas.width  = window.innerWidth;
     overlayCanvas.height = window.innerHeight;
@@ -194,11 +201,11 @@
         if (audioCtx.state === 'suspended') audioCtx.resume();
         return audioCtx;
     }
-    function playBell(km_d) {
+    function playBell(km_d, dir = 1) {
         const ctx  = ensureAudio(), t0 = ctx.currentTime;
         const lo   = Math.log(2376), hi = Math.log(1392700);
         const tVal = Math.max(0, Math.min(1, (Math.log(Math.max(1, km_d)) - lo) / (hi - lo)));
-        const freq  = 300 - tVal * 230;
+        const freq  = (300 - tVal * 230) * (dir < 0 ? 0.75 : 1.0); // zoom out = perfect fourth lower
         const decay = 1.4 + tVal * 2.8;
         const master = ctx.createGain();
         master.gain.value = 0.30;
@@ -435,6 +442,15 @@
     const labelEl     = document.getElementById('label');
     const labelNameEl = document.getElementById('label-name');
     const labelInfoEl = document.getElementById('label-info');
+    const headlineEl  = document.getElementById('headline');
+    const deployTimeEl = document.getElementById('deploy-time');
+    const uiEl        = document.getElementById('ui');
+    function setFocusUI(isFocused) {
+        const v = isFocused ? 'none' : '';
+        headlineEl.style.display   = v;
+        deployTimeEl.style.display = v;
+        uiEl.style.display         = v;
+    }
 
     function easeIO(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
     function cleanEnd() {
@@ -446,6 +462,7 @@
     function camDir() { return camera.position.clone().sub(controls.target).normalize(); }
 
     function goHome(dur = 1.0) {
+        // Save focused body for fading ring
         if (focused) {
             fadingRing = {
                 mesh: focused.mesh || null,
@@ -455,11 +472,12 @@
             };
         }
         focused = null; labelEl.style.display = 'none'; controls.minDistance = 8;
+        setFocusUI(false);
         endFocus();
         controls.enabled = false;
         camAnim = {
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
-            to:   { pos: camDir().multiplyScalar(HOME_DIST), tgt: HOME_TARGET.clone() },
+            to:   { pos: camDir().multiplyScalar(getHomeDist()), tgt: HOME_TARGET.clone() },
             t: 0, dur, onDone: cleanEnd,
         };
     }
@@ -477,6 +495,7 @@
         labelEl.style.display = 'block';
         labelNameEl.textContent = name; labelInfoEl.innerHTML = info;
         fadingRing = null;
+        setFocusUI(true);
         controls.enabled = false;
         camAnim = {
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
@@ -509,6 +528,7 @@
         const halfH   = window.innerHeight / 2;
         const d = Math.max(SUN_R * 1.4, SUN_R * halfH / (0.50 * minEdge * tanH));
         focused = { isSun: true }; fadingRing = null;
+        setFocusUI(true);
         labelEl.style.display = 'block';
         labelNameEl.textContent = 'Sonne';
         labelInfoEl.innerHTML = '1.392.700&thinsp;km &#8960;<br>G2V Gelber Zwerg';
@@ -533,19 +553,24 @@
         if (!hits.length) { if (focused) goHome(); return; }
         const obj = hits[0].object;
         if (obj.userData.isSun) {
-            playBell(1392700); triggerSunFlash();
-            if (focused && focused.isSun) goHome(); else focusSun();
+            triggerSunFlash();
+            const zOut = !!(focused && focused.isSun);
+            playBell(1392700, zOut ? -1 : 1);
+            if (zOut) goHome(); else focusSun();
         } else if (obj.userData.isMoon) {
-            playBell(3474); triggerFlash(moonMesh, MOON_DISP_R);
-            if (focused && focused.mesh === moonMesh) goHome(); else focusMoon();
+            triggerFlash(moonMesh, MOON_DISP_R);
+            const zOut = !!(focused && focused.mesh === moonMesh);
+            playBell(3474, zOut ? -1 : 1);
+            if (zOut) goHome(); else focusMoon();
         } else {
             const idx = obj.userData.planetIndex;
-            playBell(PLANETS[idx].km_d);
             triggerFlash(pivots[idx].userData.mesh, pivots[idx].userData.dispR);
-            if (focused && focused.planetIdx === idx) {
+            const zOut = !!(focused && focused.planetIdx === idx);
+            playBell(PLANETS[idx].km_d, zOut ? -1 : 1);
+            if (zOut) {
                 goHome();
             } else {
-                if (focused) { focused = null; labelEl.style.display = 'none'; controls.minDistance = 8; endFocus(); }
+                if (focused) { focused = null; labelEl.style.display = 'none'; controls.minDistance = 8; setFocusUI(false); endFocus(); }
                 focusPlanet(idx);
             }
         }
@@ -577,22 +602,21 @@
         const W = window.innerWidth, H = window.innerHeight;
         oc.clearRect(0, 0, W, H);
 
-        // Compute screen velocity for each planet (pixels moved per frame)
-        const screenVels = trails.map(h => {
-            if (h.length < 2) return 0;
-            const a = toScreen(h[0]), b = toScreen(h[1]);
-            return Math.hypot(a.x - b.x, a.y - b.y);
-        });
+        // Angular velocity in degrees per frame — view-angle independent
+        const RING_DEG_START = 6, RING_DEG_FULL = 16;
+        const TRAIL_DEG_MIN  = 2, TRAIL_DEG_RANGE = 8;
+        const angVels = pivots.map(pv =>
+            (360 / (pv.userData.period * 365.25)) * DAYS_PER_FRAME * speedMult
+        );
+        const ringMixes = angVels.map(av =>
+            Math.min(1, Math.max(0, (av - RING_DEG_START) / (RING_DEG_FULL - RING_DEG_START)))
+        );
 
-        // Adaptive ring mix per planet: thresholds scale with planet screen radius
-        const ringMixes = pivots.map((pv, i) => {
-            const vel = screenVels[i];
-            const th  = trails[i];
-            const wp0 = th.length ? th[0] : new THREE.Vector3(pv.userData.orb, 0, 0);
-            const psr = scrR(wp0, pv.userData.dispR);
-            const rs  = Math.max(18, psr * 1.2), rf = Math.max(36, psr * 2.4);
-            return Math.min(1, Math.max(0, (vel - rs) / (rf - rs)));
-        });
+        // Sun screen disc for depth-correct ring occlusion
+        const _sunWp     = new THREE.Vector3(0, 0, 0);
+        const sunSP      = toScreen(_sunWp);
+        const sunSR      = scrR(_sunWp, SUN_R);
+        const camSunDist = camera.position.length();
 
         // ── Ring-blur effect (fast planets become semi-transparent orbit ring) ──
         pivots.forEach((pv, i) => {
@@ -602,28 +626,34 @@
             if (mix > 0.02) {
                 const c  = PLANETS[i].color;
                 const r8 = (c >> 16) & 0xff, g8 = (c >> 8) & 0xff, b8 = c & 0xff;
-                const pts = orbitPts[i];
                 const th  = trails[i];
                 const wp0 = th.length ? th[0] : new THREE.Vector3(pv.userData.orb, 0, 0);
                 const headR = scrR(wp0, pv.userData.dispR);
+
+                oc.strokeStyle = `rgba(${r8},${g8},${b8},${(mix * 0.55).toFixed(3)})`;
+                oc.lineWidth   = Math.max(1.5, headR * 2); // planet diameter
+                oc.lineCap     = 'round';
+
+                // Per-segment depth test: hide portions occluded by sun
+                let penUp = true;
                 oc.beginPath();
-                let first = true;
-                pts.forEach(pt => {
+                orbitPts[i].forEach(pt => {
                     const s = toScreen(pt);
-                    if (first) { oc.moveTo(s.x, s.y); first = false; } else oc.lineTo(s.x, s.y);
+                    const hidden = Math.hypot(s.x - sunSP.x, s.y - sunSP.y) < sunSR
+                               && camera.position.distanceTo(pt) > camSunDist;
+                    if (hidden) { penUp = true; }
+                    else { if (penUp) { oc.moveTo(s.x, s.y); penUp = false; } else oc.lineTo(s.x, s.y); }
                 });
-                oc.closePath();
-                oc.strokeStyle = `rgba(${r8},${g8},${b8},${(mix * 0.42).toFixed(3)})`;
-                oc.lineWidth   = Math.max(1.5, headR * 1.8 * mix);
                 oc.stroke();
             }
         });
 
         // ── Selection ring (static circle while focused) ──────────────────
+        const FOCUS_RING_MULT = 1.32;
         const drawRing = (wp, subjR, alpha) => {
             const { x: sx, y: sy } = toScreen(wp);
             const sr = scrR(wp, subjR);
-            oc.beginPath(); oc.arc(sx, sy, sr * 1.9, 0, Math.PI * 2);
+            oc.beginPath(); oc.arc(sx, sy, sr * FOCUS_RING_MULT, 0, Math.PI * 2);
             oc.strokeStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
             oc.lineWidth = 1.2; oc.stroke();
             return { sx, sy, sr };
@@ -634,7 +664,7 @@
             if (!focused.isSun) focused.mesh.getWorldPosition(wp);
             const subjR = focused.isSun ? SUN_R : focused.dispR;
             const { sx, sy, sr } = drawRing(wp, subjR, 0.32);
-            const ringR = sr * 1.9;
+            const ringR = sr * FOCUS_RING_MULT;
 
             // Label placement
             const lw = labelEl.offsetWidth || 80, lh = labelEl.offsetHeight || 30;
@@ -682,18 +712,15 @@
             return f.t < 1;
         });
 
-        // ── Speed trails (screen-velocity based) ───────────────────────────────
-        if (speedMult > 0.05) {
+        // ── Speed trails (angular-velocity based) ───────────────────────────────
+        if (speedMult > 0.005) {
             pivots.forEach((pv, i) => {
-                if (ringMixes[i] > 0.3) return; // suppress trail when ring is active
+                if (ringMixes[i] > 0.3) return;
+                const av = angVels[i];
+                if (av < TRAIL_DEG_MIN) return;
                 const h = trails[i];
                 if (h.length < 3) return;
-                const vel = screenVels[i];
-                const wp0 = h.length ? h[0] : new THREE.Vector3(pv.userData.orb, 0, 0);
-                const psr = scrR(wp0, pv.userData.dispR);
-                const TRAIL_MIN = Math.max(3, psr * 0.25);
-                if (vel < TRAIL_MIN) return;
-                const str = Math.min(1, (vel - TRAIL_MIN) / 14);
+                const str = Math.min(1, (av - TRAIL_DEG_MIN) / TRAIL_DEG_RANGE);
                 const c   = PLANETS[i].color;
                 const r8  = (c >> 16) & 0xff, g8 = (c >> 8) & 0xff, b8 = c & 0xff;
                 const limit = Math.min(h.length - 1, 16);
@@ -707,9 +734,9 @@
                     oc.lineCap = 'round'; oc.stroke();
                 }
             });
-            // Boost orbit ring brightness when planet is fast on screen
+            // Boost orbit ring brightness when planet moves fast (angular)
             orbitMats.forEach((mat, i) => {
-                const boost = Math.min(0.60, Math.max(0, (screenVels[i] - 8) / 20));
+                const boost = Math.min(0.60, Math.max(0, (angVels[i] - 1.5) / 6));
                 mat.opacity = 0.38 + boost * Math.min(1, (speedMult - 0.05) / 0.5);
             });
         } else {
