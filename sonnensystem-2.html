@@ -31,6 +31,7 @@
             font-size: 16px; letter-spacing: 0.20em;
             color: rgba(255,255,255,0.55);
             z-index: 20; pointer-events: none; display: flex;
+            transition: opacity 0.55s ease;
         }
         .ydigit { display: inline-block; overflow: hidden; height: 1.25em; }
         .ydigit-inner { display: block; line-height: 1.25em; }
@@ -48,10 +49,11 @@
             transform: translateX(-50%);
             display: flex; flex-direction: column; align-items: center;
             gap: 7px; z-index: 20;
+            transition: opacity 0.55s ease;
         }
         .speed-label-wrap {
             display: flex; flex-direction: row; align-items: center;
-            gap: 6px;
+            gap: 4px;
         }
         .lbl {
             color: rgba(255,255,255,0.38);
@@ -116,8 +118,8 @@
     </style>
 </head>
 <body>
-    <div id="headline">Solar Eclipse</div>
-    <div id="deploy-time">v1.13 &nbsp;&middot;&nbsp; 13.05.2026</div>
+    <div id="headline">Sonnenfinsternis</div>
+    <div id="deploy-time">v1.14&thinsp;|&thinsp;13.05.2026</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label"><span id="label-name"></span><span id="label-info"></span></div>
@@ -131,9 +133,9 @@
     <div id="ui">
         <input type="range" id="speed" min="0" max="2" step="0.01" value="0.1">
         <div class="speed-label-wrap">
-            <span class="lbl">Speed</span>
-            <span class="lbl-dot">&middot;</span>
-            <span class="lbl-sub">earth orbits / s</span>
+            <span class="lbl">Tempo</span>
+            <span class="lbl-dot">|</span>
+            <span class="lbl-sub">Erdumläufe / s</span>
         </div>
     </div>
 
@@ -194,7 +196,7 @@
     overlayCanvas.width  = window.innerWidth;
     overlayCanvas.height = window.innerHeight;
 
-    // ── Audio ─────────────────────────────────────────────────────
+    // ── Audio ─────────────────────────────────────────────────────────────
     let audioCtx = null;
     function ensureAudio() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -222,7 +224,7 @@
         });
     }
 
-    // ── Planet data ───────────────────────────────────────────────
+    // ── Planet data ───────────────────────────────────────────────────────
     const PLANETS = [
         { name: 'Merkur',  relR:  0.383, au:  0.387, period:   0.241, color: 0xb5b5b5, kmh: 172332, km_d:    4879 },
         { name: 'Venus',   relR:  0.949, au:  0.723, period:   0.615, color: 0xe8cda0, kmh: 126072, km_d:   12104 },
@@ -241,7 +243,7 @@
     const ORB_MIN = 11, ORB_MAX = 52, EARTH_R = 0.40;
     function orbitR(au) { return ORB_MIN + (Math.pow(au, K) - AU_MIN) / (AU_MAX - AU_MIN) * (ORB_MAX - ORB_MIN); }
 
-    // ── Starfield ───────────────────────────────────────────────────
+    // ── Starfield ─────────────────────────────────────────────────────────
     {
         const pos = new Float32Array(2000 * 3);
         for (let i = 0; i < 2000; i++) {
@@ -254,9 +256,17 @@
         scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.28 })));
     }
 
-    // ── Sun ────────────────────────────────────────────────────────
+    // ── Sun ───────────────────────────────────────────────────────────────
     const SUN_R = 10;
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 64, 64), new THREE.MeshBasicMaterial({ color: 0xffaa20 })));
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 64, 64), new THREE.MeshBasicMaterial({ color: 0xffb336 })));
+
+    // Glow layers (additive, distance-dependent via perspective)
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R * 1.45, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0xffb336, transparent: true, opacity: 0.13,
+            blending: THREE.AdditiveBlending, depthWrite: false })));
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(SUN_R * 2.3, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0xff9900, transparent: true, opacity: 0.06,
+            blending: THREE.AdditiveBlending, depthWrite: false })));
 
     // ── Toon gradient: hard terminator, dark side ~20% brightness ─────────
     const toonGradient = (() => {
@@ -267,7 +277,7 @@
         return t;
     })();
 
-    // ── Orbit rings (dotted) ────────────────────────────────────────────
+    // ── Orbit rings (dotted) ──────────────────────────────────────────────
     const orbitMats = [];
     function makeRing(radius, parent, opacity) {
         const pts = [];
@@ -285,7 +295,7 @@
         (parent ?? scene).add(line);
     }
 
-    // ── Planets ─────────────────────────────────────────────────────
+    // ── Planets ───────────────────────────────────────────────────────────
     const hitboxes = [];
     const sunHit = new THREE.Mesh(new THREE.SphereGeometry(SUN_R, 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
     sunHit.userData.isSun = true; scene.add(sunHit); hitboxes.push(sunHit);
@@ -308,7 +318,7 @@
             );
             ring.rotation.x = -Math.PI / 2; mesh.add(ring);
         }
-        const hit = new THREE.Mesh(new THREE.SphereGeometry(Math.max(1.2, r * 1.5), 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
+        const hit = new THREE.Mesh(new THREE.SphereGeometry(Math.max(1.2, r * 1.65), 8, 8), new THREE.MeshBasicMaterial({ visible: false }));
         hit.position.x = orb; hit.userData.planetIndex = idx; hitboxes.push(hit);
         const pivot = new THREE.Group();
         pivot.add(mesh); pivot.add(hit);
@@ -316,7 +326,7 @@
         scene.add(pivot); return pivot;
     });
 
-    // Pre-computed orbit circle sample points (for ring-blur overlay)
+    // Pre-computed orbit circle sample points (used for angular velocity calcs)
     const orbitPts = pivots.map(pv => {
         const orb = pv.userData.orb;
         return Array.from({ length: 65 }, (_, k) => {
@@ -325,7 +335,41 @@
         });
     });
 
-    // ── Moon ─────────────────────────────────────────────────────
+    // ── 3D Speed Rings (torus, lies flat in orbit plane) ─────────────────
+    const speedRings = pivots.map((pv, i) => {
+        const orb   = pv.userData.orb;
+        const tubeR = Math.max(0.04, pv.userData.dispR * 0.85);
+        const mat   = new THREE.MeshBasicMaterial({
+            color: PLANETS[i].color, transparent: true, opacity: 0, depthWrite: false,
+        });
+        const mesh = new THREE.Mesh(new THREE.TorusGeometry(orb, tubeR, 6, 128), mat);
+        mesh.rotation.x = Math.PI / 2;
+        scene.add(mesh);
+        return mesh;
+    });
+
+    // ── 3D Trails (Line with per-vertex color fade) ───────────────────────
+    const TRAIL_MAX = 22;
+    const trailLines = pivots.map((pv, i) => {
+        const c = PLANETS[i].color;
+        const r = ((c >> 16) & 0xff) / 255;
+        const g = ((c >>  8) & 0xff) / 255;
+        const b = (c & 0xff) / 255;
+        const positions = new Float32Array(TRAIL_MAX * 3);
+        const colors    = new Float32Array(TRAIL_MAX * 3);
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geo.setAttribute('color',    new THREE.BufferAttribute(colors,    3));
+        geo.setDrawRange(0, 0);
+        const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+            vertexColors: true, blending: THREE.AdditiveBlending,
+            depthWrite: false, transparent: true,
+        }));
+        scene.add(line);
+        return { line, geo, positions, colors, r, g, b };
+    });
+
+    // ── Moon ─────────────────────────────────────────────────────────────
     const EARTH_DISP_R = pivots[2].userData.dispR;
     const MOON_ORB_R   = EARTH_DISP_R * 4.5;
     const MOON_DISP_R  = Math.max(0.06, 0.272 * EARTH_DISP_R);
@@ -344,7 +388,7 @@
     moonOrbitPivot.add(moonHit); hitboxes.push(moonHit);
     const moonTheta0 = Math.random() * Math.PI * 2;
 
-    // ── Trail history ───────────────────────────────────────────────────
+    // ── Trail history ─────────────────────────────────────────────────────
     const TRAIL_LEN = 22;
     const trails = pivots.map(() => []);
 
@@ -373,10 +417,10 @@
         flashRings.push({ sx, sy, sr: sr * 1.8, t: 0, dur: 0.5 });
     }
 
-    // ── Fading ring on zoom-out ─────────────────────────────────────────────
+    // ── Fading ring on zoom-out ───────────────────────────────────────────
     let fadingRing = null;
 
-    // ── Speed management ────────────────────────────────────────────────────
+    // ── Speed management ──────────────────────────────────────────────────
     const DAYS_PER_FRAME = 15;
     const START_YEAR     = 2026;
     let targetSpeedMult  = 0.1;
@@ -417,11 +461,11 @@
     window.addEventListener('touchend',    () => { if (sliderDrag) { sliderDrag = false; thumbLbl.style.display = 'none'; } });
     speedEl.addEventListener('input', e => {
         targetSpeedMult = +e.target.value;
-        if (preFocusSpeed !== null) preFocusSpeed = targetSpeedMult;
+        if (preFocusSpeed !== null) preFocusSpeed = targetSpeedMult; // keep save in sync if user adjusts
         if (sliderDrag) updateThumbLabel();
     });
 
-    // ── Year slot-machine ───────────────────────────────────────────────────
+    // ── Year slot-machine ─────────────────────────────────────────────────
     let lastYear = START_YEAR;
     const ydEls  = [0,1,2,3].map(i => document.getElementById(`yd${i}`));
     String(START_YEAR).split('').forEach((d, i) => { ydEls[i].textContent = d; });
@@ -439,17 +483,18 @@
 
     // ── Focus / camera ────────────────────────────────────────────────────
     let focused = null, camAnim = null;
-    const labelEl     = document.getElementById('label');
-    const labelNameEl = document.getElementById('label-name');
-    const labelInfoEl = document.getElementById('label-info');
-    const headlineEl  = document.getElementById('headline');
-    const deployTimeEl = document.getElementById('deploy-time');
-    const uiEl        = document.getElementById('ui');
-    function setFocusUI(isFocused) {
-        const v = isFocused ? 'none' : '';
-        headlineEl.style.display   = v;
-        deployTimeEl.style.display = v;
-        uiEl.style.display         = v;
+    const labelEl      = document.getElementById('label');
+    const labelNameEl  = document.getElementById('label-name');
+    const labelInfoEl  = document.getElementById('label-info');
+    const uiEl         = document.getElementById('ui');
+    const yearDisplayEl = document.getElementById('year-display');
+    // Title (headline + deploy-time) always stays visible.
+    // Only bottom area (year + speed) fades on zoom transitions.
+    function setBottomFocus(isFocused) {
+        const o = isFocused ? '0' : '1';
+        yearDisplayEl.style.opacity = o;
+        uiEl.style.opacity          = o;
+        uiEl.style.pointerEvents    = isFocused ? 'none' : 'auto';
     }
 
     function easeIO(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
@@ -462,7 +507,6 @@
     function camDir() { return camera.position.clone().sub(controls.target).normalize(); }
 
     function goHome(dur = 1.0) {
-        // Save focused body for fading ring
         if (focused) {
             fadingRing = {
                 mesh: focused.mesh || null,
@@ -472,13 +516,13 @@
             };
         }
         focused = null; labelEl.style.display = 'none'; controls.minDistance = 8;
-        setFocusUI(false);
         endFocus();
         controls.enabled = false;
         camAnim = {
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
             to:   { pos: camDir().multiplyScalar(getHomeDist()), tgt: HOME_TARGET.clone() },
-            t: 0, dur, onDone: cleanEnd,
+            t: 0, dur,
+            onDone: () => { setBottomFocus(false); cleanEnd(); },
         };
     }
 
@@ -486,22 +530,28 @@
         if (camAnim) return;
         beginFocus();
         const wp = new THREE.Vector3(); mesh.getWorldPosition(wp);
-        const tanH = Math.tan((camera.fov / 2) * Math.PI / 180);
+        const tanH  = Math.tan((camera.fov / 2) * Math.PI / 180);
         const minEdge = Math.min(window.innerWidth, window.innerHeight) / 2;
         const halfH   = window.innerHeight / 2;
-        const dist = Math.max(dispR * 1.5, dispR * halfH / (0.60 * minEdge * tanH));
-        const offset = camDir().multiplyScalar(dist);
+        const minDist = Math.max(2.0, dispR * 1.8);
+        const dist    = Math.max(minDist, dispR * halfH / (0.60 * minEdge * tanH));
+        const offset  = camDir().multiplyScalar(dist);
         focused = { mesh, dispR, prevPos: wp.clone() };
         labelEl.style.display = 'block';
         labelNameEl.textContent = name; labelInfoEl.innerHTML = info;
         fadingRing = null;
-        setFocusUI(true);
+        setBottomFocus(true);
         controls.enabled = false;
         camAnim = {
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
             to:   { pos: wp.clone().add(offset), tgt: wp.clone() },
             offset, followMesh: mesh, t: 0, dur: 1.0,
-            onDone: () => { controls.minDistance = Math.max(1, dispR * 1.4); cleanEnd(); },
+            onDone: () => {
+                const wp2 = new THREE.Vector3(); mesh.getWorldPosition(wp2);
+                if (focused) focused.prevPos = wp2.clone();
+                controls.minDistance = Math.max(1.2, dispR * 1.4);
+                cleanEnd();
+            },
         };
     }
 
@@ -528,7 +578,7 @@
         const halfH   = window.innerHeight / 2;
         const d = Math.max(SUN_R * 1.4, SUN_R * halfH / (0.50 * minEdge * tanH));
         focused = { isSun: true }; fadingRing = null;
-        setFocusUI(true);
+        setBottomFocus(true);
         labelEl.style.display = 'block';
         labelNameEl.textContent = 'Sonne';
         labelInfoEl.innerHTML = '1.392.700&thinsp;km &#8960;<br>G2V Gelber Zwerg';
@@ -541,7 +591,7 @@
         };
     }
 
-    // ── Tap ───────────────────────────────────────────────────────────
+    // ── Tap ───────────────────────────────────────────────────────────────
     const raycaster = new THREE.Raycaster();
     let touchStart = null, touchDone = false;
 
@@ -550,7 +600,13 @@
         raycaster.setFromCamera(
             new THREE.Vector2((cx / window.innerWidth)*2-1, -(cy / window.innerHeight)*2+1), camera);
         const hits = raycaster.intersectObjects(hitboxes, false);
-        if (!hits.length) { if (focused) goHome(); return; }
+        if (!hits.length) {
+            if (focused) {
+                const kmD = focused.isSun ? 1392700 : focused.planetIdx != null ? PLANETS[focused.planetIdx].km_d : 3474;
+                playBell(kmD, -1); goHome();
+            }
+            return;
+        }
         const obj = hits[0].object;
         if (obj.userData.isSun) {
             triggerSunFlash();
@@ -570,7 +626,7 @@
             if (zOut) {
                 goHome();
             } else {
-                if (focused) { focused = null; labelEl.style.display = 'none'; controls.minDistance = 8; setFocusUI(false); endFocus(); }
+                if (focused) { focused = null; labelEl.style.display = 'none'; controls.minDistance = 8; endFocus(); }
                 focusPlanet(idx);
             }
         }
@@ -612,43 +668,43 @@
             Math.min(1, Math.max(0, (av - RING_DEG_START) / (RING_DEG_FULL - RING_DEG_START)))
         );
 
-        // Sun screen disc for depth-correct ring occlusion
-        const _sunWp     = new THREE.Vector3(0, 0, 0);
-        const sunSP      = toScreen(_sunWp);
-        const sunSR      = scrR(_sunWp, SUN_R);
-        const camSunDist = camera.position.length();
-
-        // ── Ring-blur effect (fast planets become semi-transparent orbit ring) ──
+        // ── 3D speed rings + planet fade ──────────────────────────────────
         pivots.forEach((pv, i) => {
             const mix = ringMixes[i];
             pv.userData.mesh.material.opacity = 1 - mix;
-
-            if (mix > 0.02) {
-                const c  = PLANETS[i].color;
-                const r8 = (c >> 16) & 0xff, g8 = (c >> 8) & 0xff, b8 = c & 0xff;
-                const th  = trails[i];
-                const wp0 = th.length ? th[0] : new THREE.Vector3(pv.userData.orb, 0, 0);
-                const headR = scrR(wp0, pv.userData.dispR);
-
-                oc.strokeStyle = `rgba(${r8},${g8},${b8},${(mix * 0.55).toFixed(3)})`;
-                oc.lineWidth   = Math.max(1.5, headR * 2); // planet diameter
-                oc.lineCap     = 'round';
-
-                // Per-segment depth test: hide portions occluded by sun
-                let penUp = true;
-                oc.beginPath();
-                orbitPts[i].forEach(pt => {
-                    const s = toScreen(pt);
-                    const hidden = Math.hypot(s.x - sunSP.x, s.y - sunSP.y) < sunSR
-                               && camera.position.distanceTo(pt) > camSunDist;
-                    if (hidden) { penUp = true; }
-                    else { if (penUp) { oc.moveTo(s.x, s.y); penUp = false; } else oc.lineTo(s.x, s.y); }
-                });
-                oc.stroke();
-            }
+            speedRings[i].material.opacity    = mix * 0.65;
         });
 
-        // ── Selection ring (static circle while focused) ──────────────────
+        // ── 3D trails ─────────────────────────────────────────────────────
+        pivots.forEach((pv, i) => {
+            const tl = trailLines[i], h = trails[i], av = angVels[i];
+            if (ringMixes[i] > 0.3 || av < TRAIL_DEG_MIN || h.length < 2) {
+                tl.geo.setDrawRange(0, 0); return;
+            }
+            const count = Math.min(h.length, 16);
+            const str   = Math.min(1, (av - TRAIL_DEG_MIN) / TRAIL_DEG_RANGE);
+            for (let j = 0; j < count; j++) {
+                tl.positions[j*3] = h[j].x; tl.positions[j*3+1] = h[j].y; tl.positions[j*3+2] = h[j].z;
+                const frac  = 1 - j / Math.max(1, count - 1);
+                const alpha = frac * str * 0.52;
+                tl.colors[j*3] = tl.r * alpha; tl.colors[j*3+1] = tl.g * alpha; tl.colors[j*3+2] = tl.b * alpha;
+            }
+            tl.geo.attributes.position.needsUpdate = true;
+            tl.geo.attributes.color.needsUpdate    = true;
+            tl.geo.setDrawRange(0, count);
+        });
+
+        // ── Orbit ring brightness boost ───────────────────────────────────
+        if (speedMult > 0.005) {
+            orbitMats.forEach((mat, i) => {
+                const boost = Math.min(0.60, Math.max(0, (angVels[i] - 1.5) / 6));
+                mat.opacity = 0.38 + boost * Math.min(1, (speedMult - 0.05) / 0.5);
+            });
+        } else {
+            orbitMats.forEach(m => { m.opacity = 0.38; });
+        }
+
+        // ── Selection ring (2D canvas, always on top) ─────────────────────
         const FOCUS_RING_MULT = 1.32;
         const drawRing = (wp, subjR, alpha) => {
             const { x: sx, y: sy } = toScreen(wp);
@@ -666,7 +722,6 @@
             const { sx, sy, sr } = drawRing(wp, subjR, 0.32);
             const ringR = sr * FOCUS_RING_MULT;
 
-            // Label placement
             const lw = labelEl.offsetWidth || 80, lh = labelEl.offsetHeight || 30;
             const margin = 16, isLand = W > H;
             let lx, ly, ex, ey, lcx, lcy;
@@ -690,7 +745,7 @@
             }
         }
 
-        // ── Fading ring after zoom-out ──────────────────────────────────
+        // ── Fading ring after zoom-out ────────────────────────────────────
         if (fadingRing) {
             fadingRing.t = Math.min(1, fadingRing.t + dt / fadingRing.dur);
             if (fadingRing.t >= 1) {
@@ -698,12 +753,11 @@
             } else {
                 const wp = new THREE.Vector3();
                 if (!fadingRing.isSun && fadingRing.mesh) fadingRing.mesh.getWorldPosition(wp);
-                const subjR = fadingRing.isSun ? SUN_R : fadingRing.dispR;
-                drawRing(wp, subjR, (1 - fadingRing.t) * 0.30);
+                drawRing(wp, fadingRing.isSun ? SUN_R : fadingRing.dispR, (1 - fadingRing.t) * 0.30);
             }
         }
 
-        // ── Click flash rings ───────────────────────────────────────────────
+        // ── Click flash rings ─────────────────────────────────────────────
         flashRings = flashRings.filter(f => {
             f.t = Math.min(1, f.t + dt / f.dur);
             oc.beginPath(); oc.arc(f.sx, f.sy, f.sr, 0, Math.PI * 2);
@@ -711,37 +765,6 @@
             oc.lineWidth = 1.8; oc.stroke();
             return f.t < 1;
         });
-
-        // ── Speed trails (angular-velocity based) ───────────────────────────────
-        if (speedMult > 0.005) {
-            pivots.forEach((pv, i) => {
-                if (ringMixes[i] > 0.3) return;
-                const av = angVels[i];
-                if (av < TRAIL_DEG_MIN) return;
-                const h = trails[i];
-                if (h.length < 3) return;
-                const str = Math.min(1, (av - TRAIL_DEG_MIN) / TRAIL_DEG_RANGE);
-                const c   = PLANETS[i].color;
-                const r8  = (c >> 16) & 0xff, g8 = (c >> 8) & 0xff, b8 = c & 0xff;
-                const limit = Math.min(h.length - 1, 16);
-                for (let j = 1; j <= limit; j++) {
-                    const frac  = 1 - j / limit;
-                    const alpha = frac * str * 0.52;
-                    const p0 = toScreen(h[j-1]), p1 = toScreen(h[j]);
-                    oc.beginPath(); oc.moveTo(p0.x, p0.y); oc.lineTo(p1.x, p1.y);
-                    oc.strokeStyle = `rgba(${r8},${g8},${b8},${alpha.toFixed(3)})`;
-                    oc.lineWidth   = Math.max(0.4, scrR(h[j-1], pv.userData.dispR) * frac * 1.5);
-                    oc.lineCap = 'round'; oc.stroke();
-                }
-            });
-            // Boost orbit ring brightness when planet moves fast (angular)
-            orbitMats.forEach((mat, i) => {
-                const boost = Math.min(0.60, Math.max(0, (angVels[i] - 1.5) / 6));
-                mat.opacity = 0.38 + boost * Math.min(1, (speedMult - 0.05) / 0.5);
-            });
-        } else {
-            orbitMats.forEach(m => { m.opacity = 0.38; });
-        }
     }
 
     // ── Animation loop ────────────────────────────────────────────────────
