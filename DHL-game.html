@@ -6,25 +6,13 @@
 <title>DHL City Drive</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { overflow: hidden; background: #000; }
+body { overflow: hidden; background: #000; touch-action: none; }
 canvas { display: block; }
 #hud { position: fixed; inset: 0; pointer-events: none; font-family: 'Courier New', monospace; }
 #label { position: absolute; top: 16px; left: 16px; color: #FC0; font-size: 20px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
 #minimap { position: absolute; top: 12px; right: 12px; border: 2px solid rgba(255,255,255,0.5); border-radius: 6px; }
-#speedo { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 18px; text-shadow: 1px 1px 3px #000; }
-#hint { position: absolute; bottom: 42px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.5); font-size: 13px; }
-.btn { position: fixed; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.35); border-radius: 14px; color: #fff; font-size: 32px; display: flex; align-items: center; justify-content: center; user-select: none; touch-action: none; cursor: pointer; }
-.btn:active { background: rgba(255,255,255,0.3); }
-#bL { bottom: 8%; left: 3%; width: 18vw; height: 12vh; }
-#bR { bottom: 8%; left: 23%; width: 18vw; height: 12vh; }
-#bB { bottom: 8%; right: 4%; width: 18vw; height: 12vh; }
-#bG { bottom: 22%; right: 4%; width: 18vw; height: 12vh; }
-@media (orientation: landscape) {
-  #bL { left: 2%; bottom: 6%; width: 13vw; height: 24vh; }
-  #bR { left: 16%; bottom: 6%; width: 13vw; height: 24vh; }
-  #bB { right: 3%; bottom: 6%; width: 12vw; height: 22vh; }
-  #bG { right: 3%; bottom: 30%; width: 12vw; height: 22vh; }
-}
+#speedo { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 20px; text-shadow: 1px 1px 3px #000; }
+#hint { position: absolute; bottom: 52px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 13px; text-align: center; transition: opacity 1.5s; }
 </style>
 </head>
 <body>
@@ -32,12 +20,8 @@ canvas { display: block; }
   <div id="label">DHL CITY DRIVE</div>
   <canvas id="minimap" width="130" height="130"></canvas>
   <div id="speedo">0 km/h</div>
-  <div id="hint">W/↑ Gas · S/↓ Bremse · A/D Lenken · R Reset</div>
+  <div id="hint">Hoch/Runter wischen = Gas/Bremse · Links/Rechts = Lenken</div>
 </div>
-<div class="btn" id="bL">◄</div>
-<div class="btn" id="bR">►</div>
-<div class="btn" id="bB">▼</div>
-<div class="btn" id="bG">▲</div>
 
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
 <script>
@@ -47,20 +31,16 @@ renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8aaec8);
-scene.fog = new THREE.Fog(0x8aaec8, 120, 340);
+scene.background = new THREE.Color(0x4499dd);
+scene.fog = new THREE.Fog(0x4499dd, 130, 370);
 
-const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 400);
-function onResize() {
-  renderer.setSize(innerWidth, innerHeight);
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-}
+const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 420);
+function onResize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener('resize', onResize); onResize();
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.65));
-const sun = new THREE.DirectionalLight(0xfff0e0, 0.85);
-sun.position.set(80, 160, 60); sun.castShadow = true; scene.add(sun);
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const sun = new THREE.DirectionalLight(0xfff4e0, 0.9);
+sun.position.set(100, 200, 80); sun.castShadow = true; scene.add(sun);
 
 function box(w, h, d, mat, x, y, z) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -69,195 +49,227 @@ function box(w, h, d, mat, x, y, z) {
 
 const mGnd  = new THREE.MeshLambertMaterial({ color: 0x1a1a1a });
 const mRoad = new THREE.MeshLambertMaterial({ color: 0x3a3a48 });
-const mSW   = new THREE.MeshLambertMaterial({ color: 0x7a7060 });
+const mSW   = new THREE.MeshLambertMaterial({ color: 0x8a7a68 });
 const mYlw  = new THREE.MeshLambertMaterial({ color: 0xeecc00 });
 const mPole = new THREE.MeshLambertMaterial({ color: 0x333333 });
+const mTrk  = new THREE.MeshLambertMaterial({ color: 0x5a3a1a });
+const mCrn  = new THREE.MeshLambertMaterial({ color: 0x2e7a2e });
 
-// Ground
-const gnd = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), mGnd);
-gnd.rotation.x = -Math.PI / 2; scene.add(gnd);
+const gnd = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), mGnd);
+gnd.rotation.x = -Math.PI/2; scene.add(gnd);
 
-// Grid: 3 N-S streets (x=0,100,200), 3 E-W streets (z=0,-100,-200)
-const XS = [0, 100, 200];
-const ZS = [0, -100, -200];
-const RH = 7, SW = 3.5, EXT = 65;
-const GCX = 100, GCZ = -100; // grid center for long road boxes
-const GL = 330;               // road length covers full grid + extensions
+const XS=[0,100,200], ZS=[0,-100,-200];
+const RH=7, SW=5, EXT=65;
+const GAP=RH+SW+1;
+const GCX=100, GCZ=-100, GL=330;
 
-// Road surfaces
-ZS.forEach(z => box(GL, 0.06, RH*2, mRoad, GCX, 0.03, z));
-XS.forEach(x => box(RH*2, 0.06, GL, mRoad, x, 0.03, GCZ));
-XS.forEach(x => ZS.forEach(z => box(RH*2+1, 0.07, RH*2+1, mRoad, x, 0.035, z)));
+ZS.forEach(z => box(GL,0.06,RH*2,mRoad,GCX,0.03,z));
+XS.forEach(x => box(RH*2,0.06,GL,mRoad,x,0.03,GCZ));
+XS.forEach(x => ZS.forEach(z => box(RH*2+1,0.07,RH*2+1,mRoad,x,0.035,z)));
+ZS.forEach(z => box(GL,0.02,0.22,mYlw,GCX,0.08,z));
+XS.forEach(x => box(0.22,0.02,GL,mYlw,x,0.08,GCZ));
 
-// Center lines
-ZS.forEach(z => box(GL, 0.02, 0.22, mYlw, GCX, 0.08, z));
-XS.forEach(x => box(0.22, 0.02, GL, mYlw, x, 0.08, GCZ));
-
-// Sidewalks – segmented so they don't cross the perpendicular roads
 function ewSW(z) {
   [[XS[0]-RH-EXT,XS[0]-RH],[XS[0]+RH,XS[1]-RH],[XS[1]+RH,XS[2]-RH],[XS[2]+RH,XS[2]+RH+EXT]]
-  .forEach(([x0,x1]) => {
-    const lc=(x0+x1)/2, ln=x1-x0;
-    box(ln,0.15,SW,mSW,lc,0.075,z+RH+SW/2);
-    box(ln,0.15,SW,mSW,lc,0.075,z-RH-SW/2);
-  });
+  .forEach(([x0,x1])=>{const lc=(x0+x1)/2,ln=x1-x0;box(ln,0.15,SW,mSW,lc,0.075,z+RH+SW/2);box(ln,0.15,SW,mSW,lc,0.075,z-RH-SW/2);});
 }
 function nsSW(x) {
   [[ZS[0]+RH,ZS[0]+RH+EXT],[ZS[1]+RH,ZS[0]-RH],[ZS[2]+RH,ZS[1]-RH],[ZS[2]-RH-EXT,ZS[2]-RH]]
-  .forEach(([z0,z1]) => {
-    const lc=(z0+z1)/2, ln=z1-z0;
-    box(SW,0.15,ln,mSW,x+RH+SW/2,0.075,lc);
-    box(SW,0.15,ln,mSW,x-RH-SW/2,0.075,lc);
-  });
+  .forEach(([z0,z1])=>{const lc=(z0+z1)/2,ln=z1-z0;box(SW,0.15,ln,mSW,x+RH+SW/2,0.075,lc);box(SW,0.15,ln,mSW,x-RH-SW/2,0.075,lc);});
 }
-ZS.forEach(z => ewSW(z));
-XS.forEach(x => nsSW(x));
+ZS.forEach(z=>ewSW(z)); XS.forEach(x=>nsSW(x));
 
-// Buildings
-const bPal = [0x6b7a8d,0x5a6b7a,0x4a5a6b,0x7a8b9a,0x8a7a6a,0x6a7a5a,0x9a8a7a,0x5a7a8a];
-let bi = 0;
-function bld(x, z, w, d, h) {
-  const mat = new THREE.MeshLambertMaterial({ color: bPal[bi++%bPal.length] });
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
-  mesh.position.set(x,h/2,z); mesh.castShadow=true; mesh.receiveShadow=true; scene.add(mesh);
-  for (let r=1; r<Math.floor(h/5); r++) {
-    const wr = new THREE.Mesh(new THREE.BoxGeometry(w+0.1,0.85,d+0.1),
-      new THREE.MeshLambertMaterial({color:0x1a2a3a}));
-    wr.position.set(x,r*5,z); scene.add(wr);
+const bPal=[0x6b7a8d,0x5a6b7a,0x4a5a6b,0x7a8b9a,0x8a7a8a,0x6a5a7a,0x8a9a8a,0x5a8a9a,0x9a8a7a,0x6a7a5a,0x7a6a8a,0x4a7a6a];
+const sPal=[0xcc4422,0x2266cc,0x22aa55,0xcc8822,0x884488,0xcc6633,0x226688,0x558833];
+let bi=0, si=0;
+
+function bld(x,z,w,d,h,shop) {
+  const bmat=new THREE.MeshLambertMaterial({color:bPal[bi++%bPal.length]});
+  const sH=shop?3.8:0, bH=h-sH;
+  const body=new THREE.Mesh(new THREE.BoxGeometry(w,bH,d),bmat);
+  body.position.set(x,sH+bH/2,z); body.castShadow=true; body.receiveShadow=true; scene.add(body);
+  for(let r=1;r<Math.min(Math.floor(bH/4.5),14);r++){
+    const wr=new THREE.Mesh(new THREE.BoxGeometry(w+0.1,0.85,d+0.1),new THREE.MeshLambertMaterial({color:0x162535}));
+    wr.position.set(x,sH+r*4.5,z); scene.add(wr);
+  }
+  if(shop){
+    const smat=new THREE.MeshLambertMaterial({color:sPal[si++%sPal.length]});
+    const sf=new THREE.Mesh(new THREE.BoxGeometry(w,sH,d),smat); sf.position.set(x,sH/2,z); sf.castShadow=true; sf.receiveShadow=true; scene.add(sf);
+    const gwin=new THREE.Mesh(new THREE.BoxGeometry(w*0.62,sH*0.52,d+0.08),new THREE.MeshLambertMaterial({color:0x1a3355}));
+    gwin.position.set(x,sH*0.46,z); scene.add(gwin);
   }
 }
-// Inner blocks (between streets)
-bld(50,-50, 28,28,48); bld(42,-38,16,16,65); bld(62,-62,18,18,36);
-bld(150,-50,30,26,54); bld(140,-38,18,18,44); bld(160,-62,16,16,70);
-bld(50,-150,26,30,42); bld(40,-162,18,16,62); bld(60,-138,16,20,34);
-bld(150,-150,28,28,58); bld(162,-162,16,18,46); bld(138,-140,20,16,74);
-// Outer blocks
-bld(-50,-50, 24,40,44); bld(-52,-150,22,36,60);
-bld(250,-50, 26,40,52); bld(252,-150,24,36,44);
-bld(50, 60, 40,24,36); bld(150,62, 38,22,50);
-bld(50,-260,40,24,44); bld(150,-258,36,22,38);
-bld(-50,60,22,22,30); bld(250,60,22,22,46);
-bld(-50,-260,22,22,52); bld(250,-260,22,22,40);
+function ewB(c,s,bx,bw,bd,bh,shop){ bld(bx,c+s*(GAP+bd/2),bw,bd,bh,shop); }
+function nsB(c,s,bz,bw,bd,bh,shop){ bld(c+s*(GAP+bd/2),bz,bd,bw,bh,shop); }
 
-// Traffic lights at all 9 intersections
-const TL_COLS = [0xff3300, 0xffaa00, 0x33cc33];
+ewB(0,-1,28,20,14,54,true);  ewB(0,-1,55,16,18,78,false); ewB(0,-1,78,22,12,40,true);
+ewB(0,-1,128,18,14,60,true); ewB(0,-1,155,22,16,46,false);ewB(0,-1,178,16,12,72,true);
+ewB(-100,+1,28,22,14,50,true); ewB(-100,+1,55,18,16,68,false);ewB(-100,+1,78,20,12,36,true);
+ewB(-100,+1,130,20,14,56,false);ewB(-100,+1,155,16,18,44,true);ewB(-100,+1,178,22,12,76,false);
+ewB(-100,-1,28,22,14,48,true); ewB(-100,-1,55,16,16,64,false);ewB(-100,-1,78,20,12,38,true);
+ewB(-100,-1,130,18,14,54,false);ewB(-100,-1,155,22,16,42,true);ewB(-100,-1,178,16,12,70,false);
+ewB(-200,+1,28,20,14,46,true); ewB(-200,+1,55,18,16,62,false);ewB(-200,+1,78,22,12,40,true);
+ewB(-200,+1,130,22,14,56,false);ewB(-200,+1,155,16,16,44,true);ewB(-200,+1,178,20,12,68,false);
+ewB(-200,-1,50,40,14,38,false); ewB(-200,-1,150,38,14,44,true);
+nsB(0,+1,-28,20,14,52,false);nsB(0,+1,-55,16,16,70,true); nsB(0,+1,-78,20,12,38,false);
+nsB(0,+1,-128,18,14,48,true);nsB(0,+1,-155,22,16,64,false);nsB(0,+1,-178,16,12,42,true);
+nsB(0,-1,-50,30,16,50,false); nsB(0,-1,-150,26,14,58,true);
+nsB(100,+1,-28,20,14,54,true); nsB(100,+1,-55,18,16,72,false);nsB(100,+1,-78,20,12,40,true);
+nsB(100,+1,-128,22,14,50,false);nsB(100,+1,-155,16,16,66,true);nsB(100,+1,-178,18,12,46,false);
+nsB(100,-1,-28,20,14,50,false);nsB(100,-1,-55,22,16,68,true); nsB(100,-1,-78,16,12,36,false);
+nsB(100,-1,-128,18,14,46,true);nsB(100,-1,-155,20,16,62,false);nsB(100,-1,-178,22,12,44,true);
+nsB(200,-1,-28,20,14,56,false);nsB(200,-1,-55,16,16,74,true); nsB(200,-1,-78,22,12,42,false);
+nsB(200,-1,-128,22,14,52,true);nsB(200,-1,-155,18,16,68,false);nsB(200,-1,-178,16,12,46,true);
+nsB(200,+1,-50,30,16,54,true); nsB(200,+1,-150,26,14,46,false);
+bld(-32,46,22,22,36,false); bld(232,46,24,22,44,true);
+bld(-32,-258,22,22,52,true); bld(232,-258,22,22,42,false);
+
+const mGrass=new THREE.MeshLambertMaterial({color:0x3d9c3d});
+const mPath =new THREE.MeshLambertMaterial({color:0xc4a882});
+const mBench=new THREE.MeshLambertMaterial({color:0x8b5e14});
+const mFount=new THREE.MeshLambertMaterial({color:0x7a9ab0});
+const pkGrass=new THREE.Mesh(new THREE.PlaneGeometry(72,60),mGrass);
+pkGrass.rotation.x=-Math.PI/2; pkGrass.position.set(50,0.06,44); scene.add(pkGrass);
+box(2,0.06,60,mPath,50,0.09,44); box(72,0.06,2,mPath,50,0.09,44);
+box(5,0.25,5,mFount,50,0.13,44);
+const fBase=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.4,1.1,8),mFount); fBase.position.set(50,0.7,44); scene.add(fBase);
+[[38,34],[62,34],[38,54],[62,54]].forEach(([bx,bz])=>{ box(2.8,0.28,0.75,mBench,bx,0.24,bz); box(2.8,0.45,0.1,mBench,bx,0.48,bz+0.34); });
+[[30,22],[52,16],[72,22],[16,42],[84,42],[30,64],[52,68],[72,64],[20,30],[80,30]].forEach(([tx,tz])=>{
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.3,2.2,6),mTrk); tr.position.set(tx,1.1,tz); scene.add(tr);
+  const cr=new THREE.Mesh(new THREE.SphereGeometry(2.6+Math.random()*0.8,7,5),mCrn); cr.position.set(tx,4.4,tz); scene.add(cr);
+});
+
+function treeAt(x,z,r){
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.28,2.4,6),mTrk); tr.position.set(x,1.2,z); scene.add(tr);
+  const cr=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),mCrn); cr.position.set(x,4.2+r*0.2,z); scene.add(cr);
+}
+for(let z=-GAP-2;z>ZS[2]-EXT+4;z-=11)
+  if(ZS.every(sz=>Math.abs(z-sz)>GAP+2)) treeAt(XS[0]+RH+SW*0.55,z,2.0+Math.random()*0.6);
+for(let x=GAP+2;x<XS[2]+EXT-4;x+=11)
+  if(XS.every(sx=>Math.abs(x-sx)>GAP+2)) treeAt(x,ZS[1]-RH-SW*0.55,2.2+Math.random()*0.5);
+
+const TL_COLS=[0xff3300,0xffaa00,0x33cc33];
 let tlPhase=0, tlTimer=0;
-const TL_DUR = [4000, 800, 4000];
-const tlAll = [];
-const mHousing = new THREE.MeshLambertMaterial({color:0x222222});
-XS.forEach(x => ZS.forEach(z => {
-  [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([sx,sz]) => {
+const TL_DUR=[4000,800,4000], tlAll=[];
+const mHou=new THREE.MeshLambertMaterial({color:0x222222});
+XS.forEach(x=>ZS.forEach(z=>{
+  [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([sx,sz])=>{
     const px=x+sx*(RH+SW+0.8), pz=z+sz*(RH+SW+0.8);
-    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.8,6),mPole);
-    pole.position.set(px,2.4,pz); scene.add(pole);
-    const hous=new THREE.Mesh(new THREE.BoxGeometry(0.55,1.9,0.55),mHousing);
-    hous.position.set(px,5.3,pz); scene.add(hous);
-    const grp = TL_COLS.map((col,i) => {
-      const mat = new THREE.MeshLambertMaterial({color:col, emissive: new THREE.Color(i===0?col:0)});
-      const m = new THREE.Mesh(new THREE.SphereGeometry(0.2,6,4),mat);
-      m.position.set(px,5.9-i*0.65,pz); scene.add(m); return m;
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.8,6),mPole); pole.position.set(px,2.4,pz); scene.add(pole);
+    const hous=new THREE.Mesh(new THREE.BoxGeometry(0.55,1.9,0.55),mHou); hous.position.set(px,5.3,pz); scene.add(hous);
+    const grp=TL_COLS.map((col,i)=>{
+      const mat=new THREE.MeshLambertMaterial({color:col,emissive:new THREE.Color(i===0?col:0)});
+      const m=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,4),mat); m.position.set(px,5.9-i*0.65,pz); scene.add(m); return m;
     });
     tlAll.push(grp);
   });
 }));
-
-function updateTL(dt) {
-  tlTimer += dt;
-  if (tlTimer > TL_DUR[tlPhase]) {
-    tlTimer -= TL_DUR[tlPhase];
-    tlPhase = (tlPhase+1)%3;
-    tlAll.forEach(g => g.forEach((m,i) => m.material.emissive.set(i===tlPhase ? TL_COLS[i] : 0)));
-  }
+function updateTL(dt){
+  tlTimer+=dt;
+  if(tlTimer>TL_DUR[tlPhase]){ tlTimer-=TL_DUR[tlPhase]; tlPhase=(tlPhase+1)%3; tlAll.forEach(g=>g.forEach((m,i)=>m.material.emissive.set(i===tlPhase?TL_COLS[i]:0))); }
 }
 
-// DHL Van
+const cGeo=new THREE.SphereGeometry(1,6,4), cMat=new THREE.MeshBasicMaterial({color:0xffffff});
+const clouds=[];
+[[-40,76,30],[120,88,-170],[295,74,-60],[-65,82,-195],[170,92,55],[55,70,-310],[250,80,85],[-30,66,-90]].forEach(([x,y,z])=>{
+  const g=new THREE.Group();
+  for(let i=0;i<3+Math.floor(Math.random()*3);i++){
+    const rx=10+Math.random()*14, ry=rx*0.42, rz=rx*0.65;
+    const pf=new THREE.Mesh(cGeo,cMat); pf.scale.set(rx,ry,rz);
+    pf.position.set((Math.random()-0.5)*28,(Math.random()-0.5)*5,(Math.random()-0.5)*16); g.add(pf);
+  }
+  g.position.set(x,y,z); scene.add(g);
+  clouds.push({g,spd:(0.3+Math.random()*0.5)*0.004*(Math.random()<0.5?1:-1)});
+});
+
 const mY=new THREE.MeshLambertMaterial({color:0xFFCC00});
 const mW=new THREE.MeshLambertMaterial({color:0xdddddd});
-const mD=new THREE.MeshLambertMaterial({color:0x223355});
+const mDk=new THREE.MeshLambertMaterial({color:0x223355});
 const mBk=new THREE.MeshLambertMaterial({color:0x111111});
-const mRed=new THREE.MeshLambertMaterial({color:0xcc2200});
+const mRd=new THREE.MeshLambertMaterial({color:0xcc2200});
 const van=new THREE.Group();
 const chassis=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.3,5.2),mY); chassis.position.set(0,0.45,0); van.add(chassis);
 const cab=new THREE.Mesh(new THREE.BoxGeometry(2.4,1.35,2.0),mY); cab.position.set(0,1.22,1.55); van.add(cab);
 const cargo=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.0,3.0),mY); cargo.position.set(0,1.6,-0.85); van.add(cargo);
-const stripe=new THREE.Mesh(new THREE.BoxGeometry(2.42,0.38,3.02),mRed); stripe.position.set(0,0.82,-0.85); van.add(stripe);
-const ws=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.68,0.08),mD); ws.position.set(0,1.42,2.54); van.add(ws);
-const grille=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.45,0.08),mBk); grille.position.set(0,0.72,2.54); van.add(grille);
+const stripe=new THREE.Mesh(new THREE.BoxGeometry(2.42,0.38,3.02),mRd); stripe.position.set(0,0.82,-0.85); van.add(stripe);
+const ws=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.68,0.08),mDk); ws.position.set(0,1.42,2.54); van.add(ws);
+const grl=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.45,0.08),mBk); grl.position.set(0,0.72,2.54); van.add(grl);
 [[-1.3,0.42,1.5],[1.3,0.42,1.5],[-1.3,0.42,-1.5],[1.3,0.42,-1.5]].forEach(([x,y,z])=>{
   const wh=new THREE.Mesh(new THREE.CylinderGeometry(0.42,0.42,0.26,10),mBk); wh.rotation.z=Math.PI/2; wh.position.set(x,y,z); van.add(wh);
   const hub=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.28,8),mW); hub.rotation.z=Math.PI/2; hub.position.set(x,y,z); van.add(hub);
 });
 van.castShadow=true; scene.add(van);
 
-// Input
 const K={};
-addEventListener('keydown',e=>{K[e.code]=true;});
-addEventListener('keyup',e=>{K[e.code]=false;});
-function bindBtn(id,code){
-  const el=document.getElementById(id);
-  ['touchstart','mousedown'].forEach(ev=>el.addEventListener(ev,e=>{e.preventDefault();K[code]=true;},{passive:false}));
-  ['touchend','mouseup','mouseleave'].forEach(ev=>el.addEventListener(ev,e=>{e.preventDefault();K[code]=false;},{passive:false}));
-}
-bindBtn('bG','ArrowUp'); bindBtn('bB','ArrowDown');
-bindBtn('bL','ArrowLeft'); bindBtn('bR','ArrowRight');
+addEventListener('keydown',e=>{K[e.code]=true;}); addEventListener('keyup',e=>{K[e.code]=false;});
 
-// Minimap
+let touch={active:false,x0:0,y0:0,dx:0,dy:0};
+const TDEAD=20;
+document.addEventListener('touchstart',e=>{const t=e.changedTouches[0]; touch={active:true,x0:t.clientX,y0:t.clientY,dx:0,dy:0}; e.preventDefault();},{passive:false});
+document.addEventListener('touchmove',e=>{if(!touch.active)return; const t=e.changedTouches[0]; touch.dx=t.clientX-touch.x0; touch.dy=t.clientY-touch.y0; e.preventDefault();},{passive:false});
+document.addEventListener('touchend',()=>{touch.active=false; touch.dx=0; touch.dy=0;});
+
+setTimeout(()=>{const h=document.getElementById('hint'); h.style.opacity='0'; setTimeout(()=>h.style.display='none',1600);},7000);
+
 const mmC=document.getElementById('minimap'), mmCtx=mmC.getContext('2d'), MM=mmC.width;
-function drawMM(vx,vz) {
+function drawMM(vx,vz){
   const WX0=-90,WX1=290,WZ0=-290,WZ1=90;
   const toP=(x,z)=>[(x-WX0)/(WX1-WX0)*MM,(z-WZ0)/(WZ1-WZ0)*MM];
   mmCtx.fillStyle='rgba(10,10,30,0.9)'; mmCtx.fillRect(0,0,MM,MM);
   mmCtx.strokeStyle='#555'; mmCtx.lineWidth=3;
   XS.forEach(x=>{const[px]=toP(x,0); mmCtx.beginPath(); mmCtx.moveTo(px,0); mmCtx.lineTo(px,MM); mmCtx.stroke();});
   ZS.forEach(z=>{const[,py]=toP(0,z); mmCtx.beginPath(); mmCtx.moveTo(0,py); mmCtx.lineTo(MM,py); mmCtx.stroke();});
-  const[cx2,cy2]=toP(vx,vz);
-  mmCtx.fillStyle='#FC0'; mmCtx.beginPath(); mmCtx.arc(cx2,cy2,5,0,Math.PI*2); mmCtx.fill();
+  const[p0x,p0y]=toP(14,14),[p1x,p1y]=toP(86,74);
+  mmCtx.fillStyle='rgba(61,156,61,0.45)'; mmCtx.fillRect(p0x,p0y,p1x-p0x,p1y-p0y);
+  const[cx,cy]=toP(vx,vz);
+  mmCtx.fillStyle='#FC0'; mmCtx.beginPath(); mmCtx.arc(cx,cy,5,0,Math.PI*2); mmCtx.fill();
 }
 
-// Physics – free movement (no curve)
-const MAXSPD=0.008, ACC=0.000004, BRK=0.000020, FRIC=0.000004, STEER=0.0025;
+const MAXSPD=0.012, ACC=0.000005, BRK=0.000025, FRIC=0.000005, STEER=0.0018;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0;
 const spdEl=document.getElementById('speedo');
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
 
-function tick(now) {
+function tick(now){
   requestAnimationFrame(tick);
   const dt=Math.min(now-prev,50); prev=now;
+
   updateTL(dt);
+  clouds.forEach(c=>{c.g.position.x+=c.spd*dt; if(c.g.position.x>500)c.g.position.x=-500; else if(c.g.position.x<-500)c.g.position.x=500;});
 
-  const gas=K['ArrowUp']||K['KeyW'];
-  const brk=K['ArrowDown']||K['KeyS'];
-  const left=K['ArrowLeft']||K['KeyA'];
-  const right=K['ArrowRight']||K['KeyD'];
+  const gas=K['ArrowUp']||K['KeyW']   ||(touch.active&&touch.dy<-TDEAD);
+  const brk=K['ArrowDown']||K['KeyS'] ||(touch.active&&touch.dy>TDEAD);
 
-  if (gas)      spd = spd<0 ? Math.min(spd+BRK*dt,0) : Math.min(spd+ACC*dt,MAXSPD);
-  else if (brk) spd = spd>0.0001 ? Math.max(spd-BRK*dt,0) : Math.max(spd-ACC*0.4*dt,-MAXSPD*0.35);
-  else { const f=FRIC*dt; spd=Math.abs(spd)<f?0:spd-Math.sign(spd)*f; }
+  if(gas)      spd=spd<0?Math.min(spd+BRK*dt,0):Math.min(spd+ACC*dt,MAXSPD);
+  else if(brk) spd=spd>0.0001?Math.max(spd-BRK*dt,0):Math.max(spd-ACC*0.4*dt,-MAXSPD*0.35);
+  else         {const f=FRIC*dt; spd=Math.abs(spd)<f?0:spd-Math.sign(spd)*f;}
 
-  if (Math.abs(spd) > 0.0001) {
-    const sr = STEER*(Math.abs(spd)/MAXSPD);
-    if (left)  vanAngle -= sr*dt;
-    if (right) vanAngle += sr*dt;
+  if(Math.abs(spd)>0.0001){
+    const sr=STEER*(Math.abs(spd)/MAXSPD);
+    if(K['ArrowLeft']||K['KeyA'])  vanAngle-=sr*dt;
+    if(K['ArrowRight']||K['KeyD']) vanAngle+=sr*dt;
+    if(touch.active){
+      const raw=Math.abs(touch.dx)>TDEAD?(touch.dx-Math.sign(touch.dx)*TDEAD)/130:0;
+      vanAngle+=Math.max(-1,Math.min(1,raw))*sr*dt;
+    }
   }
 
   const fx=Math.sin(vanAngle), fz=Math.cos(vanAngle);
-  vanX += fx*spd*dt;
-  vanZ += fz*spd*dt;
+  vanX+=fx*spd*dt; vanZ+=fz*spd*dt;
+  if(K['KeyR']){vanX=0;vanZ=30;vanAngle=Math.PI;spd=0;}
 
-  if (K['KeyR']) { vanX=0; vanZ=30; vanAngle=Math.PI; spd=0; }
+  van.position.set(vanX,0,vanZ);
+  van.rotation.y=vanAngle;
+  spdEl.textContent=`${Math.round(Math.abs(spd)/MAXSPD*45)} km/h`;
 
-  van.position.set(vanX, 0, vanZ);
-  van.rotation.y = vanAngle;
-  spdEl.textContent = `${Math.round(Math.abs(spd)/MAXSPD*30)} km/h`;
+  camP.set(vanX-fx*9,4.2,vanZ-fz*9);
+  camera.position.lerp(camP,0.18);
+  camera.lookAt(vanX+fx*4,1.2,vanZ+fz*4);
 
-  camP.set(vanX-fx*9, 4.2, vanZ-fz*9);
-  camera.position.lerp(camP, 0.18);
-  camera.lookAt(vanX+fx*4, 1.2, vanZ+fz*4);
-
-  drawMM(vanX, vanZ);
-  renderer.render(scene, camera);
+  drawMM(vanX,vanZ);
+  renderer.render(scene,camera);
 }
 requestAnimationFrame(tick);
 </script>
