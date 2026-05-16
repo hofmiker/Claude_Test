@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Retro Racer</title>
+<title>DHL City Drive</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { overflow: hidden; background: #000; }
 canvas { display: block; }
 #hud { position: fixed; inset: 0; pointer-events: none; font-family: 'Courier New', monospace; }
 #timer { position: absolute; top: 16px; left: 16px; color: #fff; font-size: 26px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
-#lapinfo { position: absolute; top: 52px; left: 16px; color: #ccc; font-size: 16px; text-shadow: 1px 1px 2px #000; }
-#countdown { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-60%); color: #ff0; font-size: 110px; font-weight: bold; text-shadow: 0 0 20px #f80, 4px 4px 0 #000; }
+#lapinfo { position: absolute; top: 52px; left: 16px; color: #FC0; font-size: 16px; text-shadow: 1px 1px 2px #000; }
+#countdown { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-60%); color: #FC0; font-size: 110px; font-weight: bold; text-shadow: 0 0 20px #f80, 4px 4px 0 #000; }
 #minimap { position: absolute; top: 12px; right: 12px; border: 2px solid rgba(255,255,255,0.5); border-radius: 6px; }
 #speedo { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 18px; text-shadow: 1px 1px 3px #000; }
 #hint { position: absolute; bottom: 42px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.5); font-size: 13px; }
@@ -23,7 +23,6 @@ canvas { display: block; }
   user-select: none; touch-action: none; cursor: pointer;
 }
 .btn:active { background: rgba(255,255,255,0.3); }
-/* Portrait: all buttons same size; gas ABOVE brake */
 #bL { bottom: 8%; left: 3%;  width: 18vw; height: 12vh; }
 #bR { bottom: 8%; left: 23%; width: 18vw; height: 12vh; }
 #bB { bottom: 8%;  right: 4%; width: 18vw; height: 12vh; }
@@ -39,12 +38,12 @@ canvas { display: block; }
 <body>
 <div id="hud">
   <div id="timer">0:00.000</div>
-  <div id="lapinfo">RUNDE 1</div>
+  <div id="lapinfo">DHL CITY DRIVE</div>
   <canvas id="minimap" width="130" height="130"></canvas>
   <div id="countdown">3</div>
   <div id="speedo">0 km/h</div>
   <div id="hint">W/↑ Gas · S/↓ Bremse · R Reset</div>
-  <div id="ver">v2026-05-08 06:15 UTC</div>
+  <div id="ver">DHL City v1</div>
 </div>
 <div class="btn" id="bL">◄</div>
 <div class="btn" id="bR">►</div>
@@ -60,87 +59,68 @@ renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 150, 450);
+scene.background = new THREE.Color(0x8aaec8);
+scene.fog = new THREE.Fog(0x8aaec8, 90, 280);
 
-const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 600);
-
+const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 400);
 function onResize() {
   renderer.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
 }
-addEventListener('resize', onResize);
-onResize();
+addEventListener('resize', onResize); onResize();
 
 // ── Lights ────────────────────────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-const sun = new THREE.DirectionalLight(0xfff5cc, 1.0);
-sun.position.set(80, 150, 60);
-sun.castShadow = true;
+scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+const sun = new THREE.DirectionalLight(0xfff0e0, 0.85);
+sun.position.set(60, 120, 40); sun.castShadow = true;
 scene.add(sun);
 
-// ── Ground ────────────────────────────────────────────────────────────────
+// ── Ground (asphalt) ──────────────────────────────────────────────────────
 const gnd = new THREE.Mesh(
   new THREE.PlaneGeometry(700, 700),
-  new THREE.MeshLambertMaterial({ color: 0x4a8a3f })
+  new THREE.MeshLambertMaterial({ color: 0x282828 })
 );
-gnd.rotation.x = -Math.PI / 2;
-gnd.receiveShadow = true;
+gnd.rotation.x = -Math.PI / 2; gnd.receiveShadow = true;
 scene.add(gnd);
 
-// ── Track ─────────────────────────────────────────────────────────────────
-// Loop entry z=-42, exit z=-20 → 22-unit Z gap → no ribbon self-intersection
+// ── City route (orthogonal grid loop) ─────────────────────────────────────
 const raw = [
-  [0,0,0],[0,0,-44],[0,0,-88],
-  [28,0,-118],[68,0,-138],[118,0,-140],
-  [158,0,-128],[184,0,-100],[190,0,-55],
-  // vertical loop (entry z=-42, exit z=-20, ~22 Z separation)
-  [185,0,-42],[204,18,-34],[190,36,-24],[170,18,-16],[186,0,-20],
-  // post-loop heading north-west
-  [188,0,-8],[180,0,10],[155,0,24],[118,0,28],
-  // rise for bridge 1 – crosses start straight at y=13
-  [78,5,20],[38,10,10],[0,13,-10],
-  [-38,10,-30],[-62,5,-56],[-65,0,-88],
-  // south on west side
-  [-60,0,-120],[-42,0,-150],
-  // curve east
-  [-8,0,-170],[34,0,-176],[78,0,-168],
-  // bridge 2 – crosses earlier east section at y=10
-  [112,5,-156],[128,10,-140],[130,5,-122],[120,0,-106],
-  // return
-  [88,0,-82],[50,0,-56],[18,0,-28],[3,0,-6],
+  [0,0,40],[0,0,0],[0,0,-40],[0,0,-80],
+  [40,0,-80],[80,0,-80],[120,0,-80],
+  [120,0,-40],[120,0,0],[120,0,40],
+  [80,0,40],[40,0,40],
 ];
 const trackPts = raw.map(([x,y,z]) => new THREE.Vector3(x,y,z));
 const curve = new THREE.CatmullRomCurve3(trackPts, true, 'catmullrom', 0.5);
 
-const SEG    = 400;
-const ROAD_W = 18;
+const SEG = 400, ROAD_W = 12;
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
-const _rrv   = new THREE.Vector3();
+const _rrv = new THREE.Vector3();
 
-// ── Road ribbon (tang × worldUp for horizontal road on flat + natural banking on loop) ──
-function ribbon(offL, w, mat) {
+// ── Road ribbon builder ───────────────────────────────────────────────────
+function ribbon(offL, w, mat, yOff) {
   const pos = [], idx = [], uvs = [];
   for (let i = 0; i <= SEG; i++) {
-    const t  = i / SEG;
-    const p  = curve.getPoint(t);
+    const t = i / SEG;
+    const p = curve.getPoint(t);
     const tg = curve.getTangent(t);
     _rrv.copy(tg).cross(WORLD_UP).normalize();
     if (_rrv.lengthSq() < 0.01) _rrv.set(1, 0, 0);
+    const yo = yOff || 0;
     pos.push(
-      p.x + _rrv.x * offL,       p.y + _rrv.y * offL,       p.z + _rrv.z * offL,
-      p.x + _rrv.x * (offL + w), p.y + _rrv.y * (offL + w), p.z + _rrv.z * (offL + w)
+      p.x + _rrv.x * offL,       p.y + yo + _rrv.y * offL,       p.z + _rrv.z * offL,
+      p.x + _rrv.x * (offL + w), p.y + yo + _rrv.y * (offL + w), p.z + _rrv.z * (offL + w)
     );
     uvs.push(0, t * 20, 1, t * 20);
   }
   for (let i = 0; i < SEG; i++) {
-    const a=i*2, b=i*2+1, c=(i+1)*2, d=(i+1)*2+1;
+    const a = i*2, b = a+1, c = (i+1)*2, d = (i+1)*2+1;
     idx.push(a,c,b, b,c,d);
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('uv',       new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geo.setIndex(idx);
   geo.computeVertexNormals();
   const m = new THREE.Mesh(geo, mat);
@@ -148,85 +128,89 @@ function ribbon(offL, w, mat) {
   return m;
 }
 
-const roadMat = new THREE.MeshLambertMaterial({ color: 0x555560, side: THREE.DoubleSide });
+const roadMat = new THREE.MeshLambertMaterial({ color: 0x4a4a55, side: THREE.DoubleSide });
+const swMat   = new THREE.MeshLambertMaterial({ color: 0x777060, side: THREE.DoubleSide });
 const whtMat  = new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 const ylwMat  = new THREE.MeshLambertMaterial({ color: 0xffee00, side: THREE.DoubleSide });
-const slabMat = new THREE.MeshLambertMaterial({ color: 0x3d3d48, side: THREE.DoubleSide });
 
-scene.add(ribbon(-ROAD_W/2, ROAD_W, roadMat));
-scene.add(ribbon(-ROAD_W/2 - 0.7, 0.7, whtMat));
-scene.add(ribbon( ROAD_W/2,        0.7, whtMat));
-scene.add(ribbon(-0.22, 0.44, ylwMat));
+scene.add(ribbon(-ROAD_W/2 - 3, 3, swMat, 0.01));   // left sidewalk
+scene.add(ribbon(ROAD_W/2, 3, swMat, 0.01));          // right sidewalk
+scene.add(ribbon(-ROAD_W/2, ROAD_W, roadMat, 0.02)); // road surface
+scene.add(ribbon(-ROAD_W/2 - 0.3, 0.3, whtMat, 0.03));
+scene.add(ribbon(ROAD_W/2, 0.3, whtMat, 0.03));
+scene.add(ribbon(-0.18, 0.36, ylwMat, 0.03));
 
-// Road slab underside (thickness = 0.5 world-Y)
-const slab = ribbon(-ROAD_W/2, ROAD_W, slabMat);
-{ const sp = slab.geometry.attributes.position;
-  for (let i = 0; i < sp.count; i++) sp.setY(i, sp.getY(i) - 0.5);
-  sp.needsUpdate = true; slab.geometry.computeVertexNormals(); }
-scene.add(slab);
-
-// ── Scenery ───────────────────────────────────────────────────────────────
-let seed = 42;
-function rng() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
-
-[[-90,0,-50],[90,0,-200],[-80,0,-180],[140,0,20],[-40,0,40],[200,0,-90],[160,0,-180],[-10,0,60]].forEach(([x,_,z]) => {
-  const r = 22 + rng()*26;
-  const m = new THREE.Mesh(new THREE.SphereGeometry(r,8,5,0,Math.PI*2,0,Math.PI/2), new THREE.MeshLambertMaterial({color:0x3d6e35}));
-  m.position.set(x, -r*0.25, z); scene.add(m);
-});
-[[-55,0,-45],[65,0,-98],[-75,0,-140],[145,0,-55],[25,0,38],[200,0,-150],[-50,0,-200]].forEach(([x,_,z]) => {
-  const r = 3+rng()*5;
-  const m = new THREE.Mesh(new THREE.DodecahedronGeometry(r,0), new THREE.MeshLambertMaterial({color:0x8a8878}));
-  m.position.set(x,r*0.4,z); m.rotation.set(rng()*2,rng()*2,rng()*2); scene.add(m);
-});
-const cMat = new THREE.MeshLambertMaterial({color:0x2d7a2d});
-const tMat = new THREE.MeshLambertMaterial({color:0x6b4226});
-[[-70,0,-25],[-75,0,-50],[-78,0,-78],[-72,0,-106],[-76,0,-132],[-68,0,-160],
- [65,0,-25],[68,0,-50],[62,0,-80],
- [215,0,-70],[215,0,-100],[215,0,-132],
- [-82,0,-200],[-52,0,-185],[-22,0,-195],
- [62,0,42],[32,0,52],[92,0,36]].forEach(([x,_,z]) => {
-  const h=6+rng()*5, r=2+rng()*1.5;
-  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.6,h*0.35,6),tMat);
-  trunk.position.set(x,h*0.175,z);
-  const crown=new THREE.Mesh(new THREE.ConeGeometry(r,h*0.85,6),cMat);
-  crown.position.set(x,h*0.35+h*0.425,z);
-  scene.add(trunk,crown);
-});
-
-// Clouds
-const puffMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-const puffGeo = new THREE.SphereGeometry(1, 6, 4);
-const clouds = [];
-[[-50,75,-90],[80,88,-40],[20,80,-210],[-100,70,-155],[160,85,25],[-30,95,45],[220,78,-100]].forEach(([x,y,z]) => {
-  const g = new THREE.Group();
-  for (let i = 0; i < 3 + Math.floor(rng()*3); i++) {
-    const rx = 12+rng()*14, ry = rx*0.42, rz = rx*0.65;
-    const pf = new THREE.Mesh(puffGeo, puffMat);
-    pf.scale.set(rx, ry, rz);
-    pf.position.set((rng()-0.5)*28, (rng()-0.5)*6, (rng()-0.5)*18);
-    g.add(pf);
+// ── Buildings ─────────────────────────────────────────────────────────────
+const bPalette = [0x6b7a8d,0x5a6b7a,0x4a5a6b,0x7a8b9a,0x8a7a6a,0x6a7a5a,0x9a8a7a,0x5a7a8a];
+let bpi = 0;
+function bld(x, z, w, d, h) {
+  const mat = new THREE.MeshLambertMaterial({ color: bPalette[bpi++ % bPalette.length] });
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  mesh.position.set(x, h / 2, z);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  scene.add(mesh);
+  // window rows (dark strips)
+  for (let row = 1; row < Math.floor(h / 5); row++) {
+    const wRow = new THREE.Mesh(
+      new THREE.BoxGeometry(w + 0.1, 1.0, d + 0.1),
+      new THREE.MeshLambertMaterial({ color: 0x223344 })
+    );
+    wRow.position.set(x, row * 5, z);
+    scene.add(wRow);
   }
-  g.position.set(x, y, z);
-  scene.add(g);
-  clouds.push({ g, spd: (0.3 + rng()*0.6) * (rng() < 0.5 ? 1 : -1) * 0.005 });
-});
+}
 
-// ── Car ───────────────────────────────────────────────────────────────────
-const car = new THREE.Group();
-const carBody  = new THREE.Mesh(new THREE.BoxGeometry(2.2,0.65,4.0),  new THREE.MeshLambertMaterial({color:0xcc2020}));
-carBody.position.y = 0.65; car.add(carBody);
-const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7,0.6,2.1), new THREE.MeshLambertMaterial({color:0xaa1515}));
-cabin.position.set(0,1.28,-0.15); car.add(cabin);
-const ws = new THREE.Mesh(new THREE.BoxGeometry(1.5,0.38,0.1), new THREE.MeshLambertMaterial({color:0x223355}));
-ws.position.set(0,1.3,0.9); car.add(ws);
-[[-1.2,0.36,1.35],[1.2,0.36,1.35],[-1.2,0.36,-1.35],[1.2,0.36,-1.35]].forEach(([x,y,z]) => {
-  const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.38,0.38,0.28,10), new THREE.MeshLambertMaterial({color:0x1a1a1a}));
-  wh.rotation.z = Math.PI/2; wh.position.set(x,y,z); car.add(wh);
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.19,0.3,8), new THREE.MeshLambertMaterial({color:0x888888}));
-  hub.rotation.z = Math.PI/2; hub.position.set(x,y,z); car.add(hub);
+// West side (left of X=0 road)
+bld(-30, 0, 22, 28, 40); bld(-32, -42, 18, 22, 55); bld(-28, -75, 25, 25, 35);
+// North side (above Z=-80 road)
+bld(20, -115, 22, 22, 45); bld(60, -118, 30, 28, 65); bld(100, -112, 22, 22, 42);
+// East side (right of X=120 road)
+bld(152, 5, 22, 28, 58); bld(150, -42, 18, 22, 42); bld(155, -80, 26, 28, 70);
+// South side (below Z=40 road)
+bld(25, 72, 22, 25, 35); bld(65, 75, 28, 24, 48); bld(100, 70, 22, 22, 40);
+// Corners
+bld(-30, -118, 22, 22, 52); bld(152, -118, 24, 24, 60);
+bld(-30, 72, 20, 22, 38); bld(152, 72, 22, 22, 45);
+// Interior fill (inside loop, smaller)
+bld(60, -28, 20, 22, 14); bld(45, -55, 16, 16, 18); bld(80, -52, 15, 18, 16);
+// Extra flanking buildings
+bld(-28, -38, 20, 20, 32); bld(148, -38, 18, 20, 38);
+
+// ── DHL Delivery Van ──────────────────────────────────────────────────────
+const mY  = new THREE.MeshLambertMaterial({ color: 0xFFCC00 });
+const mW  = new THREE.MeshLambertMaterial({ color: 0xdddddd });
+const mD  = new THREE.MeshLambertMaterial({ color: 0x223355 });
+const mBk = new THREE.MeshLambertMaterial({ color: 0x111111 });
+const mR  = new THREE.MeshLambertMaterial({ color: 0xcc2200 });
+
+const van = new THREE.Group();
+
+const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.3, 5.2), mY);
+chassis.position.set(0, 0.45, 0); van.add(chassis);
+
+const cab = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.35, 2.0), mY);
+cab.position.set(0, 1.22, 1.55); van.add(cab);
+
+const cargo = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.0, 3.0), mY);
+cargo.position.set(0, 1.6, -0.85); van.add(cargo);
+
+const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.42, 0.38, 3.02), mR);
+stripe.position.set(0, 0.82, -0.85); van.add(stripe);
+
+const windshield = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.68, 0.08), mD);
+windshield.position.set(0, 1.42, 2.54); van.add(windshield);
+
+const grille = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.45, 0.08), mBk);
+grille.position.set(0, 0.72, 2.54); van.add(grille);
+
+[[-1.3,0.42,1.5],[1.3,0.42,1.5],[-1.3,0.42,-1.5],[1.3,0.42,-1.5]].forEach(([x,y,z]) => {
+  const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.26, 10), mBk);
+  wh.rotation.z = Math.PI/2; wh.position.set(x,y,z); van.add(wh);
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.28, 8), mW);
+  hub.rotation.z = Math.PI/2; hub.position.set(x,y,z); van.add(hub);
 });
-car.castShadow = true; scene.add(car);
+van.castShadow = true;
+scene.add(van);
 
 // ── Input ─────────────────────────────────────────────────────────────────
 const K = {};
@@ -234,7 +218,7 @@ addEventListener('keydown', e => { K[e.code] = true; });
 addEventListener('keyup',   e => { K[e.code] = false; });
 function bindBtn(id, code) {
   const el = document.getElementById(id);
-  ['touchstart','mousedown'].forEach(ev => el.addEventListener(ev, e => { e.preventDefault(); K[code]=true;  }, {passive:false}));
+  ['touchstart','mousedown'].forEach(ev => el.addEventListener(ev, e => { e.preventDefault(); K[code]=true; }, {passive:false}));
   ['touchend','mouseup','mouseleave'].forEach(ev => el.addEventListener(ev, e => { e.preventDefault(); K[code]=false; }, {passive:false}));
 }
 bindBtn('bG','ArrowUp'); bindBtn('bB','ArrowDown');
@@ -251,11 +235,11 @@ function toMM(x,z) { return [mmP+(x-mnX)/(mxX-mnX)*(mmW-mmP*2), mmP+(z-mnZ)/(mxZ
 function drawMM(t) {
   mmX.clearRect(0,0,mmW,mmH);
   mmX.fillStyle='rgba(10,10,30,0.88)'; mmX.fillRect(0,0,mmW,mmH);
-  mmX.strokeStyle='#888'; mmX.lineWidth=2; mmX.beginPath();
-  mmS.forEach((p,i)=>{ const[x,y]=toMM(p.x,p.z); i?mmX.lineTo(x,y):mmX.moveTo(x,y); });
+  mmX.strokeStyle='#666'; mmX.lineWidth=3; mmX.beginPath();
+  mmS.forEach((p,i) => { const [x,y] = toMM(p.x,p.z); i ? mmX.lineTo(x,y) : mmX.moveTo(x,y); });
   mmX.closePath(); mmX.stroke();
-  const cp=curve.getPoint(t),[cx,cy]=toMM(cp.x,cp.z);
-  mmX.fillStyle='#f44'; mmX.beginPath(); mmX.arc(cx,cy,4.5,0,Math.PI*2); mmX.fill();
+  const cp = curve.getPoint(t), [cx,cy] = toMM(cp.x,cp.z);
+  mmX.fillStyle='#FC0'; mmX.beginPath(); mmX.arc(cx,cy,5,0,Math.PI*2); mmX.fill();
 }
 
 // ── Game state ────────────────────────────────────────────────────────────
@@ -270,38 +254,27 @@ const spdEl   = document.getElementById('speedo');
 const hintEl  = document.getElementById('hint');
 
 function fmt(ms) {
-  const m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000),ms3=Math.floor(ms%1000);
+  const m=Math.floor(ms/60000), s=Math.floor(ms%60000/1000), ms3=Math.floor(ms%1000);
   return `${m}:${String(s).padStart(2,'0')}.${String(ms3).padStart(3,'0')}`;
 }
 
 // ── Animation ─────────────────────────────────────────────────────────────
 let prev = performance.now();
-const camTarget = new THREE.Vector3();
-const lookPt    = new THREE.Vector3();
-const ax1 = new THREE.Vector3();
-const ax2 = new THREE.Vector3();
-const ax3 = new THREE.Vector3();
-const tmpV = new THREE.Vector3();
+const camTarget = new THREE.Vector3(), lookPt = new THREE.Vector3();
+const ax1 = new THREE.Vector3(), ax2 = new THREE.Vector3();
+const ax3 = new THREE.Vector3(), tmpV = new THREE.Vector3();
 
 function tick(now) {
   requestAnimationFrame(tick);
   const dt = Math.min(now - prev, 50);
   prev = now;
 
-  // Drift clouds (always)
-  clouds.forEach(c => {
-    c.g.position.x += c.spd * dt;
-    if (c.g.position.x > 400) c.g.position.x = -400;
-    else if (c.g.position.x < -400) c.g.position.x = 400;
-  });
-
-  // Countdown
   if (phase === 'countdown') {
     cdTimer += dt;
     if (cdTimer >= 1000) {
       cdTimer -= 1000; cdNum--;
       if (cdNum <= 0) {
-        cdEl.textContent = 'GO!'; phase = 'running';
+        cdEl.textContent = 'LOS!'; phase = 'running';
         setTimeout(() => { cdEl.style.display='none'; hintEl.style.display='none'; }, 900);
       } else { cdEl.textContent = cdNum; }
     }
@@ -316,58 +289,49 @@ function tick(now) {
     const left  = K['ArrowLeft']  || K['KeyA'];
     const right = K['ArrowRight'] || K['KeyD'];
 
-    // Throttle / brake / reverse
     if (gas) {
-      if (spd < 0) spd = Math.min(spd + BRK*dt, 0);
-      else         spd = Math.min(spd + ACC*dt, MAXSPD);
+      spd = spd < 0 ? Math.min(spd + BRK*dt, 0) : Math.min(spd + ACC*dt, MAXSPD);
     } else if (brk) {
-      if (spd > 0.00002) spd = Math.max(spd - BRK*dt, 0);
-      else               spd = Math.max(spd - ACC*0.4*dt, -MAXSPD*0.35);
+      spd = spd > 0.00002 ? Math.max(spd - BRK*dt, 0) : Math.max(spd - ACC*0.4*dt, -MAXSPD*0.35);
     } else {
-      const f = FRIC*dt;
-      spd = Math.abs(spd) < f ? 0 : spd - Math.sign(spd)*f;
+      const f = FRIC*dt; spd = Math.abs(spd) < f ? 0 : spd - Math.sign(spd)*f;
     }
 
-    // Steering: carSide in roadRight direction (tang×worldUp)
-    // positive carSide = car's right, negative = car's left
     const str = Math.max(0.25, Math.abs(spd)/MAXSPD);
     const yawSpd = 0.002*dt, decay = Math.pow(0.90, dt/16);
     const maxSide = ROAD_W/2 - 2.0;
-    if (left)  { carSide = Math.max(carSide - str*0.04*dt, -maxSide); steerYaw = Math.min(steerYaw + yawSpd, 0.28); }
+    if (left)       { carSide = Math.max(carSide - str*0.04*dt, -maxSide); steerYaw = Math.min(steerYaw + yawSpd, 0.28); }
     else if (right) { carSide = Math.min(carSide + str*0.04*dt, maxSide);  steerYaw = Math.max(steerYaw - yawSpd, -0.28); }
-    else { carSide *= decay; steerYaw *= decay; }
+    else            { carSide *= decay; steerYaw *= decay; }
 
     const prevT = trackT;
     trackT = ((trackT + spd) % 1 + 1) % 1;
     if (prevT > 0.92 && trackT < 0.08) { lapCount++; lapEl.textContent = `RUNDE ${lapCount}`; }
 
-    if (K['KeyR']) { trackT=0; spd=0; elapsed=0; lapCount=1; carSide=0; steerYaw=0; lapEl.textContent='RUNDE 1'; }
-    spdEl.textContent = `${Math.round(Math.abs(spd)/MAXSPD*180)} km/h`;
+    if (K['KeyR']) { trackT=0; spd=0; elapsed=0; lapCount=1; carSide=0; steerYaw=0; lapEl.textContent='DHL CITY DRIVE'; }
+    spdEl.textContent = `${Math.round(Math.abs(spd)/MAXSPD * 60)} km/h`;
   }
 
-  // ── Car placement ─────────────────────────────────────────────────────
   const p    = curve.getPoint(trackT);
   const tang = curve.getTangent(trackT);
 
-  // Road frame from worldUp (no Frenet flipping issues)
-  ax1.copy(tang).cross(WORLD_UP).normalize(); // roadRight = tang × worldUp
-  ax2.crossVectors(ax1, tang).normalize();    // roadUp = roadRight × tang
-  ax3.copy(tang).negate();                    // car back
+  ax1.copy(tang).cross(WORLD_UP).normalize();
+  ax2.crossVectors(ax1, tang).normalize();
+  ax3.copy(tang).negate();
 
-  car.position.copy(p).addScaledVector(ax1, carSide).addScaledVector(ax2, 0.55);
-  car.setRotationFromMatrix(new THREE.Matrix4().makeBasis(ax1, ax2, ax3));
-  car.rotateY(steerYaw);
+  van.position.copy(p).addScaledVector(ax1, carSide).addScaledVector(ax2, 0.55);
+  van.setRotationFromMatrix(new THREE.Matrix4().makeBasis(ax1, ax2, ax3));
+  van.rotateY(steerYaw);
 
-  // Camera: close behind + small world-up lift (sticks to car)
   tmpV.copy(tang).negate().normalize();
   camTarget.set(
-    car.position.x + tmpV.x * 7,
-    car.position.y + tmpV.y * 7 + 3.2,
-    car.position.z + tmpV.z * 7
+    van.position.x + tmpV.x * 9,
+    van.position.y + tmpV.y * 9 + 3.8,
+    van.position.z + tmpV.z * 9
   );
   camera.position.lerp(camTarget, 0.18);
-  lookPt.copy(car.position).addScaledVector(tang, 4);
-  lookPt.y = car.position.y + 1.0;
+  lookPt.copy(van.position).addScaledVector(tang, 4);
+  lookPt.y = van.position.y + 1.2;
   camera.lookAt(lookPt);
 
   drawMM(trackT);
