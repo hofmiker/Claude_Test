@@ -9,7 +9,8 @@
 body { overflow: hidden; background: #000; touch-action: none; }
 canvas { display: block; }
 #hud { position: fixed; inset: 0; pointer-events: none; font-family: Arial, Helvetica, sans-serif; }
-#label { position: absolute; top: 16px; left: 16px; color: #FC0; font-size: 20px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
+#label { position: absolute; top: 16px; left: 16px; color: #fff; font-size: 20px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
+#ts    { position: absolute; top: 41px; left: 16px; color: rgba(255,255,255,0.5); font-size: 11px; }
 #minimap { position: absolute; top: 12px; right: 12px; border: 2px solid rgba(255,255,255,0.5); border-radius: 6px; }
 #speedo { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 20px; text-shadow: 1px 1px 3px #000; }
 #hint { position: absolute; bottom: 52px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 13px; text-align: center; transition: opacity 1.5s; }
@@ -18,6 +19,7 @@ canvas { display: block; }
 <body>
 <div id="hud">
   <div id="label">DHL CITY DRIVE</div>
+  <div id="ts"></div>
   <canvas id="minimap" width="130" height="130"></canvas>
   <div id="speedo">0 km/h</div>
   <div id="hint">Hoch/Runter wischen = Gas/Bremse · Links/Rechts = Lenken</div>
@@ -191,17 +193,20 @@ const TL_COLS=[0xff3300,0xffaa00,0x33cc33];
 let tlPhase=0, tlTimer=0;
 const TL_DUR=[4000,800,4000], tlAll=[];
 const mHou=new THREE.MeshLambertMaterial({color:0x222222});
+const tlPoles=[];
 XS.forEach(x=>ZS.forEach(z=>{
   [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([sx,sz])=>{
     const px=x+sx*(RH+SW+0.8), pz=z+sz*(RH+SW+0.8);
-    collidables.push({x:px,z:pz,hw:0.4,hd:0.4});
-    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.8,6),mPole); pole.position.set(px,2.4,pz); scene.add(pole);
-    const hous=new THREE.Mesh(new THREE.BoxGeometry(0.55,1.9,0.55),mHou); hous.position.set(px,5.3,pz); scene.add(hous);
-    const grp=TL_COLS.map((col,i)=>{
+    const tlGrp=new THREE.Group(); tlGrp.position.set(px,0,pz); scene.add(tlGrp);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.8,6),mPole); pole.position.set(0,2.4,0); tlGrp.add(pole);
+    const hous=new THREE.Mesh(new THREE.BoxGeometry(0.55,1.9,0.55),mHou); hous.position.set(0,5.3,0); tlGrp.add(hous);
+    const lights=TL_COLS.map((col,i)=>{
       const mat=new THREE.MeshLambertMaterial({color:col,emissive:new THREE.Color(i===0?col:0)});
-      const m=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,4),mat); m.position.set(px,5.9-i*0.65,pz); scene.add(m); return m;
+      const m=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,4),mat); m.position.set(0,5.9-i*0.65,0); tlGrp.add(m); return m;
     });
-    tlAll.push(grp);
+    tlAll.push(lights);
+    const idx=tlPoles.length; tlPoles.push(tlGrp);
+    collidables.push({x:px,z:pz,hw:0.4,hd:0.4,tlIdx:idx});
   });
 }));
 function updateTL(dt){
@@ -273,6 +278,9 @@ function drawMM(vx,vz){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0;
 const spdEl=document.getElementById('speedo');
+const tsEl=document.getElementById('ts');
+const fmtTime=()=>new Date().toLocaleTimeString('de-DE');
+tsEl.textContent=fmtTime(); setInterval(()=>{tsEl.textContent=fmtTime();},1000);
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -304,9 +312,22 @@ function tick(now){
   const fx=Math.sin(vanAngle), fz=Math.cos(vanAngle);
   const nx=vanX+fx*spd*dt, nz=vanZ+fz*spd*dt;
   const VHW=1.5, VHD=2.8;
-  let hit=false;
-  for(const c of collidables){if(Math.abs(nx-c.x)<VHW+c.hw&&Math.abs(nz-c.z)<VHD+c.hd){hit=true;break;}}
-  if(hit){spd*=-0.4;}else{vanX=nx;vanZ=nz;}
+  let hitX=false, hitZ=false, tlHit=null;
+  for(const c of collidables){
+    const txHit=Math.abs(nx-c.x)<VHW+c.hw && Math.abs(vanZ-c.z)<VHD+c.hd;
+    const tzHit=Math.abs(vanX-c.x)<VHW+c.hw && Math.abs(nz-c.z)<VHD+c.hd;
+    if(txHit) hitX=true;
+    if(tzHit) hitZ=true;
+    if((txHit||tzHit) && c.tlIdx!==undefined && !tlHit) tlHit=c;
+  }
+  if(tlHit){
+    const tl=tlPoles[tlHit.tlIdx];
+    tl.rotation.z=Math.max(-0.55,Math.min(0.55,tl.rotation.z-fx*0.28));
+    tl.rotation.x=Math.max(-0.55,Math.min(0.55,tl.rotation.x+fz*0.28));
+  }
+  if(hitX&&hitZ) spd*=-0.4;
+  if(!hitX) vanX=nx;
+  if(!hitZ) vanZ=nz;
   if(K['KeyR']){vanX=0;vanZ=30;vanAngle=Math.PI;spd=0;}
 
   van.position.set(vanX,0,vanZ);
