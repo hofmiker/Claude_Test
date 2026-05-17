@@ -53,7 +53,7 @@ function box(w, h, d, mat, x, y, z) {
 const mGnd  = new THREE.MeshLambertMaterial({ color: 0x4a7a28 });
 const mRoad = new THREE.MeshLambertMaterial({ color: 0x3a3a48 });
 const mSW   = new THREE.MeshLambertMaterial({ color: 0x8a7a68 });
-const mYlw  = new THREE.MeshLambertMaterial({ color: 0xeecc00 });
+const mYlw  = new THREE.MeshLambertMaterial({ color: 0xffffff });
 const mPole = new THREE.MeshLambertMaterial({ color: 0x333333 });
 const mTrk  = new THREE.MeshLambertMaterial({ color: 0x5a3a1a });
 const mCrn  = new THREE.MeshLambertMaterial({ color: 0x2e7a2e });
@@ -78,8 +78,8 @@ XS.forEach(x=>{[0,-200].forEach(z=>box(RH*2+1,0.07,RH*2+1,mRoad,x,0.035,z)); box
 // Lane markings: normal roads
 [0,-200].forEach(z => box(GL,0.02,0.22,mYlw,GCX,0.08,z));
 // Z=-100 boulevard: double yellow center + white inner-lane dividers
-box(GL,0.02,0.2,mYlw,GCX,0.085,-100-0.55); box(GL,0.02,0.2,mYlw,GCX,0.085,-100+0.55);
-box(GL,0.02,0.15,mWht,GCX,0.085,-100-7);   box(GL,0.02,0.15,mWht,GCX,0.085,-100+7);
+box(GL,0.02,0.18,mWht,GCX,0.086,-100-0.55); box(GL,0.02,0.18,mWht,GCX,0.086,-100+0.55);
+for(let bx=XS[0]-EXT;bx<XS[2]+EXT;bx+=10){box(5.5,0.02,0.15,mWht,bx+2.75,0.087,-107);box(5.5,0.02,0.15,mWht,bx+2.75,0.087,-93);}
 XS.forEach(x => box(0.22,0.02,GL,mYlw,x,0.08,GCZ));
 
 function ewSW(z) {
@@ -95,6 +95,11 @@ function nsSW(x) {
   .forEach(([z0,z1])=>{const lc=(z0+z1)/2,ln=z1-z0;box(SW,0.15,ln,mSW,x+RH+SW/2,0.075,lc);box(SW,0.15,ln,mSW,x-RH-SW/2,0.075,lc);});
 }
 [0,-200].forEach(z=>ewSW(z)); ewSW4(-100); XS.forEach(x=>nsSW(x));
+// Corner fills at each intersection (softens the right-angle look)
+XS.forEach(xs=>ZS.forEach(zs=>{
+  const rh=zs===ZS[1]?RH*2:RH;
+  [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>box(SW,0.15,SW,mSW,xs+sx*(RH+SW/2),0.075,zs+sz*(rh+SW/2)));
+}));
 
 // ── Buildings ─────────────────────────────────────────────────────────────
 const bPal=[0x6b7a8d,0x5a6b7a,0x4a5a6b,0x7a8b9a,0x8a7a8a,0x6a5a7a,0x8a9a8a,0x5a8a9a,0x9a8a7a,0x6a7a5a,0x7a6a8a,0x4a7a6a];
@@ -133,11 +138,23 @@ function winFace(cx,cz,fw,fd,axis,side,floors,flH,sH,style,isEnt){
   }
   if(isEnt){
     const ew=Math.min(fw*0.35,5), eh=sH>0?sH*0.75:Math.min(flH*0.82,3.5), ey=sH>0?sH*0.5:eh/2;
-    const geo=axis==='z'?new THREE.BoxGeometry(ew,eh,ext*2):new THREE.BoxGeometry(ext*2,eh,ew);
-    const m=new THREE.Mesh(geo,mEntW);
-    const fp=side*(fd+ext);
-    m.position.set(axis==='z'?cx:cx+fp, ey, axis==='z'?cz+fp:cz);
-    scene.add(m);
+    const fp=side*(fd+ext*1.5), ext3=ext*3;
+    const mFrm=new THREE.MeshLambertMaterial({color:0x999999});
+    // Aluminium door frame
+    const fgeo=axis==='z'?new THREE.BoxGeometry(ew+0.28,eh+0.22,ext3):new THREE.BoxGeometry(ext3,eh+0.22,ew+0.28);
+    const fm=new THREE.Mesh(fgeo,mFrm); fm.position.set(axis==='z'?cx:cx+fp,ey,axis==='z'?cz+fp:cz); scene.add(fm);
+    // Two glass panels (sliding doors, gap in center)
+    const pw=(ew-0.22)/2;
+    [-1,1].forEach(s2=>{
+      const pgeo=axis==='z'?new THREE.BoxGeometry(pw,eh*0.87,ext3+0.04):new THREE.BoxGeometry(ext3+0.04,eh*0.87,pw);
+      const pm=new THREE.Mesh(pgeo,mEntW); pm.position.set(axis==='z'?cx+s2*(pw/2+0.06):cx+fp, ey, axis==='z'?cz+fp:cz+s2*(pw/2+0.06)); scene.add(pm);
+    });
+    // Canopy on every other style
+    if(style%2===0){
+      const cw=ew+1.8, cd=2.0;
+      const cgeo=axis==='z'?new THREE.BoxGeometry(cw,0.18,cd):new THREE.BoxGeometry(cd,0.18,cw);
+      const cm=new THREE.Mesh(cgeo,mFlrS); cm.position.set(axis==='z'?cx:cx+side*(fd+cd/2), ey+eh/2+0.1, axis==='z'?cz+side*(fd+cd/2):cz); scene.add(cm);
+    }
   }
 }
 
@@ -184,19 +201,19 @@ ewB(-200,+1,130,22,14,56,false);ewB(-200,+1,155,16,16,44,true);ewB(-200,+1,178,2
 // Z=-200 south outer
 ewB(-200,-1,50,40,14,38,false); ewB(-200,-1,150,38,14,44,true);
 // X=0 east
-nsB(0,+1,-28,20,14,52,false);nsB(0,+1,-55,16,16,70,true); nsB(0,+1,-78,20,12,38,false);
-nsB(0,+1,-128,18,14,48,true);nsB(0,+1,-155,22,16,64,false);nsB(0,+1,-178,16,12,42,true);
+nsB(0,+1,-28,20,14,52,false);nsB(0,+1,-55,16,16,70,true); nsB(0,+1,-70,20,12,38,false);
+nsB(0,+1,-134,18,14,48,true);nsB(0,+1,-155,22,16,64,false);nsB(0,+1,-178,16,12,42,true);
 // X=0 west outer
 nsB(0,-1,-50,30,16,50,false); nsB(0,-1,-150,26,14,58,true);
 // X=100 east
-nsB(100,+1,-28,20,14,54,true); nsB(100,+1,-55,18,16,72,false);nsB(100,+1,-78,20,12,40,true);
-nsB(100,+1,-128,22,14,50,false);nsB(100,+1,-155,16,16,66,true);nsB(100,+1,-178,18,12,46,false);
+nsB(100,+1,-28,20,14,54,true); nsB(100,+1,-55,18,16,72,false);nsB(100,+1,-70,20,12,40,true);
+nsB(100,+1,-134,22,14,50,false);nsB(100,+1,-155,16,16,66,true);nsB(100,+1,-178,18,12,46,false);
 // X=100 west
-nsB(100,-1,-28,20,14,50,false);nsB(100,-1,-55,22,16,68,true); nsB(100,-1,-78,16,12,36,false);
-nsB(100,-1,-128,18,14,46,true);nsB(100,-1,-155,20,16,62,false);nsB(100,-1,-178,22,12,44,true);
+nsB(100,-1,-28,20,14,50,false);nsB(100,-1,-55,22,16,68,true); nsB(100,-1,-70,16,12,36,false);
+nsB(100,-1,-134,18,14,46,true);nsB(100,-1,-155,20,16,62,false);nsB(100,-1,-178,22,12,44,true);
 // X=200 west
-nsB(200,-1,-28,20,14,56,false);nsB(200,-1,-55,16,16,74,true); nsB(200,-1,-78,22,12,42,false);
-nsB(200,-1,-128,22,14,52,true);nsB(200,-1,-155,18,16,68,false);nsB(200,-1,-178,16,12,46,true);
+nsB(200,-1,-28,20,14,56,false);nsB(200,-1,-55,16,16,74,true); nsB(200,-1,-68,22,12,42,false);
+nsB(200,-1,-134,22,14,52,true);nsB(200,-1,-155,18,16,68,false);nsB(200,-1,-178,16,12,46,true);
 // X=200 east outer
 nsB(200,+1,-50,30,16,54,true); nsB(200,+1,-150,26,14,46,false);
 // Corner outer
@@ -210,9 +227,32 @@ function parkLot(cx,cz,W,D,stW,horiz){
   if(horiz){ const n=Math.floor(W/stW)+1; for(let i=0;i<=n;i++) box(0.18,0.04,D,mWht,cx-W/2+i*stW,0.07,cz); }
   else      { const n=Math.floor(D/stW)+1; for(let i=0;i<=n;i++) box(W,0.04,0.18,mWht,cx,0.07,cz-D/2+i*stW); }
 }
-parkLot(238,-24,28,10,4.5,true);   // NE outer: east of X=200, south of Z=0
-parkLot(100,-233,50,9,4.5,true);   // S outer: between far Z=-200 buildings
-parkLot(-38,-100,10,38,4.5,false); // W outer: west of X=0 road
+parkLot(242,-30,52,28,4.5,true);    // NE outer: east of X=200, south of Z=0
+parkLot(100,-238,96,24,4.5,true);   // S outer: between far Z=-200 buildings
+parkLot(-44,-100,28,72,4.5,false);  // W outer: west of X=0 road
+
+// ── Müllbehälter / Trash ──────────────────────────────────────────────────
+const mCont=new THREE.MeshLambertMaterial({color:0x2e6630});
+const mContG=new THREE.MeshLambertMaterial({color:0x3a4a80});
+const mBinM=new THREE.MeshLambertMaterial({color:0x2a2a2a});
+function dumpster(x,z,rot){
+  const g=new THREE.Group(); g.position.set(x,0,z); if(rot)g.rotation.y=rot; scene.add(g);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.05,0.95),Math.random()>0.5?mCont:mContG); body.position.y=0.52; g.add(body);
+  const lid=new THREE.Mesh(new THREE.BoxGeometry(2.3,0.1,1.05),mBinM); lid.position.y=1.1; g.add(lid);
+}
+function streetBin(x,z){
+  const b=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.13,0.72,6),mBinM); b.position.set(x,0.36,z); scene.add(b);
+  const t=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.16,0.07,6),mBinM); t.position.set(x,0.755,z); scene.add(t);
+}
+// Hinterhof-Container (hinter Gebäuden, weg vom Gehweg)
+[[30,-32,0],[82,-32,0],[160,-32,0],[30,-232,Math.PI],[150,-232,Math.PI],
+ [25,-48,Math.PI/2],[25,-155,Math.PI/2],[175,-48,-Math.PI/2],[175,-155,-Math.PI/2],
+ [28,-72,0],[130,-72,0],[28,-140,Math.PI],[130,-140,Math.PI]].forEach(([x,z,r])=>dumpster(x,z,r));
+// Straßenmülleimer am Gehweg
+[[10,10],[35,10],[65,10],[95,10],[135,10],[165,10],[195,10],
+ [-9.5,-30],[-9.5,-75],[-9.5,-125],[-9.5,-170],
+ [209.5,-30],[209.5,-75],[209.5,-125],[209.5,-170],
+ [30,-9.5],[70,-9.5],[130,-9.5],[170,-9.5]].forEach(([x,z])=>streetBin(x,z));
 
 // ── Park (north outer block, x=0..100, z>0) ───────────────────────────────
 const mGrass=new THREE.MeshLambertMaterial({color:0x3d9c3d});
@@ -238,20 +278,15 @@ function treeAt(x,z,r){
   const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.28,2.4,6),mTrk); tr.position.set(x,1.2,z); scene.add(tr);
   const cr=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),mCrn); cr.position.set(x,4.2+r*0.2,z); scene.add(cr);
 }
-// N-S streets: both east+west sidewalks
-[XS[0],XS[1],XS[2]].forEach(xs=>{
-  for(let z=ZS[0]+EXT-4;z>ZS[2]-EXT+4;z-=11){
-    const clr=ZS.every(sz=>Math.abs(z-sz)>(sz===ZS[1]?GAP4+2:GAP+2));
-    if(clr){ const r=1.9+Math.random()*0.7; treeAt(xs+RH+SW*0.55,z,r); treeAt(xs-RH-SW*0.55,z,r); }
-  }
-});
-// E-W streets: both north+south sidewalks (boulevard uses RH*2 offset)
-ZS.forEach(zs=>{
-  const rh=zs===ZS[1]?RH*2:RH;
-  for(let x=XS[0]-EXT+4;x<XS[2]+EXT-4;x+=11){
-    if(XS.every(sx=>Math.abs(x-sx)>GAP+2)){ const r=1.9+Math.random()*0.7; treeAt(x,zs-rh-SW*0.55,r); treeAt(x,zs+rh+SW*0.55,r); }
-  }
-});
+// Allee X=100 (Hauptachse N-S, beidseitig)
+for(let z=ZS[0]+EXT-4;z>ZS[2]-EXT+4;z-=13){
+  const clr=ZS.every(sz=>Math.abs(z-sz)>(sz===ZS[1]?GAP4+3:GAP+3));
+  if(clr){ const r=2.0+Math.random()*0.6; treeAt(XS[1]+RH+SW*0.75,z,r); treeAt(XS[1]-RH-SW*0.75,z,r); }
+}
+// Allee Boulevard Z=-100 (beidseitig, klar außerhalb der Fahrbahn)
+for(let x=XS[0]-EXT+4;x<XS[2]+EXT-4;x+=13){
+  if(XS.every(sx=>Math.abs(x-sx)>GAP+3)){ const r=2.0+Math.random()*0.6; treeAt(x,ZS[1]-RH*2-SW*0.75,r); treeAt(x,ZS[1]+RH*2+SW*0.75,r); }
+}
 
 // ── Traffic lights ────────────────────────────────────────────────────────
 const TL_COLS=[0xff3300,0xffaa00,0x33cc33];
@@ -301,10 +336,14 @@ const mBk=new THREE.MeshLambertMaterial({color:0x111111});
 const mRd=new THREE.MeshLambertMaterial({color:0xcc2200});
 const van=new THREE.Group();
 const chassis=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.3,5.2),mY); chassis.position.set(0,0.45,0); van.add(chassis);
-const cab=new THREE.Mesh(new THREE.BoxGeometry(2.4,1.35,2.0),mY); cab.position.set(0,1.22,1.55); van.add(cab);
+const cabGeo=new THREE.BoxGeometry(2.4,1.35,2.0);
+const cabPos=cabGeo.getAttribute('position');
+for(let i=0;i<cabPos.count;i++) if(cabPos.getZ(i)>0&&cabPos.getY(i)>0) cabPos.setZ(i,cabPos.getZ(i)-0.44);
+cabPos.needsUpdate=true; cabGeo.computeVertexNormals();
+const cab=new THREE.Mesh(cabGeo,mY); cab.position.set(0,1.22,1.55); van.add(cab);
 const cargo=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.0,3.0),mY); cargo.position.set(0,1.6,-0.85); van.add(cargo);
 const stripe=new THREE.Mesh(new THREE.BoxGeometry(2.42,0.38,3.02),mRd); stripe.position.set(0,0.82,-0.85); van.add(stripe);
-const ws=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.68,0.08),mDk); ws.position.set(0,1.42,2.54); van.add(ws);
+const ws=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.82,0.10),mDk); ws.rotation.x=-0.30; ws.position.set(0,1.50,2.29); van.add(ws);
 const grl=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.45,0.08),mBk); grl.position.set(0,0.72,2.54); van.add(grl);
 // Rear wheels (fixed)
 [[-1.3,0.42,-1.5],[1.3,0.42,-1.5]].forEach(([x,y,z])=>{
