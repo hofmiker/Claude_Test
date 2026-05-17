@@ -274,11 +274,11 @@ function tick(now){
 
   if(Math.abs(spd)>0.0001){
     const sr=STEER*(Math.abs(spd)/MAXSPD);
-    if(K['ArrowLeft']||K['KeyA'])  vanAngle-=sr*dt;
-    if(K['ArrowRight']||K['KeyD']) vanAngle+=sr*dt;
+    if(K['ArrowLeft']||K['KeyA'])  vanAngle+=sr*dt;
+    if(K['ArrowRight']||K['KeyD']) vanAngle-=sr*dt;
     if(touch.active){
       const raw=Math.abs(touch.dx)>TDEAD?(touch.dx-Math.sign(touch.dx)*TDEAD)/130:0;
-      vanAngle+=Math.max(-1,Math.min(1,raw))*sr*dt;
+      vanAngle-=Math.max(-1,Math.min(1,raw))*sr*dt;
     }
   }
 
