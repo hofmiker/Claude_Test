@@ -56,7 +56,7 @@ const mSW   = new THREE.MeshLambertMaterial({ color: 0x8a7a68 });
 const mYlw  = new THREE.MeshLambertMaterial({ color: 0xffffff });
 const mPole = new THREE.MeshLambertMaterial({ color: 0x333333 });
 const mTrk  = new THREE.MeshLambertMaterial({ color: 0x5a3a1a });
-const mCrn  = new THREE.MeshLambertMaterial({ color: 0x2e7a2e });
+const mCrn  = new THREE.MeshBasicMaterial({ color: 0x2e7a2e });
 
 const gnd = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), mGnd);
 gnd.rotation.x = -Math.PI/2; scene.add(gnd);
@@ -106,6 +106,7 @@ const bPal=[0x6b7a8d,0x5a6b7a,0x4a5a6b,0x7a8b9a,0x8a7a8a,0x6a5a7a,0x8a9a8a,0x5a8
 const sPal=[0xcc4422,0x2266cc,0x22aa55,0xcc8822,0x884488,0xcc6633,0x226688,0x558833];
 let bi=0, si=0;
 const collidables=[];
+const bldBoxes=[];
 const WIN_MATS=[
   new THREE.MeshLambertMaterial({color:0x7ab8d8,emissive:0x0f2030}),
   new THREE.MeshLambertMaterial({color:0x4e8898,emissive:0x0a1820}),
@@ -159,7 +160,10 @@ function winFace(cx,cz,fw,fd,axis,side,floors,flH,sH,style,isEnt){
 }
 
 function bld(x,z,w,d,h,shop,eFz,eFx) {
-  collidables.push({x,z,hw:w/2,hd:d/2});
+  const hw=w/2, hd=d/2;
+  for(const b of bldBoxes) if(Math.abs(x-b.x)<hw+b.hw+0.4 && Math.abs(z-b.z)<hd+b.hd+0.4) return;
+  bldBoxes.push({x,z,hw,hd});
+  collidables.push({x,z,hw,hd});
   const style=bi%3;
   const bmat=new THREE.MeshLambertMaterial({color:bPal[bi++%bPal.length]});
   const sH=shop?3.8:0, bH=h-sH;
@@ -268,24 +272,25 @@ const fBase=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.4,1.1,8),mFount); fB
 [[38,34],[62,34],[38,54],[62,54]].forEach(([bx,bz])=>{ collidables.push({x:bx,z:bz,hw:1.4,hd:0.5}); box(2.8,0.28,0.75,mBench,bx,0.24,bz); box(2.8,0.45,0.1,mBench,bx,0.48,bz+0.34); });
 [[30,22],[52,16],[72,22],[16,42],[84,42],[30,64],[52,68],[72,64],[20,30],[80,30]].forEach(([tx,tz])=>{
   collidables.push({x:tx,z:tz,hw:0.6,hd:0.6});
-  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.3,2.2,6),mTrk); tr.position.set(tx,1.1,tz); scene.add(tr);
-  const cr=new THREE.Mesh(new THREE.SphereGeometry(2.6+Math.random()*0.8,7,5),mCrn); cr.position.set(tx,4.4,tz); scene.add(cr);
+  const pr=3.5+Math.random()*1.5;
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.35,2.6,6),mTrk); tr.position.set(tx,1.3,tz); scene.add(tr);
+  const cr=new THREE.Mesh(new THREE.SphereGeometry(pr,7,5),mCrn); cr.position.set(tx,2.2+pr*0.6,tz); scene.add(cr);
 });
 
 // ── Tree avenues ──────────────────────────────────────────────────────────
 function treeAt(x,z,r){
   collidables.push({x,z,hw:0.6,hd:0.6});
-  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.28,2.4,6),mTrk); tr.position.set(x,1.2,z); scene.add(tr);
-  const cr=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),mCrn); cr.position.set(x,4.2+r*0.2,z); scene.add(cr);
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.28,2.4,6),mTrk); tr.position.set(x,1.2,z); scene.add(tr);
+  const cr=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),mCrn); cr.position.set(x,2.0+r*0.62,z); scene.add(cr);
 }
-// Allee X=100 (Hauptachse N-S, beidseitig)
+// Allee X=100 (Hauptachse N-S, beidseitig), Größenvariation
 for(let z=ZS[0]+EXT-4;z>ZS[2]-EXT+4;z-=13){
   const clr=ZS.every(sz=>Math.abs(z-sz)>(sz===ZS[1]?GAP4+3:GAP+3));
-  if(clr){ const r=2.0+Math.random()*0.6; treeAt(XS[1]+RH+SW*0.75,z,r); treeAt(XS[1]-RH-SW*0.75,z,r); }
+  if(clr){ const r=1.4+Math.random()*1.8; treeAt(XS[1]+RH+SW*0.75,z,r); treeAt(XS[1]-RH-SW*0.75,z,r); }
 }
 // Allee Boulevard Z=-100 (beidseitig, klar außerhalb der Fahrbahn)
 for(let x=XS[0]-EXT+4;x<XS[2]+EXT-4;x+=13){
-  if(XS.every(sx=>Math.abs(x-sx)>GAP+3)){ const r=2.0+Math.random()*0.6; treeAt(x,ZS[1]-RH*2-SW*0.75,r); treeAt(x,ZS[1]+RH*2+SW*0.75,r); }
+  if(XS.every(sx=>Math.abs(x-sx)>GAP+3)){ const r=1.4+Math.random()*1.8; treeAt(x,ZS[1]-RH*2-SW*0.75,r); treeAt(x,ZS[1]+RH*2+SW*0.75,r); }
 }
 
 // ── Traffic lights ────────────────────────────────────────────────────────
@@ -295,8 +300,9 @@ const TL_DUR=[4000,800,4000], tlAll=[];
 const mHou=new THREE.MeshLambertMaterial({color:0x222222});
 const tlPoles=[];
 XS.forEach(x=>ZS.forEach(z=>{
+  const xOff=RH+SW*0.3, zOff=z===ZS[1]?RH*2+SW*0.3:RH+SW*0.3;
   [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([sx,sz])=>{
-    const px=x+sx*(RH+SW+0.8), pz=z+sz*(RH+SW+0.8);
+    const px=x+sx*xOff, pz=z+sz*zOff;
     const tlGrp=new THREE.Group(); tlGrp.position.set(px,0,pz); scene.add(tlGrp);
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.8,6),mPole); pole.position.set(0,2.4,0); tlGrp.add(pole);
     const hous=new THREE.Mesh(new THREE.BoxGeometry(0.55,1.9,0.55),mHou); hous.position.set(0,5.3,0); tlGrp.add(hous);
@@ -414,13 +420,13 @@ function tick(now){
 
   let steerTgt=0;
   if(Math.abs(spd)>0.0001){
-    const sr=STEER*(Math.abs(spd)/MAXSPD);
-    if(K['ArrowLeft']||K['KeyA'])  { vanAngle+=sr*dt; steerTgt=0.45; }
-    if(K['ArrowRight']||K['KeyD']) { vanAngle-=sr*dt; steerTgt=-0.45; }
+    const sr=STEER*(Math.abs(spd)/MAXSPD), sdir=spd>=0?1:-1;
+    if(K['ArrowLeft']||K['KeyA'])  { vanAngle+=sr*dt*sdir; steerTgt=0.45*sdir; }
+    if(K['ArrowRight']||K['KeyD']) { vanAngle-=sr*dt*sdir; steerTgt=-0.45*sdir; }
     if(touch.active){
       const raw=Math.abs(touch.dx)>TDEAD?(touch.dx-Math.sign(touch.dx)*TDEAD)/130:0;
       const clamped=Math.max(-1,Math.min(1,raw));
-      vanAngle-=clamped*sr*dt; steerTgt=-clamped*0.45;
+      vanAngle-=clamped*sr*dt*sdir; steerTgt=-clamped*0.45*sdir;
     }
   }
   steerAng+=(steerTgt-steerAng)*0.12;
@@ -451,8 +457,10 @@ function tick(now){
   van.rotation.y=vanAngle;
   spdEl.textContent=`${Math.round(Math.abs(spd)/MAXSPD*70)} km/h`;
 
-  camP.set(vanX-fx*9,4.2,vanZ-fz*9);
-  camera.position.lerp(camP,0.18);
+  const spdFac=Math.abs(spd)/MAXSPD;
+  const camDist=9+spdFac*11, camH=4.2+spdFac*4.5;
+  camP.set(vanX-fx*camDist,camH,vanZ-fz*camDist);
+  camera.position.lerp(camP,0.14);
   camera.lookAt(vanX+fx*4,1.2,vanZ+fz*4);
 
   drawMM(vanX,vanZ);
