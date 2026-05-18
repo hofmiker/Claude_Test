@@ -9,19 +9,19 @@
 body { overflow: hidden; background: #000; touch-action: none; }
 canvas { display: block; }
 #hud { position: fixed; inset: 0; pointer-events: none; font-family: Arial, Helvetica, sans-serif; }
-#label { position: absolute; top: 16px; left: 16px; color: #fff; font-size: 20px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
-#ts    { position: absolute; top: 41px; left: 16px; color: rgba(255,255,255,0.5); font-size: 11px; }
-#minimap { position: absolute; top: 12px; right: 12px; border: 2px solid rgba(255,255,255,0.5); border-radius: 6px; }
-#speedo { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 20px; text-shadow: 1px 1px 3px #000; }
-#hint { position: absolute; bottom: 52px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 13px; text-align: center; transition: opacity 1.5s; }
+#label { position: absolute; top: 16px; left: 16px; color: #fff; font-size: 18px; font-weight: bold; text-shadow: 1px 1px 4px rgba(0,0,0,0.9); }
+#ts    { position: absolute; top: 40px; left: 16px; color: rgba(255,255,255,0.55); font-size: 11px; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
+#minimap { position: absolute; top: 12px; right: 12px; border: 2px solid rgba(255,255,255,0.4); border-radius: 50%; }
+#pkgcnt { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 17px; font-weight: bold; text-shadow: 1px 1px 4px rgba(0,0,0,0.9); background: rgba(0,0,0,0.42); padding: 5px 18px; border-radius: 20px; }
+#hint { position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 13px; text-align: center; transition: opacity 1.5s; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
 </style>
 </head>
 <body>
 <div id="hud">
-  <div id="label">DHL CITY DRIVE</div>
+  <div id="label">DHL City Drive</div>
   <div id="ts"></div>
   <canvas id="minimap" width="130" height="130"></canvas>
-  <div id="speedo">0 km/h</div>
+  <div id="pkgcnt"></div>
   <div id="hint">Hoch/Runter wischen = Gas/Bremse · Links/Rechts = Lenken</div>
 </div>
 
@@ -34,14 +34,14 @@ renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x4499dd);
-scene.fog = new THREE.Fog(0x4499dd, 130, 370);
+scene.background = new THREE.Color(0x77ccff);
+scene.fog = new THREE.Fog(0x77ccff, 130, 370);
 
 const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 420);
 function onResize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener('resize', onResize); onResize();
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+scene.add(new THREE.AmbientLight(0xffffff, 0.85));
 const sun = new THREE.DirectionalLight(0xfff4e0, 0.9);
 sun.position.set(100, 200, 80); sun.castShadow = true; scene.add(sun);
 
@@ -50,9 +50,9 @@ function box(w, h, d, mat, x, y, z) {
   m.position.set(x, y, z); m.receiveShadow = true; scene.add(m); return m;
 }
 
-const mGnd  = new THREE.MeshLambertMaterial({ color: 0x4a7a28 });
+const mGnd  = new THREE.MeshLambertMaterial({ color: 0x555558 });
 const mRoad = new THREE.MeshLambertMaterial({ color: 0x3a3a48 });
-const mSW   = new THREE.MeshLambertMaterial({ color: 0x8a7a68 });
+const mSW   = new THREE.MeshLambertMaterial({ color: 0x5a5a6e });
 const mYlw  = new THREE.MeshLambertMaterial({ color: 0xffffff });
 const mPole = new THREE.MeshLambertMaterial({ color: 0x333333 });
 const mTrk  = new THREE.MeshLambertMaterial({ color: 0x5a3a1a });
@@ -60,6 +60,11 @@ const mCrn  = new THREE.MeshBasicMaterial({ color: 0x2e7a2e });
 
 const gnd = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), mGnd);
 gnd.rotation.x = -Math.PI/2; scene.add(gnd);
+const mGrassOut=new THREE.MeshLambertMaterial({color:0x3a7a2a});
+[[-283,0,434,1000],[382,0,236,1000],[100,283,1000,434],[100,-383,1000,234]].forEach(([cx,cz,W,D])=>{
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(W,D),mGrassOut);
+  m.rotation.x=-Math.PI/2; m.position.set(cx,0.01,cz); scene.add(m);
+});
 
 // ── Grid ──────────────────────────────────────────────────────────────────
 const XS=[0,100,200], ZS=[0,-100,-200];
@@ -258,8 +263,51 @@ function streetBin(x,z){
  [209.5,-30],[209.5,-75],[209.5,-125],[209.5,-170],
  [30,-9.5],[70,-9.5],[130,-9.5],[170,-9.5]].forEach(([x,z])=>streetBin(x,z));
 
+// ── Construction barriers at road ends ───────────────────────────────────
+const mBarO=new THREE.MeshLambertMaterial({color:0xff8800});
+const mBarW=new THREE.MeshLambertMaterial({color:0xffffff});
+function barrierAt(cx,cz,rot){
+  collidables.push({x:cx,z:cz,hw:4.5,hd:0.4});
+  const g=new THREE.Group(); g.position.set(cx,0,cz); if(rot)g.rotation.y=rot; scene.add(g);
+  [-3.6,3.6].forEach(lx=>{
+    const lm=new THREE.Mesh(new THREE.BoxGeometry(0.18,1.1,0.3),mBinM); lm.position.set(lx,0.55,0); g.add(lm);
+  });
+  for(let i=0;i<4;i++){
+    const bm=new THREE.Mesh(new THREE.BoxGeometry(2.1,0.3,0.22),i%2===0?mBarO:mBarW); bm.position.set(-3.15+i*2.1,1.1,0); g.add(bm);
+  }
+}
+ZS.forEach(z=>{ barrierAt(XS[0]-EXT,z,Math.PI/2); barrierAt(XS[2]+EXT,z,Math.PI/2); });
+XS.forEach(x=>{ barrierAt(x,ZS[0]+EXT,0); barrierAt(x,ZS[2]-EXT,0); });
+
+// ── Packages ──────────────────────────────────────────────────────────────
+const mPkg=new THREE.MeshLambertMaterial({color:0xc8b090});
+const mTapeR=new THREE.MeshLambertMaterial({color:0xcc2200});
+const packages=[];
+let pkgCollected=0;
+const pkgEl=document.getElementById('pkgcnt');
+function updatePkgUI(){ pkgEl.textContent=`\u{1F4E6} ${pkgCollected} / 20`; }
+updatePkgUI();
+(function placePkgs(){
+  let placed=0, tries=0;
+  while(placed<20&&tries<800){
+    tries++;
+    const px=-55+Math.random()*310, pz=-255+Math.random()*310;
+    if(ZS.some(zr=>Math.abs(pz-zr)<(zr===ZS[1]?RH*2:RH)+SW+2)) continue;
+    if(XS.some(xr=>Math.abs(px-xr)<RH+SW+2)) continue;
+    if(px>14&&px<86&&pz>14&&pz<74) continue;
+    if(packages.some(p=>Math.abs(p.x-px)<8&&Math.abs(p.z-pz)<8)) continue;
+    if(bldBoxes.some(b=>Math.abs(px-b.x)<b.hw+2&&Math.abs(pz-b.z)<b.hd+2)) continue;
+    const g=new THREE.Group(); g.position.set(px,0,pz); g.rotation.y=Math.random()*Math.PI*2; scene.add(g);
+    const bm=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.85,0.9),mPkg); bm.position.y=0.425; g.add(bm);
+    const tm=new THREE.Mesh(new THREE.BoxGeometry(1.22,0.12,0.92),mTapeR); tm.position.y=0.425; g.add(tm);
+    const tm2=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.87,0.92),mTapeR); tm2.position.set(0,0.425,0); g.add(tm2);
+    packages.push({x:px,z:pz,group:g,collected:false});
+    placed++;
+  }
+})();
+
 // ── Park (north outer block, x=0..100, z>0) ───────────────────────────────
-const mGrass=new THREE.MeshLambertMaterial({color:0x3d9c3d});
+const mGrass=new THREE.MeshLambertMaterial({color:0x3a7a2a});
 const mPath =new THREE.MeshLambertMaterial({color:0xc4a882});
 const mBench=new THREE.MeshLambertMaterial({color:0x8b5e14});
 const mFount=new THREE.MeshLambertMaterial({color:0x7a9ab0});
@@ -380,26 +428,36 @@ setTimeout(()=>{const h=document.getElementById('hint'); h.style.opacity='0'; se
 
 // ── Minimap ───────────────────────────────────────────────────────────────
 const mmC=document.getElementById('minimap'), mmCtx=mmC.getContext('2d'), MM=mmC.width;
-function drawMM(vx,vz){
-  const WX0=-90,WX1=290,WZ0=-290,WZ1=90;
-  const toP=(x,z)=>[(x-WX0)/(WX1-WX0)*MM,(z-WZ0)/(WZ1-WZ0)*MM];
-  mmCtx.fillStyle='rgba(10,10,30,0.9)'; mmCtx.fillRect(0,0,MM,MM);
-  mmCtx.strokeStyle='#555'; mmCtx.lineWidth=3;
-  XS.forEach(x=>{const[px]=toP(x,0); mmCtx.beginPath(); mmCtx.moveTo(px,0); mmCtx.lineTo(px,MM); mmCtx.stroke();});
-  ZS.forEach(z=>{const[,py]=toP(0,z); mmCtx.beginPath(); mmCtx.moveTo(0,py); mmCtx.lineTo(MM,py); mmCtx.stroke();});
-  const[p0x,p0y]=toP(14,14),[p1x,p1y]=toP(86,74);
-  mmCtx.fillStyle='rgba(61,156,61,0.45)'; mmCtx.fillRect(p0x,p0y,p1x-p0x,p1y-p0y);
-  const[cx,cy]=toP(vx,vz);
-  mmCtx.fillStyle='#FC0'; mmCtx.beginPath(); mmCtx.arc(cx,cy,5,0,Math.PI*2); mmCtx.fill();
+function drawMM(vx,vz,vAng){
+  const cx=MM/2, cy=MM/2, sc=MM/280;
+  mmCtx.clearRect(0,0,MM,MM);
+  mmCtx.fillStyle='rgba(10,12,28,0.88)'; mmCtx.fillRect(0,0,MM,MM);
+  mmCtx.save();
+  mmCtx.beginPath(); mmCtx.arc(cx,cy,cx-1,0,Math.PI*2); mmCtx.clip();
+  mmCtx.translate(cx,cy);
+  mmCtx.rotate(-vAng);
+  const mx=(x)=>(x-vx)*sc, mz=(z)=>-(z-vz)*sc;
+  ZS.forEach(z=>{
+    mmCtx.strokeStyle='#555566';
+    mmCtx.lineWidth=z===ZS[1]?9:5;
+    mmCtx.beginPath(); mmCtx.moveTo(mx(XS[0]-EXT),mz(z)); mmCtx.lineTo(mx(XS[2]+EXT),mz(z)); mmCtx.stroke();
+  });
+  XS.forEach(x=>{
+    mmCtx.strokeStyle='#555566'; mmCtx.lineWidth=5;
+    mmCtx.beginPath(); mmCtx.moveTo(mx(x),mz(ZS[0]+EXT)); mmCtx.lineTo(mx(x),mz(ZS[2]-EXT)); mmCtx.stroke();
+  });
+  packages.forEach(p=>{ if(!p.collected){ mmCtx.fillStyle='#FFcc00'; mmCtx.fillRect(mx(p.x)-3,mz(p.z)-3,6,6); }});
+  mmCtx.restore();
+  mmCtx.save(); mmCtx.translate(cx,cy); mmCtx.fillStyle='#FC0';
+  mmCtx.beginPath(); mmCtx.moveTo(0,-8); mmCtx.lineTo(-5,5); mmCtx.lineTo(0,2); mmCtx.lineTo(5,5); mmCtx.closePath(); mmCtx.fill();
+  mmCtx.restore();
 }
 
 // ── Physics (free movement) ───────────────────────────────────────────────
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
-const spdEl=document.getElementById('speedo');
 const tsEl=document.getElementById('ts');
-const fmtTime=()=>new Date().toLocaleTimeString('de-DE');
-tsEl.textContent=fmtTime(); setInterval(()=>{tsEl.textContent=fmtTime();},1000);
+tsEl.textContent=`v1.1 · 18.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -455,7 +513,12 @@ function tick(now){
 
   van.position.set(vanX,0,vanZ);
   van.rotation.y=vanAngle;
-  spdEl.textContent=`${Math.round(Math.abs(spd)/MAXSPD*70)} km/h`;
+
+  packages.forEach(p=>{
+    if(!p.collected&&Math.abs(vanX-p.x)<2.5&&Math.abs(vanZ-p.z)<2.5){
+      p.collected=true; scene.remove(p.group); pkgCollected++; updatePkgUI();
+    }
+  });
 
   const spdFac=Math.abs(spd)/MAXSPD;
   const camDist=9+spdFac*11, camH=4.2+spdFac*4.5;
@@ -463,7 +526,7 @@ function tick(now){
   camera.position.lerp(camP,0.14);
   camera.lookAt(vanX+fx*4,1.2,vanZ+fz*4);
 
-  drawMM(vanX,vanZ);
+  drawMM(vanX,vanZ,vanAngle);
   renderer.render(scene,camera);
 }
 requestAnimationFrame(tick);
