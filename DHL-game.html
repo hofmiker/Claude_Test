@@ -113,6 +113,7 @@ const sPal=[0xcc4422,0x2266cc,0x22aa55,0xcc8822,0x884488,0xcc6633,0x226688,0x558
 let bi=0, si=0;
 const collidables=[];
 const bldBoxes=[];
+const movables=[];
 const mFlrS=new THREE.MeshLambertMaterial({color:0xbbbbbb});
 function lighten(hex,f){
   const r=Math.min(255,((hex>>16)&0xff)+(((255-((hex>>16)&0xff))*f)|0));
@@ -253,26 +254,32 @@ const mChair=new THREE.MeshLambertMaterial({color:0x7a3a18});
 const mTableW=new THREE.MeshLambertMaterial({color:0xddddcc});
 const mUmbR=new THREE.MeshLambertMaterial({color:0xcc2200});
 const mPotC=new THREE.MeshLambertMaterial({color:0x8b5c28});
-function cafeDecor(cx,cz){
+function cafeDecor(cx,cz,entrZ){
+  // entrZ: Z-offset toward entrance (road side), default -1 = south facing
+  const ez=entrZ!==undefined?entrZ:-1;
   [cx-3,cx+3].forEach(tx=>{
-    const tleg=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.7,5),mTableW); tleg.position.set(tx,0.35,cz); scene.add(tleg);
-    const ttop=new THREE.Mesh(new THREE.CylinderGeometry(0.44,0.44,0.06,10),mTableW); ttop.position.set(tx,0.72,cz); scene.add(ttop);
+    const g=new THREE.Group(); g.position.set(tx,0,cz); scene.add(g);
+    const tleg=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.7,5),mTableW); tleg.position.set(0,0.35,0); g.add(tleg);
+    const ttop=new THREE.Mesh(new THREE.CylinderGeometry(0.44,0.44,0.06,10),mTableW); ttop.position.set(0,0.72,0); g.add(ttop);
     [[0,0.5],[0,-0.5]].forEach(([ox,oz])=>{
-      const seat=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.06,0.44),mChair); seat.position.set(tx+ox,0.42,cz+oz); scene.add(seat);
-      // back faces away from table (toward outside), so chair faces inward
-      const back=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.40,0.05),mChair); back.position.set(tx+ox,0.64,cz+oz+Math.sign(oz||1)*0.19); scene.add(back);
+      const seat=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.06,0.44),mChair); seat.position.set(ox,0.42,oz); g.add(seat);
+      // back faces AWAY from table center so chair faces inward
+      const back=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.40,0.05),mChair); back.position.set(ox,0.64,oz+Math.sign(oz||1)*0.19); g.add(back);
     });
-    const up=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.1,5),mPole); up.position.set(tx,1.05,cz); scene.add(up);
-    const uc=new THREE.Mesh(new THREE.ConeGeometry(0.92,0.34,8),mUmbR); uc.position.set(tx,2.27,cz); scene.add(uc);
+    const up=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.1,5),mPole); up.position.set(0,1.05,0); g.add(up);
+    const uc=new THREE.Mesh(new THREE.ConeGeometry(0.92,0.34,8),mUmbR); uc.position.set(0,2.27,0); g.add(uc);
+    movables.push({x:tx,z:cz,hw:0.7,hd:0.7,group:g,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
   });
-  // Two pots flanking the shop entrance (toward road, Z side)
+  // Pots flanking the entrance door (on sidewalk near building front)
   [-1,1].forEach(side=>{
-    const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.13,0.36,6),mPotC); pot.position.set(cx+side*2.2,0.18,cz-7.5); scene.add(pot);
-    const plant=new THREE.Mesh(new THREE.SphereGeometry(0.30,6,4),mCrn); plant.position.set(cx+side*2.2,0.56,cz-7.5); scene.add(plant);
+    const pg=new THREE.Group(); pg.position.set(cx+side*2.0,0,cz+ez*5); scene.add(pg);
+    const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.13,0.36,6),mPotC); pot.position.set(0,0.18,0); pg.add(pot);
+    const plant=new THREE.Mesh(new THREE.SphereGeometry(0.30,6,4),mCrn); plant.position.set(0,0.56,0); pg.add(plant);
+    movables.push({x:cx+side*2.0,z:cz+ez*5,hw:0.25,hd:0.25,group:pg,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
   });
 }
-cafeDecor(28,-10); cafeDecor(78,-10); cafeDecor(128,-10);
-cafeDecor(55,-90); cafeDecor(155,-90);
+cafeDecor(28,-10,+1); cafeDecor(78,-10,+1); cafeDecor(128,-10,+1);
+cafeDecor(55,-83,-1); cafeDecor(155,-83,-1);
 
 // ── Müllbehälter / Trash ──────────────────────────────────────────────────
 const mCont=new THREE.MeshLambertMaterial({color:0x2e6630});
@@ -282,10 +289,13 @@ function dumpster(x,z,rot){
   const g=new THREE.Group(); g.position.set(x,0,z); if(rot)g.rotation.y=rot; scene.add(g);
   const body=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.05,0.95),Math.random()>0.5?mCont:mContG); body.position.y=0.52; g.add(body);
   const lid=new THREE.Mesh(new THREE.BoxGeometry(2.3,0.1,1.05),mBinM); lid.position.y=1.1; g.add(lid);
+  movables.push({x,z,hw:1.2,hd:0.6,group:g,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
 }
 function streetBin(x,z){
-  const b=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.13,0.72,6),mBinM); b.position.set(x,0.36,z); scene.add(b);
-  const t=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.16,0.07,6),mBinM); t.position.set(x,0.755,z); scene.add(t);
+  const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
+  const b=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.13,0.72,6),mBinM); b.position.set(0,0.36,0); g.add(b);
+  const t=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.16,0.07,6),mBinM); t.position.set(0,0.755,0); g.add(t);
+  movables.push({x,z,hw:0.28,hd:0.28,group:g,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
 }
 // Hinterhof-Container (hinter Gebäuden, weg vom Gehweg)
 [[30,-32,0],[82,-32,0],[160,-32,0],[30,-232,Math.PI],[150,-232,Math.PI],
@@ -332,6 +342,18 @@ function playCollect(){
   g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.28);
   o.start(); o.stop(audioCtx.currentTime+0.28);
 }
+function playCrash(vol){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  const len=audioCtx.sampleRate*0.18;
+  const buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(len*0.35));
+  const src=audioCtx.createBufferSource(); src.buffer=buf;
+  const g=audioCtx.createGain(); g.gain.value=vol||0.55;
+  src.connect(g); g.connect(audioCtx.destination); src.start();
+}
+let lastCrashT=0;
+function playCrashThrottled(vol){ const n=performance.now(); if(n-lastCrashT>120){playCrash(vol);lastCrashT=n;} }
 const fxPool=[];
 function spawnCollectFX(x,z){
   const mat=new THREE.MeshBasicMaterial({color:0xFFCC00,transparent:true,opacity:0.9,side:THREE.DoubleSide});
@@ -389,9 +411,10 @@ const fBase=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.4,1.1,8),mFount); fB
 
 // ── Tree avenues ──────────────────────────────────────────────────────────
 function treeAt(x,z,r){
-  collidables.push({x,z,hw:0.6,hd:0.6});
-  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.28,2.4,6),mTrk); tr.position.set(x,1.2,z); scene.add(tr);
-  const cr=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),mCrn); cr.position.set(x,2.0+r*0.62,z); scene.add(cr);
+  const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.28,2.4,6),mTrk); tr.position.set(0,1.2,0); g.add(tr);
+  const cr=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),mCrn); cr.position.set(0,2.0+r*0.62,0); g.add(cr);
+  movables.push({x,z,hw:0.55,hd:0.55,group:g,vx:0,vz:0,isTree:true,falling:false,fallAngle:0,fallDir:0});
 }
 // Allee X=100 (Hauptachse N-S, beidseitig), Größenvariation
 for(let z=ZS[0]+EXT-4;z>ZS[2]-EXT+4;z-=13){
@@ -528,13 +551,13 @@ busGrp.castShadow=true; scene.add(busGrp);
 
 // ── Bus stops (poles with "H" sign on sidewalk) ───────────────────────────
 // Stop trigger positions (on road, right lane)
-const busStopPositions=[[100,-3.5],[203.5,-100],[100,-196.5],[-3.5,-100]];
-// Sign positions offset onto sidewalk (RH=7, sidewalk center ~RH+SW/2=9.5)
+const busStopPositions=[[50,-3.5],[203.5,-50],[150,-196.5],[-3.5,-150]];
+// Sign on sidewalk: road edge ±7, sidewalk centre ±9.5 from road centre
 const busStopSigns=[
-  {x:100,  z:-(7+2.5), faceZ:true},   // Z=0 road → sidewalk south side
-  {x:207+2.5, z:-100,  faceZ:false},  // X=200 road → sidewalk east side
-  {x:100,  z:-(200-7-2.5), faceZ:true}, // Z=-200 road → sidewalk north side
-  {x:-(7+2.5), z:-100, faceZ:false},  // X=0 road → sidewalk west side
+  {x:50,    z:-9.5,   faceZ:true},   // Z=0 road, south sidewalk
+  {x:209.5, z:-50,    faceZ:false},  // X=200 road, east sidewalk
+  {x:150,   z:-190.5, faceZ:true},   // Z=-200 road, north sidewalk
+  {x:-9.5,  z:-150,   faceZ:false},  // X=0 road, west sidewalk
 ];
 (function buildBusStops(){
   const mPoleY=new THREE.MeshLambertMaterial({color:0xddaa00});
@@ -569,16 +592,17 @@ const busStopSigns=[
   });
 })();
 
-// ── Bus route: stop-to-stop on outer ring ────────────────────────────────
-// Waypoints lead bus through outer ring, passing through each stop
+// ── Bus route: outer ring, right lane, stop-to-stop ──────────────────────
+// Right lane offsets: E-W roads z±3.5, N-S roads x±3.5
+// Stops midway between intersections, clear of barriers
 const busRoute=[
-  [-65,-3.5],  [100,-3.5],   [265,-3.5],
-  [203.5,-65], [203.5,-100], [203.5,-265],
-  [265,-196.5],[100,-196.5], [-65,-196.5],
-  [-3.5,-265], [-3.5,-100],  [-3.5,-65],
+  [20,-3.5], [50,-3.5], [150,-3.5], [255,-3.5],
+  [203.5,-20],[203.5,-50],[203.5,-150],[203.5,-255],
+  [255,-196.5],[150,-196.5],[50,-196.5],[-55,-196.5],
+  [-3.5,-255],[-3.5,-150],[-3.5,-50],[-3.5,-20],
 ];
 const BUS_SPD=0.008, BUS_HW=1.4, BUS_HD=6.5;
-let busWI=0, busX=-65, busZ=-3.5, busAng=Math.PI/2;
+let busWI=0, busX=20, busZ=-3.5, busAng=Math.PI/2;
 let busSpd=BUS_SPD;
 let busStopTimer=0;
 let busStopCooldown=0;
@@ -655,8 +679,8 @@ function drawMM(vx,vz,vAng){
   mmCtx.save();
   mmCtx.beginPath(); mmCtx.arc(cx,cy,cx-1,0,Math.PI*2); mmCtx.clip();
   mmCtx.translate(cx,cy);
-  mmCtx.rotate(-vAng);
-  const mx=(x)=>(x-vx)*sc, mz=(z)=>-(z-vz)*sc;
+  mmCtx.rotate(vAng);
+  const mx=(x)=>-(x-vx)*sc, mz=(z)=>-(z-vz)*sc;
   ZS.forEach(z=>{
     mmCtx.strokeStyle='#555566';
     mmCtx.lineWidth=z===ZS[1]?9:5;
@@ -699,12 +723,12 @@ function tick(now){
   let steerTgt=0;
   if(Math.abs(spd)>0.0001){
     const sr=STEER*(Math.abs(spd)/MAXSPD), sdir=spd>=0?1:-1;
-    if(K['ArrowLeft']||K['KeyA'])  { vanAngle+=sr*dt*sdir; steerTgt=-0.45*sdir; }
-    if(K['ArrowRight']||K['KeyD']) { vanAngle-=sr*dt*sdir; steerTgt=0.45*sdir; }
+    if(K['ArrowLeft']||K['KeyA'])  { vanAngle+=sr*dt*sdir; steerTgt= 0.45; }
+    if(K['ArrowRight']||K['KeyD']) { vanAngle-=sr*dt*sdir; steerTgt=-0.45; }
     if(touch.active){
       const raw=Math.abs(touch.dx)>TDEAD?(touch.dx-Math.sign(touch.dx)*TDEAD)/130:0;
       const clamped=Math.max(-1,Math.min(1,raw));
-      vanAngle-=clamped*sr*dt*sdir; steerTgt=clamped*0.45*sdir;
+      vanAngle-=clamped*sr*dt*sdir; steerTgt=-clamped*0.45;
     }
   }
   steerAng+=(steerTgt-steerAng)*0.12;
@@ -730,6 +754,7 @@ function tick(now){
       tlDark[tlHit.tlIdx]=true;
       tlAll[tlHit.tlIdx].forEach(m=>m.material.emissive.set(0));
       spawnSparks(tl.position.x,5.5,tl.position.z);
+      playCrashThrottled(0.7);
     }
   }
   // Sparks update
@@ -741,6 +766,19 @@ function tick(now){
   if(hitX&&hitZ) spd*=-0.4;
   if(!hitX) vanX=nx;
   if(!hitZ) vanZ=nz;
+
+  // Movables collision
+  for(const mv of movables){
+    if(mv.falling&&mv.fallAngle>=Math.PI/2) continue;
+    const mhit=Math.abs(vanX-mv.x)<VHW+mv.hw && Math.abs(vanZ-mv.z)<VHD+mv.hd;
+    if(mhit){
+      playCrashThrottled(0.5);
+      const push=Math.max(0.06,Math.abs(spd)/MAXSPD*0.14);
+      mv.vx+=fx*push; mv.vz+=fz*push;
+      if(mv.isTree){ mv.falling=true; mv.fallDir=Math.atan2(fx,fz); }
+      spd*=0.55;
+    }
+  }
   if(K['KeyR']){vanX=0;vanZ=30;vanAngle=Math.PI;spd=0;}
 
   van.position.set(vanX,0,vanZ);
@@ -764,6 +802,23 @@ function tick(now){
   camP.set(vanX-fx*camDist,camH,vanZ-fz*camDist);
   camera.position.lerp(camP,0.14);
   camera.lookAt(vanX+fx*4,1.2,vanZ+fz*4);
+
+  // Update movables (slide + tree fall)
+  for(const mv of movables){
+    if(mv.vx!==0||mv.vz!==0){
+      mv.x+=mv.vx*dt*0.05; mv.z+=mv.vz*dt*0.05;
+      mv.group.position.x=mv.x; mv.group.position.z=mv.z;
+      const fric=Math.pow(0.88,dt/16);
+      mv.vx*=fric; mv.vz*=fric;
+      if(Math.abs(mv.vx)<0.0005) mv.vx=0;
+      if(Math.abs(mv.vz)<0.0005) mv.vz=0;
+    }
+    if(mv.isTree&&mv.falling&&mv.fallAngle<Math.PI/2){
+      mv.fallAngle=Math.min(Math.PI/2, mv.fallAngle+dt*0.003);
+      mv.group.rotation.x=Math.sin(mv.fallDir)*mv.fallAngle;
+      mv.group.rotation.z=-Math.cos(mv.fallDir)*mv.fallAngle;
+    }
+  }
 
   drawMM(vanX,vanZ,vanAngle);
   renderer.render(scene,camera);
