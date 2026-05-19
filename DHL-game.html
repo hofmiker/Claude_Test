@@ -272,7 +272,7 @@ function cafeDecor(cx,cz,entrZ){
   });
   // Pots flanking the entrance door (on sidewalk near building front)
   [-1,1].forEach(side=>{
-    const pg=new THREE.Group(); pg.position.set(cx+side*2.0,0,cz+ez*5); scene.add(pg);
+    const pg=new THREE.Group(); pg.position.set(cx+side*2.0,0,cz-ez*3); scene.add(pg);
     const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.13,0.36,6),mPotC); pot.position.set(0,0.18,0); pg.add(pot);
     const plant=new THREE.Mesh(new THREE.SphereGeometry(0.30,6,4),mCrn); plant.position.set(0,0.56,0); pg.add(plant);
     movables.push({x:cx+side*2.0,z:cz+ez*5,hw:0.25,hd:0.25,group:pg,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
@@ -414,7 +414,7 @@ function treeAt(x,z,r){
   const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
   const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.28,2.4,6),mTrk); tr.position.set(0,1.2,0); g.add(tr);
   const cr=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),mCrn); cr.position.set(0,2.0+r*0.62,0); g.add(cr);
-  movables.push({x,z,hw:0.55,hd:0.55,group:g,vx:0,vz:0,isTree:true,falling:false,fallAngle:0,fallDir:0});
+  movables.push({x,z,hw:0.55,hd:0.55,group:g,vx:0,vz:0,isTree:true,stage:0,fallAngle:0,fallDir:0,fallTarget:0});
 }
 // Allee X=100 (Hauptachse N-S, beidseitig), Größenvariation
 for(let z=ZS[0]+EXT-4;z>ZS[2]-EXT+4;z-=13){
@@ -428,7 +428,7 @@ for(let x=XS[0]-EXT+4;x<XS[2]+EXT-4;x+=13){
 
 // ── Traffic lights ────────────────────────────────────────────────────────
 const TL_COLS=[0xff3300,0xffaa00,0x33cc33];
-const tlAll=[], tlDark=[], tlPoles=[];
+const tlAll=[], tlDark=[], tlPoles=[], tlHitCount=[];
 const mHou=new THREE.MeshLambertMaterial({color:0x222222});
 const sparkPool=[];
 function spawnSparks(x,y,z){
@@ -451,7 +451,7 @@ XS.forEach(x=>ZS.forEach(z=>{
       const mat=new THREE.MeshLambertMaterial({color:col,emissive:new THREE.Color(col)});
       const m=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,4),mat); m.position.set(0,5.9-i*0.65,0); tlGrp.add(m); return m;
     });
-    tlAll.push(lights); tlDark.push(false);
+    tlAll.push(lights); tlDark.push(false); tlHitCount.push(0);
     const idx=tlPoles.length; tlPoles.push(tlGrp);
     collidables.push({x:px,z:pz,hw:0.4,hd:0.4,tlIdx:idx});
   });
@@ -479,30 +479,17 @@ const mBk=new THREE.MeshLambertMaterial({color:0x111111});
 const van=new THREE.Group();
 // Chassis/floor
 const chassis=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.3,5.2),mY); chassis.position.set(0,0.45,0); van.add(chassis);
-// Cargo box (rear)
-const cargo=new THREE.Mesh(new THREE.BoxGeometry(2.4,2.0,3.0),mY); cargo.position.set(0,1.6,-0.85); van.add(cargo);
-// Cab — smooth slanted front using a custom shape extruded sideways
-(function(){
-  // Profile in Y-Z plane: bottom-front, top-front(slanted back), top-rear, bottom-rear
-  const shape=new THREE.Shape();
-  shape.moveTo( 0.6, 0);   // bottom front (z offset from cab center)
-  shape.lineTo( 0.6, 0.52); // lower windshield base
-  shape.lineTo(-0.5, 1.35); // top front (slanted)
-  shape.lineTo(-1.1, 1.35); // top rear
-  shape.lineTo(-1.1, 0);    // bottom rear
-  shape.lineTo( 0.6, 0);
-  const extSettings={depth:2.4,bevelEnabled:false};
-  const geo=new THREE.ExtrudeGeometry(shape,extSettings);
-  const cab=new THREE.Mesh(geo,mY);
-  cab.rotation.y=Math.PI/2;
-  cab.position.set(-1.2,0.6,2.5);
-  van.add(cab);
-})();
-// Windshield glass
-const ws=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.75,0.10),mDk); ws.rotation.x=-0.52; ws.position.set(0,1.38,2.15); van.add(ws);
-// Red stripe instead of DHL logo
+// Body: front-top vertices pulled to z=0 → peak at mid-van, slope from front up to middle, flat to rear
+const bGeo=new THREE.BoxGeometry(2.4,2.0,5.2);
+const bPts=bGeo.getAttribute('position');
+for(let i=0;i<bPts.count;i++) if(bPts.getZ(i)>0&&bPts.getY(i)>0) bPts.setZ(i,0);
+bPts.needsUpdate=true; bGeo.computeVertexNormals();
+const vanBody=new THREE.Mesh(bGeo,mY); vanBody.position.set(0,1.6,0); van.add(vanBody);
+// Windshield: panel on slope (slope runs from z=2.6,y=0.6 to z=0,y=2.6 in world space)
+const ws=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.9,0.08),mDk); ws.rotation.x=-0.9; ws.position.set(0,1.82,1.28); van.add(ws);
+// Red stripe on lower cargo area
 const mStripe=new THREE.MeshLambertMaterial({color:0xcc0000});
-const stripe=new THREE.Mesh(new THREE.BoxGeometry(2.42,0.28,3.02),mStripe); stripe.position.set(0,0.72,-0.85); van.add(stripe);
+const stripe=new THREE.Mesh(new THREE.BoxGeometry(2.42,0.30,2.8),mStripe); stripe.position.set(0,0.74,-0.8); van.add(stripe);
 // Grille
 const grl=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.45,0.08),mBk); grl.position.set(0,0.72,2.54); van.add(grl);
 // Rear wheels (fixed)
@@ -551,13 +538,14 @@ busGrp.castShadow=true; scene.add(busGrp);
 
 // ── Bus stops (poles with "H" sign on sidewalk) ───────────────────────────
 // Stop trigger positions (on road, right lane)
-const busStopPositions=[[50,-3.5],[203.5,-50],[150,-196.5],[-3.5,-150]];
-// Sign on sidewalk: road edge ±7, sidewalk centre ±9.5 from road centre
+const busStopPositions=[[50,-3.5],[196.5,-50],[150,-196.5],[3.5,-150]];
+// Signs on RIGHT-side sidewalk relative to bus direction of travel
+// Z=0 E: right=south z=-9.5; X=200 S: right=west x=190.5; Z=-200 W: right=north z=-190.5; X=0 N: right=east x=9.5
 const busStopSigns=[
-  {x:50,    z:-9.5,   faceZ:true},   // Z=0 road, south sidewalk
-  {x:209.5, z:-50,    faceZ:false},  // X=200 road, east sidewalk
-  {x:150,   z:-190.5, faceZ:true},   // Z=-200 road, north sidewalk
-  {x:-9.5,  z:-150,   faceZ:false},  // X=0 road, west sidewalk
+  {x:50,    z:-9.5,   faceZ:true},
+  {x:190.5, z:-50,    faceZ:false},
+  {x:150,   z:-190.5, faceZ:true},
+  {x:9.5,   z:-150,   faceZ:false},
 ];
 (function buildBusStops(){
   const mPoleY=new THREE.MeshLambertMaterial({color:0xddaa00});
@@ -595,11 +583,13 @@ const busStopSigns=[
 // ── Bus route: outer ring, right lane, stop-to-stop ──────────────────────
 // Right lane offsets: E-W roads z±3.5, N-S roads x±3.5
 // Stops midway between intersections, clear of barriers
+// Right lane: going E z=-3.5, going S x=196.5, going W z=-196.5, going N x=3.5
 const busRoute=[
-  [20,-3.5], [50,-3.5], [150,-3.5], [255,-3.5],
-  [203.5,-20],[203.5,-50],[203.5,-150],[203.5,-255],
-  [255,-196.5],[150,-196.5],[50,-196.5],[-55,-196.5],
-  [-3.5,-255],[-3.5,-150],[-3.5,-50],[-3.5,-20],
+  [20,-3.5],   [50,-3.5],   [182,-3.5],
+  [196.5,-18], [196.5,-50], [196.5,-178],
+  [182,-196.5],[150,-196.5],[18,-196.5],
+  [3.5,-182],  [3.5,-150],  [3.5,-18],
+  [18,-3.5],
 ];
 const BUS_SPD=0.008, BUS_HW=1.4, BUS_HD=6.5;
 let busWI=0, busX=20, busZ=-3.5, busAng=Math.PI/2;
@@ -655,6 +645,15 @@ function tickBus(dt){
       }
     }
   }
+  // Bus knocks movables
+  const bfx2=Math.sin(busAng), bfz2=Math.cos(busAng);
+  for(const mv of movables){
+    if(mv.stage===2) continue;
+    if(Math.abs(busX-mv.x)<BUS_HW+mv.hw&&Math.abs(busZ-mv.z)<BUS_HD+mv.hd){
+      mv.vx=bfx2*0.12; mv.vz=bfz2*0.12;
+      if(mv.isTree&&!mv.stage){ mv.stage=1; mv.fallDir=Math.atan2(bfx2,bfz2); mv.fallTarget=Math.PI/6; }
+    }
+  }
   busGrp.position.set(busX,0,busZ); busGrp.rotation.y=busAng;
 }
 
@@ -701,7 +700,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v1.2 · 19.05.2026`;
+tsEl.textContent=`v1.4 · 19.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -747,14 +746,16 @@ function tick(now){
     if((txHit||tzHit) && c.tlIdx!==undefined && !tlHit) tlHit=c;
   }
   if(tlHit){
-    const tl=tlPoles[tlHit.tlIdx];
-    tl.rotation.z=Math.max(-0.55,Math.min(0.55,tl.rotation.z-fx*0.28));
-    tl.rotation.x=Math.max(-0.55,Math.min(0.55,tl.rotation.x+fz*0.28));
-    if(!tlDark[tlHit.tlIdx]){
-      tlDark[tlHit.tlIdx]=true;
-      tlAll[tlHit.tlIdx].forEach(m=>m.material.emissive.set(0));
-      spawnSparks(tl.position.x,5.5,tl.position.z);
+    const idx=tlHit.tlIdx, tl=tlPoles[idx];
+    if(tlHitCount[idx]===0){
+      tlHitCount[idx]=1;
+      tl.rotation.z=-(fx*0.45); tl.rotation.x=(fz*0.45);
+      if(!tlDark[idx]){ tlDark[idx]=true; tlAll[idx].forEach(m=>m.material.emissive.set(0)); spawnSparks(tl.position.x,5.5,tl.position.z); }
       playCrashThrottled(0.7);
+    } else if(tlHitCount[idx]===1){
+      tlHitCount[idx]=2;
+      tl.rotation.z=-(fx*1.57); tl.rotation.x=(fz*1.57);
+      playCrashThrottled(0.9);
     }
   }
   // Sparks update
@@ -767,16 +768,18 @@ function tick(now){
   if(!hitX) vanX=nx;
   if(!hitZ) vanZ=nz;
 
-  // Movables collision
+  // Movables collision (van)
   for(const mv of movables){
-    if(mv.falling&&mv.fallAngle>=Math.PI/2) continue;
+    if(mv.stage===2) continue;
     const mhit=Math.abs(vanX-mv.x)<VHW+mv.hw && Math.abs(vanZ-mv.z)<VHD+mv.hd;
     if(mhit){
       playCrashThrottled(0.5);
-      const push=Math.max(0.06,Math.abs(spd)/MAXSPD*0.14);
-      mv.vx+=fx*push; mv.vz+=fz*push;
-      if(mv.isTree){ mv.falling=true; mv.fallDir=Math.atan2(fx,fz); }
-      spd*=0.55;
+      const push=Math.max(0.08,Math.abs(spd)/MAXSPD*0.18);
+      mv.vx=fx*push; mv.vz=fz*push; // push in van direction, not accumulate
+      if(mv.isTree){
+        if(!mv.stage){ mv.stage=1; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/6; }
+        else if(mv.stage===1){ mv.stage=2; mv.fallTarget=Math.PI/2; }
+      }
     }
   }
   if(K['KeyR']){vanX=0;vanZ=30;vanAngle=Math.PI;spd=0;}
@@ -806,15 +809,19 @@ function tick(now){
   // Update movables (slide + tree fall)
   for(const mv of movables){
     if(mv.vx!==0||mv.vz!==0){
-      mv.x+=mv.vx*dt*0.05; mv.z+=mv.vz*dt*0.05;
-      mv.group.position.x=mv.x; mv.group.position.z=mv.z;
-      const fric=Math.pow(0.88,dt/16);
+      const nx2=mv.x+mv.vx*dt*0.06, nz2=mv.z+mv.vz*dt*0.06;
+      let blocked=false;
+      for(const b of bldBoxes) if(Math.abs(nx2-b.x)<mv.hw+b.hw&&Math.abs(nz2-b.z)<mv.hd+b.hd){blocked=true;break;}
+      if(!blocked){ mv.x=nx2; mv.z=nz2; mv.group.position.x=mv.x; mv.group.position.z=mv.z; }
+      else { mv.vx=0; mv.vz=0; }
+      const fric=Math.pow(0.86,dt/16);
       mv.vx*=fric; mv.vz*=fric;
       if(Math.abs(mv.vx)<0.0005) mv.vx=0;
       if(Math.abs(mv.vz)<0.0005) mv.vz=0;
     }
-    if(mv.isTree&&mv.falling&&mv.fallAngle<Math.PI/2){
-      mv.fallAngle=Math.min(Math.PI/2, mv.fallAngle+dt*0.003);
+    if(mv.isTree&&mv.stage>=1&&mv.fallAngle<mv.fallTarget){
+      const spd2=(mv.stage===2?0.005:0.002);
+      mv.fallAngle=Math.min(mv.fallTarget, mv.fallAngle+dt*spd2);
       mv.group.rotation.x=Math.sin(mv.fallDir)*mv.fallAngle;
       mv.group.rotation.z=-Math.cos(mv.fallDir)*mv.fallAngle;
     }
