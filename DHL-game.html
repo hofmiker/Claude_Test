@@ -485,27 +485,86 @@ const fwGroups=[];
 van.castShadow=true; scene.add(van);
 
 // ── City Bus ──────────────────────────────────────────────────────────────
-const mBusCream=new THREE.MeshLambertMaterial({color:0xe8e2d4});
-const mBusBlue=new THREE.MeshLambertMaterial({color:0x1155aa});
-const mBusGlass=new THREE.MeshLambertMaterial({color:0x9ab8cc,emissive:0x0a1218});
+
+const mBusRed=new THREE.MeshLambertMaterial({color:0xcc2200});
+const mBusGrey=new THREE.MeshLambertMaterial({color:0x444444});
+const mBusGlass=new THREE.MeshLambertMaterial({color:0x9ab8cc,transparent:true,opacity:0.7,emissive:new THREE.Color(0x0a1218)});
 const busGrp=new THREE.Group();
-const busBody=new THREE.Mesh(new THREE.BoxGeometry(2.5,2.7,11.2),mBusCream); busBody.position.set(0,1.55,0); busGrp.add(busBody);
-const busStripe=new THREE.Mesh(new THREE.BoxGeometry(2.52,0.55,11.22),mBusBlue); busStripe.position.set(0,1.45,0); busGrp.add(busStripe);
-const busWF=new THREE.Mesh(new THREE.BoxGeometry(2.1,1.1,0.1),mBusGlass); busWF.position.set(0,2.1,5.65); busGrp.add(busWF);
-const busWR=new THREE.Mesh(new THREE.BoxGeometry(2.1,1.1,0.1),mBusGlass); busWR.position.set(0,2.1,-5.65); busGrp.add(busWR);
-[[-1.1,0.5,3.8],[1.1,0.5,3.8],[-1.1,0.5,-3.8],[1.1,0.5,-3.8]].forEach(([bx,by,bz])=>{
-  const bwh=new THREE.Mesh(new THREE.CylinderGeometry(0.48,0.48,0.30,10),mBk); bwh.rotation.z=Math.PI/2; bwh.position.set(bx,by,bz); busGrp.add(bwh);
-  const bhub=new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.22,0.32,8),mW); bhub.rotation.z=Math.PI/2; bhub.position.set(bx,by,bz); busGrp.add(bhub);
+// Main body — bigger than van (van ~2.4w×1.35h×5.2d)
+const busBody=new THREE.Mesh(new THREE.BoxGeometry(2.8,3.2,13.0),mBusRed); busBody.position.set(0,1.85,0); busGrp.add(busBody);
+// Roof strip (darker)
+const busRoof=new THREE.Mesh(new THREE.BoxGeometry(2.82,0.22,13.02),mBusGrey); busRoof.position.set(0,3.37,0); busGrp.add(busRoof);
+// Front windshield
+const busWF=new THREE.Mesh(new THREE.BoxGeometry(2.3,1.4,0.12),mBusGlass); busWF.position.set(0,2.5,6.57); busGrp.add(busWF);
+// Rear window
+const busWR=new THREE.Mesh(new THREE.BoxGeometry(2.3,1.2,0.12),mBusGlass); busWR.position.set(0,2.4,-6.57); busGrp.add(busWR);
+// Side windows — 6 per side along Z axis, slightly protruding
+const busWinPositionsZ=[-4.5,-2.7,-0.9,0.9,2.7,4.5];
+busWinPositionsZ.forEach(wz=>{
+  // Left side (negative X)
+  const wL=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.9,1.4),mBusGlass); wL.position.set(-1.47,2.5,wz); busGrp.add(wL);
+  // Right side (positive X)
+  const wR=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.9,1.4),mBusGlass); wR.position.set(1.47,2.5,wz); busGrp.add(wR);
+});
+// Wheels — 4 axle positions
+[[-1.45,0.55,4.5],[1.45,0.55,4.5],[-1.45,0.55,-4.5],[1.45,0.55,-4.5]].forEach(([bx,by,bz])=>{
+  const bwh=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.34,10),mBk); bwh.rotation.z=Math.PI/2; bwh.position.set(bx,by,bz); busGrp.add(bwh);
+  const bhub=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.36,8),mW); bhub.rotation.z=Math.PI/2; bhub.position.set(bx,by,bz); busGrp.add(bhub);
 });
 busGrp.castShadow=true; scene.add(busGrp);
+
+// ── Bus stops (poles with "H" sign) ──────────────────────────────────────
+const busStopPositions=[[100,-3.5],[203.5,-100],[100,-196.5],[-3.5,-100]];
+(function buildBusStops(){
+  const mStopPole=new THREE.MeshLambertMaterial({color:0x222222});
+  const busStopLocations=[
+    {x:100, z:-3.5,  offX: 0,    offZ:-10},  // north road Z=0, offset to sidewalk south
+    {x:203.5,z:-100, offX: 10,   offZ:  0},  // east road X=200, offset to sidewalk east
+    {x:100, z:-196.5,offX: 0,    offZ: 10},  // south road Z=-200, offset to sidewalk north
+    {x:-3.5, z:-100, offX:-10,   offZ:  0},  // west road X=0, offset to sidewalk west
+  ];
+  busStopLocations.forEach(({x,z,offX,offZ})=>{
+    const px=x+offX*0, pz=z+offZ*0; // place at road edge
+    // Vertical pole
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,3.5,8),mStopPole);
+    pole.position.set(x,1.75,z); scene.add(pole);
+    // Sign board with "H" canvas texture
+    const sc=document.createElement('canvas'); sc.width=64; sc.height=64;
+    const sctx=sc.getContext('2d');
+    sctx.fillStyle='#ffdd00'; sctx.fillRect(0,0,64,64);
+    sctx.strokeStyle='#333333'; sctx.lineWidth=3; sctx.strokeRect(2,2,60,60);
+    sctx.fillStyle='#cc0000'; sctx.font='bold 46px Arial'; sctx.textAlign='center'; sctx.textBaseline='middle';
+    sctx.fillText('H',32,34);
+    const signMat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sc)});
+    const sign=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.8,0.1),signMat);
+    sign.position.set(x,3.5,z); scene.add(sign);
+  });
+})();
+
+// ── Bus route: counterclockwise outer ring ────────────────────────────────
 const busRoute=[
-  [XS[0]-EXT,-3.5],[XS[2]+EXT,-3.5],
-  [196.5,ZS[2]-EXT],[XS[0]-EXT,-196.5],
+  [-65,-3.5],[265,-3.5],
+  [203.5,-65],[203.5,-265],
+  [265,-196.5],[-65,-196.5],
+  [-3.5,-265],[-3.5,-65],
 ];
-let busWI=0, busX=XS[0]-EXT, busZ=-3.5, busAng=Math.PI/2;
-const BUS_SPD=0.006, BUS_HW=1.35, BUS_HD=5.8;
+const BUS_SPD=0.006, BUS_HW=1.4, BUS_HD=6.5;
+let busWI=0, busX=-65, busZ=-3.5, busAng=Math.PI/2;
+let busSpd=BUS_SPD;
+let busStopTimer=0;   // ms remaining at stop (>0 = stopped)
+let busStopCooldown=0; // ms cooldown after leaving a stop
 const VHW=1.5, VHD=2.8;
 function tickBus(dt){
+  // Bus stop logic
+  if(busStopTimer>0){
+    busStopTimer-=dt;
+    busGrp.position.set(busX,0,busZ); busGrp.rotation.y=busAng;
+    return; // bus is stopped at a stop
+  }
+  if(busStopCooldown>0) busStopCooldown-=dt;
+  busSpd=BUS_SPD; // restore normal speed (may be overridden below)
+
+  // Advance waypoint
   const ni=(busWI+1)%busRoute.length;
   const [tx,tz]=busRoute[ni];
   if(Math.sqrt((tx-busX)**2+(tz-busZ)**2)<5) busWI=ni;
@@ -513,13 +572,53 @@ function tickBus(dt){
   const tAng=Math.atan2(ntx-busX,ntz-busZ);
   let da=tAng-busAng; while(da>Math.PI)da-=Math.PI*2; while(da<-Math.PI)da+=Math.PI*2;
   busAng+=da*Math.min(1,0.04*dt);
-  busX+=Math.sin(busAng)*BUS_SPD*dt;
-  busZ+=Math.cos(busAng)*BUS_SPD*dt;
-  busGrp.position.set(busX,0,busZ); busGrp.rotation.y=busAng;
+
+
+  // Van interaction: check if van is ahead of bus
   const bdx=vanX-busX, bdz=vanZ-busZ;
+  const vanDist=Math.sqrt(bdx*bdx+bdz*bdz);
   const bc=Math.cos(-busAng), bs=Math.sin(-busAng);
   const lx=bdx*bc-bdz*bs, lz=bdx*bs+bdz*bc;
-  if(Math.abs(lx)<VHW+BUS_HW&&Math.abs(lz)<VHD+BUS_HD){ spd*=-0.5; }
+  const vanAhead=lz>0; // positive lz = van is in front of bus
+  if(vanAhead && vanDist<12 && Math.abs(lx)<VHW+BUS_HW){
+    if(vanDist<5){
+      // Very close: bounce
+      busSpd=-0.003;
+      spd*=-0.5;
+    } else {
+      // Approaching: slow down gradually
+      busSpd*=Math.pow(0.92,dt/16);
+    }
+  }
+
+  // Collidable collision (buildings, barriers, traffic lights)
+  const bfx=Math.sin(busAng), bfz=Math.cos(busAng);
+  const bnx=busX+bfx*busSpd*dt, bnz=busZ+bfz*busSpd*dt;
+  let busHitX=false, busHitZ=false;
+  for(const c of collidables){
+    if(Math.abs(bnx-c.x)<BUS_HW+c.hw && Math.abs(busZ-c.z)<BUS_HD+c.hd) busHitX=true;
+    if(Math.abs(busX-c.x)<BUS_HW+c.hw && Math.abs(bnz-c.z)<BUS_HD+c.hd) busHitZ=true;
+  }
+  if(busHitX||busHitZ){
+    busSpd=-0.003; // reverse slightly
+  } else {
+    busX+=bfx*busSpd*dt;
+    busZ+=bfz*busSpd*dt;
+  }
+
+  // Check bus stops
+  if(busStopCooldown<=0){
+    for(const [sx,sz] of busStopPositions){
+      const sd=Math.sqrt((sx-busX)**2+(sz-busZ)**2);
+      if(sd<8){
+        busStopTimer=3000; // stop for 3 seconds
+        busStopCooldown=8000; // don't re-stop for 8 seconds after leaving
+        break;
+      }
+    }
+  }
+
+  busGrp.position.set(busX,0,busZ); busGrp.rotation.y=busAng;
 }
 
 // ── Input: swipe + keyboard fallback ─────────────────────────────────────
