@@ -157,12 +157,13 @@ XS.forEach(x=>{
 const mZebra=new THREE.MeshLambertMaterial({color:0xffffff});
 const mZebraD=new THREE.MeshLambertMaterial({color:0x444448});
 function zebraCross(cx,cz,horiz,roadHW){
-  const stripeW=0.5, stripeGap=0.38, nStripes=4;
-  const totalW=nStripes*(stripeW+stripeGap)-stripeGap;
+  const nStripes=5, stripeW=0.3, stripeGap=0.375;
+  const totalW=nStripes*(stripeW+stripeGap)-stripeGap; // =3.0m
+  const len=(roadHW+SW)*2;
   for(let i=0;i<nStripes;i++){
     const off=-totalW/2+(i*(stripeW+stripeGap));
-    if(horiz) box(stripeW,0.06,roadHW*2,mZebra,cx+off,0.06,cz);
-    else       box(roadHW*2,0.06,stripeW,mZebra,cx,0.06,cz+off);
+    if(horiz) box(stripeW,0.06,len,mZebra,cx+off,0.06,cz);
+    else       box(len,0.06,stripeW,mZebra,cx,0.06,cz+off);
   }
 }
 XS.forEach(xs=>ZS.forEach(zs=>{
@@ -687,7 +688,7 @@ scene.add(trainGrp);
 let trainT=-700, trainActive=false, trainTimer=18000;
 let trainStopping=false, trainStopTimer=0;
 const TRAIN_STOP_DUR=4500; // ms the train pauses at station
-const TRAIN_SPD=0.19;
+const TRAIN_SPD=0.095;
 
 // ── Residential area (Einfamiliensiedlung) — NE of park, x=120..200, z=20..80 ─
 function bldHouse(x,z,garageLeft){
@@ -798,13 +799,36 @@ function playCollect(){
 }
 function playCrash(vol){
   if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-  const len=audioCtx.sampleRate*0.18;
-  const buf=audioCtx.createBuffer(1,len,audioCtx.sampleRate);
+  const sr=audioCtx.sampleRate, len=sr*0.18;
+  const buf=audioCtx.createBuffer(1,len,sr);
   const d=buf.getChannelData(0);
   for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(len*0.35));
   const src=audioCtx.createBufferSource(); src.buffer=buf;
+  const filt=audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=700;
   const g=audioCtx.createGain(); g.gain.value=vol||0.55;
-  src.connect(g); g.connect(audioCtx.destination); src.start();
+  src.connect(filt); filt.connect(g); g.connect(audioCtx.destination); src.start();
+}
+function playCrashTL(vol){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  const sr=audioCtx.sampleRate, len=sr*0.35;
+  const buf=audioCtx.createBuffer(1,len,sr);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(len*0.45));
+  const src=audioCtx.createBufferSource(); src.buffer=buf;
+  const filt=audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=280;
+  const g=audioCtx.createGain(); g.gain.value=vol||0.7;
+  src.connect(filt); filt.connect(g); g.connect(audioCtx.destination); src.start();
+}
+function playCrashTree(vol){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  const sr=audioCtx.sampleRate, len=sr*0.22;
+  const buf=audioCtx.createBuffer(1,len,sr);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(len*0.30));
+  const src=audioCtx.createBufferSource(); src.buffer=buf;
+  const filt=audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=500;
+  const g=audioCtx.createGain(); g.gain.value=vol||0.5;
+  src.connect(filt); filt.connect(g); g.connect(audioCtx.destination); src.start();
 }
 let lastCrashT=0;
 function playCrashThrottled(vol){ const n=performance.now(); if(n-lastCrashT>120){playCrash(vol);lastCrashT=n;} }
@@ -949,16 +973,9 @@ XS.forEach(x=>ZS.forEach(z=>{
 }));
 
 function updateTLLights(){
-  // phase 0: EW=green, NS=red; 1: EW=yellow, NS=red; 2: EW=red, NS=green; 3: EW=red, NS=yellow
   tlAll.forEach((lights,i)=>{
     if(tlDark[i]) return;
-    const dir=tlPhase[i]; // 0=EW, 1=NS
-    let activeLight; // 0=red,1=yellow,2=green
-    if(dir===0){ activeLight=tlGlobalPhase===0?2:tlGlobalPhase===1?1:0; }
-    else        { activeLight=tlGlobalPhase===2?2:tlGlobalPhase===3?1:0; }
-    lights.forEach((m,li)=>{
-      m.material.emissive.set(li===activeLight?TL_COLS[li]:0x000000);
-    });
+    lights.forEach((m,li)=>{ m.material.emissive.set(TL_COLS[li]); });
   });
 }
 updateTLLights();
@@ -1521,14 +1538,14 @@ function tick(now){
       tl.rotation.z=-(fx*0.45); tl.rotation.x=(fz*0.45);
       if(!tlDark[idx]){ tlDark[idx]=true; tlAll[idx].forEach(m=>m.material.emissive.set(0)); }
       spawnSparks(tl.position.x,5.5,tl.position.z,0x111111);
-      playCrashThrottled(0.7);
+      playCrashTL(0.7);
       const cObj=collidables.find(c=>c.tlIdx===idx);
       if(cObj){ cObj.hw=0.25; cObj.hd=0.25; }
     } else if(tlHitCount[idx]===1){
       tlHitCount[idx]=2; tlHitCool[idx]=700;
       tl.rotation.z=-(fx*1.57); tl.rotation.x=(fz*1.57);
       spawnSparks(tl.position.x,3.5,tl.position.z,0x111111);
-      playCrashThrottled(0.9);
+      playCrashTL(0.9);
       const cIdx=collidables.findIndex(c=>c.tlIdx===idx);
       if(cIdx!==-1) collidables.splice(cIdx,1);
     }
@@ -1556,13 +1573,13 @@ function tick(now){
     const mhit=Math.abs(vanX-mv.x)<VHW+mv.hw && Math.abs(vanZ-mv.z)<VHD+mv.hd;
     if(mhit && mv.hitCool<=0){
       mv.hitCool=600;
-      playCrashThrottled(0.5);
+      if(mv.isTree) playCrashTree(0.5); else playCrash(0.5);
       crashCount++;
       crashEl.textContent=`${crashCount}`;
       const push=Math.max(0.18,Math.abs(spd)/MAXSPD*0.42);
       mv.vx=fx*push; mv.vz=fz*push;
       if(mv.isTree){
-        spawnSparks(mv.x,2.5,mv.z,0x5a3010); // brown wood dust
+        spawnSparks(mv.x,2.5,mv.z,0x5a3010);
         if(mv.stage===0){ mv.stage=1; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/5; }
         else if(mv.stage===1){ mv.stage=2; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/2; }
       } else {
@@ -1587,7 +1604,7 @@ function tick(now){
     if(p.collected) return;
     const dist=Math.sqrt((vanX-p.x)**2+(vanZ-p.z)**2);
     p.ring.lookAt(camera.position);
-    p.ringMat.opacity=Math.max(0,Math.min(0.9,(50-dist)/46));
+    p.ringMat.opacity=Math.max(0,Math.min(1,(50-dist)/25));
     if(dist<3.2){ p.collected=true; scene.remove(p.group); pkgCollected++; updatePkgUI(); spawnCollectFX(p.x,p.z); playCollect();
       if(pkgCollected>=10&&!gameEnded){ gameEnded=true; showEndPanel(); }
     }
@@ -1601,7 +1618,7 @@ function tick(now){
 
   updateEngine(Math.abs(spd),MAXSPD);
   const spdFac=Math.abs(spd)/MAXSPD;
-  const camDist=9+spdFac*11, camH=4.2+spdFac*4.5;
+  const camDist=9+spdFac*11, camH=Math.min(8.0,4.2+spdFac*4.5);
   camP.set(vanX-fx*camDist,camH,vanZ-fz*camDist);
   camera.position.lerp(camP,0.14);
   camera.lookAt(vanX+fx*4,1.2,vanZ+fz*4);
