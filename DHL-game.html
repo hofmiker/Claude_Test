@@ -797,7 +797,13 @@ for(let x=XS[0]-EXT+4;x<XS[2]+EXT-4;x+=13){
 
 // ── Traffic lights ────────────────────────────────────────────────────────
 const TL_COLS=[0xff3300,0xffaa00,0x33cc33];
-const tlAll=[], tlDark=[], tlPoles=[], tlHitCount=[];
+const TL_DIM =new THREE.Color(0x111111);
+const tlAll=[], tlDark=[], tlPoles=[], tlHitCount=[], tlPhase=[];
+let tlTimer=0;
+// Phase: 0=EW-green (Z roads go), 1=EW-yellow, 2=NS-green (X roads go), 3=NS-yellow
+// Durations ms: [5000, 1200, 5000, 1200]
+const TL_DUR=[5000,1200,5000,1200];
+let tlGlobalPhase=0, tlPhaseT=0;
 const mHou=new THREE.MeshLambertMaterial({color:0x222222});
 const sparkPool=[];
 function spawnSparks(x,y,z){
@@ -809,22 +815,71 @@ function spawnSparks(x,y,z){
     sparkPool.push({mesh:sg,vx:Math.cos(a)*sp,vy:1.6+Math.random()*2.4,vz:Math.sin(a)*sp,t:0});
   }
 }
+// tlDir: 0=EW-light (on EW road sides), 1=NS-light (on NS road sides)
 XS.forEach(x=>ZS.forEach(z=>{
   const xOff=RH+SW*0.3, zOff=z===ZS[1]?RH*2+SW*0.3:RH+SW*0.3;
-  [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([sx,sz])=>{
+  [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([sx,sz],qi)=>{
     const px=x+sx*xOff, pz=z+sz*zOff;
+    // Determine if this TL governs EW (0) or NS (1) traffic
+    // EW-traffic lights: on north/south sides of intersection (sz=±1 side)
+    // NS-traffic lights: on east/west sides
+    const dir=qi<2?0:1; // simplified: first 2 corners EW, last 2 NS
     const tlGrp=new THREE.Group(); tlGrp.position.set(px,0,pz); scene.add(tlGrp);
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.8,6),mPole); pole.position.set(0,2.4,0); tlGrp.add(pole);
     const hous=new THREE.Mesh(new THREE.BoxGeometry(0.55,1.9,0.55),mHou); hous.position.set(0,5.3,0); tlGrp.add(hous);
     const lights=TL_COLS.map((col,i)=>{
       const mat=new THREE.MeshLambertMaterial({color:col,emissive:new THREE.Color(col)});
+      mat.emissive.multiplyScalar(i===2?1:0); // start green
       const m=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,4),mat); m.position.set(0,5.9-i*0.65,0); tlGrp.add(m); return m;
     });
-    tlAll.push(lights); tlDark.push(false); tlHitCount.push(0);
+    tlAll.push(lights); tlDark.push(false); tlHitCount.push(0); tlPhase.push(dir);
     const idx=tlPoles.length; tlPoles.push(tlGrp);
     collidables.push({x:px,z:pz,hw:0.4,hd:0.4,tlIdx:idx});
   });
 }));
+
+function updateTLLights(){
+  // phase 0: EW=green, NS=red; 1: EW=yellow, NS=red; 2: EW=red, NS=green; 3: EW=red, NS=yellow
+  tlAll.forEach((lights,i)=>{
+    if(tlDark[i]) return;
+    const dir=tlPhase[i]; // 0=EW, 1=NS
+    let activeLight; // 0=red,1=yellow,2=green
+    if(dir===0){ activeLight=tlGlobalPhase===0?2:tlGlobalPhase===1?1:0; }
+    else        { activeLight=tlGlobalPhase===2?2:tlGlobalPhase===3?1:0; }
+    lights.forEach((m,li)=>{
+      m.material.emissive.set(li===activeLight?TL_COLS[li]:0x000000);
+    });
+  });
+}
+updateTLLights();
+
+// ── Highway gantry traffic lights (over z=-100 boulevard) ─────────────────
+const mGantry=new THREE.MeshLambertMaterial({color:0x555560});
+// Gantries at each intersection on the boulevard
+XS.forEach(x=>{
+  // Gantry: vertical poles on each side, horizontal beam spanning full road width
+  const gY=8.5, gHW=RH*2+SW+0.5;
+  [-1,1].forEach(side=>{
+    const px=x+side*(gHW+0.6);
+    box(0.3,gY,0.3,mGantry,px,gY/2,-100);
+  });
+  box(gHW*2+1.2,0.25,0.25,mGantry,x,gY,-100);
+  // Three signal heads hanging from beam
+  [-RH,0,RH].forEach(hx=>{
+    // Dropper
+    box(0.12,1.0,0.12,mGantry,x+hx,gY-0.5,-100);
+    // Housing
+    const hous2=new THREE.Mesh(new THREE.BoxGeometry(0.65,2.2,0.65),mHou);
+    hous2.position.set(x+hx,gY-2.1,-100); scene.add(hous2);
+    // Lights
+    TL_COLS.forEach((col,li)=>{
+      const mat=new THREE.MeshLambertMaterial({color:col,emissive:new THREE.Color(col)});
+      mat.emissive.multiplyScalar(li===2?1:0);
+      const m=new THREE.Mesh(new THREE.SphereGeometry(0.22,6,4),mat);
+      m.position.set(x+hx,gY-1.4-li*0.72,-100); scene.add(m);
+    });
+  });
+});
 
 // ── Clouds ────────────────────────────────────────────────────────────────
 const cGeo=new THREE.SphereGeometry(1,6,4), cMat=new THREE.MeshBasicMaterial({color:0xffffff});
@@ -1140,7 +1195,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.2 · 20.05.2026`;
+tsEl.textContent=`v2.3 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -1150,6 +1205,15 @@ function tick(now){
   const dt=Math.min(now-prev,50); prev=now;
 
   tickBus(dt);
+
+  // ── Traffic light cycle ────────────────────────────────────────────────────
+  tlPhaseT+=dt;
+  if(tlPhaseT>=TL_DUR[tlGlobalPhase]){
+    tlPhaseT-=TL_DUR[tlGlobalPhase];
+    tlGlobalPhase=(tlGlobalPhase+1)%4;
+    updateTLLights();
+  }
+
   clouds.forEach(c=>{c.g.position.x+=c.spd*dt; if(c.g.position.x>500)c.g.position.x=-500; else if(c.g.position.x<-500)c.g.position.x=500;});
 
   // ── Hochbahn train ─────────────────────────────────────────────────────────
