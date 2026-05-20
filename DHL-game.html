@@ -377,9 +377,47 @@ nsB(200,-1,-134,22,14,52,true);nsB(200,-1,-155,18,16,68,false);nsB(200,-1,-178,1
 // X=200 east outer — TypeC traditional
 bldTraditional(200+GAP+8,-50,14,26,0,+1);
 bldTraditional(200+GAP+8,-150,14,24,0,+1);
-// Corner outer
-bld(-32,46,22,22,36,false); bld(232,46,24,22,44,true);
+// Corner outer (NE corner replaced by supermarket)
+bld(-32,46,22,22,36,false);
 bld(-32,-258,22,22,52,true); bld(232,-258,22,22,42,false);
+
+// ── Supermarkt (NE corner) ────────────────────────────────────────────────
+{
+  const smX=240, smZ=48, smW=36, smD=22;
+  bldBoxes.push({x:smX,z:smZ,hw:smW/2,hd:smD/2}); collidables.push({x:smX,z:smZ,hw:smW/2,hd:smD/2});
+  const mSmWall=new THREE.MeshLambertMaterial({color:0xf0f0f0});
+  const mSmRoof=new THREE.MeshLambertMaterial({color:0x3a3a3a});
+  const mSmGlass=new THREE.MeshLambertMaterial({color:0x88bbcc,transparent:true,opacity:0.7});
+  const mSmSign=new THREE.MeshLambertMaterial({color:0xCC0000});
+  // Building footprint (low, flat-roofed)
+  const smBody=new THREE.Mesh(new THREE.BoxGeometry(smW,5.5,smD),mSmWall);
+  smBody.position.set(smX,2.75,smZ); smBody.castShadow=true; scene.add(smBody);
+  const smRoof=new THREE.Mesh(new THREE.BoxGeometry(smW+0.4,0.4,smD+0.4),mSmRoof);
+  smRoof.position.set(smX,5.7,smZ); scene.add(smRoof);
+  // Storefront glass
+  const smGlass=new THREE.Mesh(new THREE.BoxGeometry(smW*0.7,3.2,0.1),mSmGlass);
+  smGlass.position.set(smX,1.6,smZ-smD/2-0.06); scene.add(smGlass);
+  // Large billboard sign with canvas texture "FRISCHMARKT"
+  const sc=document.createElement('canvas'); sc.width=512; sc.height=192;
+  const sctx=sc.getContext('2d');
+  sctx.fillStyle='#CC0000'; sctx.fillRect(0,0,512,192);
+  sctx.fillStyle='#ffffff'; sctx.font='bold 72px Arial'; sctx.textAlign='center';
+  sctx.textBaseline='middle'; sctx.fillText('FRISCHMARKT',256,80);
+  sctx.fillStyle='#ffee00'; sctx.font='bold 36px Arial';
+  sctx.fillText('★ Immer frisch ★',256,140);
+  const signMat2=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sc),side:THREE.DoubleSide});
+  const signMesh=new THREE.Mesh(new THREE.BoxGeometry(16,4,0.3),signMat2);
+  signMesh.position.set(smX,9.5,smZ-smD/2-0.2); scene.add(signMesh);
+  // Sign pole
+  const mSP=new THREE.MeshLambertMaterial({color:0x555555});
+  const sp=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,7,8),mSP); sp.position.set(smX,3.5,smZ-smD/2-0.2); scene.add(sp);
+  // Parking lot in front (south of supermarket)
+  const mSmP=new THREE.MeshLambertMaterial({color:0x383840});
+  box(smW+8,0.07,18,mSmP,smX,0.04,smZ-smD/2-9);
+  const nc2=Math.floor((smW+8)/2.5);
+  for(let i=0;i<=nc2;i++) box(0.1,0.05,18,mWht,smX-(smW+8)/2+i*2.5,0.08,smZ-smD/2-9);
+  box(smW+8,0.05,0.1,mWht,smX,0.08,smZ-smD/2-0.2); box(smW+8,0.05,0.1,mWht,smX,0.08,smZ-smD/2-18.2);
+}
 
 // ── Parking lots ──────────────────────────────────────────────────────────
 const mAsphP=new THREE.MeshLambertMaterial({color:0x323232});
@@ -424,14 +462,14 @@ function cafeDecor(cx,cz,entrZ){
     });
     const up=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.1,5),mPole); up.position.set(0,1.05,0); g.add(up);
     const uc=new THREE.Mesh(new THREE.ConeGeometry(0.92,0.34,8),mUmbR); uc.position.set(0,2.27,0); g.add(uc);
-    movables.push({x:tx,z:cz,hw:0.7,hd:0.7,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0});
+    movables.push({x:tx,z:cz,hw:0.7,hd:0.7,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0,hitCool:0});
   });
   // Pots flanking the entrance door (on sidewalk near building front)
   [-1,1].forEach(side=>{
     const pg=new THREE.Group(); pg.position.set(cx+side*2.0,0,cz-ez*3); scene.add(pg);
     const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.13,0.36,6),mPotC); pot.position.set(0,0.18,0); pg.add(pot);
     const plant=new THREE.Mesh(new THREE.SphereGeometry(0.30,6,4),mCrn); plant.position.set(0,0.56,0); pg.add(plant);
-    movables.push({x:cx+side*2.0,z:cz-ez*3,hw:0.25,hd:0.25,group:pg,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0});
+    movables.push({x:cx+side*2.0,z:cz-ez*3,hw:0.25,hd:0.25,group:pg,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0,hitCool:0});
   });
 }
 cafeDecor(28,-10,+1); cafeDecor(78,-10,+1); cafeDecor(128,-10,+1);
@@ -445,13 +483,13 @@ function dumpster(x,z,rot){
   const g=new THREE.Group(); g.position.set(x,0,z); if(rot)g.rotation.y=rot; scene.add(g);
   const body=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.05,0.95),Math.random()>0.5?mCont:mContG); body.position.y=0.52; g.add(body);
   const lid=new THREE.Mesh(new THREE.BoxGeometry(2.3,0.1,1.05),mBinM); lid.position.y=1.1; g.add(lid);
-  movables.push({x,z,hw:1.2,hd:0.6,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0});
+  movables.push({x,z,hw:1.2,hd:0.6,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0,hitCool:0});
 }
 function streetBin(x,z){
   const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
   const b=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.13,0.72,6),mBinM); b.position.set(0,0.36,0); g.add(b);
   const t=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.16,0.07,6),mBinM); t.position.set(0,0.755,0); g.add(t);
-  movables.push({x,z,hw:0.28,hd:0.28,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0});
+  movables.push({x,z,hw:0.28,hd:0.28,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0,hitCool:0});
 }
 // Hinterhof-Container (hinter Gebäuden, weg vom Gehweg)
 [[30,-32,0],[82,-32,0],[160,-32,0],[30,-232,Math.PI],[150,-232,Math.PI],
@@ -745,7 +783,7 @@ function treeAt(x,z,r){
   const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
   const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.28,2.4,6),mTrk); tr.position.set(0,1.2,0); g.add(tr);
   const cr=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),mCrn); cr.position.set(0,2.0+r*0.62,0); g.add(cr);
-  movables.push({x,z,hw:0.55,hd:0.55,group:g,vx:0,vz:0,isTree:true,stage:0,fallAngle:0,fallDir:0,fallTarget:0});
+  movables.push({x,z,hw:0.55,hd:0.55,group:g,vx:0,vz:0,isTree:true,stage:0,fallAngle:0,fallDir:0,fallTarget:0,hitCool:0});
 }
 // Allee X=100 (Hauptachse N-S, beidseitig), Größenvariation
 for(let z=ZS[0]+EXT-4;z>ZS[2]-EXT+4;z-=13){
@@ -801,6 +839,47 @@ const clouds=[];
   g.position.set(x,y,z); scene.add(g);
   clouds.push({g,spd:(0.3+Math.random()*0.5)*0.004*(Math.random()<0.5?1:-1)});
 });
+
+// ── DHL Cargo Plane ───────────────────────────────────────────────────────
+const mPlaneY=new THREE.MeshLambertMaterial({color:0xFFCC00});
+const mPlaneDark=new THREE.MeshLambertMaterial({color:0x222222});
+const planeGrp=new THREE.Group();
+// Fuselage
+const pfuse=new THREE.Mesh(new THREE.BoxGeometry(4.5,3,22),mPlaneY); pfuse.position.set(0,0,0); planeGrp.add(pfuse);
+// Nose
+const pnose=new THREE.Mesh(new THREE.BoxGeometry(3.5,2.4,6),mPlaneY); pnose.position.set(0,0,14); planeGrp.add(pnose);
+// Wings
+const pwingL=new THREE.Mesh(new THREE.BoxGeometry(26,0.6,8),mPlaneY); pwingL.position.set(0,-0.5,0); planeGrp.add(pwingL);
+// Tail fin
+const ptail=new THREE.Mesh(new THREE.BoxGeometry(0.5,5,4),mPlaneY); ptail.position.set(0,3.5,-9); planeGrp.add(ptail);
+const ptailH=new THREE.Mesh(new THREE.BoxGeometry(10,0.4,4),mPlaneY); ptailH.position.set(0,1.5,-9); planeGrp.add(ptailH);
+// Engines under wing
+[-6,6].forEach(ex=>{ const eng=new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.0,4,8),mPlaneDark); eng.rotation.x=Math.PI/2; eng.position.set(ex,-1.4,1); planeGrp.add(eng); });
+planeGrp.rotation.y=Math.PI/2;
+planeGrp.position.set(-600,65,-100);
+scene.add(planeGrp);
+let planeX=-600, planeZ=-100, planeAngle=0, planeActive=false, planeTimer=25000;
+const PLANE_SPD=0.25;
+
+// ── Birds ─────────────────────────────────────────────────────────────────
+const birds=[];
+const mBird=new THREE.MeshBasicMaterial({color:0x222222,side:THREE.DoubleSide});
+for(let b=0;b<12;b++){
+  const bg=new THREE.Group();
+  // Simple V-wing shape: two triangles
+  [-1,1].forEach(side=>{
+    const shape=new THREE.Shape();
+    shape.moveTo(0,0); shape.lineTo(side*1.4,-0.5); shape.lineTo(side*0.6,0.1); shape.closePath();
+    const wing=new THREE.Mesh(new THREE.ShapeGeometry(shape),mBird); bg.add(wing);
+  });
+  const startX=50+Math.random()*200, startZ=-50-Math.random()*100;
+  const startY=20+Math.random()*35;
+  bg.position.set(startX,startY,startZ);
+  scene.add(bg);
+  const spd=0.015+Math.random()*0.012;
+  const ang=Math.random()*Math.PI*2;
+  birds.push({g:bg,spd,ang,y:startY,flapT:Math.random()*Math.PI*2,circleR:30+Math.random()*60,circleX:startX,circleZ:startZ});
+}
 
 // ── Environment: hills, river, scattered trees ────────────────────────────
 const mHill=new THREE.MeshBasicMaterial({color:0x4a8c38});
@@ -1061,7 +1140,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.1 · 20.05.2026`;
+tsEl.textContent=`v2.2 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -1085,6 +1164,39 @@ function tick(now){
     trainGrp.position.x=trainX;
     if(trainX>1000){ trainActive=false; trainTimer=20000+Math.random()*15000; }
   }
+
+  // ── DHL cargo plane ───────────────────────────────────────────────────────
+  if(!planeActive){
+    planeTimer-=dt;
+    if(planeTimer<=0){
+      planeActive=true;
+      // Random angle that crosses near city center (100,-100)
+      planeAngle=Math.random()*Math.PI*2;
+      const offset=350;
+      planeX=100-Math.cos(planeAngle)*offset;
+      planeZ=-100-Math.sin(planeAngle)*offset;
+      planeGrp.position.set(planeX,55+Math.random()*30,planeZ);
+      planeGrp.rotation.y=-planeAngle+Math.PI/2;
+    }
+  } else {
+    planeX+=Math.cos(planeAngle)*PLANE_SPD*dt;
+    planeZ+=Math.sin(planeAngle)*PLANE_SPD*dt;
+    planeGrp.position.x=planeX; planeGrp.position.z=planeZ;
+    const dist2=Math.sqrt((planeX-100)**2+(planeZ+100)**2);
+    if(dist2>500){ planeActive=false; planeTimer=30000+Math.random()*20000; }
+  }
+
+  // ── Birds ──────────────────────────────────────────────────────────────────
+  birds.forEach(b=>{
+    b.ang+=b.spd*0.004*dt;
+    b.flapT+=0.006*dt;
+    const wingFlap=Math.sin(b.flapT)*0.5;
+    b.g.children.forEach((w,i)=>{ w.rotation.z=(i===0?1:-1)*wingFlap*0.6; });
+    b.g.position.x=b.circleX+Math.cos(b.ang)*b.circleR;
+    b.g.position.z=b.circleZ+Math.sin(b.ang)*b.circleR;
+    b.g.position.y=b.y+Math.sin(b.flapT*0.3)*2;
+    b.g.rotation.y=-b.ang-Math.PI/2;
+  });
 
   // ── Intro camera ─────────────────────────────────────────────────────────
   if(introPhase===0){
@@ -1171,19 +1283,22 @@ function tick(now){
 
   // Movables collision (van)
   for(const mv of movables){
+    if(mv.hitCool>0) mv.hitCool-=dt;
     if(mv.stage===2) continue;
     const mhit=Math.abs(vanX-mv.x)<VHW+mv.hw && Math.abs(vanZ-mv.z)<VHD+mv.hd;
-    if(mhit){
+    if(mhit && mv.hitCool<=0){
+      mv.hitCool=600; // 600ms cooldown between hits (prevents instant double-hit)
       playCrashThrottled(0.5);
       crashCount++;
       crashEl.textContent=`${crashCount}`;
-      const push=Math.max(0.18,Math.abs(spd)/MAXSPD*0.42); // strong throw
+      const push=Math.max(0.18,Math.abs(spd)/MAXSPD*0.42);
       mv.vx=fx*push; mv.vz=fz*push;
       if(mv.isTree){
-        if(!mv.stage){ mv.stage=1; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/6; }
-        else if(mv.stage===1){ mv.stage=2; mv.fallTarget=Math.PI/2; }
+        if(mv.stage===0){ mv.stage=1; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/5; }
+        else if(mv.stage===1){ mv.stage=2; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/2; }
       } else {
-        if(mv.stage===0){ mv.stage=2; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/2; }
+        if(mv.stage===0){ mv.stage=1; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/5; }
+        else if(mv.stage===1){ mv.stage=2; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/2; }
       }
     }
   }
@@ -1235,7 +1350,7 @@ function tick(now){
       if(Math.abs(mv.vz)<0.0005) mv.vz=0;
     }
     if(mv.stage>=1&&mv.fallAngle<mv.fallTarget){
-      const rate=mv.isTree?(mv.stage===2?0.005:0.002):0.007;
+      const rate=mv.stage===2?0.005:0.0025;
       mv.fallAngle=Math.min(mv.fallTarget, mv.fallAngle+dt*rate);
       mv.group.rotation.x=Math.sin(mv.fallDir)*mv.fallAngle;
       mv.group.rotation.z=-Math.cos(mv.fallDir)*mv.fallAngle;
