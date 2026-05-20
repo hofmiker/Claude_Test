@@ -20,6 +20,13 @@ canvas { display: block; }
 #intro-panel h1 { font-family: Arial, Helvetica, sans-serif; font-size: 38px; font-weight: bold; color: #222; letter-spacing: 1px; margin-bottom: 10px; }
 #intro-panel p  { font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #444; }
 @media (max-width: 480px) { #intro-panel h1 { font-size: 26px; } #intro-panel { padding: 24px 32px; } }
+#stats { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 18px; }
+#stats span { color: #fff; font-size: 15px; font-weight: bold; text-shadow: 1px 1px 4px rgba(0,0,0,0.9); background: rgba(0,0,0,0.42); padding: 4px 14px; border-radius: 16px; }
+#endpanel { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; pointer-events: none; }
+#endpanel-inner { background: #ffcc00; border-radius: 22px; padding: 38px 64px; text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+#endpanel-inner h2 { font-family: Arial, Helvetica, sans-serif; font-size: 34px; font-weight: bold; color: #222; margin-bottom: 12px; }
+#endpanel-inner p  { font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #444; margin-bottom: 6px; }
+#endpanel-inner .score { font-size: 52px; font-weight: bold; color: #222; margin: 10px 0; }
 </style>
 </head>
 <body>
@@ -29,9 +36,24 @@ canvas { display: block; }
     <p>Press any Key</p>
   </div>
 </div>
+<div id="endpanel">
+  <div id="endpanel-inner">
+    <h2>Ziel erreicht!</h2>
+    <p id="ep-pkgs"></p>
+    <p id="ep-time"></p>
+    <p id="ep-crash"></p>
+    <p id="ep-bonus"></p>
+    <div class="score" id="ep-score"></div>
+    <p style="font-size:13px;color:#888;margin-top:8px;">Drücke R zum Neustart</p>
+  </div>
+</div>
 <div id="hud">
   <div id="label">DHL City Drive</div>
   <div id="ts"></div>
+  <div id="stats">
+    <span id="timer">0:00</span>
+    <span id="crashcnt">💥 0</span>
+  </div>
   <canvas id="minimap" width="156" height="156"></canvas>
   <div id="pkgcnt"></div>
   <div id="hint">Hoch/Runter wischen = Gas/Bremse · Links/Rechts = Lenken</div>
@@ -460,8 +482,27 @@ const mPkg=new THREE.MeshLambertMaterial({color:0xc8b090});
 const mTapeR=new THREE.MeshLambertMaterial({color:0xcc2200});
 const packages=[];
 let pkgCollected=0;
+let gameStartTime=null, elapsedMs=0, crashCount=0, gameEnded=false;
 const pkgEl=document.getElementById('pkgcnt');
-function updatePkgUI(){ pkgEl.textContent=`\u{1F4E6} ${pkgCollected} / 20`; }
+const timerEl=document.getElementById('timer');
+const crashEl=document.getElementById('crashcnt');
+const endPanel=document.getElementById('endpanel');
+function updatePkgUI(){ pkgEl.textContent=`\u{1F4E6} ${pkgCollected} / 10`; }
+
+function showEndPanel(){
+  const sec=Math.floor(elapsedMs/1000);
+  const m=Math.floor(sec/60), s=sec%60;
+  const timeBonus=Math.max(0,300-sec)*0.5;
+  const pkgPts=pkgCollected*10;
+  const crashPen=crashCount*0.5;
+  const total=Math.max(0,Math.round(pkgPts+timeBonus-crashPen));
+  document.getElementById('ep-pkgs').textContent=`Pakete: ${pkgCollected} × 10 = ${pkgPts} Pkt`;
+  document.getElementById('ep-time').textContent=`Zeit: ${m}:${s.toString().padStart(2,'0')} → Bonus ${timeBonus.toFixed(1)} Pkt`;
+  document.getElementById('ep-crash').textContent=`Kollisionen: ${crashCount} × 0.5 = -${crashPen.toFixed(1)} Pkt`;
+  document.getElementById('ep-bonus').textContent='';
+  document.getElementById('ep-score').textContent=total;
+  endPanel.style.display='flex';
+}
 updatePkgUI();
 let audioCtx=null;
 function playCollect(){
@@ -500,7 +541,7 @@ function isNearRoad(px,pz){
 }
 (function placePkgs(){
   let placed=0, tries=0;
-  while(placed<20&&tries<1400){
+  while(placed<10&&tries<1400){
     tries++;
     const wantRoad=placed<14;
     const px=-55+Math.random()*310, pz=-255+Math.random()*310;
@@ -883,7 +924,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v1.9 · 20.05.2026`;
+tsEl.textContent=`v2.0 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -914,7 +955,7 @@ function tick(now){
     camera.position.lerpVectors(introStartCamPos,tp,ease);
     const lookTgt=new THREE.Vector3(100,0,-100).lerp(new THREE.Vector3(vanX+fx0*4,1.2,vanZ+fz0*4),ease);
     camera.lookAt(lookTgt);
-    if(t>=1) introPhase=2;
+    if(t>=1){ introPhase=2; gameStartTime=performance.now(); }
     van.position.set(vanX,0,vanZ); van.rotation.y=vanAngle;
     drawMM(vanX,vanZ,vanAngle);
     renderer.render(scene,camera);
@@ -997,6 +1038,8 @@ function tick(now){
     const mhit=Math.abs(vanX-mv.x)<VHW+mv.hw && Math.abs(vanZ-mv.z)<VHD+mv.hd;
     if(mhit){
       playCrashThrottled(0.5);
+      crashCount++;
+      crashEl.textContent=`\u{1F4A5} ${crashCount}`;
       const push=Math.max(0.18,Math.abs(spd)/MAXSPD*0.42); // strong throw
       mv.vx=fx*push; mv.vz=fz*push;
       if(mv.isTree){
@@ -1007,7 +1050,20 @@ function tick(now){
       }
     }
   }
-  if(K['KeyR']){vanX=0;vanZ=30;vanAngle=Math.PI;spd=0;}
+  if(K['KeyR']){
+    if(gameEnded){ gameEnded=false; pkgCollected=0; crashCount=0; gameStartTime=performance.now(); elapsedMs=0;
+      crashEl.textContent='\u{1F4A5} 0'; timerEl.textContent='0:00'; endPanel.style.display='none';
+      packages.forEach(p=>{ p.collected=false; p.group.position.set(p.x,0.5,p.z); scene.add(p.group); }); updatePkgUI();
+    }
+    vanX=0;vanZ=30;vanAngle=Math.PI;spd=0;
+  }
+
+  // Update timer
+  if(!gameEnded&&gameStartTime!==null){
+    elapsedMs=performance.now()-gameStartTime;
+    const s=Math.floor(elapsedMs/1000), m=Math.floor(s/60), sec=s%60;
+    timerEl.textContent=`${m}:${sec.toString().padStart(2,'0')}`;
+  }
 
   van.position.set(vanX,0,vanZ);
   van.rotation.y=vanAngle;
@@ -1016,7 +1072,9 @@ function tick(now){
     if(p.collected) return;
     const dist=Math.sqrt((vanX-p.x)**2+(vanZ-p.z)**2);
     p.ringMat.opacity=Math.max(0,Math.min(0.85,(13-dist)/10));
-    if(dist<2.5){ p.collected=true; scene.remove(p.group); pkgCollected++; updatePkgUI(); spawnCollectFX(p.x,p.z); playCollect(); }
+    if(dist<2.5){ p.collected=true; scene.remove(p.group); pkgCollected++; updatePkgUI(); spawnCollectFX(p.x,p.z); playCollect();
+      if(pkgCollected>=10&&!gameEnded){ gameEnded=true; showEndPanel(); }
+    }
   });
   // Collect FX update
   for(let i=fxPool.length-1;i>=0;i--){
