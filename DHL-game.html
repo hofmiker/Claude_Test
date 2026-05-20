@@ -176,8 +176,6 @@ function winFace(cx,cz,fw,fd,axis,side,floors,flH,sH,style,isEnt,winMat){
 // TypeB: bld(shop=true)  — Commercial with shopfront
 // TypeC: bldTraditional  — 5-story stucco + NYC fire escape
 // TypeD: bldRowhouse     — 4-story rowhouse with gable (Giebel)
-const mGlass=new THREE.MeshLambertMaterial({color:0x8ab8cc,transparent:true,opacity:0.30,side:THREE.DoubleSide});
-
 function bld(x,z,w,d,h,shop,eFz,eFx) {
   const hw=w/2, hd=d/2;
   for(const b of bldBoxes) if(Math.abs(x-b.x)<hw+b.hw+0.4 && Math.abs(z-b.z)<hd+b.hd+0.4) return;
@@ -186,6 +184,7 @@ function bld(x,z,w,d,h,shop,eFz,eFx) {
   const style=bi%3;
   const facadeCol=bPal[bi%bPal.length]; bi++;
   const bmat=new THREE.MeshLambertMaterial({color:facadeCol});
+  const winMat=new THREE.MeshLambertMaterial({color:lighten(facadeCol,0.28)});
   const sH=shop?3.8:0, bH=h-sH;
   const body=new THREE.Mesh(new THREE.BoxGeometry(w,bH,d),bmat);
   body.position.set(x,sH+bH/2,z); body.castShadow=true; body.receiveShadow=true; scene.add(body);
@@ -194,22 +193,23 @@ function bld(x,z,w,d,h,shop,eFz,eFx) {
     const wr=new THREE.Mesh(new THREE.BoxGeometry(w+0.1,0.28,d+0.1),mFlrS);
     wr.position.set(x,sH+r*flH,z); scene.add(wr);
   }
-  winFace(x,z,w,d/2,'z',-1,floors,flH,sH,style,eFz===-1,mGlass);
-  winFace(x,z,w,d/2,'z',+1,floors,flH,sH,style,eFz===+1,mGlass);
-  winFace(x,z,d,w/2,'x',-1,floors,flH,sH,style,eFx===-1,mGlass);
-  winFace(x,z,d,w/2,'x',+1,floors,flH,sH,style,eFx===+1,mGlass);
+  winFace(x,z,w,d/2,'z',-1,floors,flH,sH,style,eFz===-1,winMat);
+  winFace(x,z,w,d/2,'z',+1,floors,flH,sH,style,eFz===+1,winMat);
+  winFace(x,z,d,w/2,'x',-1,floors,flH,sH,style,eFx===-1,winMat);
+  winFace(x,z,d,w/2,'x',+1,floors,flH,sH,style,eFx===+1,winMat);
   if(shop){
     const shopCol=sPal[si%sPal.length]; si++;
     const smat=new THREE.MeshLambertMaterial({color:shopCol});
     const sf=new THREE.Mesh(new THREE.BoxGeometry(w,sH,d),smat); sf.position.set(x,sH/2,z); sf.castShadow=true; sf.receiveShadow=true; scene.add(sf);
-    const gwin=new THREE.Mesh(new THREE.BoxGeometry(w*0.62,sH*0.52,d+0.08),mGlass);
+    const shopWin=new THREE.MeshLambertMaterial({color:lighten(shopCol,0.28)});
+    const gwin=new THREE.Mesh(new THREE.BoxGeometry(w*0.62,sH*0.52,d+0.08),shopWin);
     gwin.position.set(x,sH*0.46,z); scene.add(gwin);
   }
 }
 
 // TypeC — 5-story traditional stucco building with NYC fire escape
 const stuccoPal=[0xe8dbc8,0xddd0b8,0xe2d5be,0xcdc1af,0xd5c9b8];
-const mFireEscape=new THREE.MeshLambertMaterial({color:0x1a1a1a});
+const mFE=new THREE.MeshLambertMaterial({color:0x222222});
 function bldTraditional(x,z,w,d,eFz,eFx){
   const hw=w/2, hd=d/2;
   for(const b of bldBoxes) if(Math.abs(x-b.x)<hw+b.hw+0.4&&Math.abs(z-b.z)<hd+b.hd+0.4) return;
@@ -217,56 +217,58 @@ function bldTraditional(x,z,w,d,eFz,eFx){
   const floors=5, flH=3.6, bH=floors*flH;
   const facadeCol=stuccoPal[bi%stuccoPal.length]; bi++;
   const bmat=new THREE.MeshLambertMaterial({color:facadeCol});
+  const winMat=new THREE.MeshLambertMaterial({color:lighten(facadeCol,0.28)});
   const body=new THREE.Mesh(new THREE.BoxGeometry(w,bH,d),bmat);
   body.position.set(x,bH/2,z); body.castShadow=true; scene.add(body);
-  // Stucco floor ledges + top cornice
   const mLed=new THREE.MeshLambertMaterial({color:0xf2ebe0});
   for(let fl=1;fl<=floors;fl++){
     const h2=fl===floors?0.35:0.2;
     const led=new THREE.Mesh(new THREE.BoxGeometry(w+0.3,h2,d+0.3),mLed);
     led.position.set(x,fl*flH-(fl===floors?0:0.1),z); scene.add(led);
   }
-  // Windows (small, multiple per floor)
-  winFace(x,z,w,d/2,'z',-1,floors,flH,0,1,eFz===-1,mGlass);
-  winFace(x,z,w,d/2,'z',+1,floors,flH,0,1,eFz===+1,mGlass);
-  winFace(x,z,d,w/2,'x',-1,floors,flH,0,1,eFx===-1,mGlass);
-  winFace(x,z,d,w/2,'x',+1,floors,flH,0,1,eFx===+1,mGlass);
-  // NYC fire escape on the side OPPOSITE to entrance
-  const feOnX=(eFz!==0); // if entrance on Z face → fire escape on X face
-  const feSide= feOnX ? (eFx||1)*-1 : (eFz||1)*-1;
+  winFace(x,z,w,d/2,'z',-1,floors,flH,0,1,eFz===-1,winMat);
+  winFace(x,z,w,d/2,'z',+1,floors,flH,0,1,eFz===+1,winMat);
+  winFace(x,z,d,w/2,'x',-1,floors,flH,0,1,eFx===-1,winMat);
+  winFace(x,z,d,w/2,'x',+1,floors,flH,0,1,eFx===+1,winMat);
+  // NYC fire escape: platforms + zig-zag stairs on entrance facade, right side
+  const feOnZ=(eFz!==0);
+  const ens=feOnZ?eFz:eFx; // entrance face sign
+  const pW=2.4, pD=1.05; // platform width and depth
   for(let fl=1;fl<floors;fl++){
     const fy=fl*flH;
-    if(feOnX){
-      const pl=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,Math.min(d*0.6,3.5)),mFireEscape);
-      pl.position.set(x+feSide*(hw+0.05),fy,z); scene.add(pl);
-      [-1,0,1].forEach(p=>{
-        const post=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.85,0.06),mFireEscape);
-        post.position.set(x+feSide*(hw+0.05),fy+0.42,z+p*0.7); scene.add(post);
-      });
-      if(fl<floors-1){
-        const lad=new THREE.Mesh(new THREE.BoxGeometry(0.06,flH*0.8,0.06),mFireEscape);
-        lad.rotation.z=feSide*0.38; lad.position.set(x+feSide*(hw+0.12),fy+flH*0.38,z-0.9); scene.add(lad);
-      }
-    } else {
-      const pl=new THREE.Mesh(new THREE.BoxGeometry(Math.min(w*0.6,3.5),0.1,0.1),mFireEscape);
-      pl.position.set(x,fy,z+feSide*(hd+0.05)); scene.add(pl);
-      [-1,0,1].forEach(p=>{
-        const post=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.85,0.06),mFireEscape);
-        post.position.set(x+p*0.7,fy+0.42,z+feSide*(hd+0.05)); scene.add(post);
-      });
-      if(fl<floors-1){
-        const lad=new THREE.Mesh(new THREE.BoxGeometry(0.06,flH*0.8,0.06),mFireEscape);
-        lad.rotation.x=feSide*-0.38; lad.position.set(x-0.9,fy+flH*0.38,z+feSide*(hd+0.12)); scene.add(lad);
-      }
+    // Platform position offset to right of entrance
+    let px,pz;
+    if(feOnZ){ px=x+hw*0.42; pz=z+ens*(hd+pD/2); }
+    else      { px=x+ens*(hw+pD/2); pz=z-hd*0.42; }
+    // Slab
+    const slab=new THREE.Mesh(new THREE.BoxGeometry(feOnZ?pW:pD,0.12,feOnZ?pD:pW),mFE);
+    slab.position.set(px,fy,pz); scene.add(slab);
+    // Railing (3 outer posts + top rail)
+    const rl=0.9;
+    for(let ri=0;ri<=4;ri++){
+      const post=new THREE.Mesh(new THREE.BoxGeometry(0.05,rl,0.05),mFE);
+      if(feOnZ) post.position.set(px-pW/2+ri*pW/4,fy+rl/2,pz+ens*pD/2);
+      else      post.position.set(px+ens*pD/2,fy+rl/2,pz-pW/2+ri*pW/4);
+      scene.add(post);
+    }
+    const rail=new THREE.Mesh(new THREE.BoxGeometry(feOnZ?pW:0.05,0.05,feOnZ?0.05:pW),mFE);
+    if(feOnZ) rail.position.set(px,fy+rl,pz+ens*pD/2);
+    else      rail.position.set(px+ens*pD/2,fy+rl,pz);
+    scene.add(rail);
+    // Zig-zag stair between this floor and next (alternating X/Z offset)
+    if(fl<floors-1){
+      const alt=(fl%2===0?1:-1);
+      const str=new THREE.Mesh(new THREE.BoxGeometry(feOnZ?0.55:pD*0.7,flH*0.88,feOnZ?pD*0.7:0.55),mFE);
+      if(feOnZ){ str.rotation.z=-ens*0.38; str.position.set(px+alt*pW*0.28,fy+flH*0.44,pz-ens*0.18); }
+      else     { str.rotation.x=ens*0.38;  str.position.set(px-ens*0.18,fy+flH*0.44,pz+alt*pW*0.28); }
+      scene.add(str);
     }
   }
-  // Drop ladder to ground from level 1
-  {
-    const drop=new THREE.Mesh(new THREE.BoxGeometry(0.06,flH,0.06),mFireEscape);
-    if(feOnX) drop.position.set(x+feSide*(hw+0.05),flH/2,z);
-    else drop.position.set(x,flH/2,z+feSide*(hd+0.05));
-    scene.add(drop);
-  }
+  // Drop ladder floor 1 → ground
+  const dl=new THREE.Mesh(new THREE.BoxGeometry(0.1,flH*0.85,0.1),mFE);
+  if(feOnZ) dl.position.set(x+hw*0.42,flH*0.42,z+ens*(hd+0.45));
+  else      dl.position.set(x+ens*(hw+0.45),flH*0.42,z-hd*0.42);
+  scene.add(dl);
 }
 
 // TypeD — 4-story rowhouse with gable (Giebel), placed in rows
@@ -279,6 +281,7 @@ function bldRowhouse(x,z,w,d,eFz,eFx){
   const floors=4, flH=3.2, bH=floors*flH;
   const facadeCol=brickPal[bi%brickPal.length]; bi++;
   const bmat=new THREE.MeshLambertMaterial({color:facadeCol});
+  const winMat=new THREE.MeshLambertMaterial({color:lighten(facadeCol,0.28)});
   const body=new THREE.Mesh(new THREE.BoxGeometry(w,bH,d),bmat);
   body.position.set(x,bH/2,z); body.castShadow=true; scene.add(body);
   // Thin window ledges
@@ -296,10 +299,10 @@ function bldRowhouse(x,z,w,d,eFz,eFx){
   // Shape is in XY, extruded +Z, so position: x=x, y=bH, z=z-hd
   gMesh.position.set(x,bH,z-hd); scene.add(gMesh);
   // Windows (double per floor on entrance face, single on sides)
-  winFace(x,z,w,d/2,'z',-1,floors,flH,0,1,eFz===-1,mGlass);
-  winFace(x,z,w,d/2,'z',+1,floors,flH,0,1,eFz===+1,mGlass);
-  winFace(x,z,d,w/2,'x',-1,floors,flH,0,2,eFx===-1,mGlass);
-  winFace(x,z,d,w/2,'x',+1,floors,flH,0,2,eFx===+1,mGlass);
+  winFace(x,z,w,d/2,'z',-1,floors,flH,0,1,eFz===-1,winMat);
+  winFace(x,z,w,d/2,'z',+1,floors,flH,0,1,eFz===+1,winMat);
+  winFace(x,z,d,w/2,'x',-1,floors,flH,0,2,eFx===-1,winMat);
+  winFace(x,z,d,w/2,'x',+1,floors,flH,0,2,eFx===+1,winMat);
   // Entry door (wood-colored)
   const mDoor=new THREE.MeshLambertMaterial({color:0x5a3a1a});
   if(eFz!==0){
@@ -359,19 +362,24 @@ const mAsphP=new THREE.MeshLambertMaterial({color:0x323232});
 const mAsphPL=new THREE.MeshLambertMaterial({color:0x404040});
 function parkLot(cx,cz,W,D,horiz){
   box(W,0.07,D,mAsphPL,cx,0.03,cz);
+  // Fixed 2.5 m space width
   if(horiz){
-    const nc=Math.floor(W/2.5); for(let i=0;i<=nc;i++) box(0.12,0.05,D,mWht,cx-W/2+i*(W/nc),0.07,cz);
+    const nc=Math.floor(W/2.5);
+    for(let i=0;i<=nc;i++) box(0.12,0.05,D,mWht,cx-W/2+i*2.5,0.07,cz);
     box(W,0.05,0.12,mWht,cx,0.07,cz-D/2); box(W,0.05,0.12,mWht,cx,0.07,cz+D/2);
   } else {
-    const nr=Math.floor(D/2.5); for(let i=0;i<=nr;i++) box(W,0.05,0.12,mWht,cx,0.07,cz-D/2+i*(D/nr));
+    const nr=Math.floor(D/2.5);
+    for(let i=0;i<=nr;i++) box(W,0.05,0.12,mWht,cx,0.07,cz-D/2+i*2.5);
     box(0.12,0.05,D,mWht,cx-W/2,0.07,cz); box(0.12,0.05,D,mWht,cx+W/2,0.07,cz);
   }
 }
-parkLot(242,-30,45,25,true);      // NE outer
-parkLot(100,-238,90,20,true);     // S outer
-parkLot(-44,-100,25,70,false);    // W outer
-parkLot(242,-170,40,50,false);    // SE outer
-parkLot(56,-238,40,20,true);      // SW outer extra
+// Realistic parking lots: ~2.5 m per space, 5 m depth, 6 m driving aisle → ~16 m block depth
+parkLot(246,-42, 25,16, true);   // NE outer  (x 233-259, z -34 to -50)
+parkLot(246,-162,25,16, true);   // SE outer  (x 233-259, z -154 to -170)
+parkLot(50, -238,22,13, true);   // S-west   (x 39-61,   z -231 to -245)
+parkLot(150,-238,22,13, true);   // S-east   (x 139-161, z -231 to -245)
+parkLot(-44,-50, 13,22, false);  // W-north  (x -50 to -38, z -39 to -61)
+parkLot(-44,-150,13,22, false);  // W-south  (x -50 to -38, z -139 to -161)
 
 // ── Café / Restaurant decorations ─────────────────────────────────────────
 const mChair=new THREE.MeshLambertMaterial({color:0x7a3a18});
@@ -392,14 +400,14 @@ function cafeDecor(cx,cz,entrZ){
     });
     const up=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,2.1,5),mPole); up.position.set(0,1.05,0); g.add(up);
     const uc=new THREE.Mesh(new THREE.ConeGeometry(0.92,0.34,8),mUmbR); uc.position.set(0,2.27,0); g.add(uc);
-    movables.push({x:tx,z:cz,hw:0.7,hd:0.7,group:g,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
+    movables.push({x:tx,z:cz,hw:0.7,hd:0.7,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0});
   });
   // Pots flanking the entrance door (on sidewalk near building front)
   [-1,1].forEach(side=>{
     const pg=new THREE.Group(); pg.position.set(cx+side*2.0,0,cz-ez*3); scene.add(pg);
     const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.13,0.36,6),mPotC); pot.position.set(0,0.18,0); pg.add(pot);
     const plant=new THREE.Mesh(new THREE.SphereGeometry(0.30,6,4),mCrn); plant.position.set(0,0.56,0); pg.add(plant);
-    movables.push({x:cx+side*2.0,z:cz-ez*3,hw:0.25,hd:0.25,group:pg,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
+    movables.push({x:cx+side*2.0,z:cz-ez*3,hw:0.25,hd:0.25,group:pg,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0});
   });
 }
 cafeDecor(28,-10,+1); cafeDecor(78,-10,+1); cafeDecor(128,-10,+1);
@@ -413,13 +421,13 @@ function dumpster(x,z,rot){
   const g=new THREE.Group(); g.position.set(x,0,z); if(rot)g.rotation.y=rot; scene.add(g);
   const body=new THREE.Mesh(new THREE.BoxGeometry(2.2,1.05,0.95),Math.random()>0.5?mCont:mContG); body.position.y=0.52; g.add(body);
   const lid=new THREE.Mesh(new THREE.BoxGeometry(2.3,0.1,1.05),mBinM); lid.position.y=1.1; g.add(lid);
-  movables.push({x,z,hw:1.2,hd:0.6,group:g,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
+  movables.push({x,z,hw:1.2,hd:0.6,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0});
 }
 function streetBin(x,z){
   const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
   const b=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.13,0.72,6),mBinM); b.position.set(0,0.36,0); g.add(b);
   const t=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.16,0.07,6),mBinM); t.position.set(0,0.755,0); g.add(t);
-  movables.push({x,z,hw:0.28,hd:0.28,group:g,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
+  movables.push({x,z,hw:0.28,hd:0.28,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0});
 }
 // Hinterhof-Container (hinter Gebäuden, weg vom Gehweg)
 [[30,-32,0],[82,-32,0],[160,-32,0],[30,-232,Math.PI],[150,-232,Math.PI],
@@ -596,15 +604,15 @@ const clouds=[];
 });
 
 // ── Environment: hills, river, scattered trees ────────────────────────────
-const mHill=new THREE.MeshLambertMaterial({color:0x4a8c38});
+const mHill=new THREE.MeshBasicMaterial({color:0x4a8c38});
 const mRiver=new THREE.MeshLambertMaterial({color:0x2266aa,transparent:true,opacity:0.82});
 const mRiverBank=new THREE.MeshLambertMaterial({color:0xb8a878});
-const mEnvTree=new THREE.MeshLambertMaterial({color:0x2a6620});
-const mEnvTrk=new THREE.MeshLambertMaterial({color:0x4a3010});
+const mEnvTree=new THREE.MeshBasicMaterial({color:0x2a6620});
+const mEnvTrk=new THREE.MeshBasicMaterial({color:0x5a3812});
 
-// Hills around the city perimeter (smooth ellipsoid bumps)
-[[-310,80,-100,90,28,70],[-310,-280,-100,90,24,65],[310,80,-100,90,30,72],[310,-280,-100,90,26,68],
- [100,80,260,140,22,55],[100,-380,-100,130,20,50]].forEach(([cx,,cz,rw,h,rd])=>{
+// Hills around the city perimeter — positioned well outside city boundary
+[[-300,-100,65,22,58],[-300,-280,60,20,55],[320,-100,62,24,60],[320,-280,58,18,56],
+ [100,300,70,16,48],[100,-420,68,18,50]].forEach(([cx,cz,rw,h,rd])=>{
   const geo=new THREE.SphereGeometry(1,10,10);
   const m=new THREE.Mesh(geo,mHill);
   m.scale.set(rw,h,rd); m.position.set(cx,0,cz); scene.add(m);
@@ -800,6 +808,7 @@ function tickBus(dt){
   const bnx=busX+bfx*busSpd*dt, bnz=busZ+bfz*busSpd*dt;
   let busHitX=false, busHitZ=false;
   for(const c of collidables){
+    if(c.tlIdx!==undefined||c.hw<1.0) continue; // ignore TLs and small street objects
     if(Math.abs(bnx-c.x)<BUS_HW+c.hw && Math.abs(busZ-c.z)<BUS_HD+c.hd) busHitX=true;
     if(Math.abs(busX-c.x)<BUS_HW+c.hw && Math.abs(bnz-c.z)<BUS_HD+c.hd) busHitZ=true;
   }
@@ -874,7 +883,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v1.8 · 20.05.2026`;
+tsEl.textContent=`v1.9 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -891,6 +900,7 @@ function tick(now){
     introAngle+=dt*0.00022;
     camera.position.set(100+Math.sin(introAngle)*150, 210, -100+Math.cos(introAngle)*150);
     camera.lookAt(100, 0, -100);
+    van.position.set(vanX,0,vanZ); van.rotation.y=vanAngle;
     drawMM(vanX,vanZ,vanAngle);
     renderer.render(scene,camera);
     return;
@@ -905,6 +915,7 @@ function tick(now){
     const lookTgt=new THREE.Vector3(100,0,-100).lerp(new THREE.Vector3(vanX+fx0*4,1.2,vanZ+fz0*4),ease);
     camera.lookAt(lookTgt);
     if(t>=1) introPhase=2;
+    van.position.set(vanX,0,vanZ); van.rotation.y=vanAngle;
     drawMM(vanX,vanZ,vanAngle);
     renderer.render(scene,camera);
     return;
@@ -986,11 +997,13 @@ function tick(now){
     const mhit=Math.abs(vanX-mv.x)<VHW+mv.hw && Math.abs(vanZ-mv.z)<VHD+mv.hd;
     if(mhit){
       playCrashThrottled(0.5);
-      const push=Math.max(0.08,Math.abs(spd)/MAXSPD*0.18);
-      mv.vx=fx*push; mv.vz=fz*push; // push in van direction, not accumulate
+      const push=Math.max(0.18,Math.abs(spd)/MAXSPD*0.42); // strong throw
+      mv.vx=fx*push; mv.vz=fz*push;
       if(mv.isTree){
         if(!mv.stage){ mv.stage=1; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/6; }
         else if(mv.stage===1){ mv.stage=2; mv.fallTarget=Math.PI/2; }
+      } else {
+        if(mv.stage===0){ mv.stage=2; mv.fallDir=Math.atan2(fx,fz); mv.fallTarget=Math.PI/2; }
       }
     }
   }
@@ -1031,9 +1044,9 @@ function tick(now){
       if(Math.abs(mv.vx)<0.0005) mv.vx=0;
       if(Math.abs(mv.vz)<0.0005) mv.vz=0;
     }
-    if(mv.isTree&&mv.stage>=1&&mv.fallAngle<mv.fallTarget){
-      const spd2=(mv.stage===2?0.005:0.002);
-      mv.fallAngle=Math.min(mv.fallTarget, mv.fallAngle+dt*spd2);
+    if(mv.stage>=1&&mv.fallAngle<mv.fallTarget){
+      const rate=mv.isTree?(mv.stage===2?0.005:0.002):0.007;
+      mv.fallAngle=Math.min(mv.fallTarget, mv.fallAngle+dt*rate);
       mv.group.rotation.x=Math.sin(mv.fallDir)*mv.fallAngle;
       mv.group.rotation.z=-Math.cos(mv.fallDir)*mv.fallAngle;
     }
