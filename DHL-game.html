@@ -116,12 +116,66 @@ box(GL,0.06,RH*4,mRoad,GCX,0.03,-100);
 XS.forEach(x => box(RH*2,0.06,GL,mRoad,x,0.03,GCZ));
 // Intersections: wider at Z=-100
 XS.forEach(x=>{[0,-200].forEach(z=>box(RH*2+1,0.07,RH*2+1,mRoad,x,0.035,z)); box(RH*2+1,0.07,RH*4+1,mRoad,x,0.035,-100);});
-// Lane markings: normal roads
-[0,-200].forEach(z => box(GL,0.02,0.22,mYlw,GCX,0.08,z));
-// Z=-100 boulevard: double yellow center + white inner-lane dividers
-box(GL,0.02,0.18,mWht,GCX,0.086,-100-0.55); box(GL,0.02,0.18,mWht,GCX,0.086,-100+0.55);
-for(let bx=XS[0]-EXT;bx<XS[2]+EXT;bx+=10){box(5.5,0.02,0.15,mWht,bx+2.75,0.087,-107);box(5.5,0.02,0.15,mWht,bx+2.75,0.087,-93);}
-XS.forEach(x => box(0.22,0.02,GL,mYlw,x,0.08,GCZ));
+// Lane markings — stop short of each intersection (2m gap each side)
+const GAP_INT=RH+2; // stop this far from intersection centre
+// EW centre lines (stop before each XS intersection)
+[0,-200].forEach(z=>{
+  // Segments between intersections
+  const segs=[[-EXT+XS[0],XS[0]],[XS[0],XS[1]],[XS[1],XS[2]],[XS[2],XS[2]+EXT]];
+  segs.forEach(([x0,x1])=>{
+    const lx0=x0+(x0===XS[0]-EXT?0:GAP_INT), lx1=x1-(x1===XS[2]+EXT?0:GAP_INT);
+    if(lx1>lx0) box(lx1-lx0,0.02,0.22,mYlw,(lx0+lx1)/2,0.08,z);
+  });
+});
+// NS centre lines (stop before each ZS intersection)
+XS.forEach(x=>{
+  const rh0=ZS[1]===ZS[1]?RH*2:RH; // dummy
+  const segs=[[ZS[0]+EXT,ZS[0]],[ZS[0],ZS[1]],[ZS[1],ZS[2]],[ZS[2],ZS[2]-EXT]];
+  segs.forEach(([z0,z1])=>{
+    const gap0=z0===ZS[0]+EXT?0:( ZS.includes(z0)?GAP_INT:GAP_INT);
+    const gap1=z1===ZS[2]-EXT?0:GAP_INT;
+    const lz0=Math.min(z0,z1)+gap1, lz1=Math.max(z0,z1)-gap0;
+    if(lz1>lz0) box(0.22,0.02,lz1-lz0,mYlw,x,0.08,(lz0+lz1)/2);
+  });
+});
+// Z=-100 boulevard centre + lane dividers (stop before intersections)
+{
+  const segs=[[-EXT+XS[0],XS[0]],[XS[0],XS[1]],[XS[1],XS[2]],[XS[2],XS[2]+EXT]];
+  segs.forEach(([x0,x1])=>{
+    const lx0=x0+(x0===XS[0]-EXT?0:GAP_INT+RH), lx1=x1-(x1===XS[2]+EXT?0:GAP_INT+RH);
+    if(lx1>lx0){
+      box(lx1-lx0,0.02,0.18,mWht,(lx0+lx1)/2,0.086,-100-0.55);
+      box(lx1-lx0,0.02,0.18,mWht,(lx0+lx1)/2,0.086,-100+0.55);
+      for(let bx=lx0;bx<lx1;bx+=10){
+        box(5.5,0.02,0.15,mWht,bx+2.75,0.087,-107);
+        box(5.5,0.02,0.15,mWht,bx+2.75,0.087,-93);
+      }
+    }
+  });
+}
+// Zebra crossings — 4 per intersection (one per approach), 3m before stop line
+const mZebra=new THREE.MeshLambertMaterial({color:0xffffff});
+const mZebraD=new THREE.MeshLambertMaterial({color:0x444448});
+function zebraCross(cx,cz,horiz,roadHW){
+  const stripeW=0.6, stripeGap=0.5, nStripes=6;
+  const totalW=nStripes*(stripeW+stripeGap)-stripeGap;
+  for(let i=0;i<nStripes;i++){
+    const off=-totalW/2+(i*(stripeW+stripeGap));
+    if(horiz) box(stripeW,0.025,roadHW*2,mZebra,cx+off,0.038,cz);
+    else       box(roadHW*2,0.025,stripeW,mZebra,cx,0.038,cz+off);
+  }
+}
+XS.forEach(xs=>ZS.forEach(zs=>{
+  const rh=zs===ZS[1]?RH*2:RH;
+  // North approach (van comes from z>zs)
+  zebraCross(xs, zs+rh+2.5, true, RH);
+  // South approach
+  zebraCross(xs, zs-rh-2.5, true, RH);
+  // East approach
+  zebraCross(xs+RH+2.5, zs, false, rh);
+  // West approach
+  zebraCross(xs-RH-2.5, zs, false, rh);
+}));
 
 function ewSW(z) {
   [[XS[0]-RH-EXT,XS[0]-RH],[XS[0]+RH,XS[1]-RH],[XS[1]+RH,XS[2]-RH],[XS[2]+RH,XS[2]+RH+EXT]]
@@ -539,14 +593,20 @@ const mGuard=new THREE.MeshLambertMaterial({color:0xaaaaaa});
   box(HWY_EXT,0.5,0.2,mGuard,XS[2]+EXT+HWY_EXT/2,0.35,-100+zOff);
 });
 
-// ── Intersection corner fillets (round the 90° road corners) ────────────────
+// ── Sidewalk corner curb radius (1m) — quarter-disk of sidewalk at each corner ─
 XS.forEach(xs=>ZS.forEach(zs=>{
   const rh=zs===ZS[1]?RH*2:RH;
   [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>{
-    // Small cylinder at road corner gives visual rounding
+    // Place a quarter-circle of sidewalk material at each curb corner
     const cx=xs+sx*RH, cz=zs+sz*rh;
-    const fm=new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,0.07,10),mRoad);
-    fm.position.set(cx,0.04,cz); scene.add(fm);
+    const shape=new THREE.Shape();
+    shape.moveTo(0,0);
+    shape.lineTo(sx*SW*0.45,0);
+    shape.absarc(0,0,SW*0.45, sx>0?0:Math.PI, sz>0?Math.PI/2:-Math.PI/2, sx>0&&sz>0?false:sx<0&&sz<0?false:true);
+    shape.closePath();
+    const geo=new THREE.ShapeGeometry(shape,6);
+    const m=new THREE.Mesh(geo,mSW); m.rotation.x=-Math.PI/2;
+    m.position.set(cx,0.08,cz); scene.add(m);
   });
 }));
 
@@ -1115,12 +1175,17 @@ const busStopSigns=[
 // Right lane offsets: E-W roads z±3.5, N-S roads x±3.5
 // Stops midway between intersections, clear of barriers
 // Right lane: going E z=-3.5, going S x=196.5, going W z=-196.5, going N x=3.5
+// Bus route: outer ring, right-lane offset 3.5m, extra corner waypoints to avoid sidewalk cut
 const busRoute=[
-  [20,-3.5],   [50,-3.5],   [182,-3.5],
-  [196.5,-18], [196.5,-50], [196.5,-178],
-  [182,-196.5],[150,-196.5],[18,-196.5],
-  [3.5,-182],  [3.5,-150],  [3.5,-18],
-  [18,-3.5],
+  [20,-3.5],   [50,-3.5],   [174,-3.5],
+  [189,-3.5],  [196.5,-14],
+  [196.5,-50], [196.5,-178],
+  [196.5,-189],[189,-196.5],
+  [150,-196.5],[26,-196.5],
+  [14,-196.5], [3.5,-189],
+  [3.5,-150],  [3.5,-14],
+  [3.5,-3.5],  [14,-3.5],
+  [20,-3.5],
 ];
 const BUS_SPD=0.008, BUS_HW=1.4, BUS_HD=6.5;
 let busWI=0, busX=20, busZ=-3.5, busAng=Math.PI/2;
@@ -1139,11 +1204,11 @@ function tickBus(dt){
 
   const ni=(busWI+1)%busRoute.length;
   const [tx,tz]=busRoute[ni];
-  if(Math.sqrt((tx-busX)**2+(tz-busZ)**2)<6) busWI=ni;
+  if(Math.sqrt((tx-busX)**2+(tz-busZ)**2)<4) busWI=ni;
   const [ntx,ntz]=busRoute[(busWI+1)%busRoute.length];
   const tAng=Math.atan2(ntx-busX,ntz-busZ);
   let da=tAng-busAng; while(da>Math.PI)da-=Math.PI*2; while(da<-Math.PI)da+=Math.PI*2;
-  busAng+=da*Math.min(1,0.04*dt);
+  busAng+=da*Math.min(1,0.022*dt); // smoother steering
 
   // Bus drives through everything — no collision detection
   const bfx=Math.sin(busAng), bfz=Math.cos(busAng);
@@ -1218,7 +1283,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.4 · 20.05.2026`;
+tsEl.textContent=`v2.5 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
