@@ -105,6 +105,8 @@ const mGrassOut=new THREE.MeshLambertMaterial({color:0x3a7a2a});
 // ── Grid ──────────────────────────────────────────────────────────────────
 const XS=[0,100,200], ZS=[0,-100,-200];
 const RH=7, SW=5, EXT=65;
+const RING_Z_N=0+EXT, RING_Z_S=-200-EXT; // z=65 (north ring), z=-265 (south ring)
+const RING_X_W=0-EXT,  RING_X_E=200+EXT; // x=-65 (west ring), x=265 (east ring)
 const GAP=RH+SW+1;
 const GAP4=RH*2+SW+1;
 const GCX=100, GCZ=-100, GL=330;
@@ -158,12 +160,12 @@ const mZebra=new THREE.MeshLambertMaterial({color:0xffffff});
 const mZebraD=new THREE.MeshLambertMaterial({color:0x444448});
 function zebraCross(cx,cz,horiz,roadHW){
   const nStripes=5, stripeW=0.3, stripeGap=0.375;
-  const totalW=nStripes*(stripeW+stripeGap)-stripeGap; // =3.0m
-  const len=(roadHW+SW)*2;
+  const totalW=nStripes*(stripeW+stripeGap)-stripeGap; // =3.0m depth
+  const len=(roadHW+SW)*2; // sidewalk-to-sidewalk span
   for(let i=0;i<nStripes;i++){
     const off=-totalW/2+(i*(stripeW+stripeGap));
-    if(horiz) box(stripeW,0.06,len,mZebra,cx+off,0.06,cz);
-    else       box(len,0.06,stripeW,mZebra,cx,0.06,cz+off);
+    if(horiz) box(len,0.06,stripeW,mZebra,cx,0.06,cz+off); // span X, depth Z
+    else       box(stripeW,0.06,len,mZebra,cx+off,0.06,cz); // span Z, depth X
   }
 }
 XS.forEach(xs=>ZS.forEach(zs=>{
@@ -616,8 +618,48 @@ function barrierAt(cx,cz,rot){
     const bm=new THREE.Mesh(new THREE.BoxGeometry(2.1,0.3,0.22),i%2===0?mBarO:mBarW); bm.position.set(-3.15+i*2.1,1.1,0); g.add(bm);
   }
 }
-ZS.forEach(z=>{ barrierAt(XS[0]-EXT,z,Math.PI/2); barrierAt(XS[2]+EXT,z,Math.PI/2); });
-XS.forEach(x=>{ barrierAt(x,ZS[0]+EXT,0); barrierAt(x,ZS[2]-EXT,0); });
+// ── Outer ring roads — close all blocks into complete rectangles ──────────
+{
+  const ewLen=RING_X_E-RING_X_W+RH*2; // 344
+  const nsLen=RING_Z_N-RING_Z_S+RH*2; // 344
+  const cx=(RING_X_W+RING_X_E)/2;     // 100
+  const cz=(RING_Z_N+RING_Z_S)/2;     // -100
+  // Road surfaces
+  box(ewLen,0.06,RH*2,mRoad,cx,0.03,RING_Z_N);
+  box(ewLen,0.06,RH*2,mRoad,cx,0.03,RING_Z_S);
+  box(RH*2,0.06,nsLen,mRoad,RING_X_W,0.03,cz);
+  box(RH*2,0.06,nsLen,mRoad,RING_X_E,0.03,cz);
+  // Intersection squares at T-junctions
+  XS.forEach(x=>{
+    box(RH*2+1,0.07,RH*2+1,mRoad,x,0.035,RING_Z_N);
+    box(RH*2+1,0.07,RH*2+1,mRoad,x,0.035,RING_Z_S);
+  });
+  ZS.forEach(z=>{
+    const rh=z===ZS[1]?RH*2:RH;
+    box(RH*2+1,0.07,rh*2+1,mRoad,RING_X_W,0.035,z);
+    box(RH*2+1,0.07,rh*2+1,mRoad,RING_X_E,0.035,z);
+  });
+  // Sidewalks — EW ring roads (north + south)
+  [[RING_X_W+RH,XS[0]-RH],[XS[0]+RH,XS[1]-RH],[XS[1]+RH,XS[2]-RH],[XS[2]+RH,RING_X_E-RH]]
+  .forEach(([x0,x1])=>{
+    if(x1<=x0) return;
+    const lc=(x0+x1)/2, ln=x1-x0;
+    box(ln,0.15,SW,mSW,lc,0.075,RING_Z_N+RH+SW/2);
+    box(ln,0.15,SW,mSW,lc,0.075,RING_Z_N-RH-SW/2);
+    box(ln,0.15,SW,mSW,lc,0.075,RING_Z_S+RH+SW/2);
+    box(ln,0.15,SW,mSW,lc,0.075,RING_Z_S-RH-SW/2);
+  });
+  // Sidewalks — NS ring roads (west + east)
+  [[ZS[0]+RH,RING_Z_N-RH],[ZS[1]+RH*2,ZS[0]-RH],[ZS[2]+RH,ZS[1]-RH*2],[RING_Z_S+RH,ZS[2]-RH]]
+  .forEach(([z0,z1])=>{
+    if(z1<=z0) return;
+    const lc=(z0+z1)/2, ln=z1-z0;
+    box(SW,0.15,ln,mSW,RING_X_W+RH+SW/2,0.075,lc);
+    box(SW,0.15,ln,mSW,RING_X_W-RH-SW/2,0.075,lc);
+    box(SW,0.15,ln,mSW,RING_X_E+RH+SW/2,0.075,lc);
+    box(SW,0.15,ln,mSW,RING_X_E-RH-SW/2,0.075,lc);
+  });
+}
 
 // ── Highway extension (z=-100 boulevard continues into the distance) ────────
 // Road surface extends 900 units each side of city (fades into fog)
@@ -975,10 +1017,12 @@ XS.forEach(x=>ZS.forEach(z=>{
 function updateTLLights(){
   tlAll.forEach((lights,i)=>{
     if(tlDark[i]) return;
-    lights.forEach((m,li)=>{ m.material.emissive.set(TL_COLS[li]); });
+    lights.forEach((m,li)=>{
+      m.material.color.setHex(TL_COLS[li]);
+      m.material.emissive.setHex(TL_COLS[li]);
+    });
   });
 }
-updateTLLights();
 
 // ── Highway L-arm traffic lights — 4 per intersection, one per approach ──────
 const mGantry=new THREE.MeshLambertMaterial({color:0x555560});
@@ -1011,6 +1055,7 @@ XS.forEach(x=>{
   // South approach (driving north): pole east, arm west, before z=-100
   lArmTL(x+RH+SW+1, z0-hRH-14,-1, 0, 1);
 });
+updateTLLights(); // init all TLs after all are created
 
 // ── Clouds ────────────────────────────────────────────────────────────────
 const cGeo=new THREE.SphereGeometry(1,6,4), cMat=new THREE.MeshBasicMaterial({color:0xffffff});
@@ -1378,12 +1423,15 @@ function drawMM(vx,vz,vAng){
   ZS.forEach(z=>{
     mmCtx.strokeStyle='#555566';
     mmCtx.lineWidth=z===ZS[1]?9:5;
-    mmCtx.beginPath(); mmCtx.moveTo(mx(XS[0]-EXT),mz(z)); mmCtx.lineTo(mx(XS[2]+EXT),mz(z)); mmCtx.stroke();
+    mmCtx.beginPath(); mmCtx.moveTo(mx(RING_X_W),mz(z)); mmCtx.lineTo(mx(RING_X_E),mz(z)); mmCtx.stroke();
   });
   XS.forEach(x=>{
     mmCtx.strokeStyle='#555566'; mmCtx.lineWidth=5;
-    mmCtx.beginPath(); mmCtx.moveTo(mx(x),mz(ZS[0]+EXT)); mmCtx.lineTo(mx(x),mz(ZS[2]-EXT)); mmCtx.stroke();
+    mmCtx.beginPath(); mmCtx.moveTo(mx(x),mz(RING_Z_N)); mmCtx.lineTo(mx(x),mz(RING_Z_S)); mmCtx.stroke();
   });
+  mmCtx.strokeStyle='#444455'; mmCtx.lineWidth=5;
+  [RING_Z_N,RING_Z_S].forEach(z=>{ mmCtx.beginPath(); mmCtx.moveTo(mx(RING_X_W),mz(z)); mmCtx.lineTo(mx(RING_X_E),mz(z)); mmCtx.stroke(); });
+  [RING_X_W,RING_X_E].forEach(x=>{ mmCtx.beginPath(); mmCtx.moveTo(mx(x),mz(RING_Z_N)); mmCtx.lineTo(mx(x),mz(RING_Z_S)); mmCtx.stroke(); });
   packages.forEach(p=>{ if(!p.collected){ mmCtx.fillStyle='#FFcc00'; mmCtx.fillRect(mx(p.x)-3,mz(p.z)-3,6,6); }});
   mmCtx.restore();
   mmCtx.save(); mmCtx.translate(cx,cy); mmCtx.fillStyle='#FC0';
@@ -1395,7 +1443,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.10 · 20.05.2026`;
+tsEl.textContent=`v2.11 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
