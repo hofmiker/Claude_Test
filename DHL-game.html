@@ -479,6 +479,129 @@ function barrierAt(cx,cz,rot){
 ZS.forEach(z=>{ barrierAt(XS[0]-EXT,z,Math.PI/2); barrierAt(XS[2]+EXT,z,Math.PI/2); });
 XS.forEach(x=>{ barrierAt(x,ZS[0]+EXT,0); barrierAt(x,ZS[2]-EXT,0); });
 
+// ── Highway extension (z=-100 boulevard continues into the distance) ────────
+// Road surface extends 900 units each side of city (fades into fog)
+const mHwy=new THREE.MeshLambertMaterial({color:0x3a3a42});
+const HWY_EXT=900;
+// Left extension: x = XS[0]-EXT to XS[0]-EXT-HWY_EXT
+box(HWY_EXT,0.06,RH*4,mHwy,XS[0]-EXT-HWY_EXT/2,0.032,-100);
+// Right extension: x = XS[2]+EXT to XS[2]+EXT+HWY_EXT
+box(HWY_EXT,0.06,RH*4,mHwy,XS[2]+EXT+HWY_EXT/2,0.032,-100);
+// Lane markings on extensions (dashed white every 12m)
+for(let bx=XS[0]-EXT-HWY_EXT;bx<XS[0]-EXT;bx+=12){
+  box(7,0.02,0.15,mWht,bx+3.5,0.09,-107); box(7,0.02,0.15,mWht,bx+3.5,0.09,-93);
+}
+for(let bx=XS[2]+EXT;bx<XS[2]+EXT+HWY_EXT;bx+=12){
+  box(7,0.02,0.15,mWht,bx+3.5,0.09,-107); box(7,0.02,0.15,mWht,bx+3.5,0.09,-93);
+}
+// Crash barriers (Leitplanken) on highway sides
+const mGuard=new THREE.MeshLambertMaterial({color:0xaaaaaa});
+[-RH*2-0.6,RH*2+0.6].forEach(zOff=>{
+  box(HWY_EXT,0.5,0.2,mGuard,XS[0]-EXT-HWY_EXT/2,0.35,-100+zOff);
+  box(HWY_EXT,0.5,0.2,mGuard,XS[2]+EXT+HWY_EXT/2,0.35,-100+zOff);
+});
+
+// ── Intersection corner fillets (round the 90° road corners) ────────────────
+XS.forEach(xs=>ZS.forEach(zs=>{
+  const rh=zs===ZS[1]?RH*2:RH;
+  [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>{
+    // Small cylinder at road corner gives visual rounding
+    const cx=xs+sx*RH, cz=zs+sz*rh;
+    const fm=new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,0.07,10),mRoad);
+    fm.position.set(cx,0.04,cz); scene.add(fm);
+  });
+}));
+
+// ── Hochbahn (elevated railway) — runs E-W at z=260, 8m high ─────────────────
+const mElevSteel=new THREE.MeshLambertMaterial({color:0x606068});
+const mElevBeam=new THREE.MeshLambertMaterial({color:0x505058});
+const mRailMat=new THREE.MeshLambertMaterial({color:0x444444});
+const RAIL_Z=262, RAIL_Y=8.5, RAIL_LEN=1400;
+// Continuous beam
+box(RAIL_LEN,0.6,2.8,mElevBeam,100,RAIL_Y,RAIL_Z);
+// Rails on top
+[-0.7,0.7].forEach(rx=>box(RAIL_LEN,0.12,0.18,mRailMat,100+rx,RAIL_Y+0.36,RAIL_Z));
+// Support pillars every 20m
+for(let px=-600;px<=800;px+=20){
+  box(0.6,RAIL_Y,0.6,mElevSteel,px,RAIL_Y/2,RAIL_Z-1.0);
+  box(0.6,RAIL_Y,0.6,mElevSteel,px,RAIL_Y/2,RAIL_Z+1.0);
+  // Cross-beam at top
+  box(0.6,0.4,2.6,mElevSteel,px,RAIL_Y-0.2,RAIL_Z);
+}
+// Safety barriers on rail sides
+[-1.6,1.6].forEach(rx=>box(RAIL_LEN,0.8,0.15,mElevSteel,100+rx,RAIL_Y+0.7,RAIL_Z));
+
+// Train — high-speed sleek model, runs along Hochbahn
+const trainGrp=new THREE.Group();
+const mTrainBody=new THREE.MeshLambertMaterial({color:0xffffff});
+const mTrainNose=new THREE.MeshLambertMaterial({color:0xddddee});
+const mTrainWin=new THREE.MeshLambertMaterial({color:0x8aaabb,transparent:true,opacity:0.8});
+const mTrainStripe=new THREE.MeshLambertMaterial({color:0x3366aa});
+// 5-car train
+for(let car=0;car<5;car++){
+  const cz=car*14-28; // center offsets
+  const cbody=new THREE.Mesh(new THREE.BoxGeometry(2.6,2.2,12),mTrainBody); cbody.position.set(0,1.3,cz); trainGrp.add(cbody);
+  const cstripe=new THREE.Mesh(new THREE.BoxGeometry(2.62,0.4,12),mTrainStripe); cstripe.position.set(0,0.8,cz); trainGrp.add(cstripe);
+  // Windows
+  for(let wi=-4;wi<=4;wi+=2){
+    const wL=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.5,1.2),mTrainWin); wL.position.set(-1.32,1.5,cz+wi); trainGrp.add(wL);
+    const wR=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.5,1.2),mTrainWin); wR.position.set(1.32,1.5,cz+wi); trainGrp.add(wR);
+  }
+}
+// Nose (front)
+const tnose=new THREE.Mesh(new THREE.BoxGeometry(2.6,2.2,6),mTrainNose); tnose.position.set(0,1.3,-34); trainGrp.add(tnose);
+trainGrp.position.set(-800,RAIL_Y+0.6,RAIL_Z);
+scene.add(trainGrp);
+let trainX=-800, trainActive=false, trainTimer=18000; // first train after 18s
+const TRAIN_SPD=0.38;
+
+// ── Residential area (Einfamiliensiedlung) — NE of park, x=120..200, z=20..80 ─
+function bldHouse(x,z,garageLeft){
+  const hw=6,hd=7;
+  for(const b of bldBoxes) if(Math.abs(x-b.x)<hw+b.hw+0.8&&Math.abs(z-b.z)<hd+b.hd+0.8) return;
+  bldBoxes.push({x,z,hw,hd}); collidables.push({x,z,hw,hd});
+  const wallCol=[0xf0e8d8,0xe8dcc8,0xf4eee0,0xe0d8c8][Math.floor(Math.random()*4)];
+  const mWall=new THREE.MeshLambertMaterial({color:wallCol});
+  const mRoof2=new THREE.MeshLambertMaterial({color:0xaa2222});
+  const mWin2=new THREE.MeshLambertMaterial({color:lighten(wallCol,0.3)});
+  const mDoor2=new THREE.MeshLambertMaterial({color:0x5a3010});
+  // Main box (2 floors)
+  const body=new THREE.Mesh(new THREE.BoxGeometry(hw*2,6,hd*2),mWall);
+  body.position.set(x,3,z); body.castShadow=true; scene.add(body);
+  // Gable roof (red)
+  const gH=3.5;
+  const gShape=new THREE.Shape();
+  gShape.moveTo(-hw,0); gShape.lineTo(hw,0); gShape.lineTo(0,gH); gShape.closePath();
+  const gGeo=new THREE.ExtrudeGeometry(gShape,{depth:hd*2,bevelEnabled:false});
+  const gMesh=new THREE.Mesh(gGeo,mRoof2); gMesh.position.set(x,6,z-hd); scene.add(gMesh);
+  // Windows (front)
+  [[-3,4.5],[3,4.5],[-3,1.5],[3,1.5]].forEach(([ox,oy])=>{
+    const w=new THREE.Mesh(new THREE.BoxGeometry(1.4,1.2,0.12),mWin2); w.position.set(x+ox,oy,z-hd-0.07); scene.add(w);
+  });
+  // Door
+  const dr=new THREE.Mesh(new THREE.BoxGeometry(1.2,2.2,0.12),mDoor2); dr.position.set(x,1.1,z-hd-0.07); scene.add(dr);
+  // Garage (side)
+  const gx=garageLeft?x-hw-2.5:x+hw+2.5;
+  const mGar=new THREE.MeshLambertMaterial({color:0xd0c8b8});
+  const gar=new THREE.Mesh(new THREE.BoxGeometry(4,3.2,5),mGar); gar.position.set(gx,1.6,z+0.5); scene.add(gar);
+  // Garage door
+  const gd=new THREE.Mesh(new THREE.BoxGeometry(3.2,2.4,0.1),mWin2); gd.position.set(gx,1.2,z+0.5-2.55); scene.add(gd);
+  // Driveway
+  const mDrv=new THREE.MeshLambertMaterial({color:0x888890});
+  const drv=new THREE.Mesh(new THREE.PlaneGeometry(4,10),mDrv); drv.rotation.x=-Math.PI/2;
+  drv.position.set(gx,0.05,z-hd-5); scene.add(drv);
+  // Hedge (around garden)
+  const mHedge=new THREE.MeshLambertMaterial({color:0x285a18});
+  [-hw-0.4,hw+0.4].forEach(ox=>{ const h=new THREE.Mesh(new THREE.BoxGeometry(0.6,1.4,hd*2+1),mHedge); h.position.set(x+ox,0.7,z+0.5); scene.add(h); });
+  const hf=new THREE.Mesh(new THREE.BoxGeometry(hw*2+1.4,1.4,0.6),mHedge); hf.position.set(x,0.7,z+hd+0.4); scene.add(hf);
+}
+// Place 5 houses in NE area (north of city, east of park)
+[[135,52,false],[160,52,true],[185,46,false],[148,70,true],[172,70,false]].forEach(([hx,hz,gl])=>bldHouse(hx,hz,gl));
+// Gravel/grass for the area
+const mResGrass=new THREE.MeshLambertMaterial({color:0x4a8c38});
+const resGrass=new THREE.Mesh(new THREE.PlaneGeometry(80,70),mResGrass);
+resGrass.rotation.x=-Math.PI/2; resGrass.position.set(162,0.02,52); scene.add(resGrass);
+
 // ── Packages ──────────────────────────────────────────────────────────────
 const mPkg=new THREE.MeshLambertMaterial({color:0xFFCC00});
 const mTapeR=new THREE.MeshLambertMaterial({color:0xcc2200});
@@ -938,7 +1061,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.0 · 20.05.2026`;
+tsEl.textContent=`v2.1 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -949,6 +1072,19 @@ function tick(now){
 
   tickBus(dt);
   clouds.forEach(c=>{c.g.position.x+=c.spd*dt; if(c.g.position.x>500)c.g.position.x=-500; else if(c.g.position.x<-500)c.g.position.x=500;});
+
+  // ── Hochbahn train ─────────────────────────────────────────────────────────
+  if(!trainActive){
+    trainTimer-=dt;
+    if(trainTimer<=0){
+      trainActive=true; trainX=-800;
+      trainGrp.position.set(trainX,RAIL_Y+0.6,RAIL_Z);
+    }
+  } else {
+    trainX+=TRAIN_SPD*dt;
+    trainGrp.position.x=trainX;
+    if(trainX>1000){ trainActive=false; trainTimer=20000+Math.random()*15000; }
+  }
 
   // ── Intro camera ─────────────────────────────────────────────────────────
   if(introPhase===0){
