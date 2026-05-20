@@ -15,9 +15,20 @@ canvas { display: block; }
 @media (max-width: 768px), (pointer: coarse) { #minimap { width: 104px; height: 104px; } }
 #pkgcnt { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 17px; font-weight: bold; text-shadow: 1px 1px 4px rgba(0,0,0,0.9); background: rgba(0,0,0,0.42); padding: 5px 18px; border-radius: 20px; }
 #hint { position: absolute; bottom: 58px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 13px; text-align: center; transition: opacity 1.5s; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
+#intro { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.5s; }
+#intro-panel { background: #ffcc00; border-radius: 18px; padding: 32px 52px; text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.45); }
+#intro-panel h1 { font-family: Arial, Helvetica, sans-serif; font-size: 38px; font-weight: bold; color: #222; letter-spacing: 1px; margin-bottom: 10px; }
+#intro-panel p  { font-family: Arial, Helvetica, sans-serif; font-size: 15px; color: #444; }
+@media (max-width: 480px) { #intro-panel h1 { font-size: 26px; } #intro-panel { padding: 24px 32px; } }
 </style>
 </head>
 <body>
+<div id="intro">
+  <div id="intro-panel">
+    <h1>DHL City Drive</h1>
+    <p>Press any Key</p>
+  </div>
+</div>
 <div id="hud">
   <div id="label">DHL City Drive</div>
   <div id="ts"></div>
@@ -275,7 +286,7 @@ function cafeDecor(cx,cz,entrZ){
     const pg=new THREE.Group(); pg.position.set(cx+side*2.0,0,cz-ez*3); scene.add(pg);
     const pot=new THREE.Mesh(new THREE.CylinderGeometry(0.17,0.13,0.36,6),mPotC); pot.position.set(0,0.18,0); pg.add(pot);
     const plant=new THREE.Mesh(new THREE.SphereGeometry(0.30,6,4),mCrn); plant.position.set(0,0.56,0); pg.add(plant);
-    movables.push({x:cx+side*2.0,z:cz+ez*5,hw:0.25,hd:0.25,group:pg,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
+    movables.push({x:cx+side*2.0,z:cz-ez*3,hw:0.25,hd:0.25,group:pg,vx:0,vz:0,isTree:false,falling:false,fallAngle:0,fallDir:0});
   });
 }
 cafeDecor(28,-10,+1); cafeDecor(78,-10,+1); cafeDecor(128,-10,+1);
@@ -302,7 +313,7 @@ function streetBin(x,z){
  [25,-48,Math.PI/2],[25,-155,Math.PI/2],[175,-48,-Math.PI/2],[175,-155,-Math.PI/2],
  [28,-72,0],[130,-72,0],[28,-140,Math.PI],[130,-140,Math.PI]].forEach(([x,z,r])=>dumpster(x,z,r));
 // Straßenmülleimer am Gehweg
-[[10,10],[35,10],[65,10],[95,10],[135,10],[165,10],[195,10],
+[[10,10],[35,10],[65,10],[88,10],[135,10],[165,10],[188,10],
  [-9.5,-30],[-9.5,-75],[-9.5,-125],[-9.5,-170],
  [209.5,-30],[209.5,-75],[209.5,-125],[209.5,-170],
  [30,-9.5],[70,-9.5],[130,-9.5],[170,-9.5]].forEach(([x,z])=>streetBin(x,z));
@@ -645,25 +656,31 @@ function tickBus(dt){
       }
     }
   }
-  // Bus knocks movables
-  const bfx2=Math.sin(busAng), bfz2=Math.cos(busAng);
-  for(const mv of movables){
-    if(mv.stage===2) continue;
-    if(Math.abs(busX-mv.x)<BUS_HW+mv.hw&&Math.abs(busZ-mv.z)<BUS_HD+mv.hd){
-      mv.vx=bfx2*0.12; mv.vz=bfz2*0.12;
-      if(mv.isTree&&!mv.stage){ mv.stage=1; mv.fallDir=Math.atan2(bfx2,bfz2); mv.fallTarget=Math.PI/6; }
-    }
-  }
   busGrp.position.set(busX,0,busZ); busGrp.rotation.y=busAng;
+}
+
+// ── Intro state ───────────────────────────────────────────────────────────
+let introPhase=0; // 0=title, 1=swooping, 2=playing
+let introT=0, introAngle=0;
+const introStartCamPos=new THREE.Vector3();
+const introEl=document.getElementById('intro');
+
+function startSwoop(){
+  if(introPhase!==0) return;
+  introPhase=1; introT=0;
+  introStartCamPos.copy(camera.position);
+  introEl.style.opacity='0';
+  setTimeout(()=>{ introEl.style.display='none'; },600);
 }
 
 // ── Input: swipe + keyboard fallback ─────────────────────────────────────
 const K={};
-addEventListener('keydown',e=>{K[e.code]=true;}); addEventListener('keyup',e=>{K[e.code]=false;});
+addEventListener('keydown',e=>{ K[e.code]=true; startSwoop(); });
+addEventListener('keyup',e=>{K[e.code]=false;});
 
 let touch={active:false,x0:0,y0:0,dx:0,dy:0};
 const TDEAD=20;
-document.addEventListener('touchstart',e=>{const t=e.changedTouches[0]; touch={active:true,x0:t.clientX,y0:t.clientY,dx:0,dy:0}; e.preventDefault();},{passive:false});
+document.addEventListener('touchstart',e=>{const t=e.changedTouches[0]; touch={active:true,x0:t.clientX,y0:t.clientY,dx:0,dy:0}; startSwoop(); e.preventDefault();},{passive:false});
 document.addEventListener('touchmove',e=>{if(!touch.active)return; const t=e.changedTouches[0]; touch.dx=t.clientX-touch.x0; touch.dy=t.clientY-touch.y0; e.preventDefault();},{passive:false});
 document.addEventListener('touchend',()=>{touch.active=false; touch.dx=0; touch.dy=0;});
 
@@ -700,7 +717,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v1.5 · 20.05.2026`;
+tsEl.textContent=`v1.6 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -711,6 +728,30 @@ function tick(now){
 
   tickBus(dt);
   clouds.forEach(c=>{c.g.position.x+=c.spd*dt; if(c.g.position.x>500)c.g.position.x=-500; else if(c.g.position.x<-500)c.g.position.x=500;});
+
+  // ── Intro camera ─────────────────────────────────────────────────────────
+  if(introPhase===0){
+    introAngle+=dt*0.00022;
+    camera.position.set(100+Math.sin(introAngle)*150, 210, -100+Math.cos(introAngle)*150);
+    camera.lookAt(100, 0, -100);
+    drawMM(vanX,vanZ,vanAngle);
+    renderer.render(scene,camera);
+    return;
+  }
+  if(introPhase===1){
+    introT+=dt;
+    const t=Math.min(introT/3000,1);
+    const ease=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    const fx0=Math.sin(vanAngle), fz0=Math.cos(vanAngle);
+    const tp=new THREE.Vector3(vanX-fx0*9,4.2,vanZ-fz0*9);
+    camera.position.lerpVectors(introStartCamPos,tp,ease);
+    const lookTgt=new THREE.Vector3(100,0,-100).lerp(new THREE.Vector3(vanX+fx0*4,1.2,vanZ+fz0*4),ease);
+    camera.lookAt(lookTgt);
+    if(t>=1) introPhase=2;
+    drawMM(vanX,vanZ,vanAngle);
+    renderer.render(scene,camera);
+    return;
+  }
 
   const gas=K['ArrowUp']||K['KeyW']   ||(touch.active&&touch.dy<-TDEAD);
   const brk=K['ArrowDown']||K['KeyS'] ||(touch.active&&touch.dy>TDEAD);
