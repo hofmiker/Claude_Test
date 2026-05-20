@@ -153,7 +153,7 @@ function winFace(cx,cz,fw,fd,axis,side,floors,flH,sH,style,isEnt,winMat){
     }
   }
   if(isEnt){
-    const ew=Math.min(fw*0.35,5), eh=sH>0?sH*0.75:Math.min(flH*0.82,3.5), ey=sH>0?sH*0.5:eh/2;
+    const ew=Math.min(fw*0.35,5), eh=sH>0?sH*0.75:Math.min(flH*0.82,3.5), ey=eh/2;
     const fp=side*(fd+ext*1.5), ext3=ext*3;
     const mFrm=new THREE.MeshLambertMaterial({color:0x999999});
     const fgeo=axis==='z'?new THREE.BoxGeometry(ew+0.28,eh+0.22,ext3):new THREE.BoxGeometry(ext3,eh+0.22,ew+0.28);
@@ -171,6 +171,13 @@ function winFace(cx,cz,fw,fd,axis,side,floors,flH,sH,style,isEnt,winMat){
   }
 }
 
+// ── Building Types ────────────────────────────────────────────────────────
+// TypeA: bld(shop=false) — Modern glass building
+// TypeB: bld(shop=true)  — Commercial with shopfront
+// TypeC: bldTraditional  — 5-story stucco + NYC fire escape
+// TypeD: bldRowhouse     — 4-story rowhouse with gable (Giebel)
+const mGlass=new THREE.MeshLambertMaterial({color:0x8ab8cc,transparent:true,opacity:0.30,side:THREE.DoubleSide});
+
 function bld(x,z,w,d,h,shop,eFz,eFx) {
   const hw=w/2, hd=d/2;
   for(const b of bldBoxes) if(Math.abs(x-b.x)<hw+b.hw+0.4 && Math.abs(z-b.z)<hd+b.hd+0.4) return;
@@ -179,8 +186,6 @@ function bld(x,z,w,d,h,shop,eFz,eFx) {
   const style=bi%3;
   const facadeCol=bPal[bi%bPal.length]; bi++;
   const bmat=new THREE.MeshLambertMaterial({color:facadeCol});
-  const winCol=lighten(facadeCol,0.30);
-  const winMat=new THREE.MeshLambertMaterial({color:winCol,emissive:lighten(winCol,0.06)});
   const sH=shop?3.8:0, bH=h-sH;
   const body=new THREE.Mesh(new THREE.BoxGeometry(w,bH,d),bmat);
   body.position.set(x,sH+bH/2,z); body.castShadow=true; body.receiveShadow=true; scene.add(body);
@@ -189,17 +194,120 @@ function bld(x,z,w,d,h,shop,eFz,eFx) {
     const wr=new THREE.Mesh(new THREE.BoxGeometry(w+0.1,0.28,d+0.1),mFlrS);
     wr.position.set(x,sH+r*flH,z); scene.add(wr);
   }
-  winFace(x,z,w,d/2,'z',-1,floors,flH,sH,style,eFz===-1,winMat);
-  winFace(x,z,w,d/2,'z',+1,floors,flH,sH,style,eFz===+1,winMat);
-  winFace(x,z,d,w/2,'x',-1,floors,flH,sH,style,eFx===-1,winMat);
-  winFace(x,z,d,w/2,'x',+1,floors,flH,sH,style,eFx===+1,winMat);
+  winFace(x,z,w,d/2,'z',-1,floors,flH,sH,style,eFz===-1,mGlass);
+  winFace(x,z,w,d/2,'z',+1,floors,flH,sH,style,eFz===+1,mGlass);
+  winFace(x,z,d,w/2,'x',-1,floors,flH,sH,style,eFx===-1,mGlass);
+  winFace(x,z,d,w/2,'x',+1,floors,flH,sH,style,eFx===+1,mGlass);
   if(shop){
     const shopCol=sPal[si%sPal.length]; si++;
     const smat=new THREE.MeshLambertMaterial({color:shopCol});
     const sf=new THREE.Mesh(new THREE.BoxGeometry(w,sH,d),smat); sf.position.set(x,sH/2,z); sf.castShadow=true; sf.receiveShadow=true; scene.add(sf);
-    const shopWinMat=new THREE.MeshLambertMaterial({color:lighten(shopCol,0.30)});
-    const gwin=new THREE.Mesh(new THREE.BoxGeometry(w*0.62,sH*0.52,d+0.08),shopWinMat);
+    const gwin=new THREE.Mesh(new THREE.BoxGeometry(w*0.62,sH*0.52,d+0.08),mGlass);
     gwin.position.set(x,sH*0.46,z); scene.add(gwin);
+  }
+}
+
+// TypeC — 5-story traditional stucco building with NYC fire escape
+const stuccoPal=[0xe8dbc8,0xddd0b8,0xe2d5be,0xcdc1af,0xd5c9b8];
+const mFireEscape=new THREE.MeshLambertMaterial({color:0x1a1a1a});
+function bldTraditional(x,z,w,d,eFz,eFx){
+  const hw=w/2, hd=d/2;
+  for(const b of bldBoxes) if(Math.abs(x-b.x)<hw+b.hw+0.4&&Math.abs(z-b.z)<hd+b.hd+0.4) return;
+  bldBoxes.push({x,z,hw,hd}); collidables.push({x,z,hw,hd});
+  const floors=5, flH=3.6, bH=floors*flH;
+  const facadeCol=stuccoPal[bi%stuccoPal.length]; bi++;
+  const bmat=new THREE.MeshLambertMaterial({color:facadeCol});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(w,bH,d),bmat);
+  body.position.set(x,bH/2,z); body.castShadow=true; scene.add(body);
+  // Stucco floor ledges + top cornice
+  const mLed=new THREE.MeshLambertMaterial({color:0xf2ebe0});
+  for(let fl=1;fl<=floors;fl++){
+    const h2=fl===floors?0.35:0.2;
+    const led=new THREE.Mesh(new THREE.BoxGeometry(w+0.3,h2,d+0.3),mLed);
+    led.position.set(x,fl*flH-(fl===floors?0:0.1),z); scene.add(led);
+  }
+  // Windows (small, multiple per floor)
+  winFace(x,z,w,d/2,'z',-1,floors,flH,0,1,eFz===-1,mGlass);
+  winFace(x,z,w,d/2,'z',+1,floors,flH,0,1,eFz===+1,mGlass);
+  winFace(x,z,d,w/2,'x',-1,floors,flH,0,1,eFx===-1,mGlass);
+  winFace(x,z,d,w/2,'x',+1,floors,flH,0,1,eFx===+1,mGlass);
+  // NYC fire escape on the side OPPOSITE to entrance
+  const feOnX=(eFz!==0); // if entrance on Z face → fire escape on X face
+  const feSide= feOnX ? (eFx||1)*-1 : (eFz||1)*-1;
+  for(let fl=1;fl<floors;fl++){
+    const fy=fl*flH;
+    if(feOnX){
+      const pl=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,Math.min(d*0.6,3.5)),mFireEscape);
+      pl.position.set(x+feSide*(hw+0.05),fy,z); scene.add(pl);
+      [-1,0,1].forEach(p=>{
+        const post=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.85,0.06),mFireEscape);
+        post.position.set(x+feSide*(hw+0.05),fy+0.42,z+p*0.7); scene.add(post);
+      });
+      if(fl<floors-1){
+        const lad=new THREE.Mesh(new THREE.BoxGeometry(0.06,flH*0.8,0.06),mFireEscape);
+        lad.rotation.z=feSide*0.38; lad.position.set(x+feSide*(hw+0.12),fy+flH*0.38,z-0.9); scene.add(lad);
+      }
+    } else {
+      const pl=new THREE.Mesh(new THREE.BoxGeometry(Math.min(w*0.6,3.5),0.1,0.1),mFireEscape);
+      pl.position.set(x,fy,z+feSide*(hd+0.05)); scene.add(pl);
+      [-1,0,1].forEach(p=>{
+        const post=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.85,0.06),mFireEscape);
+        post.position.set(x+p*0.7,fy+0.42,z+feSide*(hd+0.05)); scene.add(post);
+      });
+      if(fl<floors-1){
+        const lad=new THREE.Mesh(new THREE.BoxGeometry(0.06,flH*0.8,0.06),mFireEscape);
+        lad.rotation.x=feSide*-0.38; lad.position.set(x-0.9,fy+flH*0.38,z+feSide*(hd+0.12)); scene.add(lad);
+      }
+    }
+  }
+  // Drop ladder to ground from level 1
+  {
+    const drop=new THREE.Mesh(new THREE.BoxGeometry(0.06,flH,0.06),mFireEscape);
+    if(feOnX) drop.position.set(x+feSide*(hw+0.05),flH/2,z);
+    else drop.position.set(x,flH/2,z+feSide*(hd+0.05));
+    scene.add(drop);
+  }
+}
+
+// TypeD — 4-story rowhouse with gable (Giebel), placed in rows
+const brickPal=[0x8b5a3a,0x9a6a45,0x7a4a2a,0xa06040,0x8c5c40];
+const mRoofTile=new THREE.MeshLambertMaterial({color:0x7a2020});
+function bldRowhouse(x,z,w,d,eFz,eFx){
+  const hw=w/2, hd=d/2;
+  for(const b of bldBoxes) if(Math.abs(x-b.x)<hw+b.hw+0.4&&Math.abs(z-b.z)<hd+b.hd+0.4) return;
+  bldBoxes.push({x,z,hw,hd}); collidables.push({x,z,hw,hd});
+  const floors=4, flH=3.2, bH=floors*flH;
+  const facadeCol=brickPal[bi%brickPal.length]; bi++;
+  const bmat=new THREE.MeshLambertMaterial({color:facadeCol});
+  const body=new THREE.Mesh(new THREE.BoxGeometry(w,bH,d),bmat);
+  body.position.set(x,bH/2,z); body.castShadow=true; scene.add(body);
+  // Thin window ledges
+  const mWLed=new THREE.MeshLambertMaterial({color:0xd0c0a8});
+  for(let fl=1;fl<floors;fl++){
+    const l=new THREE.Mesh(new THREE.BoxGeometry(w+0.12,0.14,d+0.12),mWLed);
+    l.position.set(x,fl*flH,z); scene.add(l);
+  }
+  // Gable (Giebel) — triangular prism on top via ExtrudeGeometry
+  const gH=hw*0.7; // gable height relative to half-width
+  const gShape=new THREE.Shape();
+  gShape.moveTo(-hw,0); gShape.lineTo(hw,0); gShape.lineTo(0,gH); gShape.closePath();
+  const gGeo=new THREE.ExtrudeGeometry(gShape,{depth:d,bevelEnabled:false});
+  const gMesh=new THREE.Mesh(gGeo,mRoofTile);
+  // Shape is in XY, extruded +Z, so position: x=x, y=bH, z=z-hd
+  gMesh.position.set(x,bH,z-hd); scene.add(gMesh);
+  // Windows (double per floor on entrance face, single on sides)
+  winFace(x,z,w,d/2,'z',-1,floors,flH,0,1,eFz===-1,mGlass);
+  winFace(x,z,w,d/2,'z',+1,floors,flH,0,1,eFz===+1,mGlass);
+  winFace(x,z,d,w/2,'x',-1,floors,flH,0,2,eFx===-1,mGlass);
+  winFace(x,z,d,w/2,'x',+1,floors,flH,0,2,eFx===+1,mGlass);
+  // Entry door (wood-colored)
+  const mDoor=new THREE.MeshLambertMaterial({color:0x5a3a1a});
+  if(eFz!==0){
+    const dr=new THREE.Mesh(new THREE.BoxGeometry(1.4,2.5,0.15),mDoor);
+    dr.position.set(x-hw*0.3,1.25,z+eFz*(hd+0.08)); scene.add(dr);
+  } else if(eFx!==0){
+    const dr=new THREE.Mesh(new THREE.BoxGeometry(0.15,2.5,1.4),mDoor);
+    dr.position.set(x+eFx*(hw+0.08),1.25,z-hd*0.3); scene.add(dr);
   }
 }
 // eFz/eFx = entrance face direction (−s puts entrance toward road)
@@ -219,13 +327,17 @@ ewB4(-100,-1,130,18,14,54,false);ewB4(-100,-1,155,22,16,42,true);ewB4(-100,-1,17
 // Z=-200 north
 ewB(-200,+1,28,20,14,46,true); ewB(-200,+1,55,18,16,62,false);ewB(-200,+1,78,22,12,40,true);
 ewB(-200,+1,130,22,14,56,false);ewB(-200,+1,155,16,16,44,true);ewB(-200,+1,178,20,12,68,false);
-// Z=-200 south outer
-ewB(-200,-1,50,40,14,38,false); ewB(-200,-1,150,38,14,44,true);
+// Z=-200 south outer — TypeC + TypeD row
+bldTraditional(50,-200-GAP-8,26,14,-1,0);
+[30,42,54,66].forEach(bx=>bldRowhouse(bx,-200-GAP-7,10,13,-1,0));
+bldTraditional(150,-200-GAP-8,24,14,-1,0);
+[132,144,156,168].forEach(bx=>bldRowhouse(bx,-200-GAP-7,10,13,-1,0));
 // X=0 east
 nsB(0,+1,-28,20,14,52,false);nsB(0,+1,-55,16,16,70,true); nsB(0,+1,-70,20,12,38,false);
 nsB(0,+1,-134,18,14,48,true);nsB(0,+1,-155,22,16,64,false);nsB(0,+1,-178,16,12,42,true);
-// X=0 west outer
-nsB(0,-1,-50,30,16,50,false); nsB(0,-1,-150,26,14,58,true);
+// X=0 west outer — TypeC
+bldTraditional(0-GAP-8,-50,14,26,0,-1);
+bldTraditional(0-GAP-8,-150,14,24,0,-1);
 // X=100 east
 nsB(100,+1,-28,20,14,54,true); nsB(100,+1,-55,18,16,72,false);nsB(100,+1,-70,20,12,40,true);
 nsB(100,+1,-134,22,14,50,false);nsB(100,+1,-155,16,16,66,true);nsB(100,+1,-178,18,12,46,false);
@@ -235,8 +347,9 @@ nsB(100,-1,-134,18,14,46,true);nsB(100,-1,-155,20,16,62,false);nsB(100,-1,-178,2
 // X=200 west
 nsB(200,-1,-28,20,14,56,false);nsB(200,-1,-55,16,16,74,true); nsB(200,-1,-68,22,12,42,false);
 nsB(200,-1,-134,22,14,52,true);nsB(200,-1,-155,18,16,68,false);nsB(200,-1,-178,16,12,46,true);
-// X=200 east outer
-nsB(200,+1,-50,30,16,54,true); nsB(200,+1,-150,26,14,46,false);
+// X=200 east outer — TypeC traditional
+bldTraditional(200+GAP+8,-50,14,26,0,+1);
+bldTraditional(200+GAP+8,-150,14,24,0,+1);
 // Corner outer
 bld(-32,46,22,22,36,false); bld(232,46,24,22,44,true);
 bld(-32,-258,22,22,52,true); bld(232,-258,22,22,42,false);
@@ -717,7 +830,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v1.6 · 20.05.2026`;
+tsEl.textContent=`v1.7 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
