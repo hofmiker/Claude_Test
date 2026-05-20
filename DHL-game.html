@@ -735,16 +735,27 @@ function tick(now){
 
   const fx=Math.sin(vanAngle), fz=Math.cos(vanAngle);
   const nx=vanX+fx*spd*dt, nz=vanZ+fz*spd*dt;
-  // Bus acts as collidable for van
-  const busColl=[{x:busX,z:busZ,hw:BUS_HW,hd:BUS_HD}];
+  // Bus collision — oriented box (transform van candidate pos into bus local space)
+  let busHitX=false, busHitZ=false;
+  {
+    const bcos=Math.cos(-busAng), bsin=Math.sin(-busAng);
+    const ax=nx-busX, az=vanZ-busZ;
+    const lx=ax*bcos-az*bsin, lz=ax*bsin+az*bcos;
+    if(Math.abs(lx)<VHW+BUS_HW && Math.abs(lz)<VHD+BUS_HD) busHitX=true;
+    const bx=vanX-busX, bz=nz-busZ;
+    const lx2=bx*bcos-bz*bsin, lz2=bx*bsin+bz*bcos;
+    if(Math.abs(lx2)<VHW+BUS_HW && Math.abs(lz2)<VHD+BUS_HD) busHitZ=true;
+  }
   let hitX=false, hitZ=false, tlHit=null;
-  for(const c of [...collidables,...busColl]){
+  for(const c of collidables){
     const txHit=Math.abs(nx-c.x)<VHW+c.hw && Math.abs(vanZ-c.z)<VHD+c.hd;
     const tzHit=Math.abs(vanX-c.x)<VHW+c.hw && Math.abs(nz-c.z)<VHD+c.hd;
     if(txHit) hitX=true;
     if(tzHit) hitZ=true;
     if((txHit||tzHit) && c.tlIdx!==undefined && !tlHit) tlHit=c;
   }
+  if(busHitX) hitX=true;
+  if(busHitZ) hitZ=true;
   if(tlHit){
     const idx=tlHit.tlIdx, tl=tlPoles[idx];
     if(tlHitCount[idx]===0){
@@ -752,6 +763,9 @@ function tick(now){
       tl.rotation.z=-(fx*0.45); tl.rotation.x=(fz*0.45);
       if(!tlDark[idx]){ tlDark[idx]=true; tlAll[idx].forEach(m=>m.material.emissive.set(0)); spawnSparks(tl.position.x,5.5,tl.position.z); }
       playCrashThrottled(0.7);
+      // Remove from collidables so knocked-over TL can be passed through
+      const cIdx=collidables.findIndex(c=>c.tlIdx===idx);
+      if(cIdx!==-1) collidables.splice(cIdx,1);
     } else if(tlHitCount[idx]===1){
       tlHitCount[idx]=2;
       tl.rotation.z=-(fx*1.57); tl.rotation.x=(fz*1.57);
