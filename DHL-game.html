@@ -595,6 +595,50 @@ const clouds=[];
   clouds.push({g,spd:(0.3+Math.random()*0.5)*0.004*(Math.random()<0.5?1:-1)});
 });
 
+// ── Environment: hills, river, scattered trees ────────────────────────────
+const mHill=new THREE.MeshLambertMaterial({color:0x4a8c38});
+const mRiver=new THREE.MeshLambertMaterial({color:0x2266aa,transparent:true,opacity:0.82});
+const mRiverBank=new THREE.MeshLambertMaterial({color:0xb8a878});
+const mEnvTree=new THREE.MeshLambertMaterial({color:0x2a6620});
+const mEnvTrk=new THREE.MeshLambertMaterial({color:0x4a3010});
+
+// Hills around the city perimeter (smooth ellipsoid bumps)
+[[-310,80,-100,90,28,70],[-310,-280,-100,90,24,65],[310,80,-100,90,30,72],[310,-280,-100,90,26,68],
+ [100,80,260,140,22,55],[100,-380,-100,130,20,50]].forEach(([cx,,cz,rw,h,rd])=>{
+  const geo=new THREE.SphereGeometry(1,10,10);
+  const m=new THREE.Mesh(geo,mHill);
+  m.scale.set(rw,h,rd); m.position.set(cx,0,cz); scene.add(m);
+});
+
+// River — flows west-to-east north of city (z≈180)
+const riverW=28, riverZ=180;
+box(700,0.3,riverW,mRiver,100,0.15,riverZ);
+box(700,0.5,4,mRiverBank,100,0.05,riverZ-riverW/2-2);
+box(700,0.5,4,mRiverBank,100,0.05,riverZ+riverW/2+2);
+// Bridge over river (at x=100)
+const mBridge=new THREE.MeshLambertMaterial({color:0x888880});
+box(18,0.8,riverW+4,mBridge,100,0.5,riverZ);
+[-3.5,3.5].forEach(ox=>{
+  box(1.2,2.5,riverW+4,mBridge,100+ox,1.6,riverZ);
+});
+
+// Scattered trees in outer areas
+const outerTreePositions=[
+  [-200,80],[-160,120],[-240,180],[-180,60],[-220,140],[-190,160],
+  [330,90],[360,130],[310,50],[380,60],[340,170],[370,110],
+  [-200,-280],[-160,-320],[-240,-250],[180,-310],[220,-280],[160,-290],
+  [100,240],[60,210],[140,220],[80,260],[120,200],[50,230],
+  [100,-340],[60,-310],[140,-330],[-80,-100],[-100,-50],[-90,-150],
+  [320,-100],[340,-50],[310,-150],[330,-180],[350,-130],
+];
+outerTreePositions.forEach(([px,pz])=>{
+  const r=3+Math.random()*4;
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.5,3.5+Math.random()*2,6),mEnvTrk);
+  tr.position.set(px,1.75+Math.random(),pz); scene.add(tr);
+  const cr=new THREE.Mesh(new THREE.SphereGeometry(r,6,5),mEnvTree);
+  cr.position.set(px,3.5+r*0.7+Math.random()*2,pz); scene.add(cr);
+});
+
 // ── DHL Van ───────────────────────────────────────────────────────────────
 const mY=new THREE.MeshLambertMaterial({color:0xFFCC00});
 const mW=new THREE.MeshLambertMaterial({color:0xdddddd});
@@ -830,7 +874,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v1.7 · 20.05.2026`;
+tsEl.textContent=`v1.8 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
