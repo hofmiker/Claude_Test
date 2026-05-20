@@ -571,21 +571,23 @@ function dumpster(x,z,rot){
   const lid=new THREE.Mesh(new THREE.BoxGeometry(2.3,0.1,1.05),mBinM); lid.position.y=1.1; g.add(lid);
   movables.push({x,z,hw:1.2,hd:0.6,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0,hitCool:0});
 }
-function streetBin(x,z){
-  const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
-  const b=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.13,0.72,6),mBinM); b.position.set(0,0.36,0); g.add(b);
-  const t=new THREE.Mesh(new THREE.CylinderGeometry(0.19,0.16,0.07,6),mBinM); t.position.set(0,0.755,0); g.add(t);
-  movables.push({x,z,hw:0.28,hd:0.28,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0,hitCool:0});
-}
-// Hinterhof-Container (hinter Gebäuden, weg vom Gehweg)
-[[30,-32,0],[82,-32,0],[160,-32,0],[30,-232,Math.PI],[150,-232,Math.PI],
- [25,-48,Math.PI/2],[25,-155,Math.PI/2],[175,-48,-Math.PI/2],[175,-155,-Math.PI/2],
- [28,-72,0],[130,-72,0],[28,-140,Math.PI],[130,-140,Math.PI]].forEach(([x,z,r])=>dumpster(x,z,r));
-// Straßenmülleimer am Gehweg
-[[10,10],[35,10],[65,10],[88,10],[135,10],[165,10],[188,10],
- [-9.5,-30],[-9.5,-75],[-9.5,-125],[-9.5,-170],
- [209.5,-30],[209.5,-75],[209.5,-125],[209.5,-170],
- [30,-9.5],[70,-9.5],[130,-9.5],[170,-9.5]].forEach(([x,z])=>streetBin(x,z));
+// Courtyard containers only — no street bins
+[[52,-38,0],[140,-38,0],[52,-168,Math.PI],[140,-168,Math.PI],
+ [18,-82,Math.PI/2],[18,-118,Math.PI/2],[182,-82,-Math.PI/2],[182,-118,-Math.PI/2]]
+  .forEach(([x,z,r])=>dumpster(x,z,r));
+// Courtyard details: benches and small trees
+const mCyBench=new THREE.MeshLambertMaterial({color:0x8b5e14});
+const mCyTree=new THREE.MeshLambertMaterial({color:0x2a6220});
+const mCyTrk=new THREE.MeshLambertMaterial({color:0x5a3812});
+[[52,-42],[140,-42],[52,-162],[140,-162]].forEach(([bx,bz])=>{
+  const g=new THREE.Group(); g.position.set(bx,0,bz); scene.add(g);
+  const seat=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.2,0.7),mCyBench); seat.position.y=0.55; g.add(seat);
+  [-1.0,1.0].forEach(lx=>{const leg=new THREE.Mesh(new THREE.BoxGeometry(0.2,0.55,0.7),mCyBench); leg.position.set(lx,0.27,0); g.add(leg);});
+});
+[[18,-88],[182,-88],[18,-112],[182,-112]].forEach(([tx,tz])=>{
+  const tr=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.28,2.4,6),mCyTrk); tr.position.set(tx,1.2,tz); scene.add(tr);
+  const cr=new THREE.Mesh(new THREE.SphereGeometry(1.8,7,5),mCyTree); cr.position.set(tx,2.8,tz); scene.add(cr);
+});
 
 // ── Construction barriers at road ends ───────────────────────────────────
 const mBarO=new THREE.MeshLambertMaterial({color:0xff8800});
@@ -642,26 +644,11 @@ XS.forEach(xs=>ZS.forEach(zs=>{
   });
 }));
 
-// ── Hochbahn (elevated railway) — runs E-W at z=260, 8m high ─────────────────
-const mElevSteel=new THREE.MeshLambertMaterial({color:0x606068});
-const mElevBeam=new THREE.MeshLambertMaterial({color:0x505058});
-const mRailMat=new THREE.MeshLambertMaterial({color:0x444444});
-const RAIL_Z=262, RAIL_Y=8.5, RAIL_LEN=1400;
-// Continuous beam
-box(RAIL_LEN,0.6,2.8,mElevBeam,100,RAIL_Y,RAIL_Z);
-// Rails on top
-[-0.7,0.7].forEach(rx=>box(RAIL_LEN,0.12,0.18,mRailMat,100+rx,RAIL_Y+0.36,RAIL_Z));
-// Support pillars every 20m
-for(let px=-600;px<=800;px+=20){
-  box(0.6,RAIL_Y,0.6,mElevSteel,px,RAIL_Y/2,RAIL_Z-1.0);
-  box(0.6,RAIL_Y,0.6,mElevSteel,px,RAIL_Y/2,RAIL_Z+1.0);
-  // Cross-beam at top
-  box(0.6,0.4,2.6,mElevSteel,px,RAIL_Y-0.2,RAIL_Z);
-}
-// Safety barriers on rail sides
-[-1.6,1.6].forEach(rx=>box(RAIL_LEN,0.8,0.15,mElevSteel,100+rx,RAIL_Y+0.7,RAIL_Z));
+// ── Rail constants (diagonal elevated rail) ───────────────────────────────────
+const RAIL_ANG=0.22, RAIL_Y2=8.5, RAIL_LEN2=1200, RAIL_CX=245;
+const RAIL_CZ0=44; // world-Z centre of rail group (-100 + RAIL_LEN2*0.12)
 
-// Train — high-speed sleek model, runs along Hochbahn
+// Train — high-speed sleek model, runs along diagonal elevated rail
 const trainGrp=new THREE.Group();
 const mTrainBody=new THREE.MeshLambertMaterial({color:0xffffff});
 const mTrainNose=new THREE.MeshLambertMaterial({color:0xddddee});
@@ -680,9 +667,10 @@ for(let car=0;car<5;car++){
 }
 // Nose (front)
 const tnose=new THREE.Mesh(new THREE.BoxGeometry(2.6,2.2,6),mTrainNose); tnose.position.set(0,1.3,-34); trainGrp.add(tnose);
-trainGrp.position.set(-800,RAIL_Y+0.6,RAIL_Z);
+trainGrp.rotation.y=RAIL_ANG;
+trainGrp.position.set(RAIL_CX+Math.sin(RAIL_ANG)*(-700),RAIL_Y2+0.6,RAIL_CZ0+Math.cos(RAIL_ANG)*(-700));
 scene.add(trainGrp);
-let trainX=-800, trainActive=false, trainTimer=18000; // first train after 18s
+let trainT=-700, trainActive=false, trainTimer=18000; // first train after 18s
 const TRAIN_SPD=0.19;
 
 // ── Residential area (Einfamiliensiedlung) — NE of park, x=120..200, z=20..80 ─
@@ -1065,16 +1053,24 @@ const mEnvTrk=new THREE.MeshBasicMaterial({color:0x5a3812});
   m.scale.set(rw,h,rd); m.position.set(cx,0,cz); scene.add(m);
 });
 
-// River — flows west-to-east north of city (z≈180)
-const riverW=28, riverZ=180;
-box(700,0.3,riverW,mRiver,100,0.15,riverZ);
-box(700,0.5,4,mRiverBank,100,0.05,riverZ-riverW/2-2);
-box(700,0.5,4,mRiverBank,100,0.05,riverZ+riverW/2+2);
-// Bridge over river (at x=100)
+// River — diagonal, closer to city (NW→SE), crosses at z≈104
+const riverW=22;
+{
+  const riverCX=60, riverCZ=104, riverAngle=-0.07;
+  const rl=new THREE.Mesh(new THREE.PlaneGeometry(700,riverW),mRiver);
+  rl.rotation.x=-Math.PI/2; rl.rotation.z=riverAngle;
+  rl.position.set(riverCX,0.18,riverCZ); scene.add(rl);
+  [-riverW/2-2,riverW/2+2].forEach(off=>{
+    const rb=new THREE.Mesh(new THREE.PlaneGeometry(700,5),mRiverBank);
+    rb.rotation.x=-Math.PI/2; rb.rotation.z=riverAngle;
+    rb.position.set(riverCX,0.06,riverCZ+off); scene.add(rb);
+  });
+}
+// Road bridges over river at x=0, x=100, x=200 (river at z≈102-104)
 const mBridge=new THREE.MeshLambertMaterial({color:0x888880});
-box(18,0.8,riverW+4,mBridge,100,0.5,riverZ);
-[-3.5,3.5].forEach(ox=>{
-  box(1.2,2.5,riverW+4,mBridge,100+ox,1.6,riverZ);
+[[0,103,2.5,0.8],[100,102,16,0.9],[200,100,2.5,0.8]].forEach(([bx,bz,bw,bh])=>{
+  box(bw,bh,riverW+6,mBridge,bx,bh/2,bz);
+  [-bw*0.35,bw*0.35].forEach(ox=>box(Math.max(0.5,bw*0.22),1.8,riverW+6,mBridge,bx+ox,1.2,bz));
 });
 
 // Scattered trees in outer areas
@@ -1093,6 +1089,35 @@ outerTreePositions.forEach(([px,pz])=>{
   const cr=new THREE.Mesh(new THREE.SphereGeometry(r,6,5),mEnvTree);
   cr.position.set(px,3.5+r*0.7+Math.random()*2,pz); scene.add(cr);
 });
+
+// ── Diagonal elevated rail (uses RAIL_ANG / RAIL_Y2 / RAIL_LEN2 / RAIL_CX / RAIL_CZ0) ─
+{
+  const mRS2=new THREE.MeshLambertMaterial({color:0x606068});
+  const mRB2=new THREE.MeshLambertMaterial({color:0x505058});
+  const mRR2=new THREE.MeshLambertMaterial({color:0x444444});
+  const railGrp=new THREE.Group();
+  const beam=new THREE.Mesh(new THREE.BoxGeometry(2.8,0.6,RAIL_LEN2),mRB2); railGrp.add(beam);
+  [-0.7,0.7].forEach(rx=>{
+    const rm=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.12,RAIL_LEN2),mRR2); rm.position.set(rx,0.36,0); railGrp.add(rm);
+  });
+  [-1.6,1.6].forEach(rx=>{
+    const bm=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.8,RAIL_LEN2),mRS2); bm.position.set(rx,0.7,0); railGrp.add(bm);
+  });
+  for(let pz=-RAIL_LEN2/2;pz<=RAIL_LEN2/2;pz+=20){
+    if(Math.abs(pz+100)<14||Math.abs(pz-100)<18) continue; // skip highway & river crossings
+    const p1=new THREE.Mesh(new THREE.BoxGeometry(0.55,RAIL_Y2,0.55),mRS2); p1.position.set(-1.0,-(RAIL_Y2/2+0.3),pz); railGrp.add(p1);
+    const p2=new THREE.Mesh(new THREE.BoxGeometry(0.55,RAIL_Y2,0.55),mRS2); p2.position.set(1.0,-(RAIL_Y2/2+0.3),pz); railGrp.add(p2);
+    const cb=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.4,2.6),mRS2); cb.position.set(0,-0.2,pz); railGrp.add(cb);
+  }
+  railGrp.position.set(RAIL_CX,RAIL_Y2,RAIL_CZ0);
+  railGrp.rotation.y=RAIL_ANG;
+  scene.add(railGrp);
+  // Steel bridges at highway (z=-100) and river (z≈102)
+  const mRailBr=new THREE.MeshLambertMaterial({color:0x7a7a80});
+  box(32,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,-100);
+  const riverCrossX=RAIL_CX+Math.sin(RAIL_ANG)*(RAIL_CZ0-(-100)+4);
+  box(28,1.2,2.8,mRailBr,riverCrossX,RAIL_Y2-0.3,102);
+}
 
 // ── DHL Van ───────────────────────────────────────────────────────────────
 const mY=new THREE.MeshLambertMaterial({color:0xFFCC00});
@@ -1340,13 +1365,13 @@ function tick(now){
   if(!trainActive){
     trainTimer-=dt;
     if(trainTimer<=0){
-      trainActive=true; trainX=-800;
-      trainGrp.position.set(trainX,RAIL_Y+0.6,RAIL_Z);
+      trainActive=true; trainT=-700;
+      trainGrp.position.set(RAIL_CX+Math.sin(RAIL_ANG)*trainT,RAIL_Y2+0.6,RAIL_CZ0+Math.cos(RAIL_ANG)*trainT);
     }
   } else {
-    trainX+=TRAIN_SPD*dt;
-    trainGrp.position.x=trainX;
-    if(trainX>1000){ trainActive=false; trainTimer=20000+Math.random()*15000; }
+    trainT+=TRAIN_SPD*dt;
+    trainGrp.position.set(RAIL_CX+Math.sin(RAIL_ANG)*trainT,RAIL_Y2+0.6,RAIL_CZ0+Math.cos(RAIL_ANG)*trainT);
+    if(trainT>700){ trainActive=false; trainTimer=20000+Math.random()*15000; }
   }
 
   // ── DHL cargo plane ───────────────────────────────────────────────────────
