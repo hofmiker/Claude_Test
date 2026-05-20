@@ -519,7 +519,7 @@ XS.forEach(x=>{ barrierAt(x,ZS[0]+EXT,0); barrierAt(x,ZS[2]-EXT,0); });
 
 // ── Highway extension (z=-100 boulevard continues into the distance) ────────
 // Road surface extends 900 units each side of city (fades into fog)
-const mHwy=new THREE.MeshLambertMaterial({color:0x3a3a42});
+const mHwy=mRoad; // same material as city roads — no colour change
 const HWY_EXT=900;
 // Left extension: x = XS[0]-EXT to XS[0]-EXT-HWY_EXT
 box(HWY_EXT,0.06,RH*4,mHwy,XS[0]-EXT-HWY_EXT/2,0.032,-100);
@@ -591,7 +591,7 @@ const tnose=new THREE.Mesh(new THREE.BoxGeometry(2.6,2.2,6),mTrainNose); tnose.p
 trainGrp.position.set(-800,RAIL_Y+0.6,RAIL_Z);
 scene.add(trainGrp);
 let trainX=-800, trainActive=false, trainTimer=18000; // first train after 18s
-const TRAIN_SPD=0.38;
+const TRAIN_SPD=0.19;
 
 // ── Residential area (Einfamiliensiedlung) — NE of park, x=120..200, z=20..80 ─
 function bldHouse(x,z,garageLeft){
@@ -712,6 +712,27 @@ function playCrash(vol){
 }
 let lastCrashT=0;
 function playCrashThrottled(vol){ const n=performance.now(); if(n-lastCrashT>120){playCrash(vol);lastCrashT=n;} }
+
+// Engine sound — starts after first key press, continuous hum tied to speed
+let engOsc=null, engGain=null;
+function initEngine(){
+  if(engOsc||!audioCtx) return;
+  engOsc=audioCtx.createOscillator(); engOsc.type='sawtooth';
+  const shaper=audioCtx.createWaveShaper();
+  const curve=new Float32Array(256);
+  for(let i=0;i<256;i++){const x=i*2/255-1; curve[i]=Math.tanh(x*0.6);}
+  shaper.curve=curve;
+  engGain=audioCtx.createGain(); engGain.gain.value=0;
+  engOsc.connect(shaper); shaper.connect(engGain); engGain.connect(audioCtx.destination);
+  engOsc.frequency.value=55; engOsc.start();
+}
+function updateEngine(absSpd,maxSpd){
+  if(!engOsc) return;
+  const t=audioCtx.currentTime;
+  const spdRatio=Math.min(1,absSpd/maxSpd);
+  engOsc.frequency.setTargetAtTime(48+spdRatio*120,t,0.1);
+  engGain.gain.setTargetAtTime(spdRatio<0.01?0:0.04+spdRatio*0.06,t,0.15);
+}
 const fxPool=[];
 function spawnCollectFX(x,z){
   // Expanding ring
@@ -911,10 +932,10 @@ const ptailH=new THREE.Mesh(new THREE.BoxGeometry(10,0.4,4),mPlaneY); ptailH.pos
 // Engines under wing
 [-6,6].forEach(ex=>{ const eng=new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.0,4,8),mPlaneDark); eng.rotation.x=Math.PI/2; eng.position.set(ex,-1.4,1); planeGrp.add(eng); });
 planeGrp.rotation.y=Math.PI/2;
-planeGrp.position.set(-600,65,-100);
+planeGrp.position.set(-600,90,-100);
 scene.add(planeGrp);
-let planeX=-600, planeZ=-100, planeAngle=0, planeActive=false, planeTimer=25000;
-const PLANE_SPD=0.25;
+let planeX=-600, planeZ=-100, planeAngle=0, planeActive=false, planeTimer=8000, planeY=90;
+const PLANE_SPD=0.11;
 
 // ── Birds ─────────────────────────────────────────────────────────────────
 const birds=[];
@@ -924,16 +945,17 @@ for(let b=0;b<12;b++){
   // Simple V-wing shape: two triangles
   [-1,1].forEach(side=>{
     const shape=new THREE.Shape();
-    shape.moveTo(0,0); shape.lineTo(side*1.4,-0.5); shape.lineTo(side*0.6,0.1); shape.closePath();
+    shape.moveTo(0,0); shape.lineTo(side*0.7,-0.25); shape.lineTo(side*0.3,0.05); shape.closePath();
     const wing=new THREE.Mesh(new THREE.ShapeGeometry(shape),mBird); bg.add(wing);
   });
-  const startX=50+Math.random()*200, startZ=-50-Math.random()*100;
-  const startY=20+Math.random()*35;
+  bg.scale.setScalar(0.5);
+  const startX=30+Math.random()*240, startZ=-30-Math.random()*140;
+  const startY=38+Math.random()*28;
   bg.position.set(startX,startY,startZ);
   scene.add(bg);
-  const spd=0.015+Math.random()*0.012;
+  const spd=0.014+Math.random()*0.010;
   const ang=Math.random()*Math.PI*2;
-  birds.push({g:bg,spd,ang,y:startY,flapT:Math.random()*Math.PI*2,circleR:30+Math.random()*60,circleX:startX,circleZ:startZ});
+  birds.push({g:bg,spd,ang,y:startY,flapT:Math.random()*Math.PI*2,circleR:25+Math.random()*55,circleX:startX,circleZ:startZ});
 }
 
 // ── Environment: hills, river, scattered trees ────────────────────────────
@@ -1105,7 +1127,7 @@ let busWI=0, busX=20, busZ=-3.5, busAng=Math.PI/2;
 let busSpd=BUS_SPD;
 let busStopTimer=0;
 let busStopCooldown=0;
-const VHW=1.5, VHD=2.8;
+const VHW=1.1, VHD=2.2;
 function tickBus(dt){
   if(busStopTimer>0){
     busStopTimer-=dt;
@@ -1145,6 +1167,7 @@ const introEl=document.getElementById('intro');
 
 function startSwoop(){
   if(introPhase!==0) return;
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
   introPhase=1; introT=0;
   introStartCamPos.copy(camera.position);
   introEl.style.opacity='0';
@@ -1195,7 +1218,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.3 · 20.05.2026`;
+tsEl.textContent=`v2.4 · 20.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -1234,12 +1257,13 @@ function tick(now){
     planeTimer-=dt;
     if(planeTimer<=0){
       planeActive=true;
-      // Random angle that crosses near city center (100,-100)
-      planeAngle=Math.random()*Math.PI*2;
-      const offset=350;
+      // Spawn at edge of city perimeter, aim through center, different angle each pass
+      planeAngle=(planeAngle+Math.PI*0.7+Math.random()*1.2)%(Math.PI*2);
+      const offset=500;
       planeX=100-Math.cos(planeAngle)*offset;
       planeZ=-100-Math.sin(planeAngle)*offset;
-      planeGrp.position.set(planeX,55+Math.random()*30,planeZ);
+      planeY=75+Math.random()*30;
+      planeGrp.position.set(planeX,planeY,planeZ);
       planeGrp.rotation.y=-planeAngle+Math.PI/2;
     }
   } else {
@@ -1247,7 +1271,7 @@ function tick(now){
     planeZ+=Math.sin(planeAngle)*PLANE_SPD*dt;
     planeGrp.position.x=planeX; planeGrp.position.z=planeZ;
     const dist2=Math.sqrt((planeX-100)**2+(planeZ+100)**2);
-    if(dist2>500){ planeActive=false; planeTimer=30000+Math.random()*20000; }
+    if(dist2>550){ planeActive=false; planeTimer=10000; }
   }
 
   // ── Birds ──────────────────────────────────────────────────────────────────
@@ -1288,6 +1312,7 @@ function tick(now){
     return;
   }
 
+  if(!engOsc&&audioCtx) initEngine();
   const gas=K['ArrowUp']||K['KeyW']   ||(touch.active&&touch.dy<-TDEAD);
   const brk=K['ArrowDown']||K['KeyS'] ||(touch.active&&touch.dy>TDEAD);
 
@@ -1326,13 +1351,16 @@ function tick(now){
       tl.rotation.z=-(fx*0.45); tl.rotation.x=(fz*0.45);
       if(!tlDark[idx]){ tlDark[idx]=true; tlAll[idx].forEach(m=>m.material.emissive.set(0)); spawnSparks(tl.position.x,5.5,tl.position.z); }
       playCrashThrottled(0.7);
-      // Remove from collidables so knocked-over TL can be passed through
-      const cIdx=collidables.findIndex(c=>c.tlIdx===idx);
-      if(cIdx!==-1) collidables.splice(cIdx,1);
+      // Shrink collidable so van isn't permanently blocked, but keep for 2nd hit
+      const cObj=collidables.find(c=>c.tlIdx===idx);
+      if(cObj){ cObj.hw=0.2; cObj.hd=0.2; }
     } else if(tlHitCount[idx]===1){
       tlHitCount[idx]=2;
       tl.rotation.z=-(fx*1.57); tl.rotation.x=(fz*1.57);
       playCrashThrottled(0.9);
+      // Now fully remove — it's flat on the ground
+      const cIdx=collidables.findIndex(c=>c.tlIdx===idx);
+      if(cIdx!==-1) collidables.splice(cIdx,1);
     }
   }
   // Sparks update
@@ -1341,9 +1369,15 @@ function tick(now){
     s.mesh.position.x+=s.vx*dt*0.005; s.mesh.position.y+=s.vy*dt*0.005; s.vy-=11*dt*0.005; s.mesh.position.z+=s.vz*dt*0.005;
     if(s.t>700){ scene.remove(s.mesh); sparkPool.splice(i,1); }
   }
-  if(hitX&&hitZ) spd*=-0.4;
-  if(!hitX) vanX=nx;
-  if(!hitZ) vanZ=nz;
+  if(hitX&&hitZ){
+    spd*=-0.5;
+    // Unstick: push van back along its heading so it can't get permanently wedged
+    vanX-=fx*Math.max(0.2,Math.abs(spd*dt*2));
+    vanZ-=fz*Math.max(0.2,Math.abs(spd*dt*2));
+  } else {
+    if(!hitX) vanX=nx;
+    if(!hitZ) vanZ=nz;
+  }
 
   // Movables collision (van)
   for(const mv of movables){
@@ -1382,8 +1416,8 @@ function tick(now){
     if(p.collected) return;
     const dist=Math.sqrt((vanX-p.x)**2+(vanZ-p.z)**2);
     p.ring.lookAt(camera.position);
-    p.ringMat.opacity=Math.max(0,Math.min(0.9,(18-dist)/12));
-    if(dist<4.0){ p.collected=true; scene.remove(p.group); pkgCollected++; updatePkgUI(); spawnCollectFX(p.x,p.z); playCollect();
+    p.ringMat.opacity=Math.max(0,Math.min(0.9,(50-dist)/46));
+    if(dist<3.2){ p.collected=true; scene.remove(p.group); pkgCollected++; updatePkgUI(); spawnCollectFX(p.x,p.z); playCollect();
       if(pkgCollected>=10&&!gameEnded){ gameEnded=true; showEndPanel(); }
     }
   });
@@ -1394,6 +1428,7 @@ function tick(now){
     if(pr>=1){ scene.remove(e.mesh); fxPool.splice(i,1); }
   }
 
+  updateEngine(Math.abs(spd),MAXSPD);
   const spdFac=Math.abs(spd)/MAXSPD;
   const camDist=9+spdFac*11, camH=4.2+spdFac*4.5;
   camP.set(vanX-fx*camDist,camH,vanZ-fz*camDist);
