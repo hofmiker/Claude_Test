@@ -10,39 +10,49 @@
     #info {
       position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
       color: #fff; font-family: Arial, sans-serif; font-size: 13px;
-      text-shadow: 0 1px 3px rgba(0,0,0,.7); pointer-events: none; text-align: center;
+      text-shadow: 0 1px 3px rgba(0,0,0,.7); pointer-events: none; white-space: nowrap;
     }
     #dpad {
-      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      position: fixed; bottom: 28px; left: 28px;
       display: grid; grid-template-columns: 52px 52px 52px; grid-template-rows: 52px 52px; gap: 5px;
     }
     .db {
       background: rgba(255,255,255,.22); border: 2px solid rgba(255,255,255,.55);
       border-radius: 12px; display: flex; align-items: center; justify-content: center;
       font-size: 22px; cursor: pointer; user-select: none; color: #fff;
-      transition: background .1s; -webkit-tap-highlight-color: transparent;
+      -webkit-tap-highlight-color: transparent;
     }
     .db:active, .db.on { background: rgba(255,255,255,.5); }
     #bU { grid-column:2; grid-row:1; }
     #bL { grid-column:1; grid-row:2; }
     #bD { grid-column:2; grid-row:2; }
     #bR { grid-column:3; grid-row:2; }
+    #jumpBtn {
+      position: fixed; bottom: 28px; right: 28px;
+      width: 70px; height: 70px;
+      background: rgba(255,210,0,.25); border: 2px solid rgba(255,210,0,.75);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 26px; cursor: pointer; user-select: none; color: #fff;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #jumpBtn.on { background: rgba(255,210,0,.55); }
   </style>
 </head>
 <body>
-<div id="info">Pfeiltasten / D-Pad bewegen · Swipe auf dem Bildschirm</div>
+<div id="info">Pfeiltasten/WASD bewegen · Space / ⬆ springen · Swipe</div>
 <div id="dpad">
   <div class="db" id="bU">▲</div>
   <div class="db" id="bL">◀</div>
   <div class="db" id="bD">▼</div>
   <div class="db" id="bR">▶</div>
 </div>
+<div id="jumpBtn">⬆</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 'use strict';
 
-// ── RENDERER & SCENE ────────────────────────────────────────────────────────
+// ── RENDERER ─────────────────────────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
@@ -50,343 +60,370 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
-const scene = new THREE.Scene();
+const scene  = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB);
-scene.fog = new THREE.Fog(0x87CEEB, 55, 130);
+scene.fog = new THREE.Fog(0x87CEEB, 50, 120);
 
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
 
-// ── LIGHTS ──────────────────────────────────────────────────────────────────
+// ── LIGHTS ───────────────────────────────────────────────────────────────────
 scene.add(new THREE.AmbientLight(0xfff8e7, 0.65));
 const sun = new THREE.DirectionalLight(0xfff8e7, 0.95);
 sun.position.set(25, 50, 15);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 1, far: 220 });
+Object.assign(sun.shadow.camera, { left:-60, right:60, top:60, bottom:-60, near:1, far:200 });
 scene.add(sun);
 
-// ── MATERIALS ───────────────────────────────────────────────────────────────
-const mat = (c) => new THREE.MeshLambertMaterial({ color: c });
+// ── MATERIALS ────────────────────────────────────────────────────────────────
+const mk = c => new THREE.MeshLambertMaterial({ color: c });
 const M = {
-  skin:  mat(0xF0BC94), shirt: mat(0x1E88E5), pants: mat(0x37474F),
-  shoes: mat(0x1A1A1A), hair:  mat(0x4E342E),
-  grass: mat(0x57A84B), trunk: mat(0x6D4C41),
-  leaf:  mat(0x388E3C), leaf2: mat(0x2E7D32),
-  bush:  mat(0x558B2F), bush2: mat(0x7CB342),
+  skin:  mk(0xF0BC94), shirt: mk(0x1E88E5), pants: mk(0x37474F),
+  shoes: mk(0x1A1A1A), hair:  mk(0x4E342E),
+  grass: mk(0x3A7230), trunk: mk(0x6D4C41),
+  leaf:  mk(0x2A6E25), leaf2: mk(0x1E5219),
+  bush:  mk(0x356A24), bush2: mk(0x477A34),
+  wood:  mk(0x8B6334),
 };
 
-// ── HELPERS ─────────────────────────────────────────────────────────────────
-function cylMesh(rT, rB, h, material, segs = 6) {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, segs), material);
+// ── GEO HELPERS ──────────────────────────────────────────────────────────────
+function cylMesh(rT, rB, h, mat, segs = 6) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, segs), mat);
   m.castShadow = true;
   return m;
 }
-function icoMesh(r, material, detail = 1) {
-  const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, detail), material);
+function icoMesh(r, mat) {
+  const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat);
   m.castShadow = true;
   return m;
 }
-// Creates a joint pivot group, attaches bone mesh below it, returns [jointGroup, endY]
-function bone(parent, px, py, pz, rT, rB, h, material, segs = 6) {
+// Creates joint pivot at (px,py,pz) relative to parent; bone hangs downward h units
+function bone(parent, px, py, pz, rT, rB, h, mat) {
   const j = new THREE.Group();
   j.position.set(px, py, pz);
   parent.add(j);
-  const b = cylMesh(rT, rB, h, material, segs);
+  const b = cylMesh(rT, rB, h, mat);
   b.position.y = -h / 2;
   j.add(b);
-  return j;   // next joint lives at y = -h relative to this
+  return j;
 }
 
-// ── CHARACTER ───────────────────────────────────────────────────────────────
+// ── CHARACTER ────────────────────────────────────────────────────────────────
+// charRoot.y = 0.10 → feet land exactly on y=0 (ground)
 const charRoot = new THREE.Group();
+charRoot.position.y = 0.10;
 scene.add(charRoot);
 
 // Torso
 const torso = new THREE.Group();
-torso.position.set(0, 1.26, 0);
+torso.position.y = 1.26;
 charRoot.add(torso);
-const torsoMesh = cylMesh(0.21, 0.26, 0.62, M.shirt);
-torso.add(torsoMesh);
+torso.add(cylMesh(0.21, 0.26, 0.62, M.shirt));
 
-// Neck
-const neckJoint = bone(torso, 0, 0.38, 0, 0.082, 0.09, 0.13, M.skin);
-
-// Head
+// Neck + Head (head ABOVE neckJoint, not below)
+const neckJoint = bone(torso, 0, 0.40, 0, 0.082, 0.09, 0.13, M.skin);
 const headJoint = new THREE.Group();
-headJoint.position.set(0, -0.13, 0);
+headJoint.position.y = 0.18;   // positive = above neck joint
 neckJoint.add(headJoint);
-const headMesh = icoMesh(0.21, M.skin);
+const headMesh = icoMesh(0.20, M.skin);
 headMesh.scale.set(1, 1.18, 1);
 headJoint.add(headMesh);
-const hairMesh = icoMesh(0.22, M.hair);
-hairMesh.scale.set(1, 0.58, 1);
-hairMesh.position.y = 0.1;
+const hairMesh = icoMesh(0.21, M.hair);
+hairMesh.scale.set(1, 0.60, 1);
+hairMesh.position.y = 0.09;
 headJoint.add(hairMesh);
 
-// ─ LEFT ARM ─────────────────────────────────────────────────────
-const lShoulder = bone(torso,  -0.34, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
+// Arms — shoulders at ±0.24 (close to torso)
+const lShoulder = bone(torso, -0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
 const lElbow    = bone(lShoulder, 0, -0.30, 0, 0.062, 0.054, 0.28, M.skin);
 const lWrist    = bone(lElbow,    0, -0.28, 0, 0.054, 0.046, 0.11, M.skin);
 
-// ─ RIGHT ARM ────────────────────────────────────────────────────
-const rShoulder = bone(torso,   0.34, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
+const rShoulder = bone(torso,  0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
 const rElbow    = bone(rShoulder, 0, -0.30, 0, 0.062, 0.054, 0.28, M.skin);
 const rWrist    = bone(rElbow,    0, -0.28, 0, 0.054, 0.046, 0.11, M.skin);
 
 // Hips
-const hipsGroup = new THREE.Group();
-hipsGroup.position.set(0, -0.34, 0);
-torso.add(hipsGroup);
-const hipsMesh = cylMesh(0.23, 0.21, 0.19, M.pants);
-hipsGroup.add(hipsMesh);
+const hipsGrp = new THREE.Group();
+hipsGrp.position.y = -0.34;
+torso.add(hipsGrp);
+hipsGrp.add(cylMesh(0.23, 0.21, 0.19, M.pants));
 
-// ─ LEFT LEG ──────────────────────────────────────────────────────
-const lHip   = bone(hipsGroup, -0.13, -0.095, 0, 0.10, 0.088, 0.38, M.pants);
-const lKnee  = bone(lHip,        0,  -0.38,  0, 0.088, 0.075, 0.35, M.pants);
-const lAnkle = bone(lKnee,       0,  -0.35,  0, 0.075, 0.065, 0.12, M.pants);
-// Foot
-const lFoot = new THREE.Group();
-lFoot.position.set(0, -0.12, 0);
-lAnkle.add(lFoot);
-const lFootMesh = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.075, 0.22), M.shoes);
-lFootMesh.position.set(0, -0.038, 0.07);
-lFootMesh.castShadow = true;
-lFoot.add(lFootMesh);
+// Legs
+const lHip   = bone(hipsGrp, -0.13, -0.095, 0, 0.10, 0.088, 0.38, M.pants);
+const lKnee  = bone(lHip,      0,   -0.38,  0, 0.088, 0.075, 0.35, M.pants);
+const lAnkle = bone(lKnee,     0,   -0.35,  0, 0.075, 0.065, 0.12, M.pants);
+const lFootG = new THREE.Group();
+lFootG.position.y = -0.12;
+lAnkle.add(lFootG);
+const lFootM = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.075, 0.22), M.shoes);
+lFootM.position.set(0, -0.038, 0.07); lFootM.castShadow = true;
+lFootG.add(lFootM);
 
-// ─ RIGHT LEG ─────────────────────────────────────────────────────
-const rHip   = bone(hipsGroup,  0.13, -0.095, 0, 0.10, 0.088, 0.38, M.pants);
-const rKnee  = bone(rHip,         0,  -0.38,  0, 0.088, 0.075, 0.35, M.pants);
-const rAnkle = bone(rKnee,        0,  -0.35,  0, 0.075, 0.065, 0.12, M.pants);
-const rFoot  = new THREE.Group();
-rFoot.position.set(0, -0.12, 0);
-rAnkle.add(rFoot);
-const rFootMesh = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.075, 0.22), M.shoes);
-rFootMesh.position.set(0, -0.038, 0.07);
-rFootMesh.castShadow = true;
-rFoot.add(rFootMesh);
+const rHip   = bone(hipsGrp,  0.13, -0.095, 0, 0.10, 0.088, 0.38, M.pants);
+const rKnee  = bone(rHip,      0,   -0.38,  0, 0.088, 0.075, 0.35, M.pants);
+const rAnkle = bone(rKnee,     0,   -0.35,  0, 0.075, 0.065, 0.12, M.pants);
+const rFootG = new THREE.Group();
+rFootG.position.y = -0.12;
+rAnkle.add(rFootG);
+const rFootM = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.075, 0.22), M.shoes);
+rFootM.position.set(0, -0.038, 0.07); rFootM.castShadow = true;
+rFootG.add(rFootM);
 
-// Foot bottom is ~0.10 below charRoot, so lift root to land feet on ground
-charRoot.position.y = 0.10;
-
-// ── ENVIRONMENT ─────────────────────────────────────────────────────────────
-// Ground
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(240, 240, 24, 24),
-  M.grass
-);
+// ── GROUND ───────────────────────────────────────────────────────────────────
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(240, 240, 24, 24), M.grass);
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Varied grass patches (darker spots)
-const darkGrassMat = mat(0x4A9A3F);
-for (let i = 0; i < 80; i++) {
-  const patch = new THREE.Mesh(
-    new THREE.CircleGeometry(0.5 + Math.random() * 1.5, 5),
-    darkGrassMat
-  );
-  const angle = Math.random() * Math.PI * 2;
-  const dist  = 5 + Math.random() * 80;
-  patch.position.set(Math.cos(angle) * dist, 0.01, Math.sin(angle) * dist);
-  patch.rotation.x = -Math.PI / 2;
-  scene.add(patch);
+// Dark grass patches for variation
+const dkG = mk(0x2A5E20);
+for (let i = 0; i < 90; i++) {
+  const p = new THREE.Mesh(new THREE.CircleGeometry(0.6 + Math.random() * 1.8, 5), dkG);
+  const a = Math.random() * Math.PI * 2, d = 6 + Math.random() * 90;
+  p.position.set(Math.cos(a) * d, 0.01, Math.sin(a) * d);
+  p.rotation.x = -Math.PI / 2;
+  scene.add(p);
 }
 
+// ── TREES & BUSHES ───────────────────────────────────────────────────────────
 function addTree(x, z) {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
-  const trunkH = 1.3 + Math.random() * 0.5;
-  const trunk = cylMesh(0.13, 0.18, trunkH, M.trunk);
-  trunk.position.y = trunkH / 2;
+  const th = 1.3 + Math.random() * 0.5;
+  const trunk = cylMesh(0.13, 0.18, th, M.trunk);
+  trunk.position.y = th / 2;
   g.add(trunk);
-  const h1 = 2.2 + Math.random() * 0.6, h2 = 1.7 + Math.random() * 0.4;
-  const r1 = 1.1 + Math.random() * 0.3, r2 = 0.8 + Math.random() * 0.2;
-  const cone1 = new THREE.Mesh(new THREE.ConeGeometry(r1, h1, 7), M.leaf);
-  cone1.position.y = trunkH + h1 / 2 - 0.1;
-  cone1.castShadow = true;
-  g.add(cone1);
-  const cone2 = new THREE.Mesh(new THREE.ConeGeometry(r2, h2, 7), M.leaf2);
-  cone2.position.y = trunkH + h1 * 0.75 + h2 / 2;
-  cone2.castShadow = true;
-  g.add(cone2);
+  const r1 = 1.1 + Math.random() * 0.3, h1 = 2.2 + Math.random() * 0.6;
+  const r2 = 0.75 + Math.random() * 0.2, h2 = 1.6 + Math.random() * 0.4;
+  const c1 = new THREE.Mesh(new THREE.ConeGeometry(r1, h1, 7), M.leaf);
+  c1.position.y = th + h1 / 2 - 0.15; c1.castShadow = true; g.add(c1);
+  const c2 = new THREE.Mesh(new THREE.ConeGeometry(r2, h2, 7), M.leaf2);
+  c2.position.y = th + h1 * 0.72 + h2 / 2; c2.castShadow = true; g.add(c2);
   scene.add(g);
 }
 
 function addBush(x, z) {
   const g = new THREE.Group();
   g.position.set(x, 0, z);
-  const s = 0.45 + Math.random() * 0.25;
-  const b1 = icoMesh(s, M.bush);
-  b1.position.y = s * 0.8;
-  b1.scale.y = 0.75;
-  g.add(b1);
-  const b2 = icoMesh(s * 0.65, M.bush2);
-  b2.position.set(s * 0.55, s * 0.55, 0);
-  b2.scale.y = 0.75;
-  g.add(b2);
+  const s = 0.40 + Math.random() * 0.25;
+  const b1 = icoMesh(s, M.bush); b1.position.y = s * 0.75; b1.scale.y = 0.72; g.add(b1);
+  const b2 = icoMesh(s * 0.6, M.bush2); b2.position.set(s * 0.5, s * 0.5, 0.1); b2.scale.y = 0.72; g.add(b2);
   scene.add(g);
 }
 
-// Scatter trees and bushes (not too close to spawn)
 const rng = (a, b) => a + Math.random() * (b - a);
 for (let i = 0; i < 40; i++) {
-  let x, z;
-  do { x = rng(-60, 60); z = rng(-80, 40); } while (Math.hypot(x, z) < 8);
+  let x, z; do { x = rng(-60,60); z = rng(-80,40); } while (Math.hypot(x, z) < 8);
   addTree(x, z);
 }
 for (let i = 0; i < 60; i++) {
-  let x, z;
-  do { x = rng(-60, 60); z = rng(-80, 40); } while (Math.hypot(x, z) < 5);
+  let x, z; do { x = rng(-60,60); z = rng(-80,40); } while (Math.hypot(x, z) < 5);
   addBush(x, z);
 }
 
-// ── INPUT ────────────────────────────────────────────────────────────────────
-const keys = { up: false, down: false, left: false, right: false };
+// ── CRATES ───────────────────────────────────────────────────────────────────
+const crateData = [];  // collision: { x, z, hw, hd, topY }
+
+function addCrate(cx, cz, yBottom, sz) {
+  const h = 0.8;
+  const geo = new THREE.BoxGeometry(sz, h, sz);
+  const m = new THREE.Mesh(geo, M.wood);
+  m.position.set(cx, yBottom + h / 2, cz);
+  m.castShadow = true; m.receiveShadow = true;
+  scene.add(m);
+  // Edge lines for crate look
+  m.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo),
+    new THREE.LineBasicMaterial({ color: 0x5D4225 })
+  ));
+  crateData.push({ x: cx, z: cz, hw: sz / 2, hd: sz / 2, topY: yBottom + h });
+}
+
+// (cx, cz, yBottom, size) — can be stacked by setting yBottom = previous topY
+addCrate(  5.0,  -6.0, 0.0, 1.1);  // single
+addCrate(  5.0,  -6.0, 0.8, 1.0);  // stacked → top at 1.6
+addCrate( -5.5,  -8.0, 0.0, 1.3);  // wide single
+addCrate(  9.0, -13.0, 0.0, 1.0);
+addCrate(  9.0, -13.0, 0.8, 1.0);  // stacked → top 1.6
+addCrate(  9.0, -13.0, 1.6, 1.0);  // triple → top 2.4
+addCrate( -8.0, -15.0, 0.0, 1.5);  // big platform
+addCrate(  2.0, -19.0, 0.0, 1.0);  // stepping stones
+addCrate( -2.0, -20.0, 0.0, 1.0);
+addCrate(  1.0, -22.0, 0.8, 0.9);  // elevated stone
+
+// ── INPUT ─────────────────────────────────────────────────────────────────────
+const keys = { up:false, down:false, left:false, right:false };
+let jumpBuf = false;
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowUp'    || e.key === 'w') keys.up    = true;
-  if (e.key === 'ArrowDown'  || e.key === 's') keys.down  = true;
-  if (e.key === 'ArrowLeft'  || e.key === 'a') keys.left  = true;
-  if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+  if (e.key==='ArrowUp'    ||e.key==='w'||e.key==='W') keys.up    = true;
+  if (e.key==='ArrowDown'  ||e.key==='s'||e.key==='S') keys.down  = true;
+  if (e.key==='ArrowLeft'  ||e.key==='a'||e.key==='A') keys.left  = true;
+  if (e.key==='ArrowRight' ||e.key==='d'||e.key==='D') keys.right = true;
+  if (e.key===' ') { jumpBuf = true; e.preventDefault(); }
 });
 document.addEventListener('keyup', e => {
-  if (e.key === 'ArrowUp'    || e.key === 'w') keys.up    = false;
-  if (e.key === 'ArrowDown'  || e.key === 's') keys.down  = false;
-  if (e.key === 'ArrowLeft'  || e.key === 'a') keys.left  = false;
-  if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+  if (e.key==='ArrowUp'    ||e.key==='w'||e.key==='W') keys.up    = false;
+  if (e.key==='ArrowDown'  ||e.key==='s'||e.key==='S') keys.down  = false;
+  if (e.key==='ArrowLeft'  ||e.key==='a'||e.key==='A') keys.left  = false;
+  if (e.key==='ArrowRight' ||e.key==='d'||e.key==='D') keys.right = false;
 });
 
-// D-Pad buttons
-const btnMap = { bU: 'up', bD: 'down', bL: 'left', bR: 'right' };
-Object.entries(btnMap).forEach(([id, k]) => {
-  const el = document.getElementById(id);
-  el.addEventListener('pointerdown',  e => { keys[k] = true;  el.classList.add('on');    e.preventDefault(); });
-  el.addEventListener('pointerup',    e => { keys[k] = false; el.classList.remove('on'); e.preventDefault(); });
-  el.addEventListener('pointerleave', e => { keys[k] = false; el.classList.remove('on'); });
+// D-Pad
+['bU','bD','bL','bR'].forEach((id, i) => {
+  const k = ['up','down','left','right'][i], el = document.getElementById(id);
+  el.addEventListener('pointerdown',  e => { keys[k]=true;  el.classList.add('on');    e.preventDefault(); });
+  el.addEventListener('pointerup',    e => { keys[k]=false; el.classList.remove('on'); e.preventDefault(); });
+  el.addEventListener('pointerleave', () => { keys[k]=false; el.classList.remove('on'); });
 });
 
-// Swipe / touch
-let swipeStart = null;
+// Jump button (right side)
+const jumpEl = document.getElementById('jumpBtn');
+jumpEl.addEventListener('pointerdown', e => { jumpBuf=true; jumpEl.classList.add('on'); e.preventDefault(); });
+jumpEl.addEventListener('pointerup',    () => jumpEl.classList.remove('on'));
+jumpEl.addEventListener('pointerleave', () => jumpEl.classList.remove('on'));
+
+// Swipe (only on canvas, not on UI)
+let swipeOrigin = null;
 renderer.domElement.addEventListener('touchstart', e => {
-  swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  swipeOrigin = { x: e.touches[0].clientX, y: e.touches[0].clientY };
 }, { passive: true });
 renderer.domElement.addEventListener('touchmove', e => {
-  if (!swipeStart) return;
-  const dx = e.touches[0].clientX - swipeStart.x;
-  const dy = e.touches[0].clientY - swipeStart.y;
-  const th = 22;
-  keys.up    = dy < -th;
-  keys.down  = dy >  th;
-  keys.left  = dx < -th;
-  keys.right = dx >  th;
+  if (!swipeOrigin) return;
+  const dx = e.touches[0].clientX - swipeOrigin.x, dy = e.touches[0].clientY - swipeOrigin.y, th = 20;
+  keys.up    = dy < -th; keys.down  = dy > th;
+  keys.left  = dx < -th; keys.right = dx > th;
   e.preventDefault();
 }, { passive: false });
 renderer.domElement.addEventListener('touchend', () => {
   keys.up = keys.down = keys.left = keys.right = false;
-  swipeStart = null;
+  swipeOrigin = null;
 });
 
-// ── ANIMATION ────────────────────────────────────────────────────────────────
-let animT   = 0;
-let charYaw = 0;  // current facing angle
+// ── PHYSICS ───────────────────────────────────────────────────────────────────
+const CHAR_BASE_Y = 0.10;  // charRoot.y when feet touch flat ground
+const GRAVITY = -22;
+const JUMP_VEL = 8.0;
 
-const camPos = new THREE.Vector3(0, 5, 9);
+let velY     = 0;
+let onGround = true;
+
+function getSurfaceY(cx, cz) {
+  let s = CHAR_BASE_Y;
+  for (const c of crateData) {
+    if (Math.abs(cx - c.x) < c.hw + 0.22 && Math.abs(cz - c.z) < c.hd + 0.22)
+      s = Math.max(s, c.topY + CHAR_BASE_Y);
+  }
+  return s;
+}
+
+// ── ANIMATION STATE ───────────────────────────────────────────────────────────
+let animT   = 0;
+let charYaw = 0;      // character faces +Z, camera is at -Z → player sees from behind
+let camDist = 7.0;
+const camPos = new THREE.Vector3(0, 4.5, -7);
+
+const MOVE_SPEED = 0.11;
+const TURN_SPEED = 0.026;
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-function animateCharacter(dt) {
-  const moving = keys.up || keys.down;
-  const speed  = moving ? 8.5 : 0;
+function animateCharacter(dt, inAir) {
+  const moving = (keys.up || keys.down) && !inAir;
+  if (moving) animT += dt * 8.5;
 
-  // Drive animation time, ease back when idle
-  if (moving) {
-    animT += dt * speed;
+  const s    = Math.sin(animT);
+  const eff  = moving ? 1.0 : 0.0;
+  const lLeg =  s * 0.68;
+  const rLeg = -s * 0.68;
+
+  if (inAir) {
+    // Jump pose: knees up, arms wide
+    lHip.rotation.x      = lerp(lHip.rotation.x,     -0.35, 0.14);
+    rHip.rotation.x      = lerp(rHip.rotation.x,     -0.35, 0.14);
+    lKnee.rotation.x     = lerp(lKnee.rotation.x,      0.55, 0.14);
+    rKnee.rotation.x     = lerp(rKnee.rotation.x,      0.55, 0.14);
+    lAnkle.rotation.x    = lerp(lAnkle.rotation.x,    -0.15, 0.14);
+    rAnkle.rotation.x    = lerp(rAnkle.rotation.x,    -0.15, 0.14);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -0.50, 0.14);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -0.50, 0.14);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.55, 0.10);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.55, 0.10);
   } else {
-    // smoothly return all joints to 0
-    animT += dt * 3;  // keep phase moving but at reduced effective amplitude
+    // Run / idle
+    lHip.rotation.x      = lerp(lHip.rotation.x,      lLeg * eff,                     0.22);
+    rHip.rotation.x      = lerp(rHip.rotation.x,      rLeg * eff,                     0.22);
+    lKnee.rotation.x     = lerp(lKnee.rotation.x,     Math.max(0, lLeg) * 0.75 * eff, 0.22);
+    rKnee.rotation.x     = lerp(rKnee.rotation.x,     Math.max(0, rLeg) * 0.75 * eff, 0.22);
+    lAnkle.rotation.x    = lerp(lAnkle.rotation.x,   -lLeg * 0.20 * eff,              0.22);
+    rAnkle.rotation.x    = lerp(rAnkle.rotation.x,   -rLeg * 0.20 * eff,              0.22);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -lLeg * 0.45 * eff,             0.22);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -rLeg * 0.45 * eff,             0.22);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x,    Math.max(0,-lLeg) * 0.5 * eff,  0.22);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x,    Math.max(0,-rLeg) * 0.5 * eff,  0.22);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.09, 0.08);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.09, 0.08);
   }
 
-  const amp  = moving ? 1.0 : Math.max(0, 1 - (animT % (Math.PI * 2)) / (Math.PI * 2));
-  const s    = Math.sin(animT);
-  const legA = s * 0.68 * (moving ? 1 : 0);
-  const armA = s * 0.42 * (moving ? 1 : 0);
-
-  // When not moving, smoothly zero out
-  const effective = moving ? 1 : 0;
-  const lLegFwd   =  s * 0.68;
-  const rLegFwd   = -s * 0.68;
-
-  // Legs
-  lHip.rotation.x   = lerp(lHip.rotation.x,   lLegFwd  * effective,  0.25);
-  rHip.rotation.x   = lerp(rHip.rotation.x,   rLegFwd  * effective,  0.25);
-  // Knee bends on forward swing
-  lKnee.rotation.x  = lerp(lKnee.rotation.x,  Math.max(0,  lLegFwd) * 0.80 * effective, 0.25);
-  rKnee.rotation.x  = lerp(rKnee.rotation.x,  Math.max(0,  rLegFwd) * 0.80 * effective, 0.25);
-  // Ankle
-  lAnkle.rotation.x = lerp(lAnkle.rotation.x, -lLegFwd * 0.25 * effective, 0.25);
-  rAnkle.rotation.x = lerp(rAnkle.rotation.x, -rLegFwd * 0.25 * effective, 0.25);
-
-  // Arms (opposite phase to legs)
-  lShoulder.rotation.x = lerp(lShoulder.rotation.x, -lLegFwd * 0.50 * effective, 0.25);
-  rShoulder.rotation.x = lerp(rShoulder.rotation.x, -rLegFwd * 0.50 * effective, 0.25);
-  // Elbow bends on backward swing
-  lElbow.rotation.x    = lerp(lElbow.rotation.x,    Math.max(0, lLegFwd * (-1)) * 0.55 * effective, 0.25);
-  rElbow.rotation.x    = lerp(rElbow.rotation.x,    Math.max(0, rLegFwd * (-1)) * 0.55 * effective, 0.25);
-
-  // Shoulder lateral spread (arms hang naturally outward)
-  lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.12, 0.06);
-  rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.12, 0.06);
-
-  // Torso slight counter-rotation when running
-  torso.rotation.y = lerp(torso.rotation.y, s * 0.07 * effective, 0.18);
-
-  // Head bobs forward slightly when running (subtle)
-  headJoint.rotation.x = lerp(headJoint.rotation.x, Math.abs(s) * 0.06 * effective, 0.18);
-
-  // Body vertical bob
-  const bobY = moving ? Math.abs(s) * 0.045 : 0;
-  torso.position.y = lerp(torso.position.y, 1.26 + bobY, 0.2);
+  torso.rotation.y = lerp(torso.rotation.y, s * 0.06 * eff, 0.15);
+  torso.position.y = lerp(torso.position.y, 1.26 + (moving ? Math.abs(s) * 0.04 : 0), 0.20);
 }
 
 // ── GAME LOOP ─────────────────────────────────────────────────────────────────
-const MOVE_SPEED = 0.062;
-const TURN_SPEED = 0.042;
-let lastT = performance.now();
+let lastTime = performance.now();
 
 function loop() {
   requestAnimationFrame(loop);
   const now = performance.now();
-  const dt  = Math.min((now - lastT) / 1000, 0.05);
-  lastT = now;
+  const dt  = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime  = now;
 
-  // Turn
-  if (keys.left)  charYaw += TURN_SPEED;
-  if (keys.right) charYaw -= TURN_SPEED;
+  // Turn  (FIXED: left = −, right = +  →  no more mirror)
+  if (keys.left)  charYaw -= TURN_SPEED;
+  if (keys.right) charYaw += TURN_SPEED;
   charRoot.rotation.y = charYaw;
 
-  // Move in facing direction
   const fwdX = Math.sin(charYaw);
   const fwdZ = Math.cos(charYaw);
-  if (keys.up) {
-    charRoot.position.x -= fwdX * MOVE_SPEED;
-    charRoot.position.z -= fwdZ * MOVE_SPEED;
-  }
-  if (keys.down) {
-    charRoot.position.x += fwdX * MOVE_SPEED;
-    charRoot.position.z += fwdZ * MOVE_SPEED;
+
+  // Move forward/back (character faces +Z when charYaw=0, forward = +fwd direction)
+  if (keys.up)   { charRoot.position.x += fwdX * MOVE_SPEED; charRoot.position.z += fwdZ * MOVE_SPEED; }
+  if (keys.down) { charRoot.position.x -= fwdX * MOVE_SPEED; charRoot.position.z -= fwdZ * MOVE_SPEED; }
+
+  // Jump
+  if (jumpBuf && onGround) {
+    velY     = JUMP_VEL;
+    onGround = false;
+    jumpBuf  = false;
   }
 
-  // Animate limbs
-  animateCharacter(dt);
+  // Gravity + vertical movement
+  const surfY = getSurfaceY(charRoot.position.x, charRoot.position.z);
+  velY += GRAVITY * dt;
+  charRoot.position.y += velY * dt;
+  if (charRoot.position.y <= surfY) {
+    charRoot.position.y = surfY;
+    velY     = 0;
+    onGround = true;
+  }
 
-  // Camera: follow behind character smoothly
-  const behind = new THREE.Vector3(fwdX * 7, 4.2, fwdZ * 7);
-  const targetCam = charRoot.position.clone().add(behind);
-  camPos.lerp(targetCam, 0.07);
+  // Limb animation
+  animateCharacter(dt, !onGround);
+
+  // Camera behind character (−fwd direction), zooms in when idle
+  const moving = keys.up || keys.down;
+  camDist = lerp(camDist, moving ? 7.0 : 4.0, dt * 2.5);
+
+  const tCam = new THREE.Vector3(
+    charRoot.position.x - fwdX * camDist,
+    charRoot.position.y + 3.5,
+    charRoot.position.z - fwdZ * camDist
+  );
+  camPos.lerp(tCam, 0.08);
   camera.position.copy(camPos);
   camera.lookAt(charRoot.position.x, charRoot.position.y + 1.4, charRoot.position.z);
 
-  // Sun follows player for consistent shadows
+  // Sun stays above player
   sun.target.position.copy(charRoot.position);
   sun.position.set(charRoot.position.x + 25, 50, charRoot.position.z + 15);
   sun.target.updateMatrixWorld();
@@ -396,7 +433,6 @@ function loop() {
 
 loop();
 
-// ── RESIZE ───────────────────────────────────────────────────────────────────
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
