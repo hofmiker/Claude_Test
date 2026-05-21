@@ -179,18 +179,26 @@ headJoint.add(makeBrow(-1)); headJoint.add(makeBrow(1));
 const mouthM = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.016, 0.012), mk(0x7A2E1E));
 mouthM.position.set(0, -0.056, 0.148); headJoint.add(mouthM);
 
-// ── ARMS (with hands) ────────────────────────────────────────────────────
+// ── ARMS — shoulders with rounded cap, hands at end of lower arm ─────────
+function makeHand(elbowJoint) {
+  const g = new THREE.Group(); g.position.y = -0.27; elbowJoint.add(g);
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.068, 6, 5), M.skin);
+  m.scale.set(1.0, 0.62, 0.92); m.castShadow = true; g.add(m);
+}
+function makeShoulderCap(shoulderJoint) {
+  const cap = icoMesh(0.085, M.shirt);
+  cap.scale.set(1.05, 0.90, 1.05); shoulderJoint.add(cap);
+}
+
 const lShoulder = bone(torso, -0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
+makeShoulderCap(lShoulder);
 const lElbow    = bone(lShoulder, 0, -0.30, 0, 0.062, 0.052, 0.27, M.skin);
-// Hand at end of lower arm
-const lHandG = new THREE.Group(); lHandG.position.y = -0.27; lElbow.add(lHandG);
-const lHandM = new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 4), M.skin);
-lHandM.scale.set(1.0, 0.68, 0.88); lHandG.add(lHandM);
+makeHand(lElbow);
 
 const rShoulder = bone(torso,  0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
+makeShoulderCap(rShoulder);
 const rElbow    = bone(rShoulder, 0, -0.30, 0, 0.062, 0.052, 0.27, M.skin);
-const rHandG = new THREE.Group(); rHandG.position.y = -0.27; rElbow.add(rHandG);
-const rHandM = lHandM.clone(); rHandG.add(rHandM);
+makeHand(rElbow);
 
 // ── HIPS & LEGS ───────────────────────────────────────────────────────────
 const hipsGrp = new THREE.Group();
@@ -336,109 +344,145 @@ let jumpState = JS.NONE;
 let jumpTimer = 0;
 
 // ── ANIMATION STATE ───────────────────────────────────────────────────────────
-let animT    = 0;
-let charYaw  = 0;
-let camDist  = 7.0;
-const camPos = new THREE.Vector3(0, 4.5, -7);
-const MOVE_SPEED = 0.11;
-const TURN_RATE  = 0.90;  // radians/second — frame-rate independent, much gentler
+let animT        = 0;
+let charYaw      = 0;
+let camDist      = 7.0;
+const camPos     = new THREE.Vector3(0, 3.5, -7);
+
+// Speed with accel/decel
+const SPEED_MAX  = 5.94;   // units/s  (original 6.6 × 0.9)
+const ACCEL_RATE = 14.0;   // units/s²
+const DECEL_RATE = 18.0;   // units/s²
+let   moveSpeed  = 0;
+
+const TURN_RATE  = 0.90;
+
+// Idle scratch
+let idleTimer    = 0;
+let scratchPhase = 0;
+
+// Head look-ahead when turning
+let headYawTgt   = 0;
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
 function animateCharacter(dt) {
   const moving = (keys.up || keys.down) && jumpState === JS.NONE;
   if (moving) animT += dt * 9.5;
-  const s    = Math.sin(animT);
-  const eff  = moving ? 1.0 : 0.0;
+  const s   = Math.sin(animT);
+  const eff = moving ? 1.0 : 0.0;
   const lLeg =  s * 0.68;
   const rLeg = -s * 0.68;
 
-  // ─ WINDUP: crouch before jump ─────────────────────────────────────────────
+  // ── Idle scratch (5 s no input) ───────────────────────────────────────────
+  const anyInput = keys.up||keys.down||keys.left||keys.right;
+  if (anyInput) idleTimer = 0; else idleTimer += dt;
+  const doScratch = idleTimer >= 5.0 && jumpState === JS.NONE && !moving;
+  if (doScratch) {
+    scratchPhase += dt * 2.0;
+    const cyc   = scratchPhase % (Math.PI * 2);
+    const reach = Math.sin(cyc * 0.5) * Math.max(0, Math.sin(cyc * 0.5)); // 0→1→0 arc
+    const wiggle = reach > 0.55 ? Math.sin(scratchPhase * 7) * 0.09 : 0;
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -1.85 * reach, 0.14);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z, -0.80 * reach, 0.14);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x,    -1.60 * reach + wiggle, 0.14);
+    headJoint.rotation.z = lerp(headJoint.rotation.z,  wiggle * 0.18, 0.12);
+  } else {
+    scratchPhase = 0;
+  }
+
+  // ── Head: look sideways when turning ──────────────────────────────────────
+  headYawTgt = keys.left ? 0.38 : (keys.right ? -0.38 : 0);
+  headJoint.rotation.y = lerp(headJoint.rotation.y, headYawTgt, 0.06);
+
+  // ─ WINDUP: crouch + lean forward before jump ──────────────────────────────
   if (jumpState === JS.WINDUP) {
-    const t = Math.min(jumpTimer / WINDUP_DUR, 1.0);
-    const sq = Math.sin(t * Math.PI * 0.5); // ease-in to full squat
-    lHip.rotation.x   = lerp(lHip.rotation.x,    0.48 * sq, 0.30);
-    rHip.rotation.x   = lerp(rHip.rotation.x,    0.48 * sq, 0.30);
-    lKnee.rotation.x  = lerp(lKnee.rotation.x,   0.72 * sq, 0.30);
-    rKnee.rotation.x  = lerp(rKnee.rotation.x,   0.72 * sq, 0.30);
-    lAnkle.rotation.x = lerp(lAnkle.rotation.x,  0.18 * sq, 0.30);
-    rAnkle.rotation.x = lerp(rAnkle.rotation.x,  0.18 * sq, 0.30);
-    // arms: swing back + elbows forward (coil up for jump)
-    lShoulder.rotation.x = lerp(lShoulder.rotation.x,  0.30 * sq, 0.25);
-    rShoulder.rotation.x = lerp(rShoulder.rotation.x,  0.30 * sq, 0.25);
-    lElbow.rotation.x    = lerp(lElbow.rotation.x, -0.50, 0.20);
-    rElbow.rotation.x    = lerp(rElbow.rotation.x, -0.50, 0.20);
+    const t  = Math.min(jumpTimer / WINDUP_DUR, 1.0);
+    const sq = Math.sin(t * Math.PI * 0.5);
+    lHip.rotation.x   = lerp(lHip.rotation.x,    0.52 * sq, 0.32);
+    rHip.rotation.x   = lerp(rHip.rotation.x,    0.52 * sq, 0.32);
+    lKnee.rotation.x  = lerp(lKnee.rotation.x,   0.78 * sq, 0.32);
+    rKnee.rotation.x  = lerp(rKnee.rotation.x,   0.78 * sq, 0.32);
+    lAnkle.rotation.x = lerp(lAnkle.rotation.x,  0.20 * sq, 0.32);
+    rAnkle.rotation.x = lerp(rAnkle.rotation.x,  0.20 * sq, 0.32);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x,  0.32 * sq, 0.25);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x,  0.32 * sq, 0.25);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x, -0.55, 0.22);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x, -0.55, 0.22);
     lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.10, 0.08);
     rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.10, 0.08);
-    torso.position.y  = lerp(torso.position.y, 1.26 - 0.13 * sq, 0.30);
+    torso.position.y  = lerp(torso.position.y, 1.26 - 0.14 * sq, 0.32);
+    torso.rotation.x  = lerp(torso.rotation.x, -0.20 * sq, 0.25); // lean forward
     torso.rotation.y  = 0;
+    headJoint.rotation.x = lerp(headJoint.rotation.x, 0.10 * sq, 0.20);
 
-  // ─ AIR: deep knee tuck — almost squat position ───────────────────────────
+  // ─ AIR: deep tuck — knees almost to chest ────────────────────────────────
   } else if (jumpState === JS.AIR) {
-    lHip.rotation.x   = lerp(lHip.rotation.x,   -0.62, 0.16);  // hips pull up
-    rHip.rotation.x   = lerp(rHip.rotation.x,   -0.62, 0.16);
-    lKnee.rotation.x  = lerp(lKnee.rotation.x,   1.35, 0.16);  // deep knee bend
-    rKnee.rotation.x  = lerp(rKnee.rotation.x,   1.35, 0.16);
-    lAnkle.rotation.x = lerp(lAnkle.rotation.x, -0.30, 0.16);  // feet hang/point
-    rAnkle.rotation.x = lerp(rAnkle.rotation.x, -0.30, 0.16);
-    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -0.50, 0.14);
-    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -0.50, 0.14);
-    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.45, 0.10);
-    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.45, 0.10);
-    lElbow.rotation.x    = lerp(lElbow.rotation.x,    -0.90, 0.14);
-    rElbow.rotation.x    = lerp(rElbow.rotation.x,    -0.90, 0.14);
-    torso.position.y = lerp(torso.position.y, 1.26, 0.15);
-    torso.rotation.y = 0;
+    lHip.rotation.x      = lerp(lHip.rotation.x,      -0.70, 0.17);
+    rHip.rotation.x      = lerp(rHip.rotation.x,      -0.70, 0.17);
+    lKnee.rotation.x     = lerp(lKnee.rotation.x,      1.45, 0.17);  // nearly squat
+    rKnee.rotation.x     = lerp(rKnee.rotation.x,      1.45, 0.17);
+    lAnkle.rotation.x    = lerp(lAnkle.rotation.x,    -0.45, 0.17);  // feet stretch/point
+    rAnkle.rotation.x    = lerp(rAnkle.rotation.x,    -0.45, 0.17);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -0.52, 0.14);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -0.52, 0.14);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.48, 0.10);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.48, 0.10);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x,    -0.95, 0.15);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x,    -0.95, 0.15);
+    torso.position.y     = lerp(torso.position.y,  1.26, 0.15);
+    torso.rotation.x     = lerp(torso.rotation.x,  0.0, 0.10);
+    torso.rotation.y     = 0;
+    headJoint.rotation.x = lerp(headJoint.rotation.x, 0.32, 0.14); // chin to chest
 
-  // ─ LAND: squat to absorb ──────────────────────────────────────────────────
+  // ─ LAND: deep squat to absorb ────────────────────────────────────────────
   } else if (jumpState === JS.LAND) {
     const t  = Math.min(jumpTimer / LAND_DUR, 1.0);
-    const sq = 1.0 - t;   // starts at 1 (full squat), relaxes to 0
-    lHip.rotation.x   = lerp(lHip.rotation.x,    0.55 * sq, 0.30);
-    rHip.rotation.x   = lerp(rHip.rotation.x,    0.55 * sq, 0.30);
-    lKnee.rotation.x  = lerp(lKnee.rotation.x,   0.80 * sq, 0.30);
-    rKnee.rotation.x  = lerp(rKnee.rotation.x,   0.80 * sq, 0.30);
-    lAnkle.rotation.x = lerp(lAnkle.rotation.x,  0.20 * sq, 0.30);
-    rAnkle.rotation.x = lerp(rAnkle.rotation.x,  0.20 * sq, 0.30);
-    lShoulder.rotation.x = lerp(lShoulder.rotation.x,  0.20 * sq, 0.25);
-    rShoulder.rotation.x = lerp(rShoulder.rotation.x,  0.20 * sq, 0.25);
+    const sq = 1.0 - t;
+    lHip.rotation.x      = lerp(lHip.rotation.x,       0.72 * sq, 0.32);
+    rHip.rotation.x      = lerp(rHip.rotation.x,       0.72 * sq, 0.32);
+    lKnee.rotation.x     = lerp(lKnee.rotation.x,      1.10 * sq, 0.32);
+    rKnee.rotation.x     = lerp(rKnee.rotation.x,      1.10 * sq, 0.32);
+    lAnkle.rotation.x    = lerp(lAnkle.rotation.x,     0.22 * sq, 0.32);
+    rAnkle.rotation.x    = lerp(rAnkle.rotation.x,     0.22 * sq, 0.32);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x,  0.22 * sq, 0.25);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x,  0.22 * sq, 0.25);
     lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.09, 0.08);
     rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.09, 0.08);
-    torso.position.y  = lerp(torso.position.y, 1.26 - 0.15 * sq, 0.30);
-    torso.rotation.y  = 0;
+    lElbow.rotation.x    = lerp(lElbow.rotation.x,    -0.55 * sq - 0.12, 0.25);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x,    -0.55 * sq - 0.12, 0.25);
+    torso.position.y     = lerp(torso.position.y,  1.26 - 0.22 * sq, 0.32);
+    torso.rotation.x     = lerp(torso.rotation.x,  0.0, 0.10);
+    torso.rotation.y     = 0;
+    headJoint.rotation.x = lerp(headJoint.rotation.x, 0.0, 0.15);
 
   // ─ NONE: run / idle ───────────────────────────────────────────────────────
   } else {
-    const t = 0.30;  // snappy lerp
-
-    // ── LEGS: big hip swing + heel kick + ankle push-off ──────────────────
-    lHip.rotation.x  = lerp(lHip.rotation.x,   lLeg * 0.88 * eff, t);
-    rHip.rotation.x  = lerp(rHip.rotation.x,   rLeg * 0.88 * eff, t);
-    // knee bends on forward lift AND on heel-kick (when leg is behind)
-    const lKneeTgt = (Math.max(0, lLeg) * 1.00 + Math.max(0, -lLeg) * 0.70) * eff;
-    const rKneeTgt = (Math.max(0, rLeg) * 1.00 + Math.max(0, -rLeg) * 0.70) * eff;
-    lKnee.rotation.x  = lerp(lKnee.rotation.x,  lKneeTgt, t);
-    rKnee.rotation.x  = lerp(rKnee.rotation.x,  rKneeTgt, t);
-    // ankle: toe pushes down when leg drives back
-    lAnkle.rotation.x = lerp(lAnkle.rotation.x, -lLeg * 0.38 * eff, t);
-    rAnkle.rotation.x = lerp(rAnkle.rotation.x, -rLeg * 0.38 * eff, t);
-
-    // ── ARMS: elbow bends FORWARD (negative = toward +Z = character front) ──
-    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -lLeg * 0.68 * eff, t);
-    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -rLeg * 0.68 * eff, t);
-    // negative rotation = forearm bends toward character's front (+Z), not backward
-    const elbowTgt = moving ? -1.22 : -0.12;
-    lElbow.rotation.x    = lerp(lElbow.rotation.x, elbowTgt, 0.20);
-    rElbow.rotation.x    = lerp(rElbow.rotation.x, elbowTgt, 0.20);
+    if (!doScratch) {
+      // restore right arm if not scratching
+      rShoulder.rotation.x = lerp(rShoulder.rotation.x, -rLeg * 0.68 * eff, 0.30);
+      rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.09, 0.08);
+      rElbow.rotation.x    = lerp(rElbow.rotation.x,    moving ? -1.22 : -0.12, 0.20);
+    }
+    const t = 0.30;
+    lHip.rotation.x      = lerp(lHip.rotation.x,   lLeg * 0.88 * eff, t);
+    rHip.rotation.x      = lerp(rHip.rotation.x,   rLeg * 0.88 * eff, t);
+    const lKT = (Math.max(0, lLeg)*1.00 + Math.max(0,-lLeg)*0.70) * eff;
+    const rKT = (Math.max(0, rLeg)*1.00 + Math.max(0,-rLeg)*0.70) * eff;
+    lKnee.rotation.x     = lerp(lKnee.rotation.x,  lKT, t);
+    rKnee.rotation.x     = lerp(rKnee.rotation.x,  rKT, t);
+    lAnkle.rotation.x    = lerp(lAnkle.rotation.x, -lLeg*0.38*eff, t);
+    rAnkle.rotation.x    = lerp(rAnkle.rotation.x, -rLeg*0.38*eff, t);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -lLeg*0.68*eff, t);
     lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.09, 0.08);
-    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.09, 0.08);
-
-    // ── TORSO: counter-rotation + forward lean + side sway + bounce ───────
-    torso.rotation.y = lerp(torso.rotation.y,  s * 0.13 * eff, 0.18);
-    torso.rotation.x = lerp(torso.rotation.x, moving ? -0.10 : 0.0, 0.07);
-    torso.rotation.z = lerp(torso.rotation.z, Math.cos(animT) * 0.042 * eff, 0.20);
-    // pronounced vertical hop: abs(sin) peaks twice per stride = running bounce
-    torso.position.y = lerp(torso.position.y, 1.26 + (moving ? Math.abs(s) * 0.14 : 0), 0.28);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x,  moving ? -1.22 : -0.12, 0.20);
+    torso.rotation.y     = lerp(torso.rotation.y,  s*0.13*eff, 0.18);
+    torso.rotation.x     = lerp(torso.rotation.x,  moving ? -0.10 : 0.0, 0.07);
+    torso.rotation.z     = lerp(torso.rotation.z,  Math.cos(animT)*0.042*eff, 0.20);
+    torso.position.y     = lerp(torso.position.y,  1.26 + (moving ? Math.abs(s)*0.14 : 0), 0.28);
+    // head bob in sync with steps
+    headJoint.rotation.x = lerp(headJoint.rotation.x, moving ? Math.abs(s)*(-0.07) : 0, 0.18);
+    if (!doScratch) headJoint.rotation.z = lerp(headJoint.rotation.z, 0, 0.10);
   }
 }
 
@@ -451,16 +495,20 @@ function loop() {
   const dt  = Math.min((now - lastTime) / 1000, 0.05);
   lastTime  = now;
 
-  // ── Turn — dt-based so speed is frame-rate independent
+  // ── Turn
   if (keys.left)  charYaw += TURN_RATE * dt;
   if (keys.right) charYaw -= TURN_RATE * dt;
   charRoot.rotation.y = charYaw;
 
   const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
 
-  // ── Move
-  if (keys.up)   { charRoot.position.x += fwdX * MOVE_SPEED; charRoot.position.z += fwdZ * MOVE_SPEED; }
-  if (keys.down) { charRoot.position.x -= fwdX * MOVE_SPEED; charRoot.position.z -= fwdZ * MOVE_SPEED; }
+  // ── Move with smooth acceleration / deceleration
+  const wantMove = keys.up || keys.down;
+  if (wantMove) moveSpeed = Math.min(moveSpeed + ACCEL_RATE * dt, SPEED_MAX);
+  else          moveSpeed = Math.max(moveSpeed - DECEL_RATE * dt, 0);
+
+  if (keys.up)   { charRoot.position.x += fwdX * moveSpeed * dt; charRoot.position.z += fwdZ * moveSpeed * dt; }
+  if (keys.down) { charRoot.position.x -= fwdX * moveSpeed * dt; charRoot.position.z -= fwdZ * moveSpeed * dt; }
 
   // ── Jump state machine
   if (jumpBuf && onGround && jumpState !== JS.WINDUP && jumpState !== JS.AIR) {
@@ -509,12 +557,12 @@ function loop() {
   camDist = lerp(camDist, moving ? 7.0 : 4.0, dt * 2.5);
   const tCam = new THREE.Vector3(
     charRoot.position.x - fwdX * camDist,
-    charRoot.position.y + 3.5,
+    charRoot.position.y + 2.6,   // flacher (war 3.5)
     charRoot.position.z - fwdZ * camDist
   );
   camPos.lerp(tCam, 0.08);
   camera.position.copy(camPos);
-  camera.lookAt(charRoot.position.x, charRoot.position.y + 1.4, charRoot.position.z);
+  camera.lookAt(charRoot.position.x, charRoot.position.y + 1.1, charRoot.position.z);
 
   // ── Sun follows player
   sun.target.position.copy(charRoot.position);
