@@ -9,74 +9,90 @@
         body { background: #000; overflow: hidden; font-family: 'Courier New', Courier, monospace; }
 
         #overlay {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 30;
-            background: #000;
+            position: fixed; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            z-index: 30; background: #000;
             transition: opacity 1.2s;
         }
         #overlay.fade { opacity: 0; pointer-events: none; }
-
         #loader-text {
-            color: #FFD700;
-            font-size: 0.85rem;
-            letter-spacing: 0.35em;
-            text-transform: uppercase;
+            color: #FFD700; font-size: 0.85rem;
+            letter-spacing: 0.35em; text-transform: uppercase;
             animation: blink 1.4s ease-in-out infinite;
         }
         #loader-sub {
-            color: rgba(255, 215, 0, 0.35);
-            font-size: 0.6rem;
-            letter-spacing: 0.25em;
-            margin-top: 10px;
-            text-transform: uppercase;
+            color: rgba(255,215,0,0.35); font-size: 0.6rem;
+            letter-spacing: 0.25em; margin-top: 10px; text-transform: uppercase;
         }
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50%       { opacity: 0.15; }
-        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
 
         #hud {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            padding: 18px 22px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            pointer-events: none;
-            z-index: 10;
+            position: fixed; top: 0; left: 0; right: 0;
+            padding: 16px 20px;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            pointer-events: none; z-index: 10;
         }
         #hud-title {
-            color: #FFD700;
-            font-size: 0.8rem;
-            letter-spacing: 0.35em;
-            text-transform: uppercase;
-            opacity: 0;
-            transition: opacity 1.5s 0.5s;
+            color: #FFD700; font-size: 0.8rem; letter-spacing: 0.35em;
+            text-transform: uppercase; opacity: 0; transition: opacity 1.5s .5s;
         }
         #hud-title.show { opacity: 1; }
         #hud-sub {
-            color: rgba(255,255,255,0.25);
-            font-size: 0.58rem;
-            letter-spacing: 0.2em;
-            margin-top: 5px;
-            text-transform: uppercase;
+            color: rgba(255,255,255,.25); font-size: 0.58rem;
+            letter-spacing: .2em; margin-top: 5px; text-transform: uppercase;
         }
+        #refresh-btn {
+            pointer-events: all; cursor: pointer; user-select: none;
+            color: rgba(255,215,0,.45); font-size: .68rem; letter-spacing: .15em;
+            border: 1px solid rgba(255,215,0,.2); padding: 4px 10px;
+            transition: color .2s, border-color .2s;
+        }
+        #refresh-btn:hover { color: #FFD700; border-color: rgba(255,215,0,.6); }
+
+        /* Axis labels (HTML, screen-space) */
+        #axis-y {
+            position: fixed; left: 14px; top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            color: rgba(255,255,255,.22); font-size: .58rem;
+            letter-spacing: .2em; text-transform: uppercase;
+            pointer-events: none; z-index: 10; white-space: nowrap;
+        }
+        #axis-x {
+            position: fixed; bottom: 42px; right: 18px;
+            color: rgba(255,255,255,.22); font-size: .58rem;
+            letter-spacing: .2em; text-transform: uppercase;
+            pointer-events: none; z-index: 10;
+        }
+
         #hint {
-            position: fixed;
-            bottom: 18px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255,255,255,0.18);
-            font-size: 0.58rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            z-index: 10;
-            white-space: nowrap;
+            position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,.18); font-size: .58rem;
+            letter-spacing: .18em; text-transform: uppercase;
+            z-index: 10; white-space: nowrap; pointer-events: none;
+        }
+
+        /* Candle info panel */
+        #candle-info {
+            position: fixed; display: none;
+            background: rgba(0,0,0,.9);
+            border: 1px solid rgba(255,255,255,.28);
+            padding: 13px 16px; z-index: 50;
+            min-width: 195px; pointer-events: none;
+        }
+        #ci-date {
+            color: rgba(255,255,255,.55); font-size: .62rem;
+            letter-spacing: .18em; margin-bottom: 9px; text-transform: uppercase;
+        }
+        .ci-row {
+            display: flex; justify-content: space-between;
+            font-size: .68rem; margin: 3px 0; gap: 16px;
+        }
+        .ci-lbl { color: rgba(255,255,255,.38); letter-spacing: .08em; }
+        .ci-val { color: #fff; font-weight: bold; }
+        #ci-chg {
+            font-size: .78rem; font-weight: bold;
+            margin-top: 8px; text-align: right; letter-spacing: .05em;
         }
     </style>
 </head>
@@ -84,382 +100,385 @@
 
 <div id="overlay">
     <div id="loader-text">▶ LADE BITCOIN CHART ◀</div>
-    <div id="loader-sub">CoinGecko API · Gesamter Verlauf</div>
+    <div id="loader-sub">Verbinde …</div>
 </div>
 
 <div id="hud">
     <div>
         <div id="hud-title">BITCOIN / USD &nbsp;·&nbsp; 3D KERZENCHART</div>
-        <div id="hud-sub">LOG-SKALA &nbsp;·&nbsp; 4-TAGES KERZEN &nbsp;·&nbsp; GESAMTER VERLAUF</div>
+        <div id="hud-sub">LOG-SKALA &nbsp;·&nbsp; TAGES-KERZEN &nbsp;·&nbsp; GESAMTER VERLAUF</div>
     </div>
+    <div id="refresh-btn" onclick="location.reload()">⟳ &nbsp;RELOAD</div>
 </div>
 
-<div id="hint">ZIEHEN: ROTIEREN &nbsp;·&nbsp; SCROLL: ZOOM &nbsp;·&nbsp; RECHTS-ZIEHEN: VERSCHIEBEN</div>
+<div id="axis-y">PREIS (USD)</div>
+<div id="axis-x">DATUM</div>
+
+<div id="hint">TIPPEN: INFO &amp; DREHPUNKT &nbsp;·&nbsp; ZIEHEN: ROTIEREN &nbsp;·&nbsp; SCROLL: ZOOM</div>
+
+<div id="candle-info">
+    <div id="ci-date"></div>
+    <div class="ci-row"><span class="ci-lbl">OPEN </span><span class="ci-val" id="ci-open"></span></div>
+    <div class="ci-row"><span class="ci-lbl">HIGH </span><span class="ci-val" id="ci-high"></span></div>
+    <div class="ci-row"><span class="ci-lbl">LOW  </span><span class="ci-val" id="ci-low"></span></div>
+    <div class="ci-row"><span class="ci-lbl">CLOSE</span><span class="ci-val" id="ci-cls"></span></div>
+    <div id="ci-chg"></div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
 <script>
 (function () {
     'use strict';
 
-    // ── RENDERER ────────────────────────────────────────────────────────
+    // ── RENDERER ─────────────────────────────────────────────────────────
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setSize(innerWidth, innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // ── SCENE ───────────────────────────────────────────────────────────
+    // ── SCENE / CAMERA / CONTROLS ────────────────────────────────────────
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000000);
 
-    // ── CAMERA ──────────────────────────────────────────────────────────
-    const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 20000);
-    camera.position.set(0, 80, 300);
+    const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 30000);
+    camera.position.set(0, 300, 600);
 
-    // ── CONTROLS ────────────────────────────────────────────────────────
     const ctrl = new THREE.OrbitControls(camera, renderer.domElement);
-    ctrl.enableDamping = true;
-    ctrl.dampingFactor = 0.055;
-    ctrl.minDistance = 5;
-    ctrl.maxDistance = 4000;
-    ctrl.target.set(0, 30, 0);
-    ctrl.update();
+    ctrl.enableDamping = true; ctrl.dampingFactor = 0.055;
+    ctrl.minDistance = 5; ctrl.maxDistance = 10000;
+    ctrl.target.set(0, 100, 0); ctrl.update();
 
-    // ── LIGHTS ──────────────────────────────────────────────────────────
+    // ── LIGHTS ────────────────────────────────────────────────────────────
     scene.add(new THREE.AmbientLight(0xffffff, 0.22));
-
     const sun = new THREE.DirectionalLight(0xfff2cc, 1.6);
-    sun.position.set(300, 500, 300);
-    scene.add(sun);
-
+    sun.position.set(300, 800, 300); scene.add(sun);
     const rim = new THREE.DirectionalLight(0x1a2255, 0.5);
-    rim.position.set(-300, 120, -200);
-    scene.add(rim);
+    rim.position.set(-300, 120, -200); scene.add(rim);
 
-    const bottom = new THREE.DirectionalLight(0x050510, 0.3);
-    bottom.position.set(0, -100, 0);
-    scene.add(bottom);
+    // ── MATERIALS ─────────────────────────────────────────────────────────
+    const matBullBody = new THREE.MeshPhongMaterial({ color: 0xFFD700, emissive: 0x2e1a00, specular: 0xFFEE55, shininess: 130 });
+    const matBearBody = new THREE.MeshPhongMaterial({ color: 0x202020, emissive: 0x060606, specular: 0x0e0e0e, shininess: 12 });
+    const matBullWick = new THREE.MeshPhongMaterial({ color: 0xAA7700, emissive: 0x180d00, shininess: 50 });
+    const matBearWick = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 5 });
 
-    // ── MATERIALS ───────────────────────────────────────────────────────
-    const matBullBody = new THREE.MeshPhongMaterial({
-        color:    0xFFD700,
-        emissive: 0x2e1a00,
-        specular: 0xFFEE55,
-        shininess: 130
-    });
-    const matBearBody = new THREE.MeshPhongMaterial({
-        color:    0x202020,
-        emissive: 0x060606,
-        specular: 0x0e0e0e,
-        shininess: 12
-    });
-    const matBullWick = new THREE.MeshPhongMaterial({
-        color:    0xAA7700,
-        emissive: 0x180d00,
-        shininess: 50
-    });
-    const matBearWick = new THREE.MeshPhongMaterial({
-        color:    0x111111,
-        shininess: 5
-    });
+    // ── MODULE STATE ──────────────────────────────────────────────────────
+    let rawData = [], _toX, _toY;
+    let bullIdxMap = [], bearIdxMap = [];
+    let iBullBody = null, iBearBody = null;
+    const raycaster = new THREE.Raycaster();
 
-    // ── DATA FETCH ──────────────────────────────────────────────────────
+    // ── FETCH ─────────────────────────────────────────────────────────────
     const loaderSub = document.getElementById('loader-sub');
 
     async function fetchOHLC() {
-        // 1) CoinGecko
+        // 1) CoinGecko (4-day candles, full history)
         try {
             loaderSub.textContent = 'CoinGecko API …';
-            const res = await fetch(
+            const r = await fetch(
                 'https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=max',
                 { cache: 'no-store' }
             );
-            if (res.ok) {
-                const json = await res.json();
-                if (Array.isArray(json) && json.length > 100) return json;
+            if (r.ok) {
+                const j = await r.json();
+                if (Array.isArray(j) && j.length > 100) return j;
             }
         } catch (_) {}
 
-        // 2) Binance paginated daily candles (BTCUSDT, since 2017)
+        // 2) Binance paginated daily candles (since 2017)
         loaderSub.textContent = 'Binance API …';
-        return fetchBinance();
-    }
-
-    async function fetchBinance() {
         const LIMIT = 1000;
-        let all = [];
-        let endTime = Date.now();
-
+        let all = [], end = Date.now();
         for (let i = 0; i < 5; i++) {
-            const url =
-                'https://api.binance.com/api/v3/klines' +
-                '?symbol=BTCUSDT&interval=1d&limit=' + LIMIT +
-                '&endTime=' + endTime;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('Binance HTTP ' + res.status);
-            const data = await res.json();
-            if (!Array.isArray(data) || data.length === 0) break;
-            all = data.concat(all);          // prepend older batch
-            if (data.length < LIMIT) break;  // reached beginning
-            endTime = data[0][0] - 1;
+            const r = await fetch(
+                'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=' +
+                LIMIT + '&endTime=' + end
+            );
+            if (!r.ok) throw new Error('Binance HTTP ' + r.status);
+            const d = await r.json();
+            if (!Array.isArray(d) || !d.length) break;
+            all = d.concat(all);
+            if (d.length < LIMIT) break;
+            end = d[0][0] - 1;
         }
-
         if (all.length < 10) throw new Error('Keine Daten verfügbar');
-        // Binance: [openTime, open, high, low, close, ...]
         return all.map(k => [k[0], +k[1], +k[2], +k[3], +k[4]]);
     }
 
-    // ── BUILD CHART ─────────────────────────────────────────────────────
+    // ── BUILD CHART ───────────────────────────────────────────────────────
     function buildChart(raw) {
         const N = raw.length;
         if (N < 2) return;
+        rawData = raw;
 
-        // Scale: 1.5 units per candle in X
-        const STEP  = 1.5;
-        const TW    = N * STEP;         // total chart width
-        const TH    = 110;              // chart height (log-scaled)
-        const BW    = STEP * 0.72;      // body width
-        const WW    = STEP * 0.10;      // wick width
+        const STEP = 1.5;
+        const TW   = N * STEP;
+        const TH   = 550;          // Y axis × 5
+        const BW   = STEP * 0.72;
+        const WW   = STEP * 0.11;
 
-        // Log price → Y mapping
         const prices = raw.flatMap(([, o, h, l, c]) => [o, h, l, c]).filter(p => p > 0);
         const logMin = Math.log10(Math.min(...prices));
         const logMax = Math.log10(Math.max(...prices));
-        const toY = p => p > 0
-            ? ((Math.log10(p) - logMin) / (logMax - logMin)) * TH
-            : 0;
+        const toY = p => p > 0 ? ((Math.log10(p) - logMin) / (logMax - logMin)) * TH : 0;
         const toX = i => i * STEP - TW / 2 + STEP / 2;
+        _toX = toX; _toY = toY;
 
-        // Count for instanced meshes
         let nBull = 0, nBear = 0;
         raw.forEach(([, o, , , c]) => c >= o ? nBull++ : nBear++);
 
-        const unitBox = new THREE.BoxGeometry(1, 1, 1);
-        const iBullBody = new THREE.InstancedMesh(unitBox, matBullBody, nBull);
-        const iBearBody = new THREE.InstancedMesh(unitBox, matBearBody, nBear);
-        const iBullWick = new THREE.InstancedMesh(unitBox, matBullWick, nBull);
-        const iBearWick = new THREE.InstancedMesh(unitBox, matBearWick, nBear);
+        const box = new THREE.BoxGeometry(1, 1, 1);
+        iBullBody = new THREE.InstancedMesh(box, matBullBody, nBull);
+        iBearBody = new THREE.InstancedMesh(box, matBearBody, nBear);
+        const iBullWick = new THREE.InstancedMesh(box, matBullWick, nBull);
+        const iBearWick = new THREE.InstancedMesh(box, matBearWick, nBear);
 
-        const dBody = new THREE.Object3D();
-        const dWick = new THREE.Object3D();
+        const dB = new THREE.Object3D(), dW = new THREE.Object3D();
+        bullIdxMap = []; bearIdxMap = [];
         let bi = 0, ri = 0;
 
         raw.forEach(([, open, high, low, close], i) => {
-            const x    = toX(i);
-            const bull = close >= open;
+            const x = toX(i), bull = close >= open;
+            const yO = toY(open), yC = toY(close), yH = toY(high), yL = toY(low);
+            const bH = Math.max(Math.abs(yC - yO), 0.15), bY = (yO + yC) / 2;
+            const wH = Math.max(yH - yL, 0.15),           wY = (yH + yL) / 2;
 
-            const yO = toY(open);
-            const yC = toY(close);
-            const yH = toY(high);
-            const yL = toY(low);
-
-            const bodyH = Math.max(Math.abs(yC - yO), 0.06);
-            const bodyY = (yO + yC) / 2;
-            const wickH = Math.max(yH - yL, 0.06);
-            const wickY = (yH + yL) / 2;
-
-            dBody.position.set(x, bodyY, 0);
-            dBody.scale.set(BW, bodyH, BW * 0.85);
-            dBody.updateMatrix();
-
-            dWick.position.set(x, wickY, 0);
-            dWick.scale.set(WW, wickH, WW);
-            dWick.updateMatrix();
+            dB.position.set(x, bY, 0); dB.scale.set(BW, bH, BW * 0.85); dB.updateMatrix();
+            dW.position.set(x, wY, 0); dW.scale.set(WW, wH, WW);         dW.updateMatrix();
 
             if (bull) {
-                iBullBody.setMatrixAt(bi, dBody.matrix);
-                iBullWick.setMatrixAt(bi, dWick.matrix);
-                bi++;
+                iBullBody.setMatrixAt(bi, dB.matrix); iBullWick.setMatrixAt(bi, dW.matrix);
+                bullIdxMap[bi] = i; bi++;
             } else {
-                iBearBody.setMatrixAt(ri, dBody.matrix);
-                iBearWick.setMatrixAt(ri, dWick.matrix);
-                ri++;
+                iBearBody.setMatrixAt(ri, dB.matrix); iBearWick.setMatrixAt(ri, dW.matrix);
+                bearIdxMap[ri] = i; ri++;
             }
         });
 
-        [iBullBody, iBearBody, iBullWick, iBearWick].forEach(im => {
-            im.instanceMatrix.needsUpdate = true;
-            scene.add(im);
+        [iBullBody, iBearBody, iBullWick, iBearWick].forEach(m => {
+            m.instanceMatrix.needsUpdate = true; scene.add(m);
         });
 
         buildFloor(TW, TH);
         addPriceLevels(toY, TW, TH);
-        addYearLabels(raw, toX, TH);
+        addYearLabels(raw, toX);
+        addAxisMarkers(toY, TW, TH);
 
-        // Depth fog
-        scene.fog = new THREE.FogExp2(0x000000, 1.2 / TW);
+        scene.fog = new THREE.FogExp2(0x000000, 0.45 / TW);
 
-        // Camera: right side, elevated, looking across the full history
-        camera.position.set(TW * 0.08, TH * 1.8, TW * 0.55);
-        ctrl.target.set(0, TH * 0.28, 0);
-        ctrl.update();
-
-        // Show HUD
+        camera.position.set(TW * 0.08, TH * 0.9, TW * 0.55);
+        ctrl.target.set(0, TH * 0.28, 0); ctrl.update();
         document.getElementById('hud-title').classList.add('show');
     }
 
-    // ── FLOOR ────────────────────────────────────────────────────────────
+    // ── FLOOR (canvas texture grid) ───────────────────────────────────────
     function buildFloor(TW, TH) {
-        const PW = TW + 120;
-        const PD = 90;
+        const PW = TW + 120, PD = 100;
 
-        // Solid black ground
-        const geo = new THREE.PlaneGeometry(PW, PD);
-        const mat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-        const plane = new THREE.Mesh(geo, mat);
-        plane.rotation.x = -Math.PI / 2;
-        plane.position.set(0, -0.6, 0);
-        scene.add(plane);
+        // Black base plane
+        const base = new THREE.Mesh(
+            new THREE.PlaneGeometry(PW, PD),
+            new THREE.MeshBasicMaterial({ color: 0x000000 })
+        );
+        base.rotation.x = -Math.PI / 2; base.position.y = -0.8; scene.add(base);
 
-        // White grid lines
-        const pts = [];
-        const nX = Math.min(80, Math.round(TW / 22));
-        const nZ = 12;
+        // Grid via tiling canvas texture (avoids 1px WebGL line limitation)
+        const T = 256;
+        const cv = document.createElement('canvas'); cv.width = T; cv.height = T;
+        const ctx = cv.getContext('2d');
+        ctx.clearRect(0, 0, T, T);
+        ctx.strokeStyle = 'rgba(255,255,255,0.38)';
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(T - 1, 0); ctx.lineTo(T - 1, T); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, T - 1); ctx.lineTo(T, T - 1); ctx.stroke();
 
-        for (let i = 0; i <= nX; i++) {
-            const x = (i / nX) * PW - PW / 2;
-            pts.push(x, 0, -PD / 2,  x, 0, PD / 2);
-        }
-        for (let j = 0; j <= nZ; j++) {
-            const z = (j / nZ) * PD - PD / 2;
-            pts.push(-PW / 2, 0, z,  PW / 2, 0, z);
-        }
+        const tex = new THREE.CanvasTexture(cv);
+        tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(Math.round(PW / 55), Math.round(PD / 55));
 
-        const geoGrid = new THREE.BufferGeometry();
-        geoGrid.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-        scene.add(new THREE.LineSegments(geoGrid, new THREE.LineBasicMaterial({
-            color: 0xffffff,
-            transparent: true,
-            opacity: 0.1
-        })));
+        const gridPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(PW, PD),
+            new THREE.MeshBasicMaterial({ map: tex, transparent: true })
+        );
+        gridPlane.rotation.x = -Math.PI / 2; gridPlane.position.y = -0.5;
+        scene.add(gridPlane);
 
-        // Bright base line along chart front
-        const basePts = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(-PW / 2, 0, 0),
-            new THREE.Vector3( PW / 2, 0, 0)
-        ]);
-        scene.add(new THREE.Line(basePts, new THREE.LineBasicMaterial({
-            color: 0xffffff,
-            transparent: true,
-            opacity: 0.45
-        })));
+        // Thick base line (box mesh, avoids 1px limit)
+        scene.add(Object.assign(
+            new THREE.Mesh(new THREE.BoxGeometry(PW, 2, 2),
+                           new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })),
+            { position: new THREE.Vector3(0, 0, 0) }
+        ));
     }
 
-    // ── PRICE LEVEL GUIDES ───────────────────────────────────────────────
+    // ── PRICE LEVEL GUIDES ────────────────────────────────────────────────
     function addPriceLevels(toY, TW, TH) {
-        const levels = [
-            { price: 1,      label: '$1'     },
-            { price: 10,     label: '$10'    },
-            { price: 100,    label: '$100'   },
-            { price: 1000,   label: '$1K'    },
-            { price: 10000,  label: '$10K'   },
-            { price: 100000, label: '$100K'  }
-        ];
+        [{ p: 1, l: '$1' }, { p: 10, l: '$10' }, { p: 100, l: '$100' },
+         { p: 1000, l: '$1K' }, { p: 10000, l: '$10K' }, { p: 100000, l: '$100K' }
+        ].forEach(({ p, l }) => {
+            const y = toY(p);
+            if (y < 1 || y > TH * 1.05) return;
 
-        levels.forEach(({ price, label }) => {
-            const y = toY(price);
-            if (y < 0.5 || y > TH * 1.05) return;
-
-            // Horizontal guide line
-            const geo = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(-TW / 2, y, 0),
-                new THREE.Vector3( TW / 2, y, 0)
-            ]);
-            scene.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
-                color: 0x333333,
-                transparent: true,
-                opacity: 0.6
-            })));
+            // Thick guide line (box mesh)
+            const ln = new THREE.Mesh(
+                new THREE.BoxGeometry(TW, 1.5, 1.0),
+                new THREE.MeshBasicMaterial({ color: 0x3a3a3a, transparent: true, opacity: 0.9 })
+            );
+            ln.position.set(0, y, 0); scene.add(ln);
 
             // Label sprite
-            const cv  = document.createElement('canvas');
-            cv.width  = 128; cv.height = 38;
+            const cv = document.createElement('canvas'); cv.width = 150; cv.height = 48;
             const ctx = cv.getContext('2d');
-            ctx.fillStyle = 'rgba(180,180,180,0.7)';
-            ctx.font = 'bold 20px "Courier New"';
-            ctx.textAlign = 'right';
-            ctx.fillText(label, 122, 26);
-
+            ctx.fillStyle = 'rgba(200,200,200,.95)';
+            ctx.font = 'bold 28px "Courier New"'; ctx.textAlign = 'right';
+            ctx.fillText(l, 142, 34);
             const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: new THREE.CanvasTexture(cv),
-                transparent: true,
-                depthWrite: false
+                map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false
             }));
-            sp.position.set(-TW / 2 - 8, y, 0);
-            sp.scale.set(18, 5.5, 1);
-            scene.add(sp);
+            sp.position.set(-TW / 2 - 14, y, 0); sp.scale.set(26, 8, 1); scene.add(sp);
         });
     }
 
-    // ── YEAR LABELS ──────────────────────────────────────────────────────
-    function addYearLabels(raw, toX, TH) {
+    // ── YEAR LABELS ───────────────────────────────────────────────────────
+    function addYearLabels(raw, toX) {
+        const PD = 100;
         const seen = new Set();
         raw.forEach(([ts], i) => {
             const yr = new Date(ts).getFullYear();
-            if (seen.has(yr)) return;
-            seen.add(yr);
-
+            if (seen.has(yr)) return; seen.add(yr);
             const x = toX(i);
 
-            // Canvas label
-            const cv  = document.createElement('canvas');
-            cv.width  = 140; cv.height = 44;
+            // Year sprite
+            const cv = document.createElement('canvas'); cv.width = 160; cv.height = 52;
             const ctx = cv.getContext('2d');
-            ctx.clearRect(0, 0, 140, 44);
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
-            ctx.font = 'bold 24px "Courier New"';
-            ctx.textAlign = 'center';
-            ctx.fillText(String(yr), 70, 30);
-
+            ctx.clearRect(0, 0, 160, 52);
+            ctx.fillStyle = 'rgba(255,255,255,.6)';
+            ctx.font = 'bold 30px "Courier New"'; ctx.textAlign = 'center';
+            ctx.fillText(String(yr), 80, 36);
             const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-                map: new THREE.CanvasTexture(cv),
-                transparent: true,
-                depthWrite: false
+                map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false
             }));
-            sp.position.set(x, -4.5, 20);
-            sp.scale.set(18, 5.5, 1);
-            scene.add(sp);
+            sp.position.set(x, -8, 26); sp.scale.set(26, 8, 1); scene.add(sp);
 
-            // Floor tick
-            const geo = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(x, 0, -22),
-                new THREE.Vector3(x, 0, 22)
-            ]);
-            scene.add(new THREE.Line(geo, new THREE.LineBasicMaterial({
-                color: 0xffffff,
-                transparent: true,
-                opacity: 0.1
-            })));
+            // Tick line (flat box)
+            const tk = new THREE.Mesh(
+                new THREE.BoxGeometry(2.0, 0.4, PD),
+                new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 })
+            );
+            tk.position.set(x, 0, 0); scene.add(tk);
         });
     }
 
-    // ── MAIN ─────────────────────────────────────────────────────────────
-    (async () => {
-        const overlay   = document.getElementById('overlay');
-        const loaderTxt = document.getElementById('loader-text');
-        const loaderSub = document.getElementById('loader-sub');
+    // ── Y-AXIS TICK MARKS (3D) ────────────────────────────────────────────
+    function addAxisMarkers(toY, TW, TH) {
+        // Small tick marks on left edge of the chart
+        [1, 10, 100, 1000, 10000, 100000].forEach(p => {
+            const y = toY(p);
+            if (y < 1 || y > TH * 1.05) return;
+            const tk = new THREE.Mesh(
+                new THREE.BoxGeometry(8, 1.5, 1.5),
+                new THREE.MeshBasicMaterial({ color: 0x888888 })
+            );
+            tk.position.set(-TW / 2 - 4, y, 0); scene.add(tk);
+        });
 
+        // Y axis spine
+        const spine = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5, TH, 1.5),
+            new THREE.MeshBasicMaterial({ color: 0x333333 })
+        );
+        spine.position.set(-TW / 2, TH / 2, 0); scene.add(spine);
+    }
+
+    // ── CANDLE INFO ───────────────────────────────────────────────────────
+    const infoEl = document.getElementById('candle-info');
+
+    function showInfo(candle, sx, sy) {
+        const [ts, open, high, low, close] = candle;
+        const date = new Date(ts).toLocaleDateString('de-DE',
+            { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const pct = ((close - open) / open * 100).toFixed(2);
+        const bull = close >= open;
+        const fmt = n => '$' + Number(n).toLocaleString('en-US',
+            { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        document.getElementById('ci-date').textContent = date;
+        document.getElementById('ci-open').textContent = fmt(open);
+        document.getElementById('ci-high').textContent = fmt(high);
+        document.getElementById('ci-low').textContent  = fmt(low);
+        document.getElementById('ci-cls').textContent  = fmt(close);
+        const chEl = document.getElementById('ci-chg');
+        chEl.textContent = (bull ? '+' : '') + pct + '%';
+        chEl.style.color = bull ? '#FFD700' : '#888';
+
+        const W = 215, H = 175, pad = 14;
+        let lx = sx + 20, ly = sy - H / 2;
+        if (lx + W > innerWidth  - pad) lx = sx - W - 20;
+        if (ly < pad) ly = pad;
+        if (ly + H > innerHeight - pad) ly = innerHeight - H - pad;
+        infoEl.style.left = lx + 'px'; infoEl.style.top = ly + 'px';
+        infoEl.style.display = 'block';
+    }
+
+    // ── POINTER / TOUCH ───────────────────────────────────────────────────
+    let pDown = null;
+
+    function handleTap(cx, cy) {
+        const m = new THREE.Vector2((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
+        raycaster.setFromCamera(m, camera);
+        const hits = raycaster.intersectObjects([iBullBody, iBearBody].filter(Boolean));
+        if (hits.length > 0) {
+            const h = hits[0];
+            const isBull = h.object === iBullBody;
+            const ri = isBull ? bullIdxMap[h.instanceId] : bearIdxMap[h.instanceId];
+            const c = rawData[ri];
+            ctrl.target.set(_toX(ri), (_toY(c[1]) + _toY(c[4])) / 2, 0);
+            showInfo(c, cx, cy);
+        } else {
+            infoEl.style.display = 'none';
+        }
+    }
+
+    renderer.domElement.addEventListener('pointerdown', e => { pDown = { x: e.clientX, y: e.clientY }; });
+    renderer.domElement.addEventListener('pointerup', e => {
+        if (!pDown) return;
+        const dx = e.clientX - pDown.x, dy = e.clientY - pDown.y;
+        pDown = null;
+        if (dx * dx + dy * dy < 64) handleTap(e.clientX, e.clientY);
+    });
+    renderer.domElement.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) pDown = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }, { passive: true });
+    renderer.domElement.addEventListener('touchend', e => {
+        if (!pDown || !e.changedTouches.length) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - pDown.x, dy = t.clientY - pDown.y;
+        pDown = null;
+        if (dx * dx + dy * dy < 144) handleTap(t.clientX, t.clientY);
+    }, { passive: true });
+
+    // ── INIT ──────────────────────────────────────────────────────────────
+    (async () => {
+        const overlay = document.getElementById('overlay');
+        const loaderTxt = document.getElementById('loader-text');
         try {
             const data = await fetchOHLC();
             overlay.classList.add('fade');
             setTimeout(() => { overlay.style.display = 'none'; }, 1300);
             buildChart(data);
         } catch (err) {
-            loaderTxt.style.animation = 'none';
-            loaderTxt.style.color     = '#ff4444';
-            loaderTxt.textContent     = '⚠ ' + err.message;
-            loaderSub.textContent     = 'Internetverbindung oder API prüfen';
+            loaderTxt.style.animation = 'none'; loaderTxt.style.color = '#f44';
+            loaderTxt.textContent = '⚠ ' + err.message;
+            loaderSub.textContent = 'Internetverbindung oder API prüfen';
             console.error(err);
         }
     })();
 
-    // ── RENDER LOOP ──────────────────────────────────────────────────────
-    (function loop() {
-        requestAnimationFrame(loop);
-        ctrl.update();
-        renderer.render(scene, camera);
-    })();
+    // Auto-reload after 1 hour (daily candles update once/day)
+    setTimeout(() => location.reload(), 60 * 60 * 1000);
+
+    // ── RENDER LOOP ───────────────────────────────────────────────────────
+    (function loop() { requestAnimationFrame(loop); ctrl.update(); renderer.render(scene, camera); })();
 
     window.addEventListener('resize', () => {
         camera.aspect = innerWidth / innerHeight;
