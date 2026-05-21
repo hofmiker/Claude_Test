@@ -165,13 +165,49 @@
     });
 
     // ── DATA FETCH ──────────────────────────────────────────────────────
+    const loaderSub = document.getElementById('loader-sub');
+
     async function fetchOHLC() {
-        const url = 'https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=max';
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        if (!Array.isArray(json) || json.length < 5) throw new Error('Ungültige Daten');
-        return json; // [ [timestamp_ms, open, high, low, close], ... ]
+        // 1) CoinGecko
+        try {
+            loaderSub.textContent = 'CoinGecko API …';
+            const res = await fetch(
+                'https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=max',
+                { cache: 'no-store' }
+            );
+            if (res.ok) {
+                const json = await res.json();
+                if (Array.isArray(json) && json.length > 100) return json;
+            }
+        } catch (_) {}
+
+        // 2) Binance paginated daily candles (BTCUSDT, since 2017)
+        loaderSub.textContent = 'Binance API …';
+        return fetchBinance();
+    }
+
+    async function fetchBinance() {
+        const LIMIT = 1000;
+        let all = [];
+        let endTime = Date.now();
+
+        for (let i = 0; i < 5; i++) {
+            const url =
+                'https://api.binance.com/api/v3/klines' +
+                '?symbol=BTCUSDT&interval=1d&limit=' + LIMIT +
+                '&endTime=' + endTime;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Binance HTTP ' + res.status);
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) break;
+            all = data.concat(all);          // prepend older batch
+            if (data.length < LIMIT) break;  // reached beginning
+            endTime = data[0][0] - 1;
+        }
+
+        if (all.length < 10) throw new Error('Keine Daten verfügbar');
+        // Binance: [openTime, open, high, low, close, ...]
+        return all.map(k => [k[0], +k[1], +k[2], +k[3], +k[4]]);
     }
 
     // ── BUILD CHART ─────────────────────────────────────────────────────
