@@ -482,6 +482,33 @@ bldTraditional(200+GAP+8,-150,14,24,0,+1);
 bld(-32,46,22,22,36,false);
 bld(-32,-258,22,22,52,true); bld(232,-258,22,22,42,false);
 
+// ── Construction site D4 (x≈262, z≈-258) ────────────────────────────────
+{const sx=262,sz=-258,sw=24,sd=18,nf=8,fh=4,th=nf*fh;
+ const mSt=new THREE.MeshLambertMaterial({color:0x7a8898});
+ const mSl=new THREE.MeshLambertMaterial({color:0xb8b2a8});
+ const mCr=new THREE.MeshLambertMaterial({color:0xFFCC00});
+ const mFn=new THREE.MeshLambertMaterial({color:0xee7700});
+ for(let ci=-1;ci<=1;ci+=2) for(let cj=-1;cj<=1;cj+=2)
+   box(0.5,th,0.5,mSt,sx+ci*sw/2,th/2,sz+cj*sd/2);
+ for(let f=1;f<=nf;f++){
+   const fy=f*fh;
+   box(sw,0.3,sd,mSl,sx,fy,sz);
+   box(sw,0.35,0.3,mSt,sx,fy-fh/2,sz-sd/2); box(sw,0.35,0.3,mSt,sx,fy-fh/2,sz+sd/2);
+   box(0.3,0.35,sd,mSt,sx-sw/2,fy-fh/2,sz); box(0.3,0.35,sd,mSt,sx+sw/2,fy-fh/2,sz);
+ }
+ const cx2=sx+sw/2+8;
+ box(1.2,th+10,1.2,mCr,cx2,(th+10)/2,sz);
+ box(24,0.8,1.0,mCr,cx2+7,th+8,sz); box(7,0.8,1.0,mCr,cx2-5,th+8,sz);
+ box(0.2,th+4,0.2,mSt,cx2+18,th/2+4,sz);
+ const fp=4,fx1=sx-sw/2-fp,fx2=cx2+5,fz1=sz-sd/2-fp,fz2=sz+sd/2+fp;
+ const fW=fx2-fx1,fD=fz2-fz1,fH=2.2,ft=0.3;
+ box(fW,fH,ft,mFn,(fx1+fx2)/2,fH/2,fz1); box(fW,fH,ft,mFn,(fx1+fx2)/2,fH/2,fz2);
+ box(ft,fH,fD,mFn,fx1,fH/2,(fz1+fz2)/2); box(ft,fH,fD,mFn,fx2,fH/2,(fz1+fz2)/2);
+ collidables.push({x:(fx1+fx2)/2,z:fz1,hw:fW/2+0.2,hd:ft/2+0.1});
+ collidables.push({x:(fx1+fx2)/2,z:fz2,hw:fW/2+0.2,hd:ft/2+0.1});
+ collidables.push({x:fx1,z:(fz1+fz2)/2,hw:ft/2+0.1,hd:fD/2+0.2});
+ collidables.push({x:fx2,z:(fz1+fz2)/2,hw:ft/2+0.1,hd:fD/2+0.2});}
+
 // ── Supermarkt (NE corner) ────────────────────────────────────────────────
 {
   const smX=240, smZ=48, smW=36, smD=22;
@@ -1135,9 +1162,9 @@ const ptailH=new THREE.Mesh(new THREE.BoxGeometry(10,0.4,4),mPlaneY); ptailH.pos
 // Engines under wing
 [-6,6].forEach(ex=>{ const eng=new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.0,4,8),mPlaneDark); eng.rotation.x=Math.PI/2; eng.position.set(ex,-1.4,1); planeGrp.add(eng); });
 planeGrp.rotation.y=Math.PI/2;
-planeGrp.position.set(-600,90,-100);
+planeGrp.position.set(-600,50,-100);
 scene.add(planeGrp);
-let planeX=-600, planeZ=-100, planeAngle=0, planeActive=false, planeTimer=8000, planeY=90;
+let planeX=-600, planeZ=-100, planeAngle=0, planeActive=false, planeTimer=8000, planeY=50;
 const PLANE_SPD=0.11;
 
 // ── Birds ─────────────────────────────────────────────────────────────────
@@ -1152,13 +1179,13 @@ for(let b=0;b<12;b++){
     const wing=new THREE.Mesh(new THREE.ShapeGeometry(shape),mBird); bg.add(wing);
   });
   bg.scale.setScalar(0.5);
-  const startX=30+Math.random()*240, startZ=-30-Math.random()*140;
-  const startY=38+Math.random()*28;
+  const startX=-20+Math.random()*240, startZ=-10-Math.random()*180;
+  const startY=14+Math.random()*12;
   bg.position.set(startX,startY,startZ);
   scene.add(bg);
   const spd=0.014+Math.random()*0.010;
   const ang=Math.random()*Math.PI*2;
-  birds.push({g:bg,spd,ang,y:startY,flapT:Math.random()*Math.PI*2,circleR:25+Math.random()*55,circleX:startX,circleZ:startZ});
+  birds.push({g:bg,spd,ang,y:startY,flapT:Math.random()*Math.PI*2,circleR:12+Math.random()*30,circleX:startX,circleZ:startZ});
 }
 
 // ── Environment: hills, river, scattered trees ────────────────────────────
@@ -1339,10 +1366,18 @@ busWinPositionsZ.forEach(wz=>{
   // Right side (positive X)
   const wR=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.9,1.4),mBusGlass); wR.position.set(1.47,2.5,wz); busGrp.add(wR);
 });
-// Wheels — 4 axle positions
-[[-1.45,0.55,4.5],[1.45,0.55,4.5],[-1.45,0.55,-4.5],[1.45,0.55,-4.5]].forEach(([bx,by,bz])=>{
+// Rear wheels (fixed)
+[[-1.45,0.55,-4.5],[1.45,0.55,-4.5]].forEach(([bx,by,bz])=>{
   const bwh=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.34,10),mBk); bwh.rotation.z=Math.PI/2; bwh.position.set(bx,by,bz); busGrp.add(bwh);
   const bhub=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.36,8),mW); bhub.rotation.z=Math.PI/2; bhub.position.set(bx,by,bz); busGrp.add(bhub);
+});
+// Front wheels (steerable)
+const busFwGroups=[];
+[[-1.45,0.55,4.5],[1.45,0.55,4.5]].forEach(([bx,by,bz])=>{
+  const fg=new THREE.Group(); fg.position.set(bx,by,bz); busGrp.add(fg);
+  const bwh=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.34,10),mBk); bwh.rotation.z=Math.PI/2; fg.add(bwh);
+  const bhub=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.26,0.36,8),mW); bhub.rotation.z=Math.PI/2; fg.add(bhub);
+  busFwGroups.push(fg);
 });
 busGrp.castShadow=true; scene.add(busGrp);
 
@@ -1359,34 +1394,27 @@ const busStopSigns=[
 ];
 (function buildBusStops(){
   const mPoleY=new THREE.MeshLambertMaterial({color:0xddaa00});
-  // Canvas: yellow circle, green ring, green H
   const sc=document.createElement('canvas'); sc.width=128; sc.height=128;
   const sctx=sc.getContext('2d');
   sctx.clearRect(0,0,128,128);
-  // Outer green circle
   sctx.fillStyle='#2a8a2a'; sctx.beginPath(); sctx.arc(64,64,62,0,Math.PI*2); sctx.fill();
-  // Inner yellow circle
   sctx.fillStyle='#ffdd00'; sctx.beginPath(); sctx.arc(64,64,50,0,Math.PI*2); sctx.fill();
-  // Green H
   sctx.fillStyle='#1a6a1a'; sctx.font='bold 76px Arial'; sctx.textAlign='center'; sctx.textBaseline='middle';
   sctx.fillText('H',64,68);
   const signMat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(sc),side:THREE.DoubleSide});
-  const mPoleM=new THREE.MeshLambertMaterial({color:0x888800});
   busStopSigns.forEach(({x,z,faceZ})=>{
-    // Pole
+    const g=new THREE.Group(); g.position.set(x,0,z); scene.add(g);
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,3.8,8),mPoleY);
-    pole.position.set(x,1.9,z); scene.add(pole);
-    // Round sign disk mounted on top, offset sideways so pole doesn't overlap
+    pole.position.set(0,1.9,0); g.add(pole);
     const disk=new THREE.Mesh(new THREE.CircleGeometry(0.65,24),signMat);
-    // Place sign to the side of pole top, facing road
-    if(faceZ){ disk.rotation.y=0;        disk.position.set(x,3.85,z); }
-    else      { disk.rotation.y=Math.PI/2; disk.position.set(x,3.85,z); }
-    scene.add(disk);
-    // Back face
+    if(faceZ){ disk.rotation.y=0;        disk.position.set(0,3.85,0); }
+    else      { disk.rotation.y=Math.PI/2; disk.position.set(0,3.85,0); }
+    g.add(disk);
     const disk2=new THREE.Mesh(new THREE.CircleGeometry(0.65,24),new THREE.MeshLambertMaterial({color:0x444444}));
-    if(faceZ){ disk2.rotation.y=Math.PI; disk2.position.set(x,3.85,z+0.02); }
-    else      { disk2.rotation.y=-Math.PI/2; disk2.position.set(x+0.02,3.85,z); }
-    scene.add(disk2);
+    if(faceZ){ disk2.rotation.y=Math.PI; disk2.position.set(0,3.85,0.02); }
+    else      { disk2.rotation.y=-Math.PI/2; disk2.position.set(0.02,3.85,0); }
+    g.add(disk2);
+    movables.push({x,z,hw:0.35,hd:0.35,group:g,vx:0,vz:0,isTree:false,stage:0,fallAngle:0,fallDir:0,fallTarget:0,hitCool:0});
   });
 })();
 
@@ -1411,6 +1439,7 @@ let busWI=0, busX=20, busZ=-3.5, busAng=Math.PI/2;
 let busSpd=BUS_SPD;
 let busStopTimer=0;
 let busStopCooldown=0;
+let busSteerAng=0;
 const VHW=1.1, VHD=2.2;
 function tickBus(dt){
   if(busStopTimer>0){
@@ -1423,11 +1452,14 @@ function tickBus(dt){
 
   const ni=(busWI+1)%busRoute.length;
   const [tx,tz]=busRoute[ni];
-  if(Math.sqrt((tx-busX)**2+(tz-busZ)**2)<4) busWI=ni;
+  if(Math.sqrt((tx-busX)**2+(tz-busZ)**2)<10) busWI=ni;
   const [ntx,ntz]=busRoute[(busWI+1)%busRoute.length];
   const tAng=Math.atan2(ntx-busX,ntz-busZ);
   let da=tAng-busAng; while(da>Math.PI)da-=Math.PI*2; while(da<-Math.PI)da+=Math.PI*2;
-  busAng+=da*Math.min(1,0.022*dt); // smoother steering
+  busAng+=Math.sign(da)*Math.min(Math.abs(da),0.0025*dt);
+  const steerTgt=Math.max(-0.42,Math.min(0.42,da*1.5));
+  busSteerAng+=(steerTgt-busSteerAng)*0.07;
+  busFwGroups.forEach(g=>g.rotation.y=busSteerAng);
 
   // Bus drives through everything — no collision detection
   const bfx=Math.sin(busAng), bfz=Math.cos(busAng);
@@ -1480,8 +1512,8 @@ function drawMM(vx,vz,vAng){
   mmCtx.save();
   mmCtx.beginPath(); mmCtx.arc(cx,cy,cx-1,0,Math.PI*2); mmCtx.clip();
   mmCtx.translate(cx,cy);
-  mmCtx.rotate(vAng);
-  const mx=(x)=>-(x-vx)*sc, mz=(z)=>-(z-vz)*sc;
+  // North-up: no map rotation; east=right, north=up
+  const mx=(x)=>(x-vx)*sc, mz=(z)=>-(z-vz)*sc;
   ZS.forEach(z=>{
     mmCtx.strokeStyle='#555566';
     mmCtx.lineWidth=z===ZS[1]?9:5;
@@ -1496,14 +1528,15 @@ function drawMM(vx,vz,vAng){
   [RING_X_W,RING_X_E].forEach(x=>{ mmCtx.beginPath(); mmCtx.moveTo(mx(x),mz(RING_Z_N)); mmCtx.lineTo(mx(x),mz(RING_Z_S)); mmCtx.stroke(); });
   packages.forEach(p=>{ if(!p.collected){ mmCtx.fillStyle='#FFcc00'; mmCtx.fillRect(mx(p.x)-3,mz(p.z)-3,6,6); }});
   mmCtx.restore();
-  // North indicator (fixed, not rotating) — small N with arrow at top
+  // North indicator — upward arrow then N, fixed at top of circle
   mmCtx.save();
-  mmCtx.fillStyle='rgba(255,255,255,0.7)'; mmCtx.font='bold 9px sans-serif'; mmCtx.textAlign='center';
-  mmCtx.fillText('N',cx,10);
-  mmCtx.fillStyle='rgba(255,255,255,0.5)'; mmCtx.beginPath(); mmCtx.moveTo(cx,11); mmCtx.lineTo(cx-3,17); mmCtx.lineTo(cx+3,17); mmCtx.closePath(); mmCtx.fill();
+  mmCtx.fillStyle='rgba(255,255,255,0.75)';
+  mmCtx.beginPath(); mmCtx.moveTo(cx,4); mmCtx.lineTo(cx-4,14); mmCtx.lineTo(cx+4,14); mmCtx.closePath(); mmCtx.fill();
+  mmCtx.font='bold 10px sans-serif'; mmCtx.textAlign='center';
+  mmCtx.fillText('N',cx,24);
   mmCtx.restore();
-  // Van arrow (always centered, rotates)
-  mmCtx.save(); mmCtx.translate(cx,cy); mmCtx.fillStyle='#FC0';
+  // Van arrow — centered, rotates with heading
+  mmCtx.save(); mmCtx.translate(cx,cy); mmCtx.rotate(vAng); mmCtx.fillStyle='#FC0';
   mmCtx.beginPath(); mmCtx.moveTo(0,-8); mmCtx.lineTo(-5,5); mmCtx.lineTo(0,2); mmCtx.lineTo(5,5); mmCtx.closePath(); mmCtx.fill();
   mmCtx.restore();
 }
@@ -1512,7 +1545,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.16 · 21.05.2026`;
+tsEl.textContent=`v2.17 · 21.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -1570,7 +1603,7 @@ function tick(now){
       const offset=500;
       planeX=100-Math.cos(planeAngle)*offset;
       planeZ=-100-Math.sin(planeAngle)*offset;
-      planeY=110+Math.random()*30;
+      planeY=45+Math.random()*20;
       planeGrp.position.set(planeX,planeY,planeZ);
       planeGrp.rotation.y=-planeAngle+Math.PI/2;
     }
