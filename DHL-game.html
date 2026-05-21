@@ -116,8 +116,11 @@ const mWht=new THREE.MeshLambertMaterial({color:0xffffff});
 [0,-200].forEach(z => box(GL,0.06,RH*2,mRoad,GCX,0.03,z));
 box(GL,0.06,RH*4,mRoad,GCX,0.03,-100);
 XS.forEach(x => box(x===XS[1]?RH*4:RH*2,0.06,GL,mRoad,x,0.03,GCZ));
-// Train Lane (x=100) median strip — raised concrete divider
-box(4, 0.3, GL, mSW, XS[1], 0.15, GCZ);
+// Train Lane (x=100) median strip — 6m wide, skips EW road intersections
+{const mw=6;
+ [[RING_Z_N-RH, ZS[0]-RH],[ZS[0]+RH, ZS[1]+RH*2],[ZS[1]-RH*2, ZS[2]+RH],[ZS[2]-RH, RING_Z_S+RH]]
+ .forEach(([z1,z0])=>{if(z1<=z0)return;const lc=(z1+z0)/2,ln=z1-z0;box(mw,0.3,ln,mSW,XS[1],0.15,lc);});
+}
 // Intersections: wider at Z=-100 and wider for Train Lane x=100
 XS.forEach(x=>{const xw=x===XS[1]?RH*4+1:RH*2+1;[0,-200].forEach(z=>box(xw,0.07,RH*2+1,mRoad,x,0.035,z)); box(xw,0.07,RH*4+1,mRoad,x,0.035,-100);});
 // Lane markings — stop short of each intersection (2m gap each side)
@@ -166,8 +169,9 @@ function zebraCross(cx,cz,horiz,roadHW){
   const len=(roadHW+SW)*2; // sidewalk-to-sidewalk span
   for(let i=0;i<nStripes;i++){
     const off=-totalW/2+(i*(stripeW+stripeGap));
-    if(horiz) box(len,0.06,stripeW,mZebra,cx,0.06,cz+off); // span X, depth Z
-    else       box(stripeW,0.06,len,mZebra,cx+off,0.06,cz); // span Z, depth X
+    // Stripes run PARALLEL to road axis (like real zebra markings)
+    if(horiz) box(stripeW,0.06,len,mZebra,cx+off,0.06,cz); // N/S approach: stripes in Z (parallel to NS road)
+    else       box(len,0.06,stripeW,mZebra,cx,0.06,cz+off); // E/W approach: stripes in X (parallel to EW road)
   }
 }
 XS.forEach(xs=>ZS.forEach(zs=>{
@@ -193,7 +197,7 @@ function ewSW4(z) {
 }
 function nsSW(x) {
   const xRH=x===XS[1]?RH*2:RH;
-  [[ZS[0]+RH,ZS[0]+RH+EXT],[ZS[1]+RH*2,ZS[0]-RH],[ZS[2]+RH,ZS[1]-RH*2],[ZS[2]-RH-EXT,ZS[2]-RH]]
+  [[ZS[0]+RH,RING_Z_N-RH],[ZS[1]+RH*2,ZS[0]-RH],[ZS[2]+RH,ZS[1]-RH*2],[RING_Z_S+RH,ZS[2]-RH]]
   .forEach(([z0,z1])=>{if(z1<=z0)return;const lc=(z0+z1)/2,ln=z1-z0;box(SW,0.15,ln,mSW,x+xRH+SW/2,0.075,lc);box(SW,0.15,ln,mSW,x-xRH-SW/2,0.075,lc);});
 }
 [0,-200].forEach(z=>ewSW(z)); ewSW4(-100); XS.forEach(x=>nsSW(x));
@@ -441,16 +445,16 @@ function nsB(c,s,bz,bw,bd,bh,shop,gl){ bld(c+s*(GAP+bd/2),bz,bd,bw,bh,shop,0,-s,
 function nsB4(c,s,bz,bw,bd,bh,shop,gl){ bld(c+s*(GAP4+bd/2),bz,bd,bw,bh,shop,0,-s,gl); }
 
 // Z=0 south side
-ewB(0,-1,28,20,14,54,true);  ewB(0,-1,55,16,18,78,false,true); ewB(0,-1,78,22,12,40,true);
+ewB(0,-1,28,20,14,54,true);  ewB(0,-1,55,16,18,78,false,true); ewB(0,-1,68,18,12,40,true);
 ewB(0,-1,128,18,14,60,true); ewB(0,-1,155,22,16,46,false);ewB(0,-1,178,16,12,72,true);
 // Z=-100 north (4-lane boulevard offset)
-ewB4(-100,+1,28,22,14,50,true); ewB4(-100,+1,55,18,16,68,false);ewB4(-100,+1,78,20,12,36,true);
+ewB4(-100,+1,28,22,14,50,true); ewB4(-100,+1,55,18,16,68,false);ewB4(-100,+1,68,18,12,36,true);
 ewB4(-100,+1,130,20,14,56,false);ewB4(-100,+1,155,16,18,44,true);ewB4(-100,+1,178,22,12,76,false,true);
 // Z=-100 south (4-lane boulevard offset)
-ewB4(-100,-1,28,22,14,48,true); ewB4(-100,-1,55,16,16,64,false);ewB4(-100,-1,78,20,12,38,true);
+ewB4(-100,-1,28,22,14,48,true); ewB4(-100,-1,55,16,16,64,false);ewB4(-100,-1,68,18,12,38,true);
 ewB4(-100,-1,130,18,14,54,false);ewB4(-100,-1,155,22,16,42,true);ewB4(-100,-1,178,16,12,70,false,true);
 // Z=-200 north
-ewB(-200,+1,28,20,14,46,true); ewB(-200,+1,55,18,16,62,false);ewB(-200,+1,78,22,12,40,true);
+ewB(-200,+1,28,20,14,46,true); ewB(-200,+1,55,18,16,62,false);ewB(-200,+1,68,18,12,40,true);
 ewB(-200,+1,130,22,14,56,false);ewB(-200,+1,155,16,16,44,true);ewB(-200,+1,178,20,12,68,false);
 // Z=-200 south outer — TypeC + TypeD row
 bldTraditional(50,-200-GAP-8,26,14,-1,0);
@@ -720,26 +724,31 @@ const mTrainBody=new THREE.MeshLambertMaterial({color:0xffffff});
 const mTrainNose=new THREE.MeshLambertMaterial({color:0xddddee});
 const mTrainWin=new THREE.MeshLambertMaterial({color:0x8aaabb,transparent:true,opacity:0.8});
 const mTrainStripe=new THREE.MeshLambertMaterial({color:0x3366aa});
-// 5-car train — all dims ×1.2
+// 5-car train — all dims ×1.2, z-fighting fixed (stripe shorter, windows outside body)
 for(let car=0;car<5;car++){
   const cz=car*16.8-33.6; // car spacing ×1.2
   const cbody=new THREE.Mesh(new THREE.BoxGeometry(3.12,2.64,14.4),mTrainBody); cbody.position.set(0,1.56,cz); trainGrp.add(cbody);
-  const cstripe=new THREE.Mesh(new THREE.BoxGeometry(3.14,0.48,14.4),mTrainStripe); cstripe.position.set(0,0.96,cz); trainGrp.add(cstripe);
-  // Windows
+  // Stripe: 14.0 (not 14.4) to avoid coplanar end-faces with car body
+  const cstripe=new THREE.Mesh(new THREE.BoxGeometry(3.14,0.48,14.0),mTrainStripe); cstripe.position.set(0,0.96,cz); trainGrp.add(cstripe);
+  // Windows: x=±1.64 so inner face (x=±1.58) clears body edge (x=±1.56), no z-fight
   for(let wi=-5;wi<=5;wi+=2){
-    const wL=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.6,1.44),mTrainWin); wL.position.set(-1.58,1.8,cz+wi); trainGrp.add(wL);
-    const wR=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.6,1.44),mTrainWin); wR.position.set(1.58,1.8,cz+wi); trainGrp.add(wR);
+    const wL=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.6,1.44),mTrainWin); wL.position.set(-1.64,1.8,cz+wi); trainGrp.add(wL);
+    const wR=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.6,1.44),mTrainWin); wR.position.set(1.64,1.8,cz+wi); trainGrp.add(wR);
   }
 }
-// Nose (front) ×1.2
-const tnose=new THREE.Mesh(new THREE.BoxGeometry(3.12,2.64,7.2),mTrainNose); tnose.position.set(0,1.56,-40.8); trainGrp.add(tnose);
+// Front nose: centered at z=-44.4 so it sits fully in front of car 0 (car front at z=-40.8)
+const tnoseF=new THREE.Mesh(new THREE.BoxGeometry(3.12,2.64,7.2),mTrainNose); tnoseF.position.set(0,1.56,-44.4); trainGrp.add(tnoseF);
+// Rear nose: symmetric, sits fully behind car 4 (car rear at z=40.8)
+const tnoseR=new THREE.Mesh(new THREE.BoxGeometry(3.12,2.64,7.2),mTrainNose); tnoseR.position.set(0,1.56,44.4); trainGrp.add(tnoseR);
 trainGrp.rotation.y=RAIL_ANG;
 trainGrp.position.set(RAIL_CX,RAIL_Y2+0.6,-700);
 scene.add(trainGrp);
 let trainT=-700, trainActive=false, trainTimer=18000;
-let trainStopping=false, trainStopTimer=0;
-const TRAIN_STOP_DUR=4500; // ms the train pauses at station
-const TRAIN_SPD=0.095;
+let trainStopping=false, trainStopTimer=0, trainSpd=0;
+const TRAIN_STOP_DUR=5000;   // 5 s station stop
+const TRAIN_MAX_SPD=0.18;    // top speed (m/ms)
+const TRAIN_ACCEL=0.000075;  // acceleration (quadratic feel: ever faster)
+const TRAIN_BRAKE_DIST=100;  // start braking 100m before station
 
 // ── Residential area (Einfamiliensiedlung) — NE of park, x=120..200, z=20..80 ─
 function bldHouse(x,z,garageLeft){
@@ -1138,10 +1147,10 @@ const mEnvTrk=new THREE.MeshBasicMaterial({color:0x5a3812});
   m.scale.set(rw,h,rd); m.position.set(cx,0,cz); scene.add(m);
 });
 
-// River — diagonal, crosses northern outer block at z≈75 (south of north ring road z=100)
+// River — north of ring road (z=150), outside city — no road/building conflicts
 const riverW=22;
 {
-  const riverCX=60, riverCZ=75, riverAngle=-0.07;
+  const riverCX=60, riverCZ=150, riverAngle=-0.07;
   const rl=new THREE.Mesh(new THREE.PlaneGeometry(700,riverW),mRiver);
   rl.rotation.x=-Math.PI/2; rl.rotation.z=riverAngle;
   rl.position.set(riverCX,0.18,riverCZ); scene.add(rl);
@@ -1151,17 +1160,15 @@ const riverW=22;
     rb.position.set(riverCX,0.06,riverCZ+off); scene.add(rb);
   });
 }
-// Road bridges over river (river moved to z=75, inside northern outer block)
+// Elevated rail bridge over river at z=150 (NS roads don't reach z=150, rail does)
 const mBridge=new THREE.MeshLambertMaterial({color:0x888880});
-[[0,75,2.5,0.8],[100,75,16,0.9],[200,75,2.5,0.8]].forEach(([bx,bz,bw,bh])=>{
-  box(bw,bh,riverW+6,mBridge,bx,bh/2,bz);
-  [-bw*0.35,bw*0.35].forEach(ox=>box(Math.max(0.5,bw*0.22),1.8,riverW+6,mBridge,bx+ox,1.2,bz));
-});
+// Rail bridge only — road bridges not needed since NS roads end at ring road z=100
+box(RH*4,0.8,riverW+4,mBridge,RAIL_CX,0.4,150);
 
 // Scattered trees in outer areas
 const outerTreePositions=[
-  [-200,130],[-160,150],[-240,180],[-180,110],[-220,140],[-190,160],
-  [330,130],[360,150],[310,110],[380,120],[340,170],[370,110],
+  [-200,120],[-160,170],[-240,190],[-180,110],[-220,200],[-190,180],
+  [330,120],[360,170],[310,110],[380,120],[340,200],[370,180],
   [-200,-280],[-160,-320],[-240,-250],[180,-310],[220,-280],[160,-290],
   [100,240],[60,210],[140,220],[80,260],[120,200],[50,230],
   [100,-340],[60,-310],[140,-330],[-80,-100],[-100,-50],[-90,-150],
@@ -1193,7 +1200,7 @@ outerTreePositions.forEach(([px,pz])=>{
     if(Math.abs(pz)<RH+SW+3)           continue; // z=0 street
     if(Math.abs(pz+100)<RH*2+SW+4)     continue; // z=-100 boulevard (also station zone)
     if(Math.abs(pz+200)<RH+SW+3)       continue; // z=-200 street
-    if(Math.abs(pz-75)<14)             continue; // river
+    if(Math.abs(pz-150)<14)            continue; // river
     const p1=new THREE.Mesh(new THREE.BoxGeometry(0.55,RAIL_Y2,0.55),mRS2); p1.position.set(-1.0,-(RAIL_Y2/2+0.3),pz); railGrp.add(p1);
     const p2=new THREE.Mesh(new THREE.BoxGeometry(0.55,RAIL_Y2,0.55),mRS2); p2.position.set(1.0,-(RAIL_Y2/2+0.3),pz); railGrp.add(p2);
     const cb=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.4,2.6),mRS2); cb.position.set(0,-0.2,pz); railGrp.add(cb);
@@ -1205,7 +1212,7 @@ outerTreePositions.forEach(([px,pz])=>{
   box(28,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,0);     // z=0 street
   box(42,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,-100);   // z=-100 boulevard
   box(28,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,-200);   // z=-200 street
-  box(28,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,75);     // river
+  box(RH*4+4,1.2,riverW+4,mRailBr,RAIL_CX,RAIL_Y2-0.3,150); // river bridge
 }
 // ── Train station at city centre (z≈-85, beside boulevard) ───────────────
 {
@@ -1452,6 +1459,13 @@ function drawMM(vx,vz,vAng){
   [RING_X_W,RING_X_E].forEach(x=>{ mmCtx.beginPath(); mmCtx.moveTo(mx(x),mz(RING_Z_N)); mmCtx.lineTo(mx(x),mz(RING_Z_S)); mmCtx.stroke(); });
   packages.forEach(p=>{ if(!p.collected){ mmCtx.fillStyle='#FFcc00'; mmCtx.fillRect(mx(p.x)-3,mz(p.z)-3,6,6); }});
   mmCtx.restore();
+  // North indicator (fixed, not rotating) — small N with arrow at top
+  mmCtx.save();
+  mmCtx.fillStyle='rgba(255,255,255,0.7)'; mmCtx.font='bold 9px sans-serif'; mmCtx.textAlign='center';
+  mmCtx.fillText('N',cx,10);
+  mmCtx.fillStyle='rgba(255,255,255,0.5)'; mmCtx.beginPath(); mmCtx.moveTo(cx,11); mmCtx.lineTo(cx-3,17); mmCtx.lineTo(cx+3,17); mmCtx.closePath(); mmCtx.fill();
+  mmCtx.restore();
+  // Van arrow (always centered, rotates)
   mmCtx.save(); mmCtx.translate(cx,cy); mmCtx.fillStyle='#FC0';
   mmCtx.beginPath(); mmCtx.moveTo(0,-8); mmCtx.lineTo(-5,5); mmCtx.lineTo(0,2); mmCtx.lineTo(5,5); mmCtx.closePath(); mmCtx.fill();
   mmCtx.restore();
@@ -1461,7 +1475,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.13 · 21.05.2026`;
+tsEl.textContent=`v2.14 · 21.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -1486,22 +1500,27 @@ function tick(now){
   // ── Elevated rail train ───────────────────────────────────────────────────
   if(!trainActive){
     trainTimer-=dt;
-    if(trainTimer<=0){
-      trainActive=true; trainStopping=false; trainT=-700;
-      trainGrp.position.set(RAIL_CX,RAIL_Y2+0.6,trainT);
-    }
+    if(trainTimer<=0){ trainActive=true; trainStopping=false; trainT=-700; trainSpd=0; }
   } else {
     if(trainStopping){
+      trainT=RAIL_STATION_T; // locked — no jitter
       trainStopTimer-=dt;
       if(trainStopTimer<=0){ trainStopping=false; }
     } else {
-      if(!trainStopping && Math.abs(trainT-RAIL_STATION_T)<4){
-        trainStopping=true; trainStopTimer=TRAIN_STOP_DUR;
+      const distToStn=RAIL_STATION_T-trainT; // positive when approaching station
+      if(distToStn>0 && distToStn<TRAIN_BRAKE_DIST){
+        // Quadratic braking — speed falls to zero as train reaches station
+        const frac=distToStn/TRAIN_BRAKE_DIST;
+        trainSpd=TRAIN_MAX_SPD*frac*frac;
+        if(distToStn<1){ trainStopping=true; trainStopTimer=TRAIN_STOP_DUR; trainT=RAIL_STATION_T; trainSpd=0; }
+      } else {
+        // Accelerate: quadratic feel (ever faster up to max)
+        trainSpd=Math.min(TRAIN_MAX_SPD, trainSpd+TRAIN_ACCEL*dt);
       }
-      trainT+=TRAIN_SPD*dt;
+      trainT+=trainSpd*dt;
     }
-    trainGrp.position.set(RAIL_CX,RAIL_Y2+0.6,trainT);
-    if(trainT>700){ trainActive=false; trainTimer=20000+Math.random()*15000; }
+    trainGrp.position.z=trainT;
+    if(trainT>700){ trainActive=false; trainTimer=15000+Math.random()*10000; trainSpd=0; }
   }
 
   // ── DHL cargo plane ───────────────────────────────────────────────────────
