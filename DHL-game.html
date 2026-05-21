@@ -105,8 +105,8 @@ const mGrassOut=new THREE.MeshLambertMaterial({color:0x3a7a2a});
 // ── Grid ──────────────────────────────────────────────────────────────────
 const XS=[0,100,200], ZS=[0,-100,-200];
 const RH=7, SW=5, EXT=100;
-const RING_Z_N=0+EXT, RING_Z_S=-200-EXT; // z=65 (north ring), z=-265 (south ring)
-const RING_X_W=0-EXT,  RING_X_E=200+EXT; // x=-65 (west ring), x=265 (east ring)
+const RING_Z_N=0+EXT, RING_Z_S=-200-EXT; // z=100 (north ring), z=-300 (south ring)
+const RING_X_W=0-EXT,  RING_X_E=200+EXT; // x=-100 (west ring), x=300 (east ring)
 const GAP=RH+SW+1;
 const GAP4=RH*2+SW+1;
 const GCX=100, GCZ=-100, GL=400;
@@ -187,11 +187,11 @@ XS.forEach(xs=>ZS.forEach(zs=>{
 }));
 
 function ewSW(z) {
-  [[XS[0]-RH-EXT,XS[0]-RH],[XS[0]+RH,XS[1]-RH*2],[XS[1]+RH*2,XS[2]-RH],[XS[2]+RH,XS[2]+RH+EXT]]
+  [[RING_X_W+RH,XS[0]-RH],[XS[0]+RH,XS[1]-RH*2],[XS[1]+RH*2,XS[2]-RH],[XS[2]+RH,RING_X_E-RH]]
   .forEach(([x0,x1])=>{if(x1<=x0)return;const lc=(x0+x1)/2,ln=x1-x0;box(ln,0.15,SW,mSW,lc,0.075,z+RH+SW/2);box(ln,0.15,SW,mSW,lc,0.075,z-RH-SW/2);});
 }
 function ewSW4(z) {
-  [[XS[0]-RH-EXT,XS[0]-RH],[XS[0]+RH,XS[1]-RH*2],[XS[1]+RH*2,XS[2]-RH],[XS[2]+RH,XS[2]+RH+EXT]]
+  [[RING_X_W+RH,XS[0]-RH],[XS[0]+RH,XS[1]-RH*2],[XS[1]+RH*2,XS[2]-RH],[XS[2]+RH,RING_X_E-RH]]
   .forEach(([x0,x1])=>{if(x1<=x0)return;const lc=(x0+x1)/2,ln=x1-x0;box(ln,0.15,SW,mSW,lc,0.075,z+RH*2+SW/2);box(ln,0.15,SW,mSW,lc,0.075,z-RH*2-SW/2);});
 }
 function nsSW(x) {
@@ -710,6 +710,14 @@ const mGuard=new THREE.MeshLambertMaterial({color:0xaaaaaa});
   box(HWY_EXT,0.5,0.2,mGuard,XS[0]-EXT-HWY_EXT/2,0.35,-100+zOff);
   box(HWY_EXT,0.5,0.2,mGuard,XS[2]+EXT+HWY_EXT/2,0.35,-100+zOff);
 });
+// Highway end barriers — block player from driving off map
+{const mHwyEnd=new THREE.MeshLambertMaterial({color:0xcccccc});
+ const bW=RH*4+4, wxW=XS[0]-EXT-HWY_EXT+30, wxE=XS[2]+EXT+HWY_EXT-30;
+ box(1.4,2.2,bW,mHwyEnd,wxW,1.1,-100); collidables.push({x:wxW,z:-100,hw:1.0,hd:bW/2});
+ box(1.4,2.2,bW,mHwyEnd,wxE,1.1,-100); collidables.push({x:wxE,z:-100,hw:1.0,hd:bW/2});
+ // Orange/white stripe markings on barriers
+ const mBarO2=new THREE.MeshLambertMaterial({color:0xff8800});
+ [wxW,wxE].forEach(bx=>{for(let i=0;i<3;i++){box(1.42,0.6,bW/4-0.1,i%2===0?mBarO2:mWht,bx,0.4,-100-bW/2+bW/8+i*bW/4);}}); }
 
 
 // ── Rail constants (diagonal elevated rail) ───────────────────────────────────
@@ -990,12 +998,16 @@ function treeAt(x,z,r){
 }
 // Allee X=100 (Hauptachse N-S, beidseitig), Größenvariation
 for(let z=ZS[0]+EXT-4;z>ZS[2]-EXT+4;z-=13){
-  const clr=ZS.every(sz=>Math.abs(z-sz)>(sz===ZS[1]?GAP4+3:GAP+3));
+  const clr=ZS.every(sz=>Math.abs(z-sz)>(sz===ZS[1]?GAP4+3:GAP+3))
+    && Math.abs(z-RING_Z_N)>RH+2 && Math.abs(z-RING_Z_S)>RH+2;
   if(clr){ const r=1.4+Math.random()*1.8; treeAt(XS[1]+RH*2+SW*0.75,z,r); treeAt(XS[1]-RH*2-SW*0.75,z,r); }
 }
 // Allee Boulevard Z=-100 (beidseitig, klar außerhalb der Fahrbahn)
 for(let x=XS[0]-EXT+4;x<XS[2]+EXT-4;x+=13){
-  if(XS.every(sx=>Math.abs(x-sx)>GAP+3)){ const r=1.4+Math.random()*1.8; treeAt(x,ZS[1]-RH*2-SW*0.75,r); treeAt(x,ZS[1]+RH*2+SW*0.75,r); }
+  if(XS.every(sx=>Math.abs(x-sx)>GAP+3)
+    && Math.abs(x-RING_X_W)>RH+2 && Math.abs(x-RING_X_E)>RH+2){
+    const r=1.4+Math.random()*1.8; treeAt(x,ZS[1]-RH*2-SW*0.75,r); treeAt(x,ZS[1]+RH*2+SW*0.75,r);
+  }
 }
 
 // ── Traffic lights ────────────────────────────────────────────────────────
@@ -1032,8 +1044,10 @@ XS.forEach(x=>ZS.forEach(z=>{
     const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.16,4.8,6),mPole); pole.position.set(0,2.4,0); tlGrp.add(pole);
     const hous=new THREE.Mesh(new THREE.BoxGeometry(0.55,1.9,0.55),mHou); hous.position.set(0,5.3,0); tlGrp.add(hous);
     const lights=TL_COLS.map((col,i)=>{
-      const mat=new THREE.MeshLambertMaterial({color:0x1a1a1a,emissive:new THREE.Color(0x000000)});
-      const m=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,4),mat); m.position.set(0,5.9-i*0.65,0); tlGrp.add(m); return m;
+      const mat=new THREE.MeshLambertMaterial({color:0x111111,emissive:new THREE.Color(0x000000)});
+      const m=new THREE.Mesh(new THREE.SphereGeometry(0.22,8,6),mat);
+      // protrude 0.3m toward road (−sx,−sz direction) so lights are visible outside housing
+      m.position.set(-sx*0.3,5.9-i*0.65,-sz*0.3); tlGrp.add(m); return m;
     });
     tlAll.push(lights); tlDark.push(false); tlHitCount.push(0); tlHitCool.push(0); tlPhase.push(dir);
     const idx=tlPoles.length; tlPoles.push(tlGrp);
@@ -1044,44 +1058,50 @@ XS.forEach(x=>ZS.forEach(z=>{
 function updateTLLights(){
   tlAll.forEach((lights,i)=>{
     if(tlDark[i]) return;
+    // Only the active colour lights up; others dim
+    const activeIdx=tlPhase[i]===0
+      ?(tlGlobalPhase===0?2:tlGlobalPhase===1?1:0)
+      :(tlGlobalPhase===2?2:tlGlobalPhase===3?1:0);
     lights.forEach((m,li)=>{
-      m.material.color.setHex(TL_COLS[li]);
-      m.material.emissive.setHex(TL_COLS[li]);
+      m.material.color.setHex(li===activeIdx?TL_COLS[li]:0x111111);
+      m.material.emissive.setHex(li===activeIdx?TL_COLS[li]:0x000000);
     });
   });
 }
 
-// ── Highway L-arm traffic lights — 4 per intersection, one per approach ──────
+// ── Highway L-arm traffic lights — pole on sidewalk, arm over one lane ──────
 const mGantry=new THREE.MeshLambertMaterial({color:0x555560});
-function lArmTL(px,pz,armX,armZ,tlDir){
+function lArmTL(px,pz,armX,armZ,tlDir,armLen){
+  armLen=armLen||RH;
   const g=new THREE.Group(); g.position.set(px,0,pz); scene.add(g);
   const poleH=5.8;
   const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.14,poleH,6),mGantry); pole.position.y=poleH/2; g.add(pole);
-  const armLen=4.5;
   const armGeo=new THREE.BoxGeometry(Math.abs(armX)*armLen+0.2,0.22,Math.abs(armZ)*armLen+0.2);
   const arm=new THREE.Mesh(armGeo,mGantry); arm.position.set(armX*armLen/2,poleH,armZ*armLen/2); g.add(arm);
   const hx=armX*armLen, hz=armZ*armLen;
   const hous=new THREE.Mesh(new THREE.BoxGeometry(0.6,1.9,0.6),mHou); hous.position.set(hx,poleH-1.15,hz); g.add(hous);
+  // Lights protrude from housing toward approaching traffic (opposite arm direction)
+  const fx=-armX*0.32, fz=-armZ*0.32;
   const lights=TL_COLS.map((col,li)=>{
-    const mat=new THREE.MeshLambertMaterial({color:0x1a1a1a,emissive:new THREE.Color(0x000000)});
-    const m=new THREE.Mesh(new THREE.SphereGeometry(0.2,6,4),mat); m.position.set(hx,poleH-0.55-li*0.62,hz); g.add(m); return m;
+    const mat=new THREE.MeshLambertMaterial({color:0x111111,emissive:new THREE.Color(0x000000)});
+    const m=new THREE.Mesh(new THREE.SphereGeometry(0.22,8,6),mat);
+    m.position.set(hx+fx,poleH-0.55-li*0.65,hz+fz); g.add(m); return m;
   });
   tlAll.push(lights); tlDark.push(false); tlHitCount.push(999); tlHitCool.push(0); tlPhase.push(tlDir);
   tlPoles.push(g);
 }
-// At each XS intersection on highway (z=-100):
-// west approach, east approach, north approach, south approach
+// At each XS intersection on boulevard (z=-100): pole on sidewalk, arm over one lane
 XS.forEach(x=>{
-  const hRH=RH*2, z0=-100, edgeSW=hRH+SW+1;
+  const hRH=RH*2, z0=-100;
   const nsRH=x===XS[1]?RH*2:RH;
-  // West approach (driving east): pole south, arm toward north/center, before x
-  lArmTL(x-hRH-14, z0-edgeSW, 0, 1, 0);
-  // East approach (driving west): pole north, arm south, before x
-  lArmTL(x+hRH+14, z0+edgeSW, 0,-1, 0);
-  // North approach (driving south): pole west, arm east, before z=-100
-  lArmTL(x-nsRH-SW-1, z0+hRH+14, 1, 0, 1);
-  // South approach (driving north): pole east, arm west, before z=-100
-  lArmTL(x+nsRH+SW+1, z0-hRH-14,-1, 0, 1);
+  // West approach (driving east): pole on south sidewalk, arm over southbound lanes (+Z)
+  lArmTL(x-hRH-3, z0-hRH-SW/2, 0, 1, 0, hRH);
+  // East approach (driving west): pole on north sidewalk, arm over northbound lanes (-Z)
+  lArmTL(x+hRH+3, z0+hRH+SW/2, 0,-1, 0, hRH);
+  // North approach (driving south): pole on west sidewalk, arm over southbound lane (+X)
+  lArmTL(x-nsRH-SW/2, z0+hRH+3, 1, 0, 1, nsRH);
+  // South approach (driving north): pole on east sidewalk, arm over northbound lane (-X)
+  lArmTL(x+nsRH+SW/2, z0-hRH-3,-1, 0, 1, nsRH);
 });
 updateTLLights(); // init all TLs after all are created
 
@@ -1148,13 +1168,21 @@ const mRiverBank=new THREE.MeshLambertMaterial({color:0xb8a878});
 const mEnvTree=new THREE.MeshBasicMaterial({color:0x2a6620});
 const mEnvTrk=new THREE.MeshBasicMaterial({color:0x5a3812});
 
-// Hills around the city perimeter — positioned well outside city boundary
+// Hills and mountains around the city perimeter
 [[-300,-100,65,22,58],[-300,-280,60,20,55],[320,-100,62,24,60],[320,-280,58,18,56],
- [100,300,70,16,48],[100,-420,68,18,50]].forEach(([cx,cz,rw,h,rd])=>{
+ [100,300,70,16,48],[100,-420,68,18,50],
+ [-460,-190,80,30,72],[440,-190,75,26,66],   // medium hills W and E
+ [-240,310,58,22,52],[350,300,62,20,56],      // north hills
+ [100,-530,105,85,95]                          // tall mountain south
+].forEach(([cx,cz,rw,h,rd])=>{
   const geo=new THREE.SphereGeometry(1,10,10);
   const m=new THREE.Mesh(geo,mHill);
   m.scale.set(rw,h,rd); m.position.set(cx,0,cz); scene.add(m);
 });
+// Rocky cliff face — jagged box cluster south-west
+{const mRock=new THREE.MeshLambertMaterial({color:0x8a7a68});
+ box(28,52,20,mRock,-390,26,-490); box(18,42,16,mRock,-374,21,-500);
+ box(14,60,14,mRock,-404,30,-482); box(10,35,12,mRock,-416,17,-494);}
 
 // River — north of ring road (z=150), outside city — no road/building conflicts
 const riverW=22;
@@ -1484,7 +1512,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.15 · 21.05.2026`;
+tsEl.textContent=`v2.16 · 21.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
