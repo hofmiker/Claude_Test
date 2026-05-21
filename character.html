@@ -148,26 +148,36 @@ function makeEar(side) {
 headJoint.add(makeEar(-1));
 headJoint.add(makeEar( 1));
 
-// Hair — multi-part for a styled look
-// 1) Top mass
-const hTop = icoMesh(0.158, M.hair);
-hTop.scale.set(0.88, 0.42, 0.90);
-hTop.position.set(0, 0.135, -0.015);
-headJoint.add(hTop);
-// 2) Back volume
-const hBack = icoMesh(0.135, M.hair);
-hBack.scale.set(0.90, 0.60, 0.72);
-hBack.position.set(0, 0.055, -0.115);
-headJoint.add(hBack);
-// 3) Left side
-const hSideL = icoMesh(0.092, M.hair);
-hSideL.scale.set(0.58, 0.68, 0.70);
-hSideL.position.set(-0.128, 0.04, -0.05);
-headJoint.add(hSideL);
-// 4) Right side (clone)
-const hSideR = hSideL.clone();
-hSideR.position.x = 0.128;
-headJoint.add(hSideR);
+// Hair — redesigned for full back-of-head coverage (main view from behind)
+// 1) Top cap
+const hTop = icoMesh(0.162, M.hair);
+hTop.scale.set(0.92, 0.36, 0.96); hTop.position.set(0, 0.140, -0.010); headJoint.add(hTop);
+// 2) Back main — covers the bulk of the back we always see
+const hBack = icoMesh(0.150, M.hair);
+hBack.scale.set(0.96, 0.82, 0.62); hBack.position.set(0, 0.022, -0.108); headJoint.add(hBack);
+// 3) Neckline — closes the gap between hair and neck
+const hNeck = icoMesh(0.096, M.hair);
+hNeck.scale.set(0.84, 0.58, 0.70); hNeck.position.set(0, -0.068, -0.098); headJoint.add(hNeck);
+// 4/5) Left & right sides wrapping to back
+const hSideL = icoMesh(0.100, M.hair);
+hSideL.scale.set(0.54, 0.72, 0.76); hSideL.position.set(-0.124, 0.042, -0.054); headJoint.add(hSideL);
+const hSideR = hSideL.clone(); hSideR.position.x = 0.124; headJoint.add(hSideR);
+
+// Face features — on front (+Z) of head, visible when character turns
+const eyeMat  = mk(0x1A0F08);
+const browMat = mk(0x2C1810);
+function makeEye(side) {
+  const e = new THREE.Mesh(new THREE.SphereGeometry(0.024, 5, 4), eyeMat);
+  e.scale.set(1.2, 0.9, 0.6); e.position.set(side * 0.067, 0.030, 0.148); return e;
+}
+function makeBrow(side) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.013, 0.012), browMat);
+  b.position.set(side * 0.067, 0.066, 0.148); b.rotation.z = side * 0.18; return b;
+}
+headJoint.add(makeEye(-1)); headJoint.add(makeEye(1));
+headJoint.add(makeBrow(-1)); headJoint.add(makeBrow(1));
+const mouthM = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.016, 0.012), mk(0x7A2E1E));
+mouthM.position.set(0, -0.056, 0.148); headJoint.add(mouthM);
 
 // ── ARMS (with hands) ────────────────────────────────────────────────────
 const lShoulder = bone(torso, -0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
@@ -353,26 +363,30 @@ function animateCharacter(dt) {
     rKnee.rotation.x  = lerp(rKnee.rotation.x,   0.72 * sq, 0.30);
     lAnkle.rotation.x = lerp(lAnkle.rotation.x,  0.18 * sq, 0.30);
     rAnkle.rotation.x = lerp(rAnkle.rotation.x,  0.18 * sq, 0.30);
-    // arms swing back (coil up)
+    // arms: swing back + elbows forward (coil up for jump)
     lShoulder.rotation.x = lerp(lShoulder.rotation.x,  0.30 * sq, 0.25);
     rShoulder.rotation.x = lerp(rShoulder.rotation.x,  0.30 * sq, 0.25);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x, -0.50, 0.20);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x, -0.50, 0.20);
     lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.10, 0.08);
     rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.10, 0.08);
     torso.position.y  = lerp(torso.position.y, 1.26 - 0.13 * sq, 0.30);
     torso.rotation.y  = 0;
 
-  // ─ AIR: slight knee tuck in flight ────────────────────────────────────────
+  // ─ AIR: deep knee tuck — almost squat position ───────────────────────────
   } else if (jumpState === JS.AIR) {
-    lHip.rotation.x   = lerp(lHip.rotation.x,   -0.22, 0.12);
-    rHip.rotation.x   = lerp(rHip.rotation.x,   -0.22, 0.12);
-    lKnee.rotation.x  = lerp(lKnee.rotation.x,   0.48, 0.12);
-    rKnee.rotation.x  = lerp(rKnee.rotation.x,   0.48, 0.12);
-    lAnkle.rotation.x = lerp(lAnkle.rotation.x, -0.18, 0.12);
-    rAnkle.rotation.x = lerp(rAnkle.rotation.x, -0.18, 0.12);
-    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -0.45, 0.12);
-    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -0.45, 0.12);
-    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.42, 0.10);
-    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.42, 0.10);
+    lHip.rotation.x   = lerp(lHip.rotation.x,   -0.62, 0.16);  // hips pull up
+    rHip.rotation.x   = lerp(rHip.rotation.x,   -0.62, 0.16);
+    lKnee.rotation.x  = lerp(lKnee.rotation.x,   1.35, 0.16);  // deep knee bend
+    rKnee.rotation.x  = lerp(rKnee.rotation.x,   1.35, 0.16);
+    lAnkle.rotation.x = lerp(lAnkle.rotation.x, -0.30, 0.16);  // feet hang/point
+    rAnkle.rotation.x = lerp(rAnkle.rotation.x, -0.30, 0.16);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -0.50, 0.14);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -0.50, 0.14);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.45, 0.10);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.45, 0.10);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x,    -0.90, 0.14);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x,    -0.90, 0.14);
     torso.position.y = lerp(torso.position.y, 1.26, 0.15);
     torso.rotation.y = 0;
 
@@ -409,21 +423,22 @@ function animateCharacter(dt) {
     lAnkle.rotation.x = lerp(lAnkle.rotation.x, -lLeg * 0.38 * eff, t);
     rAnkle.rotation.x = lerp(rAnkle.rotation.x, -rLeg * 0.38 * eff, t);
 
-    // ── ARMS: always bent at elbow when running, strong shoulder swing ────
-    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -lLeg * 0.65 * eff, t);
-    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -rLeg * 0.65 * eff, t);
-    // elbow stays bent ~90° while running; relaxes to slight bend at idle
-    const elbowTgt = moving ? 1.25 : 0.14;
-    lElbow.rotation.x    = lerp(lElbow.rotation.x, elbowTgt, 0.18);
-    rElbow.rotation.x    = lerp(rElbow.rotation.x, elbowTgt, 0.18);
+    // ── ARMS: elbow bends FORWARD (negative = toward +Z = character front) ──
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -lLeg * 0.68 * eff, t);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -rLeg * 0.68 * eff, t);
+    // negative rotation = forearm bends toward character's front (+Z), not backward
+    const elbowTgt = moving ? -1.22 : -0.12;
+    lElbow.rotation.x    = lerp(lElbow.rotation.x, elbowTgt, 0.20);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x, elbowTgt, 0.20);
     lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.09, 0.08);
     rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.09, 0.08);
 
-    // ── TORSO: counter-rotation + forward lean + subtle side sway ─────────
-    torso.rotation.y = lerp(torso.rotation.y,  s * 0.12 * eff, 0.18);
-    torso.rotation.x = lerp(torso.rotation.x, moving ? -0.07 : 0.0, 0.06);
-    torso.rotation.z = lerp(torso.rotation.z, Math.cos(animT) * 0.025 * eff, 0.18);
-    torso.position.y = lerp(torso.position.y, 1.26 + (moving ? Math.abs(s) * 0.055 : 0), 0.22);
+    // ── TORSO: counter-rotation + forward lean + side sway + bounce ───────
+    torso.rotation.y = lerp(torso.rotation.y,  s * 0.13 * eff, 0.18);
+    torso.rotation.x = lerp(torso.rotation.x, moving ? -0.10 : 0.0, 0.07);
+    torso.rotation.z = lerp(torso.rotation.z, Math.cos(animT) * 0.042 * eff, 0.20);
+    // pronounced vertical hop: abs(sin) peaks twice per stride = running bounce
+    torso.position.y = lerp(torso.position.y, 1.26 + (moving ? Math.abs(s) * 0.14 : 0), 0.28);
   }
 }
 
