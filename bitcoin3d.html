@@ -84,13 +84,13 @@
 
 <div id="overlay">
     <div id="loader-text">▶ LADE BITCOIN CHART ◀</div>
-    <div id="loader-sub">CoinGecko API · Gesamter Verlauf</div>
+    <div id="loader-sub">Verbinde mit API …</div>
 </div>
 
 <div id="hud">
     <div>
         <div id="hud-title">BITCOIN / USD &nbsp;·&nbsp; 3D KERZENCHART</div>
-        <div id="hud-sub">LOG-SKALA &nbsp;·&nbsp; 4-TAGES KERZEN &nbsp;·&nbsp; GESAMTER VERLAUF</div>
+        <div id="hud-sub" id="hud-sub">LOG-SKALA &nbsp;·&nbsp; TAGES-KERZEN &nbsp;·&nbsp; GESAMTER VERLAUF</div>
     </div>
 </div>
 
@@ -129,24 +129,62 @@
     const rim = new THREE.DirectionalLight(0x1a2255, 0.5);
     rim.position.set(-300, 120, -200);
     scene.add(rim);
-    const bottom = new THREE.DirectionalLight(0x050510, 0.3);
-    bottom.position.set(0, -100, 0);
-    scene.add(bottom);
+    const btm = new THREE.DirectionalLight(0x050510, 0.3);
+    btm.position.set(0, -100, 0);
+    scene.add(btm);
 
     const matBullBody = new THREE.MeshPhongMaterial({ color: 0xFFD700, emissive: 0x2e1a00, specular: 0xFFEE55, shininess: 130 });
     const matBearBody = new THREE.MeshPhongMaterial({ color: 0x202020, emissive: 0x060606, specular: 0x0e0e0e, shininess: 12 });
     const matBullWick = new THREE.MeshPhongMaterial({ color: 0xAA7700, emissive: 0x180d00, shininess: 50 });
     const matBearWick = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 5 });
 
+    // ── DATA FETCH ──────────────────────────────────────────────────────
+    const loaderSub = document.getElementById('loader-sub');
+
     async function fetchOHLC() {
-        const url = 'https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=max';
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        if (!Array.isArray(json) || json.length < 5) throw new Error('Ungültige Daten');
-        return json;
+        // 1) CoinGecko (may require API key – silent fallback)
+        try {
+            loaderSub.textContent = 'CoinGecko API …';
+            const res = await fetch(
+                'https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=max',
+                { cache: 'no-store' }
+            );
+            if (res.ok) {
+                const json = await res.json();
+                if (Array.isArray(json) && json.length > 100) return json;
+            }
+        } catch (_) {}
+
+        // 2) Binance paginated daily candles (BTCUSDT, since 2017)
+        loaderSub.textContent = 'Binance API …';
+        return fetchBinance();
     }
 
+    async function fetchBinance() {
+        const LIMIT = 1000;
+        let all = [];
+        let endTime = Date.now();
+
+        for (let i = 0; i < 5; i++) {
+            const url =
+                'https://api.binance.com/api/v3/klines' +
+                '?symbol=BTCUSDT&interval=1d&limit=' + LIMIT +
+                '&endTime=' + endTime;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Binance HTTP ' + res.status);
+            const data = await res.json();
+            if (!Array.isArray(data) || data.length === 0) break;
+            all = data.concat(all);          // prepend older batch
+            if (data.length < LIMIT) break;  // reached beginning
+            endTime = data[0][0] - 1;
+        }
+
+        if (all.length < 10) throw new Error('Keine Daten verfügbar');
+        // Binance klines: [openTime, open, high, low, close, ...]
+        return all.map(k => [k[0], +k[1], +k[2], +k[3], +k[4]]);
+    }
+
+    // ── BUILD CHART ─────────────────────────────────────────────────────
     function buildChart(raw) {
         const N = raw.length;
         if (N < 2) return;
@@ -259,9 +297,8 @@
     }
 
     (async () => {
-        const overlay = document.getElementById('overlay');
+        const overlay   = document.getElementById('overlay');
         const loaderTxt = document.getElementById('loader-text');
-        const loaderSub = document.getElementById('loader-sub');
         try {
             const data = await fetchOHLC();
             overlay.classList.add('fade');
