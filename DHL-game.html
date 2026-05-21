@@ -117,7 +117,7 @@ const mWht=new THREE.MeshLambertMaterial({color:0xffffff});
 box(GL,0.06,RH*4,mRoad,GCX,0.03,-100);
 XS.forEach(x => box(x===XS[1]?RH*4:RH*2,0.06,GL,mRoad,x,0.03,GCZ));
 // Train Lane (x=100) median strip — raised concrete divider
-box(2, 0.3, GL, mSW, XS[1], 0.15, GCZ);
+box(4, 0.3, GL, mSW, XS[1], 0.15, GCZ);
 // Intersections: wider at Z=-100 and wider for Train Lane x=100
 XS.forEach(x=>{const xw=x===XS[1]?RH*4+1:RH*2+1;[0,-200].forEach(z=>box(xw,0.07,RH*2+1,mRoad,x,0.035,z)); box(xw,0.07,RH*4+1,mRoad,x,0.035,-100);});
 // Lane markings — stop short of each intersection (2m gap each side)
@@ -197,11 +197,6 @@ function nsSW(x) {
   .forEach(([z0,z1])=>{if(z1<=z0)return;const lc=(z0+z1)/2,ln=z1-z0;box(SW,0.15,ln,mSW,x+xRH+SW/2,0.075,lc);box(SW,0.15,ln,mSW,x-xRH-SW/2,0.075,lc);});
 }
 [0,-200].forEach(z=>ewSW(z)); ewSW4(-100); XS.forEach(x=>nsSW(x));
-// Corner fills at each intersection (softens the right-angle look)
-XS.forEach(xs=>ZS.forEach(zs=>{
-  const rh=zs===ZS[1]?RH*2:RH;
-  [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>box(SW,0.15,SW,mSW,xs+sx*(RH+SW/2),0.075,zs+sz*(rh+SW/2)));
-}));
 
 // ── Buildings ─────────────────────────────────────────────────────────────
 const bPal=[0x6b7a8d,0x5a6b7a,0x4a5a6b,0x7a8b9a,0x8a7a8a,0x6a5a7a,0x8a9a8a,0x5a8a9a,0x9a8a7a,0x6a7a5a,0x7a6a8a,0x4a7a6a];
@@ -664,6 +659,31 @@ function barrierAt(cx,cz,rot){
     box(SW,0.15,ln,mSW,RING_X_E+RH+SW/2,0.075,lc);
     box(SW,0.15,ln,mSW,RING_X_E-RH-SW/2,0.075,lc);
   });
+  // Corner squares at ring road intersections (4 corners)
+  [[RING_X_W,RING_Z_N],[RING_X_E,RING_Z_N],[RING_X_W,RING_Z_S],[RING_X_E,RING_Z_S]]
+  .forEach(([cx,cz])=>box(RH*2+1,0.07,RH*2+1,mRoad,cx,0.035,cz));
+  // Center line markings on ring roads
+  const rGAP=RH+2;
+  // EW ring roads
+  [[RING_X_W+RH,XS[0]-RH],[XS[0]+RH,XS[1]-RH*2],[XS[1]+RH*2,XS[2]-RH],[XS[2]+RH,RING_X_E-RH]]
+  .forEach(([x0,x1])=>{
+    if(x1<=x0) return;
+    const lx0=x0+(x0===RING_X_W+RH?0:rGAP), lx1=x1-(x1===RING_X_E-RH?0:rGAP);
+    if(lx1>lx0){
+      box(lx1-lx0,0.02,0.22,mYlw,(lx0+lx1)/2,0.08,RING_Z_N);
+      box(lx1-lx0,0.02,0.22,mYlw,(lx0+lx1)/2,0.08,RING_Z_S);
+    }
+  });
+  // NS ring roads
+  [[ZS[0]+RH,RING_Z_N-RH],[ZS[1]+RH*2,ZS[0]-RH],[ZS[2]+RH,ZS[1]-RH*2],[RING_Z_S+RH,ZS[2]-RH]]
+  .forEach(([z0,z1])=>{
+    if(z1<=z0) return;
+    const lz0=z0+(z0===RING_Z_S+RH?0:rGAP), lz1=z1-(z1===RING_Z_N-RH?0:rGAP);
+    if(lz1>lz0){
+      box(0.22,0.02,lz1-lz0,mYlw,RING_X_W,0.08,(lz0+lz1)/2);
+      box(0.22,0.02,lz1-lz0,mYlw,RING_X_E,0.08,(lz0+lz1)/2);
+    }
+  });
 }
 
 // ── Highway extension (z=-100 boulevard continues into the distance) ────────
@@ -688,22 +708,6 @@ const mGuard=new THREE.MeshLambertMaterial({color:0xaaaaaa});
   box(HWY_EXT,0.5,0.2,mGuard,XS[2]+EXT+HWY_EXT/2,0.35,-100+zOff);
 });
 
-// ── Sidewalk corner curb radius (1m) — quarter-disk of sidewalk at each corner ─
-XS.forEach(xs=>ZS.forEach(zs=>{
-  const rh=zs===ZS[1]?RH*2:RH;
-  [[1,1],[-1,1],[1,-1],[-1,-1]].forEach(([sx,sz])=>{
-    // Place a quarter-circle of sidewalk material at each curb corner
-    const cx=xs+sx*RH, cz=zs+sz*rh;
-    const shape=new THREE.Shape();
-    shape.moveTo(0,0);
-    shape.lineTo(sx*SW*0.45,0);
-    shape.absarc(0,0,SW*0.45, sx>0?0:Math.PI, sz>0?Math.PI/2:-Math.PI/2, sx>0&&sz>0?false:sx<0&&sz<0?false:true);
-    shape.closePath();
-    const geo=new THREE.ShapeGeometry(shape,6);
-    const m=new THREE.Mesh(geo,mSW); m.rotation.x=-Math.PI/2;
-    m.position.set(cx,0.08,cz); scene.add(m);
-  });
-}));
 
 // ── Rail constants (diagonal elevated rail) ───────────────────────────────────
 const RAIL_ANG=0, RAIL_Y2=8.5, RAIL_LEN2=1200, RAIL_CX=100;
@@ -716,19 +720,19 @@ const mTrainBody=new THREE.MeshLambertMaterial({color:0xffffff});
 const mTrainNose=new THREE.MeshLambertMaterial({color:0xddddee});
 const mTrainWin=new THREE.MeshLambertMaterial({color:0x8aaabb,transparent:true,opacity:0.8});
 const mTrainStripe=new THREE.MeshLambertMaterial({color:0x3366aa});
-// 5-car train
+// 5-car train — all dims ×1.2
 for(let car=0;car<5;car++){
-  const cz=car*14-28; // center offsets
-  const cbody=new THREE.Mesh(new THREE.BoxGeometry(2.6,2.2,12),mTrainBody); cbody.position.set(0,1.3,cz); trainGrp.add(cbody);
-  const cstripe=new THREE.Mesh(new THREE.BoxGeometry(2.62,0.4,12),mTrainStripe); cstripe.position.set(0,0.8,cz); trainGrp.add(cstripe);
+  const cz=car*16.8-33.6; // car spacing ×1.2
+  const cbody=new THREE.Mesh(new THREE.BoxGeometry(3.12,2.64,14.4),mTrainBody); cbody.position.set(0,1.56,cz); trainGrp.add(cbody);
+  const cstripe=new THREE.Mesh(new THREE.BoxGeometry(3.14,0.48,14.4),mTrainStripe); cstripe.position.set(0,0.96,cz); trainGrp.add(cstripe);
   // Windows
-  for(let wi=-4;wi<=4;wi+=2){
-    const wL=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.5,1.2),mTrainWin); wL.position.set(-1.32,1.5,cz+wi); trainGrp.add(wL);
-    const wR=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.5,1.2),mTrainWin); wR.position.set(1.32,1.5,cz+wi); trainGrp.add(wR);
+  for(let wi=-5;wi<=5;wi+=2){
+    const wL=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.6,1.44),mTrainWin); wL.position.set(-1.58,1.8,cz+wi); trainGrp.add(wL);
+    const wR=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.6,1.44),mTrainWin); wR.position.set(1.58,1.8,cz+wi); trainGrp.add(wR);
   }
 }
-// Nose (front)
-const tnose=new THREE.Mesh(new THREE.BoxGeometry(2.6,2.2,6),mTrainNose); tnose.position.set(0,1.3,-34); trainGrp.add(tnose);
+// Nose (front) ×1.2
+const tnose=new THREE.Mesh(new THREE.BoxGeometry(3.12,2.64,7.2),mTrainNose); tnose.position.set(0,1.56,-40.8); trainGrp.add(tnose);
 trainGrp.rotation.y=RAIL_ANG;
 trainGrp.position.set(RAIL_CX,RAIL_Y2+0.6,-700);
 scene.add(trainGrp);
@@ -1134,10 +1138,10 @@ const mEnvTrk=new THREE.MeshBasicMaterial({color:0x5a3812});
   m.scale.set(rw,h,rd); m.position.set(cx,0,cz); scene.add(m);
 });
 
-// River — diagonal, closer to city (NW→SE), crosses at z≈104
+// River — diagonal, crosses northern outer block at z≈75 (south of north ring road z=100)
 const riverW=22;
 {
-  const riverCX=60, riverCZ=104, riverAngle=-0.07;
+  const riverCX=60, riverCZ=75, riverAngle=-0.07;
   const rl=new THREE.Mesh(new THREE.PlaneGeometry(700,riverW),mRiver);
   rl.rotation.x=-Math.PI/2; rl.rotation.z=riverAngle;
   rl.position.set(riverCX,0.18,riverCZ); scene.add(rl);
@@ -1147,17 +1151,17 @@ const riverW=22;
     rb.position.set(riverCX,0.06,riverCZ+off); scene.add(rb);
   });
 }
-// Road bridges over river at x=0, x=100, x=200 (river at z≈102-104)
+// Road bridges over river (river moved to z=75, inside northern outer block)
 const mBridge=new THREE.MeshLambertMaterial({color:0x888880});
-[[0,103,2.5,0.8],[100,102,16,0.9],[200,100,2.5,0.8]].forEach(([bx,bz,bw,bh])=>{
+[[0,75,2.5,0.8],[100,75,16,0.9],[200,75,2.5,0.8]].forEach(([bx,bz,bw,bh])=>{
   box(bw,bh,riverW+6,mBridge,bx,bh/2,bz);
   [-bw*0.35,bw*0.35].forEach(ox=>box(Math.max(0.5,bw*0.22),1.8,riverW+6,mBridge,bx+ox,1.2,bz));
 });
 
 // Scattered trees in outer areas
 const outerTreePositions=[
-  [-200,80],[-160,120],[-240,180],[-180,60],[-220,140],[-190,160],
-  [330,90],[360,130],[310,50],[380,60],[340,170],[370,110],
+  [-200,130],[-160,150],[-240,180],[-180,110],[-220,140],[-190,160],
+  [330,130],[360,150],[310,110],[380,120],[340,170],[370,110],
   [-200,-280],[-160,-320],[-240,-250],[180,-310],[220,-280],[160,-290],
   [100,240],[60,210],[140,220],[80,260],[120,200],[50,230],
   [100,-340],[60,-310],[140,-330],[-80,-100],[-100,-50],[-90,-150],
@@ -1177,19 +1181,19 @@ outerTreePositions.forEach(([px,pz])=>{
   const mRB2=new THREE.MeshLambertMaterial({color:0x505058});
   const mRR2=new THREE.MeshLambertMaterial({color:0x444444});
   const railGrp=new THREE.Group();
-  const beam=new THREE.Mesh(new THREE.BoxGeometry(2.8,0.6,RAIL_LEN2),mRB2); railGrp.add(beam);
-  [-0.7,0.7].forEach(rx=>{
-    const rm=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.12,RAIL_LEN2),mRR2); rm.position.set(rx,0.36,0); railGrp.add(rm);
+  const beam=new THREE.Mesh(new THREE.BoxGeometry(3.36,0.6,RAIL_LEN2),mRB2); railGrp.add(beam); // +20% wide
+  [-0.84,0.84].forEach(rx=>{
+    const rm=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.12,RAIL_LEN2),mRR2); rm.position.set(rx,0.36,0); railGrp.add(rm);
   });
-  [-1.6,1.6].forEach(rx=>{
-    const bm=new THREE.Mesh(new THREE.BoxGeometry(0.15,0.8,RAIL_LEN2),mRS2); bm.position.set(rx,0.7,0); railGrp.add(bm);
+  [-1.92,1.92].forEach(rx=>{
+    const bm=new THREE.Mesh(new THREE.BoxGeometry(0.18,0.8,RAIL_LEN2),mRS2); bm.position.set(rx,0.7,0); railGrp.add(bm);
   });
   // Pillars every 20m — skip over each EW street and the river
   for(let pz=-RAIL_LEN2/2;pz<=RAIL_LEN2/2;pz+=20){
     if(Math.abs(pz)<RH+SW+3)           continue; // z=0 street
     if(Math.abs(pz+100)<RH*2+SW+4)     continue; // z=-100 boulevard (also station zone)
     if(Math.abs(pz+200)<RH+SW+3)       continue; // z=-200 street
-    if(Math.abs(pz-104)<14)            continue; // river
+    if(Math.abs(pz-75)<14)             continue; // river
     const p1=new THREE.Mesh(new THREE.BoxGeometry(0.55,RAIL_Y2,0.55),mRS2); p1.position.set(-1.0,-(RAIL_Y2/2+0.3),pz); railGrp.add(p1);
     const p2=new THREE.Mesh(new THREE.BoxGeometry(0.55,RAIL_Y2,0.55),mRS2); p2.position.set(1.0,-(RAIL_Y2/2+0.3),pz); railGrp.add(p2);
     const cb=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.4,2.6),mRS2); cb.position.set(0,-0.2,pz); railGrp.add(cb);
@@ -1201,7 +1205,7 @@ outerTreePositions.forEach(([px,pz])=>{
   box(28,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,0);     // z=0 street
   box(42,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,-100);   // z=-100 boulevard
   box(28,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,-200);   // z=-200 street
-  box(28,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,104);    // river
+  box(28,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,75);     // river
 }
 // ── Train station at city centre (z≈-85, beside boulevard) ───────────────
 {
@@ -1220,9 +1224,17 @@ outerTreePositions.forEach(([px,pz])=>{
   }
   // Glass windshields
   box(0.1,2.8,platLen,mStnGlass,platX+platW+0.5,RAIL_Y2+1.6,platZ);
-  // Entry staircase from ground
+  // Entry staircase: from east sidewalk (x≈116) up to platform east face (x=110)
+  // Leads from sidewalk/median level, not from the road
   const mStair=new THREE.MeshLambertMaterial({color:0x888880});
-  for(let s=0;s<6;s++) box(platW,0.18,1.1,mStair,platX+platW/2,0.18+s*1.35,platZ+platLen/2-1-s*1.0);
+  const stairN=14, stairH=RAIL_Y2/stairN, stairRun=0.55;
+  for(let s=0;s<stairN;s++){
+    const sx=platX+platW+(stairN-s)*stairRun-stairRun/2;
+    box(stairRun,stairH+0.02,3.5,mStair,sx,(s+0.5)*stairH,platZ);
+  }
+  // Staircase side walls
+  box(0.2,RAIL_Y2*0.5,stairN*stairRun,mStair,platX+platW+stairN*stairRun/2,RAIL_Y2*0.25,platZ-1.9);
+  box(0.2,RAIL_Y2*0.5,stairN*stairRun,mStair,platX+platW+stairN*stairRun/2,RAIL_Y2*0.25,platZ+1.9);
 }
 
 // ── DHL Van ───────────────────────────────────────────────────────────────
@@ -1449,7 +1461,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.12 · 20.05.2026`;
+tsEl.textContent=`v2.13 · 21.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
