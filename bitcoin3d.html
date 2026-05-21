@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin · 3D Chart</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; overflow: hidden; font-family: 'Courier New', Courier, monospace; }
+
+        #overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            background: #000;
+            transition: opacity 1.2s;
+        }
+        #overlay.fade { opacity: 0; pointer-events: none; }
+
+        #loader-text {
+            color: #FFD700;
+            font-size: 0.85rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            animation: blink 1.4s ease-in-out infinite;
+        }
+        #loader-sub {
+            color: rgba(255, 215, 0, 0.35);
+            font-size: 0.6rem;
+            letter-spacing: 0.25em;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.15; }
+        }
+
+        #hud {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            padding: 18px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #hud-title {
+            color: #FFD700;
+            font-size: 0.8rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            opacity: 0;
+            transition: opacity 1.5s 0.5s;
+        }
+        #hud-title.show { opacity: 1; }
+        #hud-sub {
+            color: rgba(255,255,255,0.25);
+            font-size: 0.58rem;
+            letter-spacing: 0.2em;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+        #hint {
+            position: fixed;
+            bottom: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.18);
+            font-size: 0.58rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            z-index: 10;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+<div id="overlay">
+    <div id="loader-text">▶ LADE BITCOIN CHART ◀</div>
+    <div id="loader-sub">CoinGecko API · Gesamter Verlauf</div>
+</div>
+
+<div id="hud">
+    <div>
+        <div id="hud-title">BITCOIN / USD &nbsp;·&nbsp; 3D KERZENCHART</div>
+        <div id="hud-sub">LOG-SKALA &nbsp;·&nbsp; 4-TAGES KERZEN &nbsp;·&nbsp; GESAMTER VERLAUF</div>
+    </div>
+</div>
+
+<div id="hint">ZIEHEN: ROTIEREN &nbsp;·&nbsp; SCROLL: ZOOM &nbsp;·&nbsp; RECHTS-ZIEHEN: VERSCHIEBEN</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+(function () {
+    'use strict';
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+
+    const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 20000);
+    camera.position.set(0, 80, 300);
+
+    const ctrl = new THREE.OrbitControls(camera, renderer.domElement);
+    ctrl.enableDamping = true;
+    ctrl.dampingFactor = 0.055;
+    ctrl.minDistance = 5;
+    ctrl.maxDistance = 4000;
+    ctrl.target.set(0, 30, 0);
+    ctrl.update();
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.22));
+    const sun = new THREE.DirectionalLight(0xfff2cc, 1.6);
+    sun.position.set(300, 500, 300);
+    scene.add(sun);
+    const rim = new THREE.DirectionalLight(0x1a2255, 0.5);
+    rim.position.set(-300, 120, -200);
+    scene.add(rim);
+    const bottom = new THREE.DirectionalLight(0x050510, 0.3);
+    bottom.position.set(0, -100, 0);
+    scene.add(bottom);
+
+    const matBullBody = new THREE.MeshPhongMaterial({ color: 0xFFD700, emissive: 0x2e1a00, specular: 0xFFEE55, shininess: 130 });
+    const matBearBody = new THREE.MeshPhongMaterial({ color: 0x202020, emissive: 0x060606, specular: 0x0e0e0e, shininess: 12 });
+    const matBullWick = new THREE.MeshPhongMaterial({ color: 0xAA7700, emissive: 0x180d00, shininess: 50 });
+    const matBearWick = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 5 });
+
+    async function fetchOHLC() {
+        const url = 'https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=max';
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        if (!Array.isArray(json) || json.length < 5) throw new Error('Ungültige Daten');
+        return json;
+    }
+
+    function buildChart(raw) {
+        const N = raw.length;
+        if (N < 2) return;
+
+        const STEP = 1.5;
+        const TW   = N * STEP;
+        const TH   = 110;
+        const BW   = STEP * 0.72;
+        const WW   = STEP * 0.10;
+
+        const prices = raw.flatMap(([, o, h, l, c]) => [o, h, l, c]).filter(p => p > 0);
+        const logMin = Math.log10(Math.min(...prices));
+        const logMax = Math.log10(Math.max(...prices));
+        const toY = p => p > 0 ? ((Math.log10(p) - logMin) / (logMax - logMin)) * TH : 0;
+        const toX = i => i * STEP - TW / 2 + STEP / 2;
+
+        let nBull = 0, nBear = 0;
+        raw.forEach(([, o, , , c]) => c >= o ? nBull++ : nBear++);
+
+        const unitBox = new THREE.BoxGeometry(1, 1, 1);
+        const iBullBody = new THREE.InstancedMesh(unitBox, matBullBody, nBull);
+        const iBearBody = new THREE.InstancedMesh(unitBox, matBearBody, nBear);
+        const iBullWick = new THREE.InstancedMesh(unitBox, matBullWick, nBull);
+        const iBearWick = new THREE.InstancedMesh(unitBox, matBearWick, nBear);
+
+        const dBody = new THREE.Object3D();
+        const dWick = new THREE.Object3D();
+        let bi = 0, ri = 0;
+
+        raw.forEach(([, open, high, low, close], i) => {
+            const x    = toX(i);
+            const bull = close >= open;
+            const yO = toY(open), yC = toY(close), yH = toY(high), yL = toY(low);
+            const bodyH = Math.max(Math.abs(yC - yO), 0.06);
+            const bodyY = (yO + yC) / 2;
+            const wickH = Math.max(yH - yL, 0.06);
+            const wickY = (yH + yL) / 2;
+
+            dBody.position.set(x, bodyY, 0); dBody.scale.set(BW, bodyH, BW * 0.85); dBody.updateMatrix();
+            dWick.position.set(x, wickY, 0); dWick.scale.set(WW, wickH, WW);        dWick.updateMatrix();
+
+            if (bull) { iBullBody.setMatrixAt(bi, dBody.matrix); iBullWick.setMatrixAt(bi, dWick.matrix); bi++; }
+            else       { iBearBody.setMatrixAt(ri, dBody.matrix); iBearWick.setMatrixAt(ri, dWick.matrix); ri++; }
+        });
+
+        [iBullBody, iBearBody, iBullWick, iBearWick].forEach(im => { im.instanceMatrix.needsUpdate = true; scene.add(im); });
+
+        buildFloor(TW, TH);
+        addPriceLevels(toY, TW, TH);
+        addYearLabels(raw, toX, TH);
+
+        scene.fog = new THREE.FogExp2(0x000000, 1.2 / TW);
+        camera.position.set(TW * 0.08, TH * 1.8, TW * 0.55);
+        ctrl.target.set(0, TH * 0.28, 0);
+        ctrl.update();
+        document.getElementById('hud-title').classList.add('show');
+    }
+
+    function buildFloor(TW, TH) {
+        const PW = TW + 120, PD = 90;
+        const plane = new THREE.Mesh(new THREE.PlaneGeometry(PW, PD), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+        plane.rotation.x = -Math.PI / 2; plane.position.set(0, -0.6, 0); scene.add(plane);
+
+        const pts = [];
+        const nX = Math.min(80, Math.round(TW / 22)), nZ = 12;
+        for (let i = 0; i <= nX; i++) { const x = (i / nX) * PW - PW / 2; pts.push(x, 0, -PD/2, x, 0, PD/2); }
+        for (let j = 0; j <= nZ; j++) { const z = (j / nZ) * PD - PD / 2; pts.push(-PW/2, 0, z, PW/2, 0, z); }
+
+        const geoGrid = new THREE.BufferGeometry();
+        geoGrid.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+        scene.add(new THREE.LineSegments(geoGrid, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1 })));
+
+        const baseLine = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-PW/2,0,0), new THREE.Vector3(PW/2,0,0)]);
+        scene.add(new THREE.Line(baseLine, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 })));
+    }
+
+    function addPriceLevels(toY, TW, TH) {
+        [{ price: 1, label: '$1' }, { price: 10, label: '$10' }, { price: 100, label: '$100' },
+         { price: 1000, label: '$1K' }, { price: 10000, label: '$10K' }, { price: 100000, label: '$100K' }
+        ].forEach(({ price, label }) => {
+            const y = toY(price);
+            if (y < 0.5 || y > TH * 1.05) return;
+            const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-TW/2,y,0), new THREE.Vector3(TW/2,y,0)]);
+            scene.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.6 })));
+            const cv = document.createElement('canvas'); cv.width = 128; cv.height = 38;
+            const ctx = cv.getContext('2d');
+            ctx.fillStyle = 'rgba(180,180,180,0.7)'; ctx.font = 'bold 20px "Courier New"'; ctx.textAlign = 'right';
+            ctx.fillText(label, 122, 26);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
+            sp.position.set(-TW/2 - 8, y, 0); sp.scale.set(18, 5.5, 1); scene.add(sp);
+        });
+    }
+
+    function addYearLabels(raw, toX, TH) {
+        const seen = new Set();
+        raw.forEach(([ts], i) => {
+            const yr = new Date(ts).getFullYear();
+            if (seen.has(yr)) return; seen.add(yr);
+            const x = toX(i);
+            const cv = document.createElement('canvas'); cv.width = 140; cv.height = 44;
+            const ctx = cv.getContext('2d');
+            ctx.clearRect(0, 0, 140, 44);
+            ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = 'bold 24px "Courier New"'; ctx.textAlign = 'center';
+            ctx.fillText(String(yr), 70, 30);
+            const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
+            sp.position.set(x, -4.5, 20); sp.scale.set(18, 5.5, 1); scene.add(sp);
+            const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,0,-22), new THREE.Vector3(x,0,22)]);
+            scene.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1 })));
+        });
+    }
+
+    (async () => {
+        const overlay = document.getElementById('overlay');
+        const loaderTxt = document.getElementById('loader-text');
+        const loaderSub = document.getElementById('loader-sub');
+        try {
+            const data = await fetchOHLC();
+            overlay.classList.add('fade');
+            setTimeout(() => { overlay.style.display = 'none'; }, 1300);
+            buildChart(data);
+        } catch (err) {
+            loaderTxt.style.animation = 'none'; loaderTxt.style.color = '#ff4444';
+            loaderTxt.textContent = '⚠ ' + err.message;
+            loaderSub.textContent = 'Internetverbindung oder API prüfen';
+            console.error(err);
+        }
+    })();
+
+    (function loop() { requestAnimationFrame(loop); ctrl.update(); renderer.render(scene, camera); })();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+    });
+})();
+</script>
+</body>
+</html>
