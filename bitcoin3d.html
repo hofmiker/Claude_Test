@@ -12,8 +12,7 @@
             position: fixed; inset: 0;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            z-index: 30; background: #000;
-            transition: opacity 1.2s;
+            z-index: 30; background: #000; transition: opacity 1.2s;
         }
         #overlay.fade { opacity: 0; pointer-events: none; }
         #loader-text {
@@ -22,26 +21,21 @@
             animation: blink 1.4s ease-in-out infinite;
         }
         #loader-sub {
-            color: rgba(255,215,0,0.35); font-size: 0.6rem;
-            letter-spacing: 0.25em; margin-top: 10px; text-transform: uppercase;
+            color: rgba(255,215,0,.35); font-size: .6rem;
+            letter-spacing: .25em; margin-top: 10px; text-transform: uppercase;
         }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.15} }
 
         #hud {
-            position: fixed; top: 0; left: 0; right: 0;
-            padding: 16px 20px;
+            position: fixed; top: 0; left: 0; right: 0; padding: 16px 20px;
             display: flex; justify-content: space-between; align-items: flex-start;
             pointer-events: none; z-index: 10;
         }
-        #hud-title {
-            color: #FFD700; font-size: 0.8rem; letter-spacing: 0.35em;
-            text-transform: uppercase; opacity: 0; transition: opacity 1.5s .5s;
-        }
+        #hud-title { color: #FFD700; font-size: .8rem; letter-spacing: .35em;
+            text-transform: uppercase; opacity: 0; transition: opacity 1.5s .5s; }
         #hud-title.show { opacity: 1; }
-        #hud-sub {
-            color: rgba(255,255,255,.25); font-size: 0.58rem;
-            letter-spacing: .2em; margin-top: 5px; text-transform: uppercase;
-        }
+        #hud-sub { color: rgba(255,255,255,.25); font-size: .58rem;
+            letter-spacing: .2em; margin-top: 5px; text-transform: uppercase; }
         #refresh-btn {
             pointer-events: all; cursor: pointer; user-select: none;
             color: rgba(255,215,0,.45); font-size: .68rem; letter-spacing: .15em;
@@ -50,48 +44,33 @@
         }
         #refresh-btn:hover { color: #FFD700; border-color: rgba(255,215,0,.6); }
 
-        #axis-y {
-            position: fixed; left: 14px; top: 50%;
+        #axis-y { position: fixed; left: 14px; top: 50%;
             transform: translateY(-50%) rotate(-90deg);
             color: rgba(255,255,255,.22); font-size: .58rem;
             letter-spacing: .2em; text-transform: uppercase;
-            pointer-events: none; z-index: 10; white-space: nowrap;
-        }
-        #axis-x {
-            position: fixed; bottom: 42px; right: 18px;
+            pointer-events: none; z-index: 10; white-space: nowrap; }
+        #axis-x { position: fixed; bottom: 42px; right: 18px;
             color: rgba(255,255,255,.22); font-size: .58rem;
             letter-spacing: .2em; text-transform: uppercase;
-            pointer-events: none; z-index: 10;
-        }
+            pointer-events: none; z-index: 10; }
 
-        #hint {
-            position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-            color: rgba(255,255,255,.18); font-size: .58rem;
-            letter-spacing: .18em; text-transform: uppercase;
-            z-index: 10; white-space: nowrap; pointer-events: none;
-        }
+        #hint { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+            color: rgba(255,255,255,.18); font-size: .58rem; letter-spacing: .18em;
+            text-transform: uppercase; z-index: 10; white-space: nowrap; pointer-events: none; }
 
         #candle-info {
             position: fixed; display: none;
-            background: rgba(0,0,0,.9);
-            border: 1px solid rgba(255,255,255,.28);
-            padding: 13px 16px; z-index: 50;
-            min-width: 195px; pointer-events: none;
+            background: rgba(0,0,0,.92); border: 1px solid rgba(255,255,255,.28);
+            padding: 13px 16px; z-index: 50; min-width: 195px; pointer-events: none;
         }
-        #ci-date {
-            color: rgba(255,255,255,.55); font-size: .62rem;
-            letter-spacing: .18em; margin-bottom: 9px; text-transform: uppercase;
-        }
-        .ci-row {
-            display: flex; justify-content: space-between;
-            font-size: .68rem; margin: 3px 0; gap: 16px;
-        }
+        #ci-date { color: rgba(255,255,255,.55); font-size: .62rem;
+            letter-spacing: .18em; margin-bottom: 9px; text-transform: uppercase; }
+        .ci-row { display: flex; justify-content: space-between;
+            font-size: .68rem; margin: 3px 0; gap: 16px; }
         .ci-lbl { color: rgba(255,255,255,.38); letter-spacing: .08em; }
         .ci-val { color: #fff; font-weight: bold; }
-        #ci-chg {
-            font-size: .78rem; font-weight: bold;
-            margin-top: 8px; text-align: right; letter-spacing: .05em;
-        }
+        #ci-chg { font-size: .78rem; font-weight: bold;
+            margin-top: 8px; text-align: right; letter-spacing: .05em; }
     </style>
 </head>
 <body>
@@ -104,7 +83,7 @@
 <div id="hud">
     <div>
         <div id="hud-title">BITCOIN / USD &nbsp;·&nbsp; 3D KERZENCHART</div>
-        <div id="hud-sub">LOG-SKALA &nbsp;·&nbsp; TAGES-KERZEN &nbsp;·&nbsp; GESAMTER VERLAUF</div>
+        <div id="hud-sub">LOG-SKALA &nbsp;·&nbsp; MONATS-KERZEN &nbsp;·&nbsp; GESAMTER VERLAUF</div>
     </div>
     <div id="refresh-btn" onclick="location.reload()">⟳ &nbsp;RELOAD</div>
 </div>
@@ -112,7 +91,7 @@
 <div id="axis-y">PREIS (USD)</div>
 <div id="axis-x">DATUM</div>
 
-<div id="hint">TIPPEN: INFO &amp; DREHPUNKT &nbsp;·&nbsp; ZIEHEN: ROTIEREN &nbsp;·&nbsp; SCROLL: ZOOM</div>
+<div id="hint">1 FINGER: VERSCHIEBEN &nbsp;·&nbsp; 2 FINGER: ROTIEREN / ZOOM &nbsp;·&nbsp; TIPPEN: INFO</div>
 
 <div id="candle-info">
     <div id="ci-date"></div>
@@ -143,7 +122,12 @@
     const ctrl = new THREE.OrbitControls(camera, renderer.domElement);
     ctrl.enableDamping = true; ctrl.dampingFactor = 0.055;
     ctrl.minDistance = 5; ctrl.maxDistance = 10000;
-    ctrl.target.set(0, 100, 0); ctrl.update();
+    ctrl.zoomSpeed = 1.8; ctrl.panSpeed = 1.2;
+    ctrl.target.set(0, 100, 0);
+
+    const TOUCH = THREE.TOUCH || { PAN: 1, DOLLY_ROTATE: 3 };
+    ctrl.touches = { ONE: TOUCH.PAN, TWO: TOUCH.DOLLY_ROTATE };
+    ctrl.update();
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.22));
     const sun = new THREE.DirectionalLight(0xfff2cc, 1.6);
@@ -152,38 +136,42 @@
     rim.position.set(-300, 120, -200); scene.add(rim);
 
     const matBullBody = new THREE.MeshPhongMaterial({ color: 0xFFD700, emissive: 0x2e1a00, specular: 0xFFEE55, shininess: 130 });
-    const matBearBody = new THREE.MeshPhongMaterial({ color: 0x202020, emissive: 0x060606, specular: 0x0e0e0e, shininess: 12 });
+    const matBearBody = new THREE.MeshPhongMaterial({ color: 0x2d0a4e, emissive: 0x0f0520, specular: 0x1a0a30, shininess: 25 });
     const matBullWick = new THREE.MeshPhongMaterial({ color: 0xAA7700, emissive: 0x180d00, shininess: 50 });
-    const matBearWick = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 5 });
+    const matBearWick = new THREE.MeshPhongMaterial({ color: 0x1e0838, emissive: 0x070012, shininess: 10 });
 
     let rawData = [], _toX, _toY;
     let bullIdxMap = [], bearIdxMap = [];
     let iBullBody = null, iBearBody = null;
     const raycaster = new THREE.Raycaster();
-
     const loaderSub = document.getElementById('loader-sub');
 
     async function fetchOHLC() {
         try {
-            loaderSub.textContent = 'CoinGecko API …';
-            const r = await fetch(
-                'https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=max',
-                { cache: 'no-store' }
-            );
+            loaderSub.textContent = 'Binance 1M …';
+            const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1M&limit=500');
             if (r.ok) {
-                const j = await r.json();
-                if (Array.isArray(j) && j.length > 100) return j;
+                const d = await r.json();
+                if (Array.isArray(d) && d.length > 20) {
+                    updateSubtitle(d.length, '1M');
+                    return d.map(k => [k[0], +k[1], +k[2], +k[3], +k[4]]);
+                }
             }
         } catch (_) {}
 
-        loaderSub.textContent = 'Binance API …';
-        const LIMIT = 1000;
-        let all = [], end = Date.now();
+        try {
+            loaderSub.textContent = 'CoinGecko API …';
+            const r = await fetch('https://api.coingecko.com/api/v3/coins/bitcoin/ohlc?vs_currency=usd&days=max', { cache: 'no-store' });
+            if (r.ok) {
+                const j = await r.json();
+                if (Array.isArray(j) && j.length > 20) { updateSubtitle(j.length, '4D'); return j; }
+            }
+        } catch (_) {}
+
+        loaderSub.textContent = 'Binance 1D …';
+        const LIMIT = 1000; let all = [], end = Date.now();
         for (let i = 0; i < 5; i++) {
-            const r = await fetch(
-                'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=' +
-                LIMIT + '&endTime=' + end
-            );
+            const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=' + LIMIT + '&endTime=' + end);
             if (!r.ok) throw new Error('Binance HTTP ' + r.status);
             const d = await r.json();
             if (!Array.isArray(d) || !d.length) break;
@@ -192,19 +180,21 @@
             end = d[0][0] - 1;
         }
         if (all.length < 10) throw new Error('Keine Daten verfügbar');
+        updateSubtitle(all.length, '1D');
         return all.map(k => [k[0], +k[1], +k[2], +k[3], +k[4]]);
     }
 
-    function buildChart(raw) {
-        const N = raw.length;
-        if (N < 2) return;
-        rawData = raw;
+    function updateSubtitle(n, tf) {
+        const label = { '1M': 'MONATS-KERZEN', '4D': '4-TAGES-KERZEN', '1D': 'TAGES-KERZEN' }[tf] || tf;
+        document.getElementById('hud-sub').textContent = 'LOG-SKALA · ' + label + ' (' + n + ') · GESAMTER VERLAUF';
+    }
 
-        const STEP = 1.5, TW = N * STEP, TH = 550, BW = STEP * 0.72, WW = STEP * 0.11;
+    function buildChart(raw) {
+        const N = raw.length; if (N < 2) return; rawData = raw;
+        const TW = 600, STEP = TW / N, TH = 550, BW = STEP * 0.78, WW = STEP * 0.13;
 
         const prices = raw.flatMap(([, o, h, l, c]) => [o, h, l, c]).filter(p => p > 0);
-        const logMin = Math.log10(Math.min(...prices));
-        const logMax = Math.log10(Math.max(...prices));
+        const logMin = Math.log10(Math.min(...prices)), logMax = Math.log10(Math.max(...prices));
         const toY = p => p > 0 ? ((Math.log10(p) - logMin) / (logMax - logMin)) * TH : 0;
         const toX = i => i * STEP - TW / 2 + STEP / 2;
         _toX = toX; _toY = toY;
@@ -219,35 +209,24 @@
         const iBearWick = new THREE.InstancedMesh(box, matBearWick, nBear);
 
         const dB = new THREE.Object3D(), dW = new THREE.Object3D();
-        bullIdxMap = []; bearIdxMap = [];
-        let bi = 0, ri = 0;
+        bullIdxMap = []; bearIdxMap = []; let bi = 0, ri = 0;
 
         raw.forEach(([, open, high, low, close], i) => {
             const x = toX(i), bull = close >= open;
             const yO = toY(open), yC = toY(close), yH = toY(high), yL = toY(low);
-            const bH = Math.max(Math.abs(yC - yO), 0.15), bY = (yO + yC) / 2;
-            const wH = Math.max(yH - yL, 0.15), wY = (yH + yL) / 2;
-
+            const bH = Math.max(Math.abs(yC - yO), 0.2), bY = (yO + yC) / 2;
+            const wH = Math.max(yH - yL, 0.2), wY = (yH + yL) / 2;
             dB.position.set(x, bY, 0); dB.scale.set(BW, bH, BW * 0.85); dB.updateMatrix();
             dW.position.set(x, wY, 0); dW.scale.set(WW, wH, WW); dW.updateMatrix();
-
-            if (bull) {
-                iBullBody.setMatrixAt(bi, dB.matrix); iBullWick.setMatrixAt(bi, dW.matrix);
-                bullIdxMap[bi] = i; bi++;
-            } else {
-                iBearBody.setMatrixAt(ri, dB.matrix); iBearWick.setMatrixAt(ri, dW.matrix);
-                bearIdxMap[ri] = i; ri++;
-            }
+            if (bull) { iBullBody.setMatrixAt(bi, dB.matrix); iBullWick.setMatrixAt(bi, dW.matrix); bullIdxMap[bi] = i; bi++; }
+            else       { iBearBody.setMatrixAt(ri, dB.matrix); iBearWick.setMatrixAt(ri, dW.matrix); bearIdxMap[ri] = i; ri++; }
         });
 
-        [iBullBody, iBearBody, iBullWick, iBearWick].forEach(m => {
-            m.instanceMatrix.needsUpdate = true; scene.add(m);
-        });
+        [iBullBody, iBearBody, iBullWick, iBearWick].forEach(m => { m.instanceMatrix.needsUpdate = true; scene.add(m); });
 
         buildFloor(TW); addPriceLevels(toY, TW, TH); addYearLabels(raw, toX); addAxisMarkers(toY, TW, TH);
-
-        scene.fog = new THREE.FogExp2(0x000000, 0.45 / TW);
-        camera.position.set(TW * 0.08, TH * 0.9, TW * 0.55);
+        scene.fog = new THREE.FogExp2(0x000000, 0.5 / TW);
+        camera.position.set(TW * 0.1, TH * 0.9, TW * 0.7);
         ctrl.target.set(0, TH * 0.28, 0); ctrl.update();
         document.getElementById('hud-title').classList.add('show');
     }
@@ -257,78 +236,64 @@
         const base = new THREE.Mesh(new THREE.PlaneGeometry(PW, PD), new THREE.MeshBasicMaterial({ color: 0x000000 }));
         base.rotation.x = -Math.PI / 2; base.position.y = -0.8; scene.add(base);
 
-        const T = 256;
-        const cv = document.createElement('canvas'); cv.width = T; cv.height = T;
-        const ctx = cv.getContext('2d');
-        ctx.clearRect(0, 0, T, T);
-        ctx.strokeStyle = 'rgba(255,255,255,0.38)'; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.moveTo(T-1, 0); ctx.lineTo(T-1, T); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, T-1); ctx.lineTo(T, T-1); ctx.stroke();
-
+        const T = 256, cv = document.createElement('canvas'); cv.width = T; cv.height = T;
+        const ctx = cv.getContext('2d'); ctx.clearRect(0, 0, T, T);
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(T-1,0); ctx.lineTo(T-1,T); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,T-1); ctx.lineTo(T,T-1); ctx.stroke();
         const tex = new THREE.CanvasTexture(cv);
         tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(Math.round(PW / 55), Math.round(PD / 55));
-
+        tex.repeat.set(Math.round(PW/50), Math.round(PD/50));
         const gp = new THREE.Mesh(new THREE.PlaneGeometry(PW, PD), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
         gp.rotation.x = -Math.PI / 2; gp.position.y = -0.5; scene.add(gp);
 
-        const bl = new THREE.Mesh(new THREE.BoxGeometry(PW, 2, 2), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 }));
+        const bl = new THREE.Mesh(new THREE.BoxGeometry(PW, 2.5, 2.5), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 }));
         bl.position.set(0, 0, 0); scene.add(bl);
     }
 
     function addPriceLevels(toY, TW, TH) {
-        [{ p:1,l:'$1' },{ p:10,l:'$10' },{ p:100,l:'$100' },{ p:1000,l:'$1K' },{ p:10000,l:'$10K' },{ p:100000,l:'$100K' }
-        ].forEach(({ p, l }) => {
-            const y = toY(p);
-            if (y < 1 || y > TH * 1.05) return;
+        [{ p:1,l:'$1' },{ p:10,l:'$10' },{ p:100,l:'$100' },{ p:1000,l:'$1K' },{ p:10000,l:'$10K' },{ p:100000,l:'$100K' }].forEach(({ p, l }) => {
+            const y = toY(p); if (y < 1 || y > TH * 1.05) return;
             const ln = new THREE.Mesh(new THREE.BoxGeometry(TW, 1.5, 1.0), new THREE.MeshBasicMaterial({ color: 0x3a3a3a, transparent: true, opacity: 0.9 }));
             ln.position.set(0, y, 0); scene.add(ln);
             const cv = document.createElement('canvas'); cv.width = 150; cv.height = 48;
-            const ctx = cv.getContext('2d');
-            ctx.fillStyle = 'rgba(200,200,200,.95)'; ctx.font = 'bold 28px "Courier New"'; ctx.textAlign = 'right';
-            ctx.fillText(l, 142, 34);
+            const ctx = cv.getContext('2d'); ctx.fillStyle = 'rgba(200,200,200,.95)'; ctx.font = 'bold 28px "Courier New"'; ctx.textAlign = 'right'; ctx.fillText(l, 142, 34);
             const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
             sp.position.set(-TW/2-14, y, 0); sp.scale.set(26, 8, 1); scene.add(sp);
         });
     }
 
     function addYearLabels(raw, toX) {
-        const PD = 100, seen = new Set();
+        const seen = new Set();
         raw.forEach(([ts], i) => {
-            const yr = new Date(ts).getFullYear();
-            if (seen.has(yr)) return; seen.add(yr);
+            const yr = new Date(ts).getFullYear(); if (seen.has(yr)) return; seen.add(yr);
             const x = toX(i);
             const cv = document.createElement('canvas'); cv.width = 160; cv.height = 52;
-            const ctx = cv.getContext('2d');
-            ctx.clearRect(0, 0, 160, 52);
-            ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = 'bold 30px "Courier New"'; ctx.textAlign = 'center';
-            ctx.fillText(String(yr), 80, 36);
+            const ctx = cv.getContext('2d'); ctx.clearRect(0,0,160,52);
+            ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.font = 'bold 30px "Courier New"'; ctx.textAlign = 'center'; ctx.fillText(String(yr), 80, 36);
             const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
             sp.position.set(x, -8, 26); sp.scale.set(26, 8, 1); scene.add(sp);
-            const tk = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.4, PD), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 }));
+            const tk = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.4, 100), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 }));
             tk.position.set(x, 0, 0); scene.add(tk);
         });
     }
 
     function addAxisMarkers(toY, TW, TH) {
-        [1, 10, 100, 1000, 10000, 100000].forEach(p => {
-            const y = toY(p);
-            if (y < 1 || y > TH * 1.05) return;
+        [1,10,100,1000,10000,100000].forEach(p => {
+            const y = toY(p); if (y < 1 || y > TH * 1.05) return;
             const tk = new THREE.Mesh(new THREE.BoxGeometry(8, 1.5, 1.5), new THREE.MeshBasicMaterial({ color: 0x888888 }));
-            tk.position.set(-TW/2 - 4, y, 0); scene.add(tk);
+            tk.position.set(-TW/2-4, y, 0); scene.add(tk);
         });
         const spine = new THREE.Mesh(new THREE.BoxGeometry(1.5, TH, 1.5), new THREE.MeshBasicMaterial({ color: 0x333333 }));
         spine.position.set(-TW/2, TH/2, 0); scene.add(spine);
     }
 
     const infoEl = document.getElementById('candle-info');
-
     function showInfo(candle, sx, sy) {
         const [ts, open, high, low, close] = candle;
-        const date = new Date(ts).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const pct = ((close - open) / open * 100).toFixed(2);
-        const bull = close >= open;
-        const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const date = new Date(ts).toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+        const pct = ((close - open) / open * 100).toFixed(2), bull = close >= open;
+        const fmt = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
         document.getElementById('ci-date').textContent = date;
         document.getElementById('ci-open').textContent = fmt(open);
         document.getElementById('ci-high').textContent = fmt(high);
@@ -336,20 +301,18 @@
         document.getElementById('ci-cls').textContent  = fmt(close);
         const chEl = document.getElementById('ci-chg');
         chEl.textContent = (bull ? '+' : '') + pct + '%';
-        chEl.style.color = bull ? '#FFD700' : '#888';
+        chEl.style.color = bull ? '#FFD700' : '#9b4fd4';
         const W = 215, H = 175, pad = 14;
-        let lx = sx + 20, ly = sy - H / 2;
-        if (lx + W > innerWidth  - pad) lx = sx - W - 20;
+        let lx = sx + 20, ly = sy - H/2;
+        if (lx + W > innerWidth - pad) lx = sx - W - 20;
         if (ly < pad) ly = pad;
         if (ly + H > innerHeight - pad) ly = innerHeight - H - pad;
-        infoEl.style.left = lx + 'px'; infoEl.style.top = ly + 'px';
-        infoEl.style.display = 'block';
+        infoEl.style.left = lx + 'px'; infoEl.style.top = ly + 'px'; infoEl.style.display = 'block';
     }
 
     let pDown = null;
-
     function handleTap(cx, cy) {
-        const m = new THREE.Vector2((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
+        const m = new THREE.Vector2((cx/innerWidth)*2-1, -(cy/innerHeight)*2+1);
         raycaster.setFromCamera(m, camera);
         const hits = raycaster.intersectObjects([iBullBody, iBearBody].filter(Boolean));
         if (hits.length > 0) {
@@ -358,29 +321,18 @@
             const c = rawData[ri];
             ctrl.target.set(_toX(ri), (_toY(c[1]) + _toY(c[4])) / 2, 0);
             showInfo(c, cx, cy);
-        } else {
-            infoEl.style.display = 'none';
-        }
+        } else { infoEl.style.display = 'none'; }
     }
 
     renderer.domElement.addEventListener('pointerdown', e => { pDown = { x: e.clientX, y: e.clientY }; });
     renderer.domElement.addEventListener('pointerup', e => {
         if (!pDown) return;
         const dx = e.clientX - pDown.x, dy = e.clientY - pDown.y; pDown = null;
-        if (dx * dx + dy * dy < 64) handleTap(e.clientX, e.clientY);
+        if (dx*dx + dy*dy < 64) handleTap(e.clientX, e.clientY);
     });
-    renderer.domElement.addEventListener('touchstart', e => {
-        if (e.touches.length === 1) pDown = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }, { passive: true });
-    renderer.domElement.addEventListener('touchend', e => {
-        if (!pDown || !e.changedTouches.length) return;
-        const t = e.changedTouches[0], dx = t.clientX - pDown.x, dy = t.clientY - pDown.y; pDown = null;
-        if (dx * dx + dy * dy < 144) handleTap(t.clientX, t.clientY);
-    }, { passive: true });
 
     (async () => {
-        const overlay = document.getElementById('overlay');
-        const loaderTxt = document.getElementById('loader-text');
+        const overlay = document.getElementById('overlay'), loaderTxt = document.getElementById('loader-text');
         try {
             const data = await fetchOHLC();
             overlay.classList.add('fade');
@@ -403,7 +355,6 @@
         camera.updateProjectionMatrix();
         renderer.setSize(innerWidth, innerHeight);
     });
-
 })();
 </script>
 </body>
