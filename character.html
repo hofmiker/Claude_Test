@@ -169,12 +169,18 @@ const hSideR = hSideL.clone();
 hSideR.position.x = 0.128;
 headJoint.add(hSideR);
 
-// ── ARMS (no wrists/hands) ────────────────────────────────────────────────
+// ── ARMS (with hands) ────────────────────────────────────────────────────
 const lShoulder = bone(torso, -0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
 const lElbow    = bone(lShoulder, 0, -0.30, 0, 0.062, 0.052, 0.27, M.skin);
+// Hand at end of lower arm
+const lHandG = new THREE.Group(); lHandG.position.y = -0.27; lElbow.add(lHandG);
+const lHandM = new THREE.Mesh(new THREE.SphereGeometry(0.055, 5, 4), M.skin);
+lHandM.scale.set(1.0, 0.68, 0.88); lHandG.add(lHandM);
 
 const rShoulder = bone(torso,  0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
 const rElbow    = bone(rShoulder, 0, -0.30, 0, 0.062, 0.052, 0.27, M.skin);
+const rHandG = new THREE.Group(); rHandG.position.y = -0.27; rElbow.add(rHandG);
+const rHandM = lHandM.clone(); rHandG.add(rHandM);
 
 // ── HIPS & LEGS ───────────────────────────────────────────────────────────
 const hipsGrp = new THREE.Group();
@@ -325,13 +331,13 @@ let charYaw  = 0;
 let camDist  = 7.0;
 const camPos = new THREE.Vector3(0, 4.5, -7);
 const MOVE_SPEED = 0.11;
-const TURN_SPEED = 0.026;
+const TURN_RATE  = 0.90;  // radians/second — frame-rate independent, much gentler
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
 function animateCharacter(dt) {
   const moving = (keys.up || keys.down) && jumpState === JS.NONE;
-  if (moving) animT += dt * 8.5;
+  if (moving) animT += dt * 9.5;
   const s    = Math.sin(animT);
   const eff  = moving ? 1.0 : 0.0;
   const lLeg =  s * 0.68;
@@ -389,20 +395,35 @@ function animateCharacter(dt) {
 
   // ─ NONE: run / idle ───────────────────────────────────────────────────────
   } else {
-    lHip.rotation.x   = lerp(lHip.rotation.x,   lLeg * eff,                     0.22);
-    rHip.rotation.x   = lerp(rHip.rotation.x,   rLeg * eff,                     0.22);
-    lKnee.rotation.x  = lerp(lKnee.rotation.x,  Math.max(0, lLeg)*0.75*eff,     0.22);
-    rKnee.rotation.x  = lerp(rKnee.rotation.x,  Math.max(0, rLeg)*0.75*eff,     0.22);
-    lAnkle.rotation.x = lerp(lAnkle.rotation.x, -lLeg*0.20*eff,                 0.22);
-    rAnkle.rotation.x = lerp(rAnkle.rotation.x, -rLeg*0.20*eff,                 0.22);
-    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -lLeg*0.45*eff,           0.22);
-    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -rLeg*0.45*eff,           0.22);
-    lElbow.rotation.x    = lerp(lElbow.rotation.x,  Math.max(0,-lLeg)*0.5*eff,  0.22);
-    rElbow.rotation.x    = lerp(rElbow.rotation.x,  Math.max(0,-rLeg)*0.5*eff,  0.22);
+    const t = 0.30;  // snappy lerp
+
+    // ── LEGS: big hip swing + heel kick + ankle push-off ──────────────────
+    lHip.rotation.x  = lerp(lHip.rotation.x,   lLeg * 0.88 * eff, t);
+    rHip.rotation.x  = lerp(rHip.rotation.x,   rLeg * 0.88 * eff, t);
+    // knee bends on forward lift AND on heel-kick (when leg is behind)
+    const lKneeTgt = (Math.max(0, lLeg) * 1.00 + Math.max(0, -lLeg) * 0.70) * eff;
+    const rKneeTgt = (Math.max(0, rLeg) * 1.00 + Math.max(0, -rLeg) * 0.70) * eff;
+    lKnee.rotation.x  = lerp(lKnee.rotation.x,  lKneeTgt, t);
+    rKnee.rotation.x  = lerp(rKnee.rotation.x,  rKneeTgt, t);
+    // ankle: toe pushes down when leg drives back
+    lAnkle.rotation.x = lerp(lAnkle.rotation.x, -lLeg * 0.38 * eff, t);
+    rAnkle.rotation.x = lerp(rAnkle.rotation.x, -rLeg * 0.38 * eff, t);
+
+    // ── ARMS: always bent at elbow when running, strong shoulder swing ────
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -lLeg * 0.65 * eff, t);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -rLeg * 0.65 * eff, t);
+    // elbow stays bent ~90° while running; relaxes to slight bend at idle
+    const elbowTgt = moving ? 1.25 : 0.14;
+    lElbow.rotation.x    = lerp(lElbow.rotation.x, elbowTgt, 0.18);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x, elbowTgt, 0.18);
     lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.09, 0.08);
     rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.09, 0.08);
-    torso.rotation.y  = lerp(torso.rotation.y,  s*0.06*eff, 0.15);
-    torso.position.y  = lerp(torso.position.y,  1.26 + (moving ? Math.abs(s)*0.04 : 0), 0.20);
+
+    // ── TORSO: counter-rotation + forward lean + subtle side sway ─────────
+    torso.rotation.y = lerp(torso.rotation.y,  s * 0.12 * eff, 0.18);
+    torso.rotation.x = lerp(torso.rotation.x, moving ? -0.07 : 0.0, 0.06);
+    torso.rotation.z = lerp(torso.rotation.z, Math.cos(animT) * 0.025 * eff, 0.18);
+    torso.position.y = lerp(torso.position.y, 1.26 + (moving ? Math.abs(s) * 0.055 : 0), 0.22);
   }
 }
 
@@ -415,9 +436,9 @@ function loop() {
   const dt  = Math.min((now - lastTime) / 1000, 0.05);
   lastTime  = now;
 
-  // ── Turn (left = +, right = −  →  correct from behind-camera view)
-  if (keys.left)  charYaw += TURN_SPEED;
-  if (keys.right) charYaw -= TURN_SPEED;
+  // ── Turn — dt-based so speed is frame-rate independent
+  if (keys.left)  charYaw += TURN_RATE * dt;
+  if (keys.right) charYaw -= TURN_RATE * dt;
   charRoot.rotation.y = charYaw;
 
   const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
