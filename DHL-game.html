@@ -164,14 +164,13 @@ XS.forEach(x=>{
 const mZebra=new THREE.MeshLambertMaterial({color:0xffffff});
 const mZebraD=new THREE.MeshLambertMaterial({color:0x444448});
 function zebraCross(cx,cz,horiz,roadHW){
-  const nStripes=5, stripeW=0.3, stripeGap=0.375;
-  const totalW=nStripes*(stripeW+stripeGap)-stripeGap; // =3.0m depth
-  const len=(roadHW+SW)*2; // sidewalk-to-sidewalk span
-  for(let i=0;i<nStripes;i++){
-    const off=-totalW/2+(i*(stripeW+stripeGap));
-    // Stripes run PARALLEL to road axis (like real zebra markings)
-    if(horiz) box(stripeW,0.06,len,mZebra,cx+off,0.06,cz); // N/S approach: stripes in Z (parallel to NS road)
-    else       box(len,0.06,stripeW,mZebra,cx,0.06,cz+off); // E/W approach: stripes in X (parallel to EW road)
+  const stripeW=0.8, stripeGap=0.6, depth=3.0;
+  const span=(roadHW+SW)*2;
+  const n=Math.max(3,Math.floor(span/(stripeW+stripeGap)));
+  for(let i=0;i<n;i++){
+    const off=-span/2+(i*(stripeW+stripeGap))+stripeW/2;
+    if(horiz) box(stripeW,0.06,depth,mZebra,cx+off,0.06,cz);
+    else       box(depth,0.06,stripeW,mZebra,cx,0.06,cz+off);
   }
 }
 XS.forEach(xs=>ZS.forEach(zs=>{
@@ -736,17 +735,27 @@ for(let car=0;car<5;car++){
     const wR=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.6,1.44),mTrainWin); wR.position.set(1.64,1.8,cz+wi); trainGrp.add(wR);
   }
 }
-// Front nose: centered at z=-44.4 so it sits fully in front of car 0 (car front at z=-40.8)
-const tnoseF=new THREE.Mesh(new THREE.BoxGeometry(3.12,2.64,7.2),mTrainNose); tnoseF.position.set(0,1.56,-44.4); trainGrp.add(tnoseF);
-// Rear nose: symmetric, sits fully behind car 4 (car rear at z=40.8)
-const tnoseR=new THREE.Mesh(new THREE.BoxGeometry(3.12,2.64,7.2),mTrainNose); tnoseR.position.set(0,1.56,44.4); trainGrp.add(tnoseR);
+// South nose (z=-44.4): sloped locomotive cab, slope on outer (south) face
+{const fnGeo=new THREE.BoxGeometry(3.12,2.64,7.2);const fnPts=fnGeo.getAttribute('position');
+for(let i=0;i<fnPts.count;i++) if(fnPts.getZ(i)<0&&fnPts.getY(i)>0) fnPts.setZ(i,0);
+fnPts.needsUpdate=true;fnGeo.computeVertexNormals();
+const fn=new THREE.Mesh(fnGeo,mTrainBody);fn.position.set(0,1.56,-44.4);trainGrp.add(fn);
+const fnS=new THREE.Mesh(new THREE.BoxGeometry(3.14,0.48,6.8),mTrainStripe);fnS.position.set(0,0.96,-44.4);trainGrp.add(fnS);
+const fnW=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.9,0.08),mTrainWin);fnW.rotation.x=-0.7;fnW.position.set(0,2.1,-47.8);trainGrp.add(fnW);}
+// North nose (z=+44.4): sloped locomotive cab, slope on outer (north) face
+{const rnGeo=new THREE.BoxGeometry(3.12,2.64,7.2);const rnPts=rnGeo.getAttribute('position');
+for(let i=0;i<rnPts.count;i++) if(rnPts.getZ(i)>0&&rnPts.getY(i)>0) rnPts.setZ(i,0);
+rnPts.needsUpdate=true;rnGeo.computeVertexNormals();
+const rn=new THREE.Mesh(rnGeo,mTrainBody);rn.position.set(0,1.56,44.4);trainGrp.add(rn);
+const rnS=new THREE.Mesh(new THREE.BoxGeometry(3.14,0.48,6.8),mTrainStripe);rnS.position.set(0,0.96,44.4);trainGrp.add(rnS);
+const rnW=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.9,0.08),mTrainWin);rnW.rotation.x=0.7;rnW.position.set(0,2.1,47.8);trainGrp.add(rnW);}
 trainGrp.rotation.y=RAIL_ANG;
 trainGrp.position.set(RAIL_CX,RAIL_Y2+0.6,-700);
 scene.add(trainGrp);
 let trainT=-700, trainActive=false, trainTimer=18000;
 let trainStopping=false, trainStopTimer=0, trainSpd=0;
 const TRAIN_STOP_DUR=5000;   // 5 s station stop
-const TRAIN_MAX_SPD=0.18;    // top speed (m/ms)
+const TRAIN_MAX_SPD=0.09;    // top speed (m/ms)
 const TRAIN_ACCEL=0.000075;  // acceleration (quadratic feel: ever faster)
 const TRAIN_BRAKE_DIST=100;  // start braking 100m before station
 
@@ -1207,12 +1216,12 @@ outerTreePositions.forEach(([px,pz])=>{
   }
   railGrp.position.set(RAIL_CX,RAIL_Y2,RAIL_CZ0);
   scene.add(railGrp);
-  // Bridges over EW streets and river (beams span road+sidewalks width)
+  // Cross-beams at EW street crossings: track-width only (4m), above camera max (y=9.0)
   const mRailBr=new THREE.MeshLambertMaterial({color:0x7a7a80});
-  box(28,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,0);     // z=0 street
-  box(42,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,-100);   // z=-100 boulevard
-  box(28,1.2,2.8,mRailBr,RAIL_CX,RAIL_Y2-0.3,-200);   // z=-200 street
-  box(RH*4+4,1.2,riverW+4,mRailBr,RAIL_CX,RAIL_Y2-0.3,150); // river bridge
+  box(4,0.5,RH*2+SW*2+2,mRailBr,RAIL_CX,RAIL_Y2+0.5,0);
+  box(4,0.5,RH*4+SW*2+2,mRailBr,RAIL_CX,RAIL_Y2+0.5,-100);
+  box(4,0.5,RH*2+SW*2+2,mRailBr,RAIL_CX,RAIL_Y2+0.5,-200);
+  box(4,0.5,riverW+4,mRailBr,RAIL_CX,RAIL_Y2+0.5,150);
 }
 // ── Train station at city centre (z≈-85, beside boulevard) ───────────────
 {
@@ -1475,7 +1484,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.14 · 21.05.2026`;
+tsEl.textContent=`v2.15 · 21.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
@@ -1519,7 +1528,7 @@ function tick(now){
       }
       trainT+=trainSpd*dt;
     }
-    trainGrp.position.z=trainT;
+    trainGrp.position.set(RAIL_CX,RAIL_Y2+0.6,trainT);
     if(trainT>700){ trainActive=false; trainTimer=15000+Math.random()*10000; trainSpd=0; }
   }
 

@@ -76,6 +76,7 @@ Beispiel: "B2" = Innenblock zwischen x=0 und x=100 (Train Lane),
 - [ ] Fluss (z=150) schneidet keine Objekte; Brücke nur für Elevated Rail
 - [ ] Median endet vor jeder Kreuzung (nicht über ZS-Kreuzungen)
 - [ ] Schiene überquert EW-Straßen mit Brückenbalken (Breite = xw)
+- [ ] **Keine Bäume/Objekte auf Fahrbahnen**: treeAt und alle movables müssen außerhalb XS±RH und ZS±(RH*n) platziert werden
 
 ### Z-Fighting
 - [ ] Coplanare Flächen vermeiden: Stripe-Länge ≠ Body-Länge
@@ -83,9 +84,10 @@ Beispiel: "B2" = Innenblock zwischen x=0 und x=100 (Train Lane),
 - [ ] Straßenmarkierungen: y leicht über Straßenoberfläche (y=0.08+)
 
 ### Zebra-Streifen
-- Streifen verlaufen PARALLEL zur Fahrtrichtung
-- horiz=true (N/S-Ansatz): box(stripeW, 0.06, len, ..., cx+off, 0.06, cz)
-- horiz=false (E/W-Ansatz): box(len, 0.06, stripeW, ..., cx, 0.06, cz+off)
+- Streifen verlaufen PARALLEL zur Fahrtrichtung (N/S-Streifen auf N/S-Straße)
+- Tiefe der Querung = 3.0 m (depth), Breite je Streifen = 0.8 m
+- horiz=true (N/S-Ansatz): box(stripeW, 0.06, depth, ..., cx+off, 0.06, cz) — off verteilt über volle Fahrbahnbreite in X
+- horiz=false (E/W-Ansatz): box(depth, 0.06, stripeW, ..., cx, 0.06, cz+off) — off verteilt über volle Fahrbahnbreite in Z
 
 ### Gehwege
 - nsSW: endet bei RING_Z_N−RH (Nord) und RING_Z_S+RH (Süd)
@@ -95,7 +97,7 @@ Beispiel: "B2" = Innenblock zwischen x=0 und x=100 (Train Lane),
 - Zwei Nasen: front z=−44.4, rear z=+44.4
 - Stopp: 5 s, Position auf RAIL_STATION_T=−85 eingerastet
 - Beschleunigung quadratisch (immer schneller werdend)
-- TRAIN_MAX_SPD=0.18, TRAIN_BRAKE_DIST=100
+- TRAIN_MAX_SPD=0.09, TRAIN_BRAKE_DIST=100
 
 ### Minimap
 - N-Pfeil oben, nicht rotierend
