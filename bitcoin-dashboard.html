@@ -566,7 +566,19 @@
         }
     }
 
-    // ── Chart ──────────────────────────────────────────────────────────────────
+    // ── Chart (Binance API – kein Key nötig) ───────────────────────────────────
+    const CHART_CONFIGS = {
+        '7':    { interval: '1h',  limit: 168  },
+        '30':   { interval: '4h',  limit: 180  },
+        '90':   { interval: '1d',  limit: 90   },
+        '180':  { interval: '1d',  limit: 180  },
+        '365':  { interval: '1d',  limit: 365  },
+        '730':  { interval: '3d',  limit: 243  },
+        '1825': { interval: '1w',  limit: 261  },
+        '3650': { interval: '1w',  limit: 521  },
+        'max':  { interval: '1w',  limit: 1000 },
+    };
+
     async function loadChart(days) {
         activeDays = days;
 
@@ -576,11 +588,15 @@
 
         if (cache[days]) { renderChart(cache[days]); return; }
 
+        const cfg = CHART_CONFIGS[String(days)] || CHART_CONFIGS['365'];
+        const url = `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${cfg.interval}&limit=${cfg.limit}`;
+
         try {
-            const url  = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}${days !== 'max' && days > 90 ? '&interval=daily' : ''}`;
             const data = await fetchJSON(url);
-            cache[days] = data.prices;
-            renderChart(data.prices);
+            // Binance format: [openTime, open, high, low, close, ...]
+            const prices = data.map(k => [k[0], parseFloat(k[4])]);
+            cache[days] = prices;
+            renderChart(prices);
         } catch (e) {
             console.error('Chart:', e);
         }
