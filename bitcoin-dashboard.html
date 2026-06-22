@@ -644,10 +644,7 @@
                         bodyColor: '#f9fafb',
                         padding: 10,
                         callbacks: {
-                            title: items => {
-                                const d = new Date(items[0].label);
-                                return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
-                            },
+                            title: items => new Date(items[0].parsed.x).toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' }),
                             label: item => ' $' + Math.round(item.raw).toLocaleString('de-DE'),
                         }
                     }
