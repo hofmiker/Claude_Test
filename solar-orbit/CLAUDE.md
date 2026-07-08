@@ -1,7 +1,7 @@
-# Solar Eclipse — 3D-Sonnensystem
+# Solar Orbit — 3D-Sonnensystem
 
 ## Live-URL
-https://hofmiker.github.io/Claude_Test/sonnensystem/
+https://hofmiker.github.io/Claude_Test/solar-orbit/
 
 ## Aktuelle Version: v1.17 (08.07.2026)
 Versionsnummer im `#deploy-time` div. Beim nächsten Commit auf v1.18 hochzählen.
@@ -32,7 +32,7 @@ Versionsnummer im `#deploy-time` div. Beim nächsten Commit auf v1.18 hochzähle
 Branch `claude/solar-system-design-Kal22` → merge zu `main`:
 ```bash
 git checkout claude/solar-system-design-Kal22
-git add sonnensystem/index.html && git commit -m "..."
+git add solar-orbit/index.html && git commit -m "..."
 git push -u origin claude/solar-system-design-Kal22
 git checkout main && git merge --no-ff claude/solar-system-design-Kal22 -m "..."
 git push -u origin main

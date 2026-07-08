@@ -4,9 +4,8 @@
 | Ordner | Projekt | URL |
 |---|---|---|
 | `hello/` | Hello — Partikel-Typografie | `.../hello/` |
-| `sonnensystem/` | Solar Eclipse — 3D-Sonnensystem | `.../sonnensystem/` |
+| `solar-orbit/` | Solar Orbit — 3D-Sonnensystem | `.../solar-orbit/` |
 | `dhl-city/` | DHL City Drive — 3D-Fahrspiel | `.../dhl-city/` |
-| `racer/` | Retro Racer — 3D-Rennspiel | `.../racer/` |
 | `bitcoin-3d/` | Bitcoin 3D — Candlestick-Chart | `.../bitcoin-3d/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
