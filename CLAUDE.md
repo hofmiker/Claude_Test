@@ -3,10 +3,11 @@
 ## Projekte
 | Ordner | Projekt | URL |
 |---|---|---|
+| `hello/` | Hello — Partikel-Typografie | `.../hello/` |
 | `sonnensystem/` | Solar Eclipse — 3D-Sonnensystem | `.../sonnensystem/` |
-| `dhl/` | DHL City Drive — 3D-Fahrspiel | `.../dhl/` |
+| `dhl-city/` | DHL City Drive — 3D-Fahrspiel | `.../dhl-city/` |
 | `racer/` | Retro Racer — 3D-Rennspiel | `.../racer/` |
-| `bitcoin/` | Bitcoin Chart — 3D Candlesticks | `.../bitcoin/` |
+| `bitcoin-3d/` | Bitcoin 3D — Candlestick-Chart | `.../bitcoin-3d/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
 **Base-URL:** https://hofmiker.github.io/Claude_Test/

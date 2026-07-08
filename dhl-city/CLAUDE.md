@@ -1,8 +1,8 @@
 # DHL City Drive — 3D-Fahrspiel
 
 ## Live-URLs
-- Spiel: https://hofmiker.github.io/Claude_Test/dhl/
-- Charakter-Studie: https://hofmiker.github.io/Claude_Test/dhl/character.html
+- Spiel: https://hofmiker.github.io/Claude_Test/dhl-city/
+- Charakter-Studie: https://hofmiker.github.io/Claude_Test/dhl-city/character.html
 
 ## Dateien
 - `index.html` — Hauptspiel (DHL City Drive)
