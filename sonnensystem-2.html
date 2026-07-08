@@ -26,21 +26,35 @@
             margin-top: 2px; line-height: 1.35;
         }
 
-        @keyframes yearPop {
-            0%   { transform: translateX(-50%) scale(1.22); color: rgba(255,255,255,0.90); }
-            100% { transform: translateX(-50%) scale(1);    color: rgba(255,255,255,0.55); }
-        }
+        /* Year: slot-machine digit cells */
         #year-display {
             position: fixed; bottom: 60px; left: 50%;
             transform: translateX(-50%);
+            display: flex; align-items: center; justify-content: center;
             font-family: -apple-system, Helvetica, sans-serif;
-            font-size: 16px; letter-spacing: 0.20em;
-            color: rgba(255,255,255,0.55);
+            font-size: 16px;
             z-index: 20; pointer-events: none;
-            min-width: 6ch; text-align: center;
+            gap: 0.05em;
         }
-        #year-display.year-pop {
-            animation: yearPop 0.40s ease-out forwards;
+        .yr-cell {
+            overflow: hidden;
+            height: 1.25em;
+            width: 0.65em;
+            position: relative;
+        }
+        .yr-d {
+            display: block;
+            color: rgba(255,255,255,0.55);
+            letter-spacing: 0.15em;
+            line-height: 1.25em;
+            text-align: center;
+        }
+        @keyframes digitDrop {
+            from { transform: translateY(-120%); opacity: 0.3; }
+            to   { transform: translateY(0);     opacity: 1; }
+        }
+        .yr-d.tick {
+            animation: digitDrop 0.19s cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
         }
 
         #ui {
@@ -60,8 +74,7 @@
         .lbl-sub {
             color: rgba(255,255,255,0.20);
             font-family: -apple-system, Helvetica, sans-serif;
-            font-size: 8px; letter-spacing: 0.08em;
-            white-space: nowrap;
+            font-size: 8px; letter-spacing: 0.08em; white-space: nowrap;
         }
 
         #speed {
@@ -78,14 +91,12 @@
             width: 22px; height: 22px; border-radius: 50%;
             background: rgba(255,255,255,0.9); border: none;
         }
-
         #thumb-label {
             position: fixed; display: none; pointer-events: none; z-index: 30;
             font-family: -apple-system, Helvetica, sans-serif;
             font-size: 10px; letter-spacing: 0.10em;
             color: rgba(255,255,255,0.72);
-            transform: translateX(-50%);
-            white-space: nowrap;
+            transform: translateX(-50%); white-space: nowrap;
         }
 
         #headline {
@@ -108,14 +119,19 @@
 </head>
 <body>
     <div id="headline">Solar Eclipse</div>
-    <div id="deploy-time">Deployed: 07.05.2026</div>
+    <div id="deploy-time">v1.5 &middot; 08.07.2026</div>
     <canvas id="three"></canvas>
     <canvas id="overlay"></canvas>
     <div id="label">
         <span id="label-name"></span>
         <span id="label-info"></span>
     </div>
-    <div id="year-display"></div>
+    <div id="year-display">
+        <div class="yr-cell"><span class="yr-d" id="yr-d0">2</span></div>
+        <div class="yr-cell"><span class="yr-d" id="yr-d1">0</span></div>
+        <div class="yr-cell"><span class="yr-d" id="yr-d2">2</span></div>
+        <div class="yr-cell"><span class="yr-d" id="yr-d3">6</span></div>
+    </div>
     <div id="thumb-label"></div>
     <div id="ui">
         <div class="speed-label-wrap">
@@ -176,6 +192,15 @@
     overlayCanvas.width  = window.innerWidth;
     overlayCanvas.height = window.innerHeight;
 
+    // ── Lighting ──────────────────────────────────────────────────────────
+    // Point light at sun → hard terminator on planets
+    const sunLight = new THREE.PointLight(0xfff4e0, 3.5, 0, 1.8);
+    scene.add(sunLight); // stays at origin with the sun
+
+    // Very dim fill so dark sides aren't pitch-black
+    const ambientLight = new THREE.AmbientLight(0x223344, 0.35);
+    scene.add(ambientLight);
+
     // ── Audio ─────────────────────────────────────────────────────────────
     let audioCtx = null;
 
@@ -185,34 +210,29 @@
         return audioCtx;
     }
 
-    // km_d → frequency: large body = deep, small = bright
     function playBell(km_d) {
-        const ctx   = ensureAudio();
-        const t0    = ctx.currentTime;
-        const lo    = Math.log(2376),    hi = Math.log(1392700);
-        const tVal  = Math.max(0, Math.min(1, (Math.log(Math.max(1, km_d)) - lo) / (hi - lo)));
-        const freq  = 1800 - tVal * 1700;    // 100 Hz (Sun) … 1800 Hz (Pluto)
-        const decay = 0.6  + tVal * 1.6;     // 0.6 s … 2.2 s
+        const ctx  = ensureAudio();
+        const t0   = ctx.currentTime;
+        const lo   = Math.log(2376), hi = Math.log(1392700);
+        const tv   = Math.max(0, Math.min(1, (Math.log(Math.max(1, km_d)) - lo) / (hi - lo)));
+        const freq = 1800 - tv * 1700;
+        const dec  = 0.6 + tv * 1.6;
 
         const master = ctx.createGain();
-        master.gain.value = 0.30;
+        master.gain.value = 0.28;
         master.connect(ctx.destination);
 
-        // Bell timbre: fundamental + inharmonic overtone + perfect fifth
-        [{ ratio: 1.000, gain: 0.55 },
-         { ratio: 2.756, gain: 0.25 },
-         { ratio: 1.500, gain: 0.20 }].forEach(({ ratio, gain }) => {
+        [{ r: 1.000, g: 0.55 }, { r: 2.756, g: 0.25 }, { r: 1.500, g: 0.20 }]
+        .forEach(({ r, g }) => {
             const osc = ctx.createOscillator();
             const env = ctx.createGain();
             osc.type = 'sine';
-            osc.frequency.value = freq * ratio;
+            osc.frequency.value = freq * r;
             env.gain.setValueAtTime(0, t0);
-            env.gain.linearRampToValueAtTime(gain, t0 + 0.004);
-            env.gain.exponentialRampToValueAtTime(0.0001, t0 + decay);
-            osc.connect(env);
-            env.connect(master);
-            osc.start(t0);
-            osc.stop(t0 + decay + 0.05);
+            env.gain.linearRampToValueAtTime(g, t0 + 0.004);
+            env.gain.exponentialRampToValueAtTime(0.0001, t0 + dec);
+            osc.connect(env); env.connect(master);
+            osc.start(t0); osc.stop(t0 + dec + 0.05);
         });
     }
 
@@ -229,9 +249,9 @@
         { name: 'Pluto',   relR:  0.186, au: 39.480, period: 247.940, color: 0x9a8d7a, kmh:  17100, km_d:    2376 },
     ];
 
-    const K       = 0.42;
-    const AU_MIN  = Math.pow(PLANETS[0].au, K);
-    const AU_MAX  = Math.pow(PLANETS[PLANETS.length - 1].au, K);
+    const K      = 0.42;
+    const AU_MIN = Math.pow(PLANETS[0].au, K);
+    const AU_MAX = Math.pow(PLANETS[PLANETS.length - 1].au, K);
     const ORB_MIN = 11, ORB_MAX = 52;
     const EARTH_R = 0.40;
 
@@ -257,6 +277,7 @@
 
     // ── Sun ───────────────────────────────────────────────────────────────
     const SUN_R = 10;
+    // Sun is self-illuminated — BasicMaterial ignores lights
     const sunMesh = new THREE.Mesh(
         new THREE.SphereGeometry(SUN_R, 64, 64),
         new THREE.MeshBasicMaterial({ color: 0xffaa20 })
@@ -277,7 +298,7 @@
         (parent ?? scene).add(line);
     }
 
-    // ── Planets ───────────────────────────────────────────────────────────
+    // ── Planets + Comet trails ────────────────────────────────────────────
     const hitboxes = [];
 
     const sunHit = new THREE.Mesh(
@@ -288,16 +309,17 @@
     scene.add(sunHit);
     hitboxes.push(sunHit);
 
+    const TRAIL_N = 28;
+
     const pivots = PLANETS.map((p, idx) => {
         const r   = Math.max(0.18, p.relR * EARTH_R);
         const orb = orbitR(p.au);
 
         makeRing(orb);
 
-        const mesh = new THREE.Mesh(
-            new THREE.SphereGeometry(r, 32, 32),
-            new THREE.MeshBasicMaterial({ color: p.color })
-        );
+        // Lambert material → receives sun point light → terminator shadow
+        const mat = new THREE.MeshLambertMaterial({ color: p.color, transparent: true, opacity: 1 });
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 32, 32), mat);
         mesh.position.x = orb;
 
         if (p.rings) {
@@ -317,10 +339,30 @@
         hit.userData.planetIndex = idx;
         hitboxes.push(hit);
 
+        // Comet trail — world-space Points, gradient from transparent tail to bright head
+        const tPos = new Float32Array(TRAIL_N * 3);
+        const tCol = new Float32Array(TRAIL_N * 3);
+        const tGeo = new THREE.BufferGeometry();
+        tGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3));
+        tGeo.setAttribute('color',    new THREE.BufferAttribute(tCol, 3));
+        const tMat = new THREE.PointsMaterial({
+            size: Math.max(0.6, r * 0.55),
+            vertexColors: true, transparent: true, opacity: 0,
+            sizeAttenuation: true, depthWrite: false,
+        });
+        const trail = new THREE.Points(tGeo, tMat);
+        scene.add(trail);
+
+        const rc = (p.color >> 16) & 0xff;
+        const gc = (p.color >>  8) & 0xff;
+        const bc =  p.color        & 0xff;
+
         const pivot = new THREE.Group();
-        pivot.add(mesh);
-        pivot.add(hit);
-        pivot.userData = { period: p.period, theta0: Math.random() * Math.PI * 2, mesh, dispR: r };
+        pivot.add(mesh); pivot.add(hit);
+        pivot.userData = {
+            period: p.period, theta0: Math.random() * Math.PI * 2, mesh, dispR: r,
+            trail, tPos, tCol, tMat, orb, rc, gc, bc,
+        };
         scene.add(pivot);
         return pivot;
     });
@@ -338,7 +380,7 @@
 
     const moonMesh = new THREE.Mesh(
         new THREE.SphereGeometry(MOON_DISP_R, 16, 16),
-        new THREE.MeshBasicMaterial({ color: 0xb8b8b8 })
+        new THREE.MeshLambertMaterial({ color: 0xb8b8b8 })
     );
     moonMesh.position.x = MOON_ORB_R;
     moonOrbitPivot.add(moonMesh);
@@ -361,23 +403,19 @@
     const labelEl     = document.getElementById('label');
     const labelNameEl = document.getElementById('label-name');
     const labelInfoEl = document.getElementById('label-info');
-    const yearEl      = document.getElementById('year-display');
 
     function easeIO(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
     function cleanEndAnimation() {
-        const fp    = camera.position.clone();
-        const ft    = controls.target.clone();
+        const fp = camera.position.clone(), ft = controls.target.clone();
         const saved = controls.dampingFactor;
         controls.dampingFactor = 1.0;
         controls.update();
         controls.dampingFactor = saved;
-        camera.position.copy(fp);
-        controls.target.copy(ft);
+        camera.position.copy(fp); controls.target.copy(ft);
         controls.enabled = true;
     }
 
-    // Direction vector from current OrbitControls target toward camera (preserved on all moves)
     function camDirVec() {
         return camera.position.clone().sub(controls.target).normalize();
     }
@@ -387,14 +425,11 @@
         labelEl.style.display = 'none';
         controls.minDistance  = 8;
         controls.enabled = false;
-        // Keep current camera direction, just pull back to home distance
-        const dir    = camDirVec();
-        const toPos  = dir.multiplyScalar(HOME_DIST);
+        const toPos = camDirVec().multiplyScalar(HOME_DIST);
         camAnim = {
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
             to:   { pos: toPos,                   tgt: HOME_TARGET.clone() },
-            t: 0, dur,
-            onDone: cleanEndAnimation,
+            t: 0, dur, onDone: cleanEndAnimation,
         };
     }
 
@@ -409,10 +444,7 @@
         const focusDist  = Math.max(dispR * 1.5,
                                dispR * halfH / (0.70 * shortHalf * tanHalfFov));
 
-        // Preserve current camera direction — only shift target and adjust distance
-        const dir       = camDirVec();
-        const camOffset = dir.multiplyScalar(focusDist);
-
+        const camOffset = camDirVec().multiplyScalar(focusDist);
         focused = { mesh, dispR, prevPos: wp.clone() };
         labelEl.style.display   = 'block';
         labelNameEl.textContent = name;
@@ -424,10 +456,7 @@
             to:         { pos: wp.clone().add(camOffset), tgt: wp.clone() },
             camOffset, followMesh: mesh,
             t: 0, dur: 1.0,
-            onDone: () => {
-                controls.minDistance = Math.max(1.0, dispR * 1.4);
-                cleanEndAnimation();
-            },
+            onDone: () => { controls.minDistance = Math.max(1.0, dispR * 1.4); cleanEndAnimation(); },
         };
     }
 
@@ -441,9 +470,7 @@
     function focusPlanet(idx) {
         const p = PLANETS[idx];
         focusBody(
-            pivots[idx].userData.mesh,
-            pivots[idx].userData.dispR,
-            p.name,
+            pivots[idx].userData.mesh, pivots[idx].userData.dispR, p.name,
             p.km_d.toLocaleString('de-DE') + '&thinsp;km &#8960;<br>' +
             p.kmh.toLocaleString('de-DE')  + '&thinsp;km/h<br>' +
             fmtPeriod(p.period) + ' Erdenjahre'
@@ -452,12 +479,8 @@
     }
 
     function focusMoon() {
-        focusBody(
-            moonMesh,
-            MOON_DISP_R,
-            'Mond',
-            '3.474&thinsp;km &#8960;<br>3.683&thinsp;km/h<br>27,32 Tage'
-        );
+        focusBody(moonMesh, MOON_DISP_R, 'Mond',
+            '3.474&thinsp;km &#8960;<br>3.683&thinsp;km/h<br>27,32 Tage');
     }
 
     function focusSun() {
@@ -467,10 +490,7 @@
         const halfH        = window.innerHeight / 2;
         const sunFocusDist = Math.max(SUN_R * 1.4,
                                 SUN_R * halfH / (0.50 * shortHalf * tanHalfFov));
-
-        // Sun is at origin — move along current camera direction
-        const dir     = camDirVec();
-        const toPos   = dir.multiplyScalar(sunFocusDist);
+        const toPos = camDirVec().multiplyScalar(sunFocusDist);
 
         focused = { isSun: true };
         labelEl.style.display   = 'block';
@@ -482,29 +502,27 @@
             from: { pos: camera.position.clone(), tgt: controls.target.clone() },
             to:   { pos: toPos,                   tgt: HOME_TARGET.clone() },
             t: 0, dur: 1.0,
-            onDone: () => {
-                controls.minDistance = SUN_R * 1.3;
-                cleanEndAnimation();
-            },
+            onDone: () => { controls.minDistance = SUN_R * 1.3; cleanEndAnimation(); },
         };
     }
 
-    // ── Visual pulse feedback ─────────────────────────────────────────────
+    // ── Tap feedback: expanding glow + outline ring ───────────────────────
     let pulses = [];
+    let rings  = [];
 
-    function triggerPulse(obj) {
+    function getBodyScreenInfo(obj) {
         const wp = new THREE.Vector3();
-        let dispR, r8, g8, b8;
+        let dispR, r8, g8, b8, km_d;
         if (obj.userData.isSun) {
-            wp.set(0, 0, 0); dispR = SUN_R;
+            wp.set(0, 0, 0); dispR = SUN_R; km_d = 1392700;
             r8 = 255; g8 = 170; b8 = 32;
         } else if (obj.userData.isMoon) {
-            moonMesh.getWorldPosition(wp); dispR = MOON_DISP_R;
+            moonMesh.getWorldPosition(wp); dispR = MOON_DISP_R; km_d = 3474;
             r8 = 184; g8 = 184; b8 = 184;
         } else {
             const idx = obj.userData.planetIndex;
             pivots[idx].userData.mesh.getWorldPosition(wp);
-            dispR = pivots[idx].userData.dispR;
+            dispR = pivots[idx].userData.dispR; km_d = PLANETS[idx].km_d;
             const c = PLANETS[idx].color;
             r8 = (c >> 16) & 0xff; g8 = (c >> 8) & 0xff; b8 = c & 0xff;
         }
@@ -514,7 +532,16 @@
         const dist    = camera.position.distanceTo(wp);
         const screenH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
         const sr      = Math.max(10, (dispR / screenH) * window.innerHeight);
+        return { sx, sy, sr, r8, g8, b8, km_d };
+    }
+
+    function triggerFeedback(obj) {
+        const { sx, sy, sr, r8, g8, b8, km_d } = getBodyScreenInfo(obj);
+        // Expanding glow pulse
         pulses.push({ sx, sy, sr, t: 0, dur: 0.65, r8, g8, b8 });
+        // Static outline ring that fades
+        rings.push({ sx, sy, sr, t: 0, dur: 0.50, r8, g8, b8 });
+        playBell(km_d);
     }
 
     // ── Tap ───────────────────────────────────────────────────────────────
@@ -526,25 +553,19 @@
         if (camAnim) return;
         raycaster.setFromCamera(
             new THREE.Vector2((cx / window.innerWidth) * 2 - 1,
-                              -(cy / window.innerHeight) * 2 + 1),
-            camera
-        );
+                              -(cy / window.innerHeight) * 2 + 1), camera);
         const hits = raycaster.intersectObjects(hitboxes, false);
-
         if (!hits.length) { if (focused) goHome(); return; }
 
         const obj = hits[0].object;
-        triggerPulse(obj);
+        triggerFeedback(obj);
 
         if (obj.userData.isSun) {
-            playBell(1392700);
             if (focused && focused.isSun) goHome(); else focusSun();
         } else if (obj.userData.isMoon) {
-            playBell(3474);
             if (focused && focused.mesh === moonMesh) goHome(); else focusMoon();
         } else {
             const idx = obj.userData.planetIndex;
-            playBell(PLANETS[idx].km_d);
             if (focused && focused.planetIdx === idx) {
                 goHome();
             } else {
@@ -571,7 +592,6 @@
         }
         touchStart = null;
     });
-
     threeCanvas.addEventListener('click', e => { if (!touchDone) handleTap(e.clientX, e.clientY); });
 
     // ── Speed slider ──────────────────────────────────────────────────────
@@ -585,108 +605,108 @@
     const thumbLbl = document.getElementById('thumb-label');
     let sliderDrag = false;
 
-    function fmtMult(v) {
-        return v.toFixed(1).replace('.', ',') + ' ×';
-    }
-
     function updateThumbLabel() {
         const rect    = speedEl.getBoundingClientRect();
         const val     = +speedEl.value;
         const thumbCX = rect.left + 11 + (val / 2) * (rect.width - 22);
         thumbLbl.style.left = Math.round(thumbCX) + 'px';
         thumbLbl.style.top  = Math.round(rect.top - 30) + 'px';
-        thumbLbl.textContent = fmtMult(val);
+        thumbLbl.textContent = val.toFixed(1).replace('.', ',') + ' ×';
     }
 
     speedEl.addEventListener('mousedown',  () => { sliderDrag = true;  thumbLbl.style.display = 'block'; updateThumbLabel(); });
     speedEl.addEventListener('touchstart', () => { sliderDrag = true;  thumbLbl.style.display = 'block'; updateThumbLabel(); }, { passive: true });
     window.addEventListener('mouseup',     () => { if (sliderDrag) { sliderDrag = false; thumbLbl.style.display = 'none'; } });
     window.addEventListener('touchend',    () => { if (sliderDrag) { sliderDrag = false; thumbLbl.style.display = 'none'; } });
-    speedEl.addEventListener('input', e => {
-        targetSpeedMult = +e.target.value;
-        if (sliderDrag) updateThumbLabel();
-    });
+    speedEl.addEventListener('input', e => { targetSpeedMult = +e.target.value; if (sliderDrag) updateThumbLabel(); });
 
-    // ── Overlay: label connector + pulse effects ──────────────────────────
+    // ── Year: slot-machine digit display ──────────────────────────────────
+    const digitEls = [0, 1, 2, 3].map(i => document.getElementById('yr-d' + i));
+    let lastYearStr = String(START_YEAR);
+
+    function setYearDisplay(year) {
+        const s = String(year).padStart(4, '0');
+        for (let i = 0; i < 4; i++) {
+            if (s[i] !== lastYearStr[i]) {
+                const el = digitEls[i];
+                el.textContent = s[i];
+                el.classList.remove('tick');
+                void el.offsetWidth;
+                el.classList.add('tick');
+            }
+        }
+        lastYearStr = s;
+    }
+
+    // ── Overlay: label line, rings, glow pulses ───────────────────────────
     function drawOverlay(dt) {
         oc.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
+        // Label connector
         if (focused) {
             const wp = new THREE.Vector3();
             if (!focused.isSun) focused.mesh.getWorldPosition(wp);
             const subjR = focused.isSun ? SUN_R : focused.dispR;
-
-            const sp  = wp.clone().project(camera);
-            const sx  = (sp.x + 1) / 2 * window.innerWidth;
-            const sy  = (1 - sp.y) / 2 * window.innerHeight;
-
+            const sp    = wp.clone().project(camera);
+            const sx    = (sp.x + 1) / 2 * window.innerWidth;
+            const sy    = (1 - sp.y) / 2 * window.innerHeight;
             const dist    = camera.position.distanceTo(wp);
             const screenH = 2 * Math.tan((camera.fov * Math.PI / 180) / 2) * dist;
             const sr      = Math.max(4, (subjR / screenH) * window.innerHeight);
 
-            const lw = labelEl.offsetWidth  || 80;
-            const lh = labelEl.offsetHeight || 30;
-            const margin = 16;
+            const lw = labelEl.offsetWidth || 80, lh = labelEl.offsetHeight || 30;
             const W = window.innerWidth, H = window.innerHeight;
-            const isLandscape = W > H;
-
             let lx, ly, ex, ey, lcx, lcy;
-            if (isLandscape) {
+            if (W > H) {
                 const goLeft = sx > W * 0.62;
-                lx   = goLeft ? sx - sr - margin - lw : sx + sr + margin;
-                ly   = Math.max(8, Math.min(H - lh - 8, sy - lh / 2));
-                lx   = Math.max(8, Math.min(W - lw - 8, lx));
-                ex   = goLeft ? sx - sr - 2 : sx + sr + 2;
-                ey   = sy;
-                lcx  = goLeft ? lx + lw + 4 : lx - 4;
-                lcy  = ly + lh / 2;
+                lx  = goLeft ? sx - sr - 16 - lw : sx + sr + 16;
+                ly  = Math.max(8, Math.min(H - lh - 8, sy - lh / 2));
+                lx  = Math.max(8, Math.min(W - lw - 8, lx));
+                ex  = goLeft ? sx - sr - 2 : sx + sr + 2; ey = sy;
+                lcx = goLeft ? lx + lw + 4 : lx - 4; lcy = ly + lh / 2;
             } else {
-                lx   = Math.max(8, Math.min(W - lw - 8, sx - lw / 2));
-                ly   = Math.min(H - lh - 8, sy + sr + margin);
-                ex   = sx;
-                ey   = sy + sr + 2;
-                lcx  = lx + lw / 2;
-                lcy  = ly;
+                lx  = Math.max(8, Math.min(W - lw - 8, sx - lw / 2));
+                ly  = Math.min(H - lh - 8, sy + sr + 16);
+                ex  = sx; ey = sy + sr + 2;
+                lcx = lx + lw / 2; lcy = ly;
             }
-
             labelEl.style.left = Math.round(lx) + 'px';
             labelEl.style.top  = Math.round(ly) + 'px';
-
             if (Math.hypot(lcx - ex, lcy - ey) > 4) {
-                oc.beginPath();
-                oc.moveTo(ex, ey);
-                oc.lineTo(lcx, lcy);
-                oc.strokeStyle = 'rgba(255,255,255,0.45)';
-                oc.lineWidth   = 0.9;
-                oc.stroke();
+                oc.beginPath(); oc.moveTo(ex, ey); oc.lineTo(lcx, lcy);
+                oc.strokeStyle = 'rgba(255,255,255,0.45)'; oc.lineWidth = 0.9; oc.stroke();
             }
-            oc.beginPath();
-            oc.arc(ex, ey, 2, 0, Math.PI * 2);
-            oc.fillStyle = 'rgba(255,255,255,0.7)';
-            oc.fill();
+            oc.beginPath(); oc.arc(ex, ey, 2, 0, Math.PI * 2);
+            oc.fillStyle = 'rgba(255,255,255,0.7)'; oc.fill();
         }
 
-        // Expanding glow rings on tap
+        // Outline rings (static size, fading)
+        rings = rings.filter(r => {
+            r.t = Math.min(1, r.t + dt / r.dur);
+            const alpha = (1 - r.t) * 0.85;
+            const grow  = 1 + r.t * 0.25;
+            oc.beginPath(); oc.arc(r.sx, r.sy, r.sr * grow, 0, Math.PI * 2);
+            oc.strokeStyle = `rgba(${r.r8},${r.g8},${r.b8},${alpha.toFixed(3)})`;
+            oc.lineWidth = 2.5; oc.stroke();
+            return r.t < 1;
+        });
+
+        // Expanding glow pulses
         pulses = pulses.filter(p => {
             p.t = Math.min(1, p.t + dt / p.dur);
-            const scale = 1 + p.t * 2.5;
-            const alpha = (1 - p.t) * 0.72;
-            const r     = p.sr * scale;
-            const grad  = oc.createRadialGradient(p.sx, p.sy, r * 0.15, p.sx, p.sy, r);
+            const scale = 1 + p.t * 2.8;
+            const alpha = (1 - p.t) * 0.60;
+            const rad   = p.sr * scale;
+            const grad  = oc.createRadialGradient(p.sx, p.sy, rad * 0.1, p.sx, p.sy, rad);
             grad.addColorStop(0, `rgba(${p.r8},${p.g8},${p.b8},${alpha.toFixed(3)})`);
             grad.addColorStop(1, 'rgba(0,0,0,0)');
-            oc.beginPath();
-            oc.arc(p.sx, p.sy, r, 0, Math.PI * 2);
-            oc.fillStyle = grad;
-            oc.fill();
+            oc.beginPath(); oc.arc(p.sx, p.sy, rad, 0, Math.PI * 2);
+            oc.fillStyle = grad; oc.fill();
             return p.t < 1;
         });
     }
 
     // ── Animation loop ────────────────────────────────────────────────────
-    const START_YEAR_CONST = START_YEAR;
-    yearEl.textContent = String(START_YEAR_CONST);
-    let lastYear = START_YEAR_CONST;
     let gameTime = 0;
     let lastTime = performance.now();
 
@@ -704,22 +724,40 @@
 
         gameTime += DAYS_PER_FRAME * speedMult;
 
-        pivots.forEach(pv => {
-            pv.rotation.y = pv.userData.theta0
-                + (gameTime / (pv.userData.period * 365.25)) * Math.PI * 2;
+        // Update planets + comet trails
+        pivots.forEach((pv, idx) => {
+            const { period, theta0, mesh, trail, tPos, tCol, tMat, orb, rc, gc, bc } = pv.userData;
+            const theta = theta0 + (gameTime / (period * 365.25)) * Math.PI * 2;
+            pv.rotation.y = theta;
+
+            // How far planet moved this frame (radians)
+            const deltaTheta = Math.min(Math.PI * 0.9,
+                DAYS_PER_FRAME * speedMult / (period * 365.25) * Math.PI * 2);
+
+            // Sphere fades as motion increases, trail grows in
+            mesh.material.opacity = Math.max(0.08, 1 - deltaTheta / 2.0);
+            tMat.opacity = Math.min(0.88, deltaTheta / 0.22);
+
+            // Compute trail arc in world space (planet orbit is in XZ plane)
+            for (let j = 0; j < TRAIL_N; j++) {
+                const tj = j / (TRAIL_N - 1);              // 0=tail, 1=head
+                const a  = theta - deltaTheta * (1 - tj);
+                tPos[j*3]   =  orb * Math.cos(a);
+                tPos[j*3+1] = 0;
+                tPos[j*3+2] = -orb * Math.sin(a);
+                // Color fades from 0 at tail to full at head
+                tCol[j*3]   = (rc / 255) * tj;
+                tCol[j*3+1] = (gc / 255) * tj;
+                tCol[j*3+2] = (bc / 255) * tj;
+            }
+            trail.geometry.attributes.position.needsUpdate = true;
+            trail.geometry.attributes.color.needsUpdate    = true;
         });
 
         moonOrbitPivot.rotation.y = moonTheta0
             + (gameTime / (MOON_PERIOD * 365.25)) * Math.PI * 2;
 
-        const year = Math.floor(START_YEAR_CONST + gameTime / 365.25);
-        if (year !== lastYear) {
-            lastYear = year;
-            yearEl.textContent = String(year);
-            yearEl.classList.remove('year-pop');
-            void yearEl.offsetWidth; // restart animation
-            yearEl.classList.add('year-pop');
-        }
+        setYearDisplay(Math.floor(START_YEAR + gameTime / 365.25));
 
         if (camAnim) {
             camAnim.t = Math.min(1, camAnim.t + dt / camAnim.dur);
@@ -738,19 +776,15 @@
             controls.target.lerpVectors(camAnim.from.tgt, camAnim.to.tgt, t);
 
             if (camAnim.t >= 1) {
-                camera.position.copy(camAnim.to.pos);
-                controls.target.copy(camAnim.to.tgt);
-                const done = camAnim.onDone;
-                camAnim = null;
-                if (done) done();
+                camera.position.copy(camAnim.to.pos); controls.target.copy(camAnim.to.tgt);
+                const done = camAnim.onDone; camAnim = null; if (done) done();
             }
         } else {
             if (focused && !focused.isSun) {
                 const wp    = new THREE.Vector3();
                 focused.mesh.getWorldPosition(wp);
                 const delta = wp.clone().sub(focused.prevPos);
-                camera.position.add(delta);
-                controls.target.copy(wp);
+                camera.position.add(delta); controls.target.copy(wp);
                 focused.prevPos.copy(wp);
             }
             controls.update();
