@@ -183,16 +183,16 @@ const sfx = {
 };
 
 // ---------- Physics constants ----------
-const GRAVITY = 2000;
-const MAX_FALL = 1250;
-const ACCEL = 2400;
-const AIR_ACCEL = 1500;
-const FRICTION = 2800;
-const MAX_SPEED = 280;
-const JUMP_VELOCITY = -700;
-const COYOTE_TIME = 0.1;
-const JUMP_BUFFER = 0.12;
-const DEATH_Y = H + 60;
+const GRAVITY = 1550;
+const MAX_FALL = 950;
+const ACCEL = 1300;
+const AIR_ACCEL = 850;
+const FRICTION = 1700;
+const MAX_SPEED = 175;
+const JUMP_VELOCITY = -640;
+const COYOTE_TIME = 0.15;
+const JUMP_BUFFER = 0.18;
+const DEATH_Y = H + 400;
 
 // ---------- Level ----------
 const LEVEL_WIDTH = 4600;
@@ -205,6 +205,8 @@ function plat(x, y, w, h, opts) {
 }
 
 const platforms = [
+  // durchgehende Straßenebene: fängt jeden Sturz auf, es gibt keine tödlichen Abgründe mehr
+  plat(0, 520, LEVEL_WIDTH, 240, { isStreet: true }),
   plat(0, 460, 420, 300),
   plat(500, 420, 160, 340),
   plat(740, 380, 120, 380),
@@ -235,15 +237,15 @@ const checkpoints = [
 
 // enemies: crawlers walk a rooftop range; bats fly a sine path
 const enemies = [
-  { type: 'crawler', x: 560, y: 420, w: 26, h: 22, minX: 510, maxX: 630, vx: 70, dir: 1, alive: true },
-  { type: 'crawler', x: 970, y: 460, w: 26, h: 22, minX: 950, maxX: 1090, vx: 90, dir: 1, alive: true },
-  { type: 'bat', x: 1300, y: 260, w: 26, h: 18, minX: 1240, maxX: 1420, vx: 110, dir: 1, baseY: 260, phase: 0, alive: true },
-  { type: 'crawler', x: 1850, y: 420, w: 26, h: 22, minX: 1830, maxX: 1940, vx: 80, dir: 1, alive: true },
-  { type: 'crawler', x: 2090, y: 460, w: 26, h: 22, minX: 2070, maxX: 2260, vx: 100, dir: 1, alive: true },
-  { type: 'bat', x: 2450, y: 300, w: 26, h: 18, minX: 2400, maxX: 2510, vx: 100, dir: 1, baseY: 300, phase: 1.4, alive: true },
-  { type: 'crawler', x: 3040, y: 460, w: 26, h: 22, minX: 3020, maxX: 3170, vx: 95, dir: 1, alive: true },
-  { type: 'bat', x: 3760, y: 340, w: 26, h: 18, minX: 3720, maxX: 3870, vx: 120, dir: 1, baseY: 340, phase: 0.7, alive: true },
-  { type: 'crawler', x: 4020, y: 460, w: 26, h: 22, minX: 4000, maxX: 4180, vx: 90, dir: 1, alive: true },
+  { type: 'crawler', x: 560, y: 420, w: 26, h: 22, minX: 510, maxX: 630, vx: 45, dir: 1, alive: true },
+  { type: 'crawler', x: 970, y: 460, w: 26, h: 22, minX: 950, maxX: 1090, vx: 55, dir: 1, alive: true },
+  { type: 'bat', x: 1300, y: 260, w: 26, h: 18, minX: 1240, maxX: 1420, vx: 65, dir: 1, baseY: 260, phase: 0, alive: true },
+  { type: 'crawler', x: 1850, y: 420, w: 26, h: 22, minX: 1830, maxX: 1940, vx: 50, dir: 1, alive: true },
+  { type: 'crawler', x: 2090, y: 460, w: 26, h: 22, minX: 2070, maxX: 2260, vx: 60, dir: 1, alive: true },
+  { type: 'bat', x: 2450, y: 300, w: 26, h: 18, minX: 2400, maxX: 2510, vx: 60, dir: 1, baseY: 300, phase: 1.4, alive: true },
+  { type: 'crawler', x: 3040, y: 460, w: 26, h: 22, minX: 3020, maxX: 3170, vx: 55, dir: 1, alive: true },
+  { type: 'bat', x: 3760, y: 340, w: 26, h: 18, minX: 3720, maxX: 3870, vx: 70, dir: 1, baseY: 340, phase: 0.7, alive: true },
+  { type: 'crawler', x: 4020, y: 460, w: 26, h: 22, minX: 4000, maxX: 4180, vx: 55, dir: 1, alive: true },
 ];
 
 // spikes (hazards) - small strips on some rooftops
@@ -697,16 +699,21 @@ function drawPlatform(p, camX) {
   const sx = p.x - camX;
   if (sx + p.w < -10 || sx > W + 10) return;
   const grad = ctx.createLinearGradient(0, p.y, 0, p.y + 26);
-  grad.addColorStop(0, p.moving ? '#4a3f78' : '#2b2440');
-  grad.addColorStop(1, p.moving ? '#332a58' : '#1b1730');
+  if (p.isStreet) {
+    grad.addColorStop(0, '#1a1622');
+    grad.addColorStop(1, '#0c0a14');
+  } else {
+    grad.addColorStop(0, p.moving ? '#4a3f78' : '#2b2440');
+    grad.addColorStop(1, p.moving ? '#332a58' : '#1b1730');
+  }
   ctx.fillStyle = grad;
   ctx.fillRect(sx, p.y, p.w, Math.min(p.h, H - p.y));
   // glow rim
-  ctx.fillStyle = p.moving ? 'rgba(150,130,255,0.9)' : 'rgba(120,100,220,0.55)';
+  ctx.fillStyle = p.isStreet ? 'rgba(255,180,110,0.5)' : (p.moving ? 'rgba(150,130,255,0.9)' : 'rgba(120,100,220,0.55)');
   ctx.fillRect(sx, p.y, p.w, 3);
-  // ledge highlight dots (roof details)
+  // ledge highlight dots (roof details / street lamps)
   if (!p.moving && p.w > 60) {
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillStyle = p.isStreet ? 'rgba(255,190,120,0.35)' : 'rgba(255,255,255,0.06)';
     for (let i = 20; i < p.w - 10; i += 46) ctx.fillRect(sx + i, p.y + 8, 14, 4);
   }
 }
