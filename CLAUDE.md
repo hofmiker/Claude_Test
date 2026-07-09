@@ -7,6 +7,7 @@
 | `solar-orbit/` | Solar Orbit — 3D-Sonnensystem | `.../solar-orbit/` |
 | `dhl-city/` | DHL City Drive — 3D-Fahrspiel | `.../dhl-city/` |
 | `bitcoin-3d/` | Bitcoin 3D — Candlestick-Chart | `.../bitcoin-3d/` |
+| `spice-wars/` | Spice Wars — 2D Sci-Fi Strategie (Dune-2-Stil) | `.../spice-wars/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
 **Base-URL:** https://hofmiker.github.io/Claude_Test/
