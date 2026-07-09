@@ -48,8 +48,8 @@ scene.background = new THREE.Color(0x171a1d);
 scene.fog = new THREE.Fog(0x171a1d, CITY_HALF * 0.9, CITY_HALF * 1.85);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 900);
-const CAM_HEIGHT = 62;
-const CAM_BACK = 34; // fixed world-space offset -> camera never rotates with the car
+const CAM_HEIGHT = 38;
+const CAM_BACK = 9; // fixed world-space offset -> camera never rotates with the car
 const camOffset = new THREE.Vector3(0, CAM_HEIGHT, CAM_BACK);
 const camTarget = new THREE.Vector3();
 const camPos = new THREE.Vector3(0, CAM_HEIGHT, CAM_BACK);
@@ -84,6 +84,112 @@ function wrapAngle(a) {
   while (a > Math.PI) a -= Math.PI * 2;
   while (a < -Math.PI) a += Math.PI * 2;
   return a;
+}
+
+// ---------- Crash feedback: sound / screen shake / debris -----------------
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+window.addEventListener('keydown', ensureAudio, { once: true });
+window.addEventListener('touchstart', ensureAudio, { once: true });
+
+function playCrashSound(volume) {
+  if (!audioCtx) return;
+  const ctx = audioCtx;
+  const now = ctx.currentTime;
+  const bufferSize = Math.floor(ctx.sampleRate * 0.35);
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(2400, now);
+  filter.frequency.exponentialRampToValueAtTime(250, now + 0.3);
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(volume * 0.9, now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+  noise.connect(filter).connect(noiseGain).connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + 0.36);
+
+  const thump = ctx.createOscillator();
+  thump.type = 'sine';
+  thump.frequency.setValueAtTime(130, now);
+  thump.frequency.exponentialRampToValueAtTime(35, now + 0.2);
+  const thumpGain = ctx.createGain();
+  thumpGain.gain.setValueAtTime(volume * 0.8, now);
+  thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+  thump.connect(thumpGain).connect(ctx.destination);
+  thump.start(now);
+  thump.stop(now + 0.3);
+}
+
+const debris = [];
+function spawnDebris(pos, count) {
+  for (let i = 0; i < count; i++) {
+    const size = rand(0.15, 0.42);
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(size, size, size),
+      flatMat(pick([0x8a8a8a, 0x555555, 0xffcf5c, 0xcc3b2e]))
+    );
+    mesh.position.set(pos.x, 0.5, pos.z);
+    mesh.castShadow = true;
+    scene.add(mesh);
+    const angle = rand(0, Math.PI * 2);
+    const speed = rand(3, 9);
+    debris.push({
+      mesh,
+      vel: new THREE.Vector3(Math.cos(angle) * speed, rand(4, 8), Math.sin(angle) * speed),
+      life: rand(0.5, 0.9),
+      age: 0,
+    });
+  }
+}
+function updateDebris(dt) {
+  for (let i = debris.length - 1; i >= 0; i--) {
+    const d = debris[i];
+    d.age += dt;
+    d.vel.y -= 18 * dt;
+    d.mesh.position.addScaledVector(d.vel, dt);
+    d.mesh.rotation.x += dt * 10;
+    d.mesh.rotation.y += dt * 7;
+    if (d.mesh.position.y < 0.12) {
+      d.mesh.position.y = 0.12;
+      d.vel.y *= -0.3;
+      d.vel.x *= 0.7;
+      d.vel.z *= 0.7;
+    }
+    const t = d.age / d.life;
+    d.mesh.scale.setScalar(Math.max(0.001, 1 - t));
+    if (d.age >= d.life) {
+      scene.remove(d.mesh);
+      debris.splice(i, 1);
+    }
+  }
+}
+
+let shakeTime = 0;
+let shakeMag = 0;
+function addShake(intensity) {
+  shakeTime = Math.max(shakeTime, 0.15 + intensity * 0.35);
+  shakeMag = Math.max(shakeMag, 0.6 + intensity * 2.2);
+}
+
+function triggerCrash(pos, impactSpeed, involvesPlayer) {
+  const intensity = clamp(impactSpeed / 25, 0.15, 1);
+  spawnDebris(pos, Math.round(4 + intensity * 6));
+  const focus = player.inCar ? player.inCar.pos : player.pos;
+  const distToPlayer = pos.distanceTo(focus);
+  const distFactor = clamp(1 - distToPlayer / 50, 0, 1);
+  const vol = involvesPlayer ? intensity : intensity * distFactor * 0.5;
+  if (vol > 0.02) playCrashSound(vol);
+  if (involvesPlayer) addShake(intensity);
 }
 
 // ---------- City generation ---------------------------------------------
@@ -280,6 +386,7 @@ class Car {
     this.occupied = isPlayer;
     this.radius = 2.5;
     this.wheelBase = 2.6;
+    this.crashCooldown = 0;
     this.maxSpeed = isPolice ? 27 : (isPlayer ? 30 : 15);
     this.accel = isPolice ? 16 : (isPlayer ? 20 : 8);
     scene.add(this.mesh);
@@ -315,8 +422,56 @@ class Car {
 
     const dir = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading));
     this.pos.addScaledVector(dir, this.speed * dt);
-    collideWithBuildings(this.pos, this.radius);
+    const preImpactSpeed = this.speed;
+    const hitWall = collideWithBuildings(this.pos, this.radius);
+    if (hitWall && Math.abs(preImpactSpeed) > 4) {
+      if (this.crashCooldown <= 0) {
+        triggerCrash(this.pos, Math.abs(preImpactSpeed), this === player.inCar);
+        this.crashCooldown = 0.35;
+      }
+      this.speed *= 0.12;
+    }
     this.syncMesh();
+  }
+}
+
+function resolveCarCollision(a, b) {
+  const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z;
+  const minDist = a.radius + b.radius;
+  const distSq = dx * dx + dz * dz;
+  if (distSq >= minDist * minDist || distSq < 1e-6) return;
+  const dist = Math.sqrt(distSq);
+  const nx = dx / dist, nz = dz / dist;
+  const overlap = minDist - dist;
+  a.pos.x -= nx * overlap * 0.5;
+  a.pos.z -= nz * overlap * 0.5;
+  b.pos.x += nx * overlap * 0.5;
+  b.pos.z += nz * overlap * 0.5;
+
+  const impactSpeed = Math.abs(a.speed) + Math.abs(b.speed);
+  const merged = (a.speed + b.speed) * 0.5 * 0.35;
+  a.speed = merged;
+  b.speed = merged;
+  a.syncMesh();
+  b.syncMesh();
+
+  if (impactSpeed > 3 && a.crashCooldown <= 0 && b.crashCooldown <= 0) {
+    const mid = new THREE.Vector3((a.pos.x + b.pos.x) / 2, 0.4, (a.pos.z + b.pos.z) / 2);
+    const involvesPlayer = a === player.inCar || b === player.inCar;
+    triggerCrash(mid, impactSpeed, involvesPlayer);
+    a.crashCooldown = 0.35;
+    b.crashCooldown = 0.35;
+  }
+}
+
+function updateCarCollisions(dt) {
+  const cars = [playerCar, ...trafficCars, ...policeCars];
+  if (player.inCar && !cars.includes(player.inCar)) cars.push(player.inCar);
+  for (const car of cars) car.crashCooldown = Math.max(0, car.crashCooldown - dt);
+  for (let i = 0; i < cars.length; i++) {
+    for (let j = i + 1; j < cars.length; j++) {
+      resolveCarCollision(cars[i], cars[j]);
+    }
   }
 }
 
@@ -546,6 +701,88 @@ function updatePickups(dt, t) {
   }
 }
 
+// ---------- Missions (delivery runs) ---------------------------------------
+const MISSION_TIME = 40;
+let mission = null;
+
+function createBeaconMesh(color) {
+  const group = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.14, 8, 20), flatMat(color));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.1;
+  const beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.25, 0.25, 6, 8, 1, true),
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
+  );
+  beam.position.y = 3;
+  group.add(ring, beam);
+  group.userData.ring = ring;
+  return group;
+}
+
+function pickMissionPoint() {
+  const cells = sidewalkCells.length ? sidewalkCells : parkCells;
+  const cell = pick(cells);
+  return new THREE.Vector3(
+    cell.x + rand(-cell.half * 0.6, cell.half * 0.6),
+    0,
+    cell.z + rand(-cell.half * 0.6, cell.half * 0.6)
+  );
+}
+
+function startNewMission() {
+  const pickupPos = pickMissionPoint();
+  const mesh = createBeaconMesh(0xffd23f);
+  mesh.position.copy(pickupPos);
+  scene.add(mesh);
+  mission = { stage: 'pickup', pickupPos, mesh, timeLeft: MISSION_TIME, reward: 250 + ((Math.random() * 4) | 0) * 50 };
+  showSub('Neuer Auftrag: Fahr zum gelben Marker!');
+}
+
+function advanceToDropoff() {
+  scene.remove(mission.mesh);
+  const dropoffPos = pickMissionPoint();
+  const mesh = createBeaconMesh(0x36c7ff);
+  mesh.position.copy(dropoffPos);
+  scene.add(mesh);
+  mission.stage = 'dropoff';
+  mission.dropoffPos = dropoffPos;
+  mission.mesh = mesh;
+  mission.timeLeft = MISSION_TIME;
+  showSub('Abgeholt! Bring die Ladung zum blauen Marker!');
+}
+
+function failMission() {
+  scene.remove(mission.mesh);
+  showSub('Auftrag verpasst!');
+  mission = null;
+  setTimeout(startNewMission, 3000);
+}
+
+function completeMission() {
+  scene.remove(mission.mesh);
+  player.money += mission.reward;
+  showSub(`Auftrag erledigt! +$${mission.reward}`);
+  mission = null;
+  setTimeout(startNewMission, 2500);
+}
+
+function updateMissions(dt) {
+  if (!mission) return;
+  mission.timeLeft -= dt;
+  mission.mesh.rotation.y += dt * 2;
+  mission.mesh.userData.ring.position.y = 0.1 + Math.sin(elapsed * 3) * 0.05;
+  const focus = player.inCar ? player.inCar.pos : player.pos;
+  const targetPos = mission.stage === 'pickup' ? mission.pickupPos : mission.dropoffPos;
+  const dx = targetPos.x - focus.x, dz = targetPos.z - focus.z;
+  if (dx * dx + dz * dz < 4 * 4) {
+    if (mission.stage === 'pickup') advanceToDropoff();
+    else completeMission();
+    return;
+  }
+  if (mission.timeLeft <= 0) failMission();
+}
+
 // ---------- Input -----------------------------------------------------
 const keys = new Set();
 window.addEventListener('keydown', (e) => {
@@ -673,6 +910,9 @@ const gearEl = document.getElementById('gear');
 const centerMsg = document.getElementById('centerMsg');
 const subMsg = document.getElementById('subMsg');
 const controlsHint = document.getElementById('controlsHint');
+const missionPanel = document.getElementById('missionPanel');
+const missionText = document.getElementById('missionText');
+const missionTimerFill = document.getElementById('missionTimerFill');
 
 let subTimer = 0;
 function showSub(text) {
@@ -703,6 +943,16 @@ function updateHud(dt) {
   if (subTimer > 0) {
     subTimer -= dt;
     if (subTimer <= 0) subMsg.classList.remove('show');
+  }
+
+  if (mission) {
+    missionPanel.classList.remove('hidden');
+    missionText.textContent = mission.stage === 'pickup'
+      ? `Auftrag: Fahre zum gelben Marker ($${mission.reward})`
+      : `Auftrag: Liefere zum blauen Marker ($${mission.reward})`;
+    missionTimerFill.style.width = clamp(mission.timeLeft / MISSION_TIME, 0, 1) * 100 + '%';
+  } else {
+    missionPanel.classList.add('hidden');
   }
 }
 
@@ -756,6 +1006,19 @@ function drawMinimap() {
     mmCtx.beginPath();
     mmCtx.arc(x, y, 2.2, 0, Math.PI * 2);
     mmCtx.fill();
+  }
+
+  if (mission) {
+    const targetPos = mission.stage === 'pickup' ? mission.pickupPos : mission.dropoffPos;
+    const x = cx + (targetPos.x - focus.x) * scale;
+    const y = cy + (targetPos.z - focus.z) * scale;
+    mmCtx.fillStyle = mission.stage === 'pickup' ? '#ffd23f' : '#36c7ff';
+    mmCtx.beginPath();
+    mmCtx.arc(x, y, 4.5, 0, Math.PI * 2);
+    mmCtx.fill();
+    mmCtx.strokeStyle = '#ffffff';
+    mmCtx.lineWidth = 1.5;
+    mmCtx.stroke();
   }
 
   mmCtx.fillStyle = '#2050ff';
@@ -812,6 +1075,16 @@ function updateCamera(dt) {
   const desired = new THREE.Vector3(camTarget.x + camOffset.x, camOffset.y, camTarget.z + camOffset.z);
   camPos.lerp(desired, Math.min(1, dt * 4.5));
   camera.position.copy(camPos);
+
+  if (shakeTime > 0) {
+    shakeTime -= dt;
+    const s = shakeMag * clamp(shakeTime / 0.3, 0, 1);
+    camera.position.x += (Math.random() - 0.5) * s;
+    camera.position.y += (Math.random() - 0.5) * s * 0.5;
+    camera.position.z += (Math.random() - 0.5) * s;
+    if (shakeTime <= 0) shakeMag = 0;
+  }
+
   camera.lookAt(camTarget.x, 0, camTarget.z);
   sunTarget.position.copy(camTarget);
   sun.position.set(camTarget.x - 60, 110, camTarget.z + 40);
@@ -872,7 +1145,10 @@ function animate() {
   updateTraffic(dt);
   for (const ped of pedestrians) ped.update(dt);
   updatePolice(dt);
+  updateCarCollisions(dt);
   updatePickups(dt, elapsed);
+  updateMissions(dt);
+  updateDebris(dt);
   checkPedestrianHits();
   decayWanted(dt);
   updateHud(dt);
@@ -899,4 +1175,5 @@ requestAnimationFrame(() => {
   setTimeout(() => loadingEl.remove(), 700);
 });
 
+setTimeout(startNewMission, 3000);
 animate();

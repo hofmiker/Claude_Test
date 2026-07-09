@@ -147,6 +147,34 @@
   }
   #subMsg.show { opacity: 1; }
 
+  #missionPanel {
+    position: absolute;
+    top: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 240px;
+    text-align: center;
+    background: rgba(0,0,0,0.45);
+    padding: 6px 16px 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: opacity 0.3s ease;
+  }
+  #missionPanel.hidden { opacity: 0; }
+  #missionTimerBar {
+    margin-top: 5px;
+    height: 5px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #missionTimerFill {
+    height: 100%;
+    background: #ffd23f;
+    width: 100%;
+  }
+
   #loading {
     position: absolute;
     inset: 0;
@@ -226,6 +254,10 @@
       <div id="money">$0</div>
     </div>
     <div id="subMsg"></div>
+    <div id="missionPanel" class="hidden">
+      <div id="missionText"></div>
+      <div id="missionTimerBar"><div id="missionTimerFill"></div></div>
+    </div>
     <div id="centerMsg"></div>
     <div id="speedWrap">
       <div id="speed">0</div>
