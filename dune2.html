@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPICE WARS — Sci-Fi Strategie</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: radial-gradient(ellipse at center, #0d1420 0%, #05070c 70%);
+    color: #cfe8ff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow: hidden;
+  }
+  #app {
+    display: flex;
+    height: 100vh;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 12px;
+  }
+  #gameWrap {
+    position: relative;
+    border: 2px solid #2a5a7a;
+    box-shadow: 0 0 24px rgba(60,160,220,0.35), inset 0 0 40px rgba(0,20,40,0.6);
+    border-radius: 4px;
+  }
+  canvas { display: block; background: #1a1408; cursor: crosshair; }
+  #overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(2,4,8,0.85);
+    z-index: 10;
+    flex-direction: column;
+    text-align: center;
+  }
+  #overlay h1 { font-size: 2.4em; letter-spacing: 4px; margin-bottom: 10px; text-shadow: 0 0 16px currentColor; }
+  #overlay button {
+    margin-top: 16px; padding: 10px 24px; font-size: 1.1em; letter-spacing: 2px;
+    background: #12405c; color: #cfe8ff; border: 1px solid #4fb0e8; border-radius: 4px; cursor: pointer;
+  }
+  #overlay button:hover { background: #1a5a80; }
+
+  #panel {
+    width: 280px;
+    height: 672px;
+    background: linear-gradient(180deg, #0f1826, #0a1018);
+    border: 2px solid #2a5a7a;
+    border-radius: 4px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 0 24px rgba(60,160,220,0.2);
+    font-size: 13px;
+  }
+  #panel h2 {
+    margin: 0 0 4px 0; font-size: 1.3em; letter-spacing: 3px; color: #6fc3ff;
+    text-shadow: 0 0 10px rgba(80,180,255,0.6);
+    border-bottom: 1px solid #2a5a7a; padding-bottom: 6px;
+  }
+  .stat-row { display: flex; justify-content: space-between; padding: 2px 4px; }
+  .stat-row b { color: #ffd479; }
+  .section-title { color: #4fb0e8; letter-spacing: 1px; margin-top: 4px; font-size: 0.95em; border-bottom: 1px dashed #234; padding-bottom: 3px;}
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  button.action {
+    background: #142436; border: 1px solid #2a5a7a; color: #cfe8ff;
+    border-radius: 3px; padding: 6px 4px; cursor: pointer; font-size: 12px;
+    text-align: left; line-height: 1.35;
+  }
+  button.action small { display:block; color:#7fa8c9; font-size: 10px; }
+  button.action:hover:not(:disabled) { background:#1d3a52; border-color:#4fb0e8; }
+  button.action:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.action.placing { outline: 2px solid #ffd479; }
+  #selectionInfo {
+    min-height: 70px; background: #0a1420; border: 1px solid #234; border-radius: 3px; padding: 6px; font-size: 12px;
+  }
+  #log {
+    flex: 1; overflow-y: auto; background: #0a1420; border: 1px solid #234; border-radius: 3px; padding: 5px; font-size: 11px; color: #7fa8c9;
+  }
+  #log div { margin-bottom: 2px; }
+  #controls-help { font-size: 10.5px; color: #5a7c96; line-height: 1.5; border-top: 1px solid #234; padding-top: 5px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="gameWrap">
+    <canvas id="game" width="960" height="672"></canvas>
+    <div id="overlay">
+      <h1 id="overlayTitle">SIEG</h1>
+      <div id="overlaySub"></div>
+      <button onclick="location.reload()">NEUSTART</button>
+    </div>
+  </div>
+  <div id="panel">
+    <h2>⚔ SPICE WARS</h2>
+    <div class="stat-row">Credits: <b id="statCredits">0</b></div>
+    <div class="stat-row">Einheiten: <b id="statUnits">0</b></div>
+    <div class="stat-row">Gebäude: <b id="statBuildings">0</b></div>
+
+    <div class="section-title">GEBÄUDE BAUEN</div>
+    <div class="btn-grid">
+      <button class="action" id="btn-refinery" onclick="uiStartPlacement('refinery')">Raffinerie<small>600 Cr</small></button>
+      <button class="action" id="btn-barracks" onclick="uiStartPlacement('barracks')">Kaserne<small>300 Cr</small></button>
+      <button class="action" id="btn-factory" onclick="uiStartPlacement('factory')">Fabrik<small>800 Cr</small></button>
+      <button class="action" id="btn-turret" onclick="uiStartPlacement('turret')">Geschütz<small>400 Cr</small></button>
+    </div>
+
+    <div class="section-title">EINHEITEN PRODUZIEREN</div>
+    <div class="btn-grid">
+      <button class="action" id="btn-harvester" onclick="uiQueueUnit('harvester')">Harvester<small>350 Cr · Raffinerie</small></button>
+      <button class="action" id="btn-soldier" onclick="uiQueueUnit('soldier')">Infanterist<small>100 Cr · Kaserne</small></button>
+      <button class="action" id="btn-trooper" onclick="uiQueueUnit('trooper')">Trooper<small>150 Cr · Kaserne</small></button>
+      <button class="action" id="btn-tank" onclick="uiQueueUnit('tank')">Panzer<small>500 Cr · Fabrik</small></button>
+    </div>
+
+    <div class="section-title">AUSWAHL</div>
+    <div id="selectionInfo">Nichts ausgewählt.</div>
+
+    <div id="log"></div>
+    <div id="controls-help">
+      <b>Links-Klick:</b> auswählen / Rahmen ziehen<br>
+      <b>Rechts-Klick:</b> bewegen / angreifen / ernten<br>
+      Bau: Knopf klicken, dann Zielfeld auf der Karte anklicken (nahe eigenem Gebäude).
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+// ===================== CONFIG =====================
+const TILE = 24, COLS = 40, ROWS = 28;
+const CANVAS_W = COLS*TILE, CANVAS_H = ROWS*TILE;
+
+const UNIT_TYPES = {
+  harvester: {name:'Harvester', cost:350, buildTime:15, hp:140, speed:48, sight:140, cargoMax:100, harvestRate:30, combat:false, color:'#d9a441', builtAt:'refinery', r:9},
+  soldier:   {name:'Infanterist', cost:100, buildTime:8,  hp:50,  speed:55, sight:180, range:70,  dmg:8,  cooldown:0.9, combat:true, color:'#6fc3ff', builtAt:'barracks', r:7},
+  trooper:   {name:'Trooper', cost:150, buildTime:10, hp:75,  speed:42, sight:180, range:100, dmg:16, cooldown:1.3, combat:true, color:'#2ecc71', builtAt:'barracks', r:7},
+  tank:      {name:'Panzer', cost:500, buildTime:20, hp:240, speed:38, sight:200, range:90,  dmg:28, cooldown:1.1, combat:true, color:'#e74c3c', builtAt:'factory', r:11},
+};
+
+const BUILDING_TYPES = {
+  commandcenter: {name:'Kommandozentrale', w:3, h:3, hp:1000, sight:250, builds:[], icon:'C'},
+  refinery:      {name:'Raffinerie', cost:600, buildTime:25, w:3, h:2, hp:500, sight:150, builds:['harvester'], icon:'R'},
+  barracks:      {name:'Kaserne', cost:300, buildTime:15, w:2, h:2, hp:400, sight:150, builds:['soldier','trooper'], icon:'B'},
+  factory:       {name:'Fabrik', cost:800, buildTime:25, w:3, h:2, hp:500, sight:150, builds:['tank'], icon:'F'},
+  turret:        {name:'Geschützturm', cost:400, buildTime:12, w:1, h:1, hp:320, sight:170, range:170, dmg:22, cooldown:0.8, combat:true, icon:'T'},
+};
+
+const PLAYER = 'player', ENEMY = 'enemy';
+const OWNER_COLOR = { player:'#3ba7ff', enemy:'#ff4d4d' };
+
+// ===================== STATE =====================
+let grid = [];        // grid[y][x] = {type,spice,blocked}
+let explored = [];    // explored[y][x] bool (player)
+let visible = [];     // visible[y][x] bool this-frame (player)
+let units = [];
+let buildings = [];
+let idCounter = 1;
+let credits = { player: 1000, enemy: 1000 };
+let selection = [];          // selected unit ids
+let selectedBuilding = null; // selected building id
+let placementType = null;    // building type currently being placed
+let gameOver = false;
+let logLines = [];
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// ===================== UTIL =====================
+function nid(){ return idCounter++; }
+function dist(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function tileCenter(tx,ty){ return { x: tx*TILE+TILE/2, y: ty*TILE+TILE/2 }; }
+function worldToTile(x,y){ return { x: Math.floor(x/TILE), y: Math.floor(y/TILE) }; }
+function inBounds(x,y){ return x>=0 && x<COLS && y>=0 && y<ROWS; }
+function log(msg){
+  logLines.unshift(msg);
+  if(logLines.length>40) logLines.pop();
+  const el = document.getElementById('log');
+  el.innerHTML = logLines.map(l=>'<div>'+l+'</div>').join('');
+}
+
+// simple beep via WebAudio, no external assets
+let actx = null;
+function beep(freq, dur, type){
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type||'square'; o.frequency.value = freq;
+    g.gain.value = 0.05;
+    o.connect(g); g.connect(actx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime+dur);
+    o.stop(actx.currentTime+dur);
+  }catch(e){}
+}
+
+// ===================== MAP GENERATION =====================
+const PLAYER_BASE = { x:6, y:23 };
+const ENEMY_BASE  = { x:COLS-8, y:4 };
+
+function isSafeZone(x,y){
+  return dist(x,y,PLAYER_BASE.x,PLAYER_BASE.y) < 7 || dist(x,y,ENEMY_BASE.x,ENEMY_BASE.y) < 7;
+}
+
+function generateMap(){
+  grid = [];
+  for(let y=0;y<ROWS;y++){
+    const row = [];
+    for(let x=0;x<COLS;x++) row.push({type:'sand', spice:0, blocked:false});
+    grid.push(row);
+  }
+  function walk(sx,sy,steps,mark){
+    let x=sx,y=sy;
+    for(let i=0;i<steps;i++){
+      if(inBounds(x,y) && !isSafeZone(x,y)) mark(x,y);
+      const dir = Math.floor(Math.random()*4);
+      if(dir===0) x++; else if(dir===1) x--; else if(dir===2) y++; else y--;
+      x = clamp(x,0,COLS-1); y = clamp(y,0,ROWS-1);
+    }
+  }
+  // rocks (mirrored pairs for fairness)
+  for(let i=0;i<4;i++){
+    const sx = 8+Math.floor(Math.random()*(COLS-16));
+    const sy = 4+Math.floor(Math.random()*(ROWS-8));
+    walk(sx,sy,12+Math.floor(Math.random()*10), (x,y)=>{ grid[y][x].type='rock'; });
+    walk(COLS-1-sx, ROWS-1-sy, 12+Math.floor(Math.random()*10), (x,y)=>{ grid[y][x].type='rock'; });
+  }
+  // spice fields (mirrored pairs)
+  for(let i=0;i<3;i++){
+    const sx = 6+Math.floor(Math.random()*(COLS-12));
+    const sy = 4+Math.floor(Math.random()*(ROWS-8));
+    const amt = ()=> 250+Math.floor(Math.random()*300);
+    walk(sx,sy,26+Math.floor(Math.random()*16), (x,y)=>{ if(grid[y][x].type==='sand'){ grid[y][x].type='spice'; grid[y][x].spice=amt(); } });
+    walk(COLS-1-sx, ROWS-1-sy, 26+Math.floor(Math.random()*16), (x,y)=>{ if(grid[y][x].type==='sand'){ grid[y][x].type='spice'; grid[y][x].spice=amt(); } });
+  }
+  explored = grid.map(row=>row.map(()=>false));
+  visible = grid.map(row=>row.map(()=>false));
+}
+
+function markBlocked(tx,ty,w,h,val){
+  for(let y=ty;y<ty+h;y++) for(let x=tx;x<tx+w;x++) if(inBounds(x,y)) grid[y][x].blocked = val;
+}
+
+// ===================== PATHFINDING (A*) =====================
+function passable(x,y){
+  if(!inBounds(x,y)) return false;
+  const c = grid[y][x];
+  if(c.type==='rock') return false;
+  if(c.blocked) return false;
+  return true;
+}
+
+function findPath(sx,sy,tx,ty){
+  if(!inBounds(tx,ty)) return [];
+  // if target blocked, find nearest passable tile around it
+  if(!passable(tx,ty)){
+    let best=null, bestD=Infinity;
+    for(let r=1;r<=4;r++){
+      for(let dx=-r;dx<=r;dx++) for(let dy=-r;dy<=r;dy++){
+        const nx=tx+dx, ny=ty+dy;
+        if(passable(nx,ny)){ const d=Math.hypot(dx,dy); if(d<bestD){bestD=d; best={x:nx,y:ny};} }
+      }
+      if(best) break;
+    }
+    if(!best) return [];
+    tx=best.x; ty=best.y;
+  }
+  const key = (x,y)=> y*COLS+x;
+  const open = new Map();
+  const closed = new Set();
+  const gScore = new Map();
+  const fScore = new Map();
+  const cameFrom = new Map();
+  gScore.set(key(sx,sy),0);
+  fScore.set(key(sx,sy), Math.hypot(tx-sx,ty-sy));
+  open.set(key(sx,sy), {x:sx,y:sy});
+  let iterations=0;
+  while(open.size>0 && iterations<2500){
+    iterations++;
+    let curKey=null, curNode=null, bestF=Infinity;
+    for(const [k,node] of open){
+      const f = fScore.get(k) ?? Infinity;
+      if(f<bestF){ bestF=f; curKey=k; curNode=node; }
+    }
+    if(curNode.x===tx && curNode.y===ty){
+      const path=[]; let ck=curKey;
+      while(cameFrom.has(ck)){
+        const [px,py] = [ck%COLS, Math.floor(ck/COLS)];
+        path.unshift(tileCenter(px,py));
+        ck = cameFrom.get(ck);
+      }
+      return path;
+    }
+    open.delete(curKey);
+    closed.add(curKey);
+    const neighbors = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    for(const [dx,dy] of neighbors){
+      const nx=curNode.x+dx, ny=curNode.y+dy;
+      if(!passable(nx,ny)) continue;
+      if(dx!==0 && dy!==0){ if(!passable(curNode.x+dx,curNode.y) || !passable(curNode.x,curNode.y+dy)) continue; }
+      const nk = key(nx,ny);
+      if(closed.has(nk)) continue;
+      const tentativeG = (gScore.get(curKey)??0) + Math.hypot(dx,dy);
+      if(tentativeG < (gScore.get(nk) ?? Infinity)){
+        cameFrom.set(nk, curKey);
+        gScore.set(nk, tentativeG);
+        fScore.set(nk, tentativeG + Math.hypot(tx-nx,ty-ny));
+        if(!open.has(nk)) open.set(nk, {x:nx,y:ny});
+      }
+    }
+  }
+  return [];
+}
+
+// ===================== ENTITY CREATION =====================
+function createBuilding(type, owner, tx, ty, opts){
+  opts = opts || {};
+  const def = BUILDING_TYPES[type];
+  const b = {
+    id: nid(), type, owner, tx, ty, w:def.w, h:def.h,
+    hp: opts.underConstruction ? def.hp*0.15 : def.hp, maxHp: def.hp,
+    queue: [], underConstruction: !!opts.underConstruction,
+    buildLeft: opts.underConstruction ? def.buildTime : 0, buildTotal: def.buildTime||0,
+    rally: null,
+  };
+  buildings.push(b);
+  markBlocked(tx,ty,def.w,def.h,true);
+  return b;
+}
+
+function createUnit(type, owner, x, y){
+  const def = UNIT_TYPES[type];
+  const u = {
+    id: nid(), type, owner, x, y, hp: def.hp, maxHp: def.hp,
+    path: [], moveTarget: null, attackTarget: null, state: 'idle',
+    atkTimer: 0, cargo: 0, harvestTile: null, selected:false,
+  };
+  units.push(u);
+  return u;
+}
+
+function findFreeSpotNear(tx,ty,w,h){
+  for(let r=1;r<8;r++){
+    for(let dy=-r;dy<=r+h;dy++) for(let dx=-r;dx<=r+w;dx++){
+      const x=tx+dx, y=ty+dy;
+      let ok=true;
+      for(let yy=y;yy<y+1;yy++) for(let xx=x;xx<x+1;xx++){ if(!passable(xx,yy)) ok=false; }
+      if(ok) return tileCenter(x,y);
+    }
+  }
+  return tileCenter(tx,ty);
+}
+
+// ===================== INIT GAME =====================
+function initGame(){
+  generateMap();
+  units = []; buildings = []; idCounter=1;
+  credits = { player:1000, enemy:1000 };
+  selection = []; selectedBuilding=null; placementType=null; gameOver=false;
+
+  // player base
+  createBuilding('commandcenter', PLAYER, PLAYER_BASE.x, PLAYER_BASE.y);
+  createBuilding('refinery', PLAYER, PLAYER_BASE.x+4, PLAYER_BASE.y+1);
+  createBuilding('barracks', PLAYER, PLAYER_BASE.x, PLAYER_BASE.y-3);
+  const pc = tileCenter(PLAYER_BASE.x+1, PLAYER_BASE.y+4);
+  createUnit('harvester', PLAYER, pc.x, pc.y);
+  createUnit('soldier', PLAYER, pc.x-30, pc.y+10);
+  createUnit('soldier', PLAYER, pc.x+30, pc.y+10);
+
+  // enemy base
+  createBuilding('commandcenter', ENEMY, ENEMY_BASE.x, ENEMY_BASE.y);
+  createBuilding('refinery', ENEMY, ENEMY_BASE.x-4, ENEMY_BASE.y+1);
+  createBuilding('barracks', ENEMY, ENEMY_BASE.x, ENEMY_BASE.y+4);
+  createBuilding('factory', ENEMY, ENEMY_BASE.x-4, ENEMY_BASE.y+4);
+  const ec = tileCenter(ENEMY_BASE.x+1, ENEMY_BASE.y-2);
+  createUnit('harvester', ENEMY, ec.x, ec.y);
+  createUnit('soldier', ENEMY, ec.x-30, ec.y-10);
+  createUnit('soldier', ENEMY, ec.x+30, ec.y-10);
+
+  log('Mission gestartet: Zerstöre die gegnerische Kommandozentrale.');
+  updateUI();
+}
+
+// ===================== PRODUCTION =====================
+function findBuildingFor(owner, unitType){
+  const def = UNIT_TYPES[unitType];
+  return buildings.find(b=> b.owner===owner && b.type===def.builtAt && !b.underConstruction);
+}
+
+function queueUnit(owner, unitType){
+  const def = UNIT_TYPES[unitType];
+  if(credits[owner] < def.cost) { if(owner===PLAYER) log('Nicht genug Credits für '+def.name+'.'); return false; }
+  const building = findBuildingFor(owner, unitType);
+  if(!building){ if(owner===PLAYER) log(def.builtAt+' benötigt für '+def.name+'.'); return false; }
+  credits[owner] -= def.cost;
+  building.queue.push({ unitType, timeLeft: def.buildTime, total: def.buildTime });
+  if(owner===PLAYER) log(def.name+' in Produktion.');
+  return true;
+}
+
+function startPlacementBuild(owner, buildingType, tx, ty){
+  const def = BUILDING_TYPES[buildingType];
+  // validity: in bounds, not overlapping, near existing owner building
+  for(let y=ty;y<ty+def.h;y++) for(let x=tx;x<tx+def.w;x++){
+    if(!inBounds(x,y)) return false;
+    if(!passable(x,y)) return false;
+  }
+  const nearOwn = buildings.some(b=> b.owner===owner && dist(b.tx,b.ty, tx, ty) < 10);
+  if(!nearOwn) { log('Zu weit von eigenen Gebäuden entfernt.'); return false; }
+  if(credits[owner] < def.cost){ log('Nicht genug Credits.'); return false; }
+  credits[owner] -= def.cost;
+  createBuilding(buildingType, owner, tx, ty, {underConstruction:true});
+  log(def.name+' im Bau.');
+  beep(300,0.15,'sine');
+  return true;
+}
+
+// ===================== VISIBILITY (fog of war, player only) =====================
+function updateVisibility(){
+  visible = grid.map(row=>row.map(()=>false));
+  function reveal(cx,cy,radius){
+    const tr = Math.ceil(radius/TILE);
+    const {x:tx,y:ty} = worldToTile(cx,cy);
+    for(let y=ty-tr;y<=ty+tr;y++) for(let x=tx-tr;x<=tx+tr;x++){
+      if(!inBounds(x,y)) continue;
+      const c = tileCenter(x,y);
+      if(dist(c.x,c.y,cx,cy) <= radius){ visible[y][x]=true; explored[y][x]=true; }
+    }
+  }
+  units.filter(u=>u.owner===PLAYER).forEach(u=> reveal(u.x,u.y, UNIT_TYPES[u.type].sight));
+  buildings.filter(b=>b.owner===PLAYER).forEach(b=>{ const c=tileCenter(b.tx+b.w/2, b.ty+b.h/2); reveal(c.x,c.y, BUILDING_TYPES[b.type].sight); });
+}
+
+function isVisibleForPlayer(x,y){
+  const t = worldToTile(x,y);
+  if(!inBounds(t.x,t.y)) return false;
+  return visible[t.y][t.x];
+}
+
+// ===================== COMBAT HELPERS =====================
+function entityCenter(e){
+  if(e.w!==undefined) return tileCenter(e.tx+e.w/2, e.ty+e.h/2);
+  return {x:e.x, y:e.y};
+}
+function entityRadius(e){
+  if(e.w!==undefined) return Math.max(e.w,e.h)*TILE/2;
+  return UNIT_TYPES[e.type].r;
+}
+function isAlive(e){ return e && e.hp>0; }
+
+function findNearestEnemy(owner, x, y, maxRange){
+  let best=null, bestD=Infinity;
+  const consider = (arr)=>{
+    for(const e of arr){
+      if(e.owner===owner) continue;
+      if(!isAlive(e)) continue;
+      const c = entityCenter(e);
+      const d = dist(x,y,c.x,c.y);
+      if(d<maxRange && d<bestD){ bestD=d; best=e; }
+    }
+  };
+  consider(units); consider(buildings);
+  return best;
+}
+
+function dealDamageTo(target, dmg){
+  target.hp -= dmg;
+  if(target.hp<0) target.hp=0;
+}
+
+function removeDead(){
+  for(const u of units){
+    if(u.hp<=0 && !u._dead){
+      u._dead=true;
+      if(u.owner===PLAYER) selection = selection.filter(id=>id!==u.id);
+    }
+  }
+  units = units.filter(u=>u.hp>0);
+  for(const b of buildings){
+    if(b.hp<=0 && !b._dead){
+      b._dead = true;
+      markBlocked(b.tx,b.ty,b.w,b.h,false);
+      if(selectedBuilding===b.id) selectedBuilding=null;
+      log((b.owner===PLAYER?'Deine':'Gegnerische')+' '+BUILDING_TYPES[b.type].name+' wurde zerstört!');
+      beep(80,0.3,'sawtooth');
+    }
+  }
+  buildings = buildings.filter(b=>b.hp>0);
+}
+
+// ===================== UNIT AI / UPDATE =====================
+function setUnitPath(u, targetX, targetY){
+  const s = worldToTile(u.x,u.y), t = worldToTile(targetX,targetY);
+  u.path = findPath(s.x,s.y,t.x,t.y);
+}
+
+function orderMove(u, x, y){
+  u.state='move'; u.attackTarget=null; u.harvestTile=null; u.moveTarget={x,y};
+  setUnitPath(u,x,y);
+}
+function orderAttack(u, target){
+  u.state='attack'; u.attackTarget=target; u.moveTarget=null; u.harvestTile=null;
+}
+function orderHarvest(u, tx, ty){
+  u.state='moveToHarvest'; u.harvestTile={x:tx,y:ty}; u.attackTarget=null;
+  const c = tileCenter(tx,ty); u.moveTarget=c; setUnitPath(u,c.x,c.y);
+}
+
+function stepAlongPath(u, def, dt){
+  if(u.path.length===0) return true; // arrived
+  const wp = u.path[0];
+  const d = dist(u.x,u.y,wp.x,wp.y);
+  const step = def.speed*dt;
+  if(d<=step){ u.x=wp.x; u.y=wp.y; u.path.shift(); if(u.path.length===0) return true; }
+  else { u.x += (wp.x-u.x)/d*step; u.y += (wp.y-u.y)/d*step; }
+  return false;
+}
+
+function updateUnit(u, dt){
+  const def = UNIT_TYPES[u.type];
+  u.atkTimer = Math.max(0, u.atkTimer-dt);
+
+  if(u.state==='move'){
+    const arrived = stepAlongPath(u, def, dt);
+    if(arrived) u.state='idle';
+  }
+  else if(u.state==='moveToHarvest'){
+    const arrived = stepAlongPath(u, def, dt);
+    if(arrived){
+      const t = u.harvestTile;
+      if(inBounds(t.x,t.y) && grid[t.y][t.x].type==='spice' && grid[t.y][t.x].spice>0){ u.state='harvest'; }
+      else { u.state='idle'; u.harvestTile=null; }
+    }
+  }
+  else if(u.state==='harvest'){
+    const t = u.harvestTile;
+    if(!t || !inBounds(t.x,t.y) || grid[t.y][t.x].type!=='spice' || grid[t.y][t.x].spice<=0 || u.cargo>=def.cargoMax){
+      // go deliver or find new field
+      if(u.cargo>=def.cargoMax || !t){
+        const refinery = buildings.filter(b=>b.owner===u.owner && b.type==='refinery' && !b.underConstruction)
+          .sort((a,b)=>dist(u.x,u.y,tileCenter(a.tx,a.ty).x,tileCenter(a.tx,a.ty).y) - dist(u.x,u.y,tileCenter(b.tx,b.ty).x,tileCenter(b.tx,b.ty).y))[0];
+        if(refinery){ u.state='deliver'; u.deliverTarget=refinery.id; const c=tileCenter(refinery.tx+refinery.w/2, refinery.ty+refinery.h/2); setUnitPath(u,c.x,c.y); }
+        else u.state='idle';
+      } else { u.state='idle'; u.harvestTile=null; }
+    } else {
+      const rate = def.harvestRate*dt;
+      const take = Math.min(rate, grid[t.y][t.x].spice, def.cargoMax-u.cargo);
+      grid[t.y][t.x].spice -= take; u.cargo += take;
+      if(grid[t.y][t.x].spice<=0) grid[t.y][t.x].type='sand';
+    }
+  }
+  else if(u.state==='deliver'){
+    const refinery = buildings.find(b=>b.id===u.deliverTarget);
+    if(!refinery){ u.state='idle'; return; }
+    const c = tileCenter(refinery.tx+refinery.w/2, refinery.ty+refinery.h/2);
+    const arrived = stepAlongPath(u, def, dt);
+    if(arrived){
+      credits[u.owner] += Math.round(u.cargo*2);
+      u.cargo = 0; u.state='idle';
+    }
+  }
+  else if(u.state==='idle'){
+    if(def.combat){
+      const enemy = findNearestEnemy(u.owner, u.x, u.y, def.sight);
+      if(enemy) orderAttack(u, enemy);
+    } else if(def.cargoMax!==undefined){
+      // harvester auto-seek spice
+      let best=null,bestD=Infinity;
+      for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++){
+        if(grid[y][x].type==='spice' && grid[y][x].spice>0){
+          const c = tileCenter(x,y); const d = dist(u.x,u.y,c.x,c.y);
+          if(d<bestD){bestD=d; best={x,y};}
+        }
+      }
+      if(best) orderHarvest(u, best.x, best.y);
+    }
+  }
+  else if(u.state==='attack'){
+    const target = u.attackTarget;
+    if(!isAlive(target)){ u.state='idle'; u.attackTarget=null; return; }
+    const c = entityCenter(target);
+    const d = dist(u.x,u.y,c.x,c.y);
+    const engageRange = def.range + entityRadius(target);
+    if(d > engageRange){
+      if(d > def.sight*1.6){ u.state='idle'; u.attackTarget=null; return; } // leash
+      setUnitPath(u,c.x,c.y);
+      stepAlongPath(u, def, dt);
+    } else {
+      u.path=[];
+      if(u.atkTimer<=0){
+        dealDamageTo(target, def.dmg);
+        u.atkTimer = def.cooldown;
+      }
+    }
+  }
+}
+
+function updateBuildingCombat(b, dt){
+  const def = BUILDING_TYPES[b.type];
+  if(!def.combat || b.underConstruction) return;
+  b.atkTimer = Math.max(0,(b.atkTimer||0)-dt);
+  const c = tileCenter(b.tx+b.w/2, b.ty+b.h/2);
+  if(!b.target || !isAlive(b.target) || dist(c.x,c.y, entityCenter(b.target).x, entityCenter(b.target).y) > def.range){
+    b.target = findNearestEnemy(b.owner, c.x, c.y, def.range);
+  }
+  if(b.target && b.atkTimer<=0){
+    dealDamageTo(b.target, def.dmg);
+    b.atkTimer = def.cooldown;
+  }
+}
+
+function updateBuildingProduction(b, dt){
+  if(b.underConstruction){
+    b.buildLeft -= dt;
+    b.hp = Math.min(b.maxHp, b.maxHp*0.15 + b.maxHp*0.85*(1-b.buildLeft/b.buildTotal));
+    if(b.buildLeft<=0){ b.underConstruction=false; b.hp=b.maxHp; if(b.owner===PLAYER){ log(BUILDING_TYPES[b.type].name+' fertiggestellt.'); beep(500,0.15,'sine'); } }
+    return;
+  }
+  if(b.queue.length>0){
+    const job = b.queue[0];
+    job.timeLeft -= dt;
+    if(job.timeLeft<=0){
+      const spot = findFreeSpotNear(b.tx, b.ty+b.h, b.w, 1);
+      createUnit(job.unitType, b.owner, spot.x, spot.y);
+      b.queue.shift();
+      if(b.owner===PLAYER){ log(UNIT_TYPES[job.unitType].name+' fertig!'); beep(650,0.12,'square'); }
+    }
+  }
+}
+
+// ===================== ENEMY AI =====================
+let aiTimer = 3;
+function updateAI(dt){
+  aiTimer -= dt;
+  if(aiTimer>0) return;
+  aiTimer = 4 + Math.random()*3;
+
+  const myUnits = units.filter(u=>u.owner===ENEMY);
+  const harvesters = myUnits.filter(u=>u.type==='harvester');
+  const combatUnits = myUnits.filter(u=> UNIT_TYPES[u.type].combat);
+
+  if(harvesters.length < 2 && credits[ENEMY] >= UNIT_TYPES.harvester.cost){
+    queueUnit(ENEMY,'harvester');
+  } else {
+    const roll = Math.random();
+    const pick = roll<0.4 ? 'soldier' : roll<0.7 ? 'trooper' : 'tank';
+    queueUnit(ENEMY, pick);
+  }
+
+  // launch attack squad if enough idle combat units
+  const idleCombat = combatUnits.filter(u=>u.state==='idle' || u.state==='attack');
+  if(idleCombat.length >= 5){
+    const target = buildings.find(b=>b.owner===PLAYER && b.type==='commandcenter') || buildings.find(b=>b.owner===PLAYER);
+    if(target){
+      const c = tileCenter(target.tx+target.w/2, target.ty+target.h/2);
+      idleCombat.forEach((u,i)=> orderMove(u, c.x+(Math.random()*40-20), c.y+(Math.random()*40-20)));
+      log('⚠ Feindliche Angriffsgruppe im Anmarsch!');
+    }
+  }
+}
+
+// ===================== INPUT =====================
+let dragStart = null;
+let mouse = { x:0, y:0 };
+
+canvas.addEventListener('contextmenu', e=> e.preventDefault());
+
+canvas.addEventListener('mousedown', e=>{
+  if(gameOver) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX-rect.left) * (canvas.width/rect.width);
+  const my = (e.clientY-rect.top) * (canvas.height/rect.height);
+
+  if(e.button===0){
+    if(placementType){
+      const t = worldToTile(mx,my);
+      if(startPlacementBuild(PLAYER, placementType, t.x, t.y)){ cancelPlacement(); }
+      return;
+    }
+    // check building click first
+    const bClicked = buildings.find(b=> b.owner===PLAYER && mx>=b.tx*TILE && mx<(b.tx+b.w)*TILE && my>=b.ty*TILE && my<(b.ty+b.h)*TILE);
+    if(bClicked){
+      selection = []; selectedBuilding = bClicked.id; updateUI(); return;
+    }
+    selectedBuilding = null;
+    dragStart = {x:mx, y:my};
+  } else if(e.button===2){
+    handleRightClick(mx,my);
+  }
+});
+
+canvas.addEventListener('mousemove', e=>{
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX-rect.left) * (canvas.width/rect.width);
+  mouse.y = (e.clientY-rect.top) * (canvas.height/rect.height);
+});
+
+canvas.addEventListener('mouseup', e=>{
+  if(gameOver || e.button!==0 || placementType) { dragStart=null; return; }
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX-rect.left) * (canvas.width/rect.width);
+  const my = (e.clientY-rect.top) * (canvas.height/rect.height);
+  if(!dragStart) return;
+  const x1=Math.min(dragStart.x,mx), x2=Math.max(dragStart.x,mx);
+  const y1=Math.min(dragStart.y,my), y2=Math.max(dragStart.y,my);
+  const isDrag = (x2-x1)>6 || (y2-y1)>6;
+  selection.forEach(id=>{ const u=units.find(uu=>uu.id===id); if(u) u.selected=false; });
+  if(isDrag){
+    selection = units.filter(u=> u.owner===PLAYER && u.x>=x1 && u.x<=x2 && u.y>=y1 && u.y<=y2).map(u=>u.id);
+  } else {
+    const clicked = units.find(u=> u.owner===PLAYER && dist(u.x,u.y,mx,my) < (UNIT_TYPES[u.type].r+3));
+    selection = clicked ? [clicked.id] : [];
+  }
+  selection.forEach(id=>{ const u=units.find(uu=>uu.id===id); if(u) u.selected=true; });
+  dragStart = null;
+  updateUI();
+});
+
+function handleRightClick(mx,my){
+  if(placementType){ cancelPlacement(); return; }
+  if(selection.length===0) return;
+  const selUnits = units.filter(u=>selection.includes(u.id));
+  const enemyEntity = [...units, ...buildings].find(e=>{
+    if(e.owner!==ENEMY) return false;
+    const c = entityCenter(e); const r = entityRadius(e);
+    return dist(mx,my,c.x,c.y) <= r+4;
+  });
+  const t = worldToTile(mx,my);
+  if(enemyEntity){
+    selUnits.forEach(u=>{ if(UNIT_TYPES[u.type].combat) orderAttack(u, enemyEntity); });
+    log('Angriffsbefehl erteilt.');
+  } else if(inBounds(t.x,t.y) && grid[t.y][t.x].type==='spice'){
+    selUnits.forEach(u=>{ if(u.type==='harvester') orderHarvest(u, t.x, t.y); });
+  } else if(passable(t.x,t.y)) {
+    selUnits.forEach((u,i)=>{
+      const off = selUnits.length>1 ? { x:(i%3-1)*18, y:(Math.floor(i/3)-1)*18 } : {x:0,y:0};
+      orderMove(u, mx+off.x, my+off.y);
+    });
+  }
+}
+
+function cancelPlacement(){
+  placementType = null;
+  document.querySelectorAll('button.action.placing').forEach(b=>b.classList.remove('placing'));
+}
+
+window.addEventListener('keydown', e=>{ if(e.key==='Escape') cancelPlacement(); });
+
+// ===================== UI HOOKS =====================
+window.uiStartPlacement = function(type){
+  const def = BUILDING_TYPES[type];
+  if(credits[PLAYER] < def.cost){ log('Nicht genug Credits für '+def.name+'.'); return; }
+  document.querySelectorAll('button.action.placing').forEach(b=>b.classList.remove('placing'));
+  placementType = type;
+  document.getElementById('btn-'+type).classList.add('placing');
+};
+
+window.uiQueueUnit = function(type){
+  queueUnit(PLAYER, type);
+};
+
+function updateUI(){
+  document.getElementById('statCredits').textContent = Math.floor(credits[PLAYER]);
+  document.getElementById('statUnits').textContent = units.filter(u=>u.owner===PLAYER).length;
+  document.getElementById('statBuildings').textContent = buildings.filter(b=>b.owner===PLAYER).length;
+
+  for(const type in BUILDING_TYPES){
+    if(type==='commandcenter') continue;
+    const btn = document.getElementById('btn-'+type);
+    if(btn) btn.disabled = credits[PLAYER] < BUILDING_TYPES[type].cost;
+  }
+  for(const type in UNIT_TYPES){
+    const btn = document.getElementById('btn-'+type);
+    if(!btn) continue;
+    const has = buildings.some(b=>b.owner===PLAYER && b.type===UNIT_TYPES[type].builtAt && !b.underConstruction);
+    btn.disabled = credits[PLAYER] < UNIT_TYPES[type].cost || !has;
+  }
+
+  const infoEl = document.getElementById('selectionInfo');
+  if(selectedBuilding){
+    const b = buildings.find(x=>x.id===selectedBuilding);
+    if(b){
+      const def = BUILDING_TYPES[b.type];
+      let html = '<b>'+def.name+'</b><br>HP: '+Math.round(b.hp)+'/'+b.maxHp;
+      if(b.underConstruction) html += '<br>Im Bau: '+Math.max(0,Math.ceil(b.buildLeft))+'s';
+      if(b.queue && b.queue.length>0) html += '<br>Warteschlange: '+b.queue.map(q=>UNIT_TYPES[q.unitType].name).join(', ');
+      infoEl.innerHTML = html;
+    } else infoEl.textContent = 'Nichts ausgewählt.';
+  } else if(selection.length>0){
+    const selUnits = units.filter(u=>selection.includes(u.id));
+    if(selUnits.length===1){
+      const u = selUnits[0]; const def = UNIT_TYPES[u.type];
+      infoEl.innerHTML = '<b>'+def.name+'</b><br>HP: '+Math.round(u.hp)+'/'+u.maxHp+(u.cargo?('<br>Ladung: '+Math.round(u.cargo)):'');
+    } else {
+      infoEl.innerHTML = selUnits.length+' Einheiten ausgewählt';
+    }
+  } else infoEl.textContent = 'Nichts ausgewählt.';
+}
+
+// ===================== RENDER =====================
+const TERRAIN_COLORS = { sand:'#c8975a', rock:'#5a5347', spice:'#d97a2b' };
+
+function render(){
+  ctx.clearRect(0,0,CANVAS_W,CANVAS_H);
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const c = grid[y][x];
+      const seen = explored[y][x];
+      const vis = visible[y][x];
+      if(!seen){ ctx.fillStyle='#02040a'; ctx.fillRect(x*TILE,y*TILE,TILE,TILE); continue; }
+      let color = TERRAIN_COLORS[c.type];
+      if(c.type==='spice'){
+        const t = clamp(c.spice/500,0,1);
+        color = `rgb(${170+40*t|0},${90+40*t|0},30)`;
+      }
+      ctx.fillStyle = color;
+      ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
+      ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.strokeRect(x*TILE,y*TILE,TILE,TILE);
+      if(!vis){ ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(x*TILE,y*TILE,TILE,TILE); }
+    }
+  }
+
+  function entityIsVisible(e){
+    if(e.owner===PLAYER) return true;
+    const c = entityCenter(e);
+    return isVisibleForPlayer(c.x,c.y);
+  }
+
+  // buildings
+  for(const b of buildings){
+    if(!entityIsVisible(b)) continue;
+    const def = BUILDING_TYPES[b.type];
+    const px = b.tx*TILE, py = b.ty*TILE, pw = b.w*TILE, ph = b.h*TILE;
+    ctx.fillStyle = OWNER_COLOR[b.owner];
+    ctx.globalAlpha = b.underConstruction ? 0.45 : 0.9;
+    ctx.fillRect(px+2,py+2,pw-4,ph-4);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#000'; ctx.strokeRect(px+2,py+2,pw-4,ph-4);
+    ctx.fillStyle='#04121c'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(def.icon, px+pw/2, py+ph/2+5);
+    // health bar
+    const hbw = pw-6;
+    ctx.fillStyle='#000'; ctx.fillRect(px+3, py-6, hbw, 4);
+    ctx.fillStyle = b.owner===PLAYER? '#3ba7ff':'#ff4d4d';
+    ctx.fillRect(px+3, py-6, hbw*(b.hp/b.maxHp), 4);
+    if(selectedBuilding===b.id){ ctx.strokeStyle='#ffd479'; ctx.lineWidth=2; ctx.strokeRect(px,py,pw,ph); ctx.lineWidth=1; }
+  }
+
+  // units
+  for(const u of units){
+    if(!entityIsVisible(u)) continue;
+    const def = UNIT_TYPES[u.type];
+    ctx.beginPath();
+    ctx.fillStyle = def.color;
+    ctx.arc(u.x,u.y,def.r,0,Math.PI*2);
+    ctx.fill();
+    ctx.lineWidth = u.owner===PLAYER?2:1.5;
+    ctx.strokeStyle = OWNER_COLOR[u.owner];
+    ctx.stroke();
+    // hp bar
+    ctx.fillStyle='#000'; ctx.fillRect(u.x-def.r, u.y-def.r-7, def.r*2, 3);
+    ctx.fillStyle = u.hp/u.maxHp>0.5 ? '#4dff88' : (u.hp/u.maxHp>0.25?'#ffd479':'#ff4d4d');
+    ctx.fillRect(u.x-def.r, u.y-def.r-7, def.r*2*(u.hp/u.maxHp), 3);
+    if(u.selected){ ctx.beginPath(); ctx.strokeStyle='#ffd479'; ctx.lineWidth=2; ctx.arc(u.x,u.y,def.r+3,0,Math.PI*2); ctx.stroke(); ctx.lineWidth=1; }
+    if(u.cargo>0){ ctx.fillStyle='#ffd479'; ctx.beginPath(); ctx.arc(u.x, u.y-def.r-11, 2.5, 0, Math.PI*2); ctx.fill(); }
+  }
+
+  // selection drag box
+  if(dragStart){
+    ctx.strokeStyle='rgba(255,212,121,0.9)';
+    ctx.strokeRect(Math.min(dragStart.x,mouse.x), Math.min(dragStart.y,mouse.y), Math.abs(mouse.x-dragStart.x), Math.abs(mouse.y-dragStart.y));
+  }
+
+  // placement ghost
+  if(placementType){
+    const def = BUILDING_TYPES[placementType];
+    const t = worldToTile(mouse.x, mouse.y);
+    let ok = true;
+    for(let y=t.y;y<t.y+def.h;y++) for(let x=t.x;x<t.x+def.w;x++){ if(!passable(x,y)) ok=false; }
+    if(!buildings.some(b=>b.owner===PLAYER && dist(b.tx,b.ty,t.x,t.y)<10)) ok=false;
+    ctx.fillStyle = ok? 'rgba(80,255,120,0.35)' : 'rgba(255,80,80,0.35)';
+    ctx.fillRect(t.x*TILE, t.y*TILE, def.w*TILE, def.h*TILE);
+    ctx.strokeStyle = ok? '#4dff88':'#ff4d4d';
+    ctx.strokeRect(t.x*TILE, t.y*TILE, def.w*TILE, def.h*TILE);
+  }
+}
+
+// ===================== GAME LOOP =====================
+let lastTime = null;
+function checkWinLose(){
+  if(gameOver) return;
+  const playerCC = buildings.some(b=>b.owner===PLAYER && b.type==='commandcenter');
+  const enemyBuildings = buildings.some(b=>b.owner===ENEMY);
+  if(!playerCC){ endGame(false); }
+  else if(!enemyBuildings){ endGame(true); }
+}
+function endGame(won){
+  gameOver = true;
+  const ov = document.getElementById('overlay');
+  document.getElementById('overlayTitle').textContent = won? 'SIEG!' : 'NIEDERLAGE';
+  document.getElementById('overlayTitle').style.color = won? '#4dff88':'#ff4d4d';
+  document.getElementById('overlaySub').textContent = won? 'Die gegnerische Basis wurde vernichtet.' : 'Deine Kommandozentrale wurde zerstört.';
+  ov.style.display='flex';
+  beep(won?880:110, 0.6, won?'sine':'sawtooth');
+}
+
+function tick(ts){
+  if(lastTime===null) lastTime = ts;
+  let dt = (ts-lastTime)/1000;
+  lastTime = ts;
+  dt = Math.min(dt, 0.05);
+
+  if(!gameOver){
+    for(const u of units) updateUnit(u, dt);
+    for(const b of buildings){ updateBuildingProduction(b, dt); updateBuildingCombat(b, dt); }
+    removeDead();
+    updateAI(dt);
+    updateVisibility();
+    checkWinLose();
+    updateUI();
+  }
+  render();
+  requestAnimationFrame(tick);
+}
+
+initGame();
+requestAnimationFrame(tick);
+
+})();
+</script>
+</body>
+</html>
