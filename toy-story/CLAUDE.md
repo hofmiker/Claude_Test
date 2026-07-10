@@ -10,9 +10,16 @@ https://hofmiker.github.io/Claude_Test/toy-story/
 - `vendor/three.min.js` — lokal vendorte Three.js-Version (kein CDN nötig)
 
 ## Konzept
-Als kleine Spielfigur (Spielfigur-/Pawn-Optik) durch ein Haus (Flur →
-Kinderzimmer) laufen. Im Kinderzimmer liegen anstoßbare Bälle, ein
-Schaukelpferd, ein Teddy und Bauklötze herum.
+Als 10 cm kleine Spielfigur (Spielfigur-/Pawn-Optik) durch ein normal
+großes, real proportioniertes Haus (Wohnzimmer → Kinderzimmer) laufen.
+1 Welteinheit = 1 Meter; Raum/Möbel sind in echten Maßen gebaut (2,6 m
+Deckenhöhe, 0,9 m Türen, Sofa/Tisch/Stühle in Normalgröße), sodass sie
+dramatisch über der winzigen Figur aufragen. Im Wohnzimmer: Sofa,
+Couchtisch, Esstisch mit 2 Stühlen, Konsolentisch mit Tischlampe,
+Stehlampe, Fenster, Bilder, Zimmerpflanze, Haustür. Im Kinderzimmer:
+Bett mit Nachttischlampe, Regal, Spielzeugkiste, Fenster, Bilder,
+Zimmerpflanze sowie anstoßbare Bälle, ein Schaukelpferd, ein Teddy und
+Bauklötze. Eine offene Zwischentür markiert den Durchgang.
 
 ## Steuerung & Kamera
 Mechanik an `dhl-city/character.html` angelehnt:

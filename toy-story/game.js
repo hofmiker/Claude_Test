@@ -1,6 +1,8 @@
 /* Spielzeug-Abenteuer
- * Kleine Spielfigur läuft durch ein Haus (Flur -> Kinderzimmer) voller Spielzeug.
- * Steuerung: WASD/Pfeiltasten = laufen, Leertaste = hüpfen, Maus ziehen = Kamera drehen.
+ * Eine 10 cm kleine Spielfigur läuft durch ein normal großes Haus
+ * (Wohnzimmer -> Kinderzimmer) voller Spielzeug. 1 Welteinheit = 1 Meter.
+ * Steuerung: W/S bzw. Pfeil hoch/runter = vor/zurück, A/D bzw. Pfeil links/
+ * rechts = drehen, Leertaste = hüpfen.
  */
 
 (() => {
@@ -12,29 +14,25 @@
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xbfe3ff);
-    scene.fog = new THREE.Fog(0xbfe3ff, 14, 30);
+    scene.fog = new THREE.Fog(0xbfe3ff, 18, 40);
 
-    const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.02, 100);
 
     // ---------- Lighting ----------
     scene.add(new THREE.HemisphereLight(0xfff3d6, 0x40342a, 0.75));
 
     const sun = new THREE.DirectionalLight(0xfff0d0, 1.1);
-    sun.position.set(6, 9, 4);
+    sun.position.set(3, 5, 2.5);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -14;
-    sun.shadow.camera.right = 14;
-    sun.shadow.camera.top = 12;
-    sun.shadow.camera.bottom = -12;
+    sun.shadow.camera.left = -6;
+    sun.shadow.camera.right = 6;
+    sun.shadow.camera.top = 5;
+    sun.shadow.camera.bottom = -5;
     sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 30;
-    sun.shadow.bias = -0.0015;
+    sun.shadow.camera.far = 16;
+    sun.shadow.bias = -0.0012;
     scene.add(sun);
-
-    const lamp = new THREE.PointLight(0xffd8a0, 0.6, 10, 2);
-    lamp.position.set(6, 3.3, 2.5);
-    scene.add(lamp);
 
     // ---------- Helpers ----------
     function box(w, h, d, color, x, y, z, opts = {}) {
@@ -62,15 +60,65 @@
         return mesh;
     }
 
-    function ball3(r, color, x, y, z) {
+    function ball3(r, color, x, y, z, opts = {}) {
         const mesh = new THREE.Mesh(
-            new THREE.SphereGeometry(r, 24, 18),
-            new THREE.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.05 })
+            new THREE.SphereGeometry(r, opts.seg ?? 24, (opts.seg ?? 24) - 6),
+            new THREE.MeshStandardMaterial({ color, roughness: opts.roughness ?? 0.35, metalness: opts.metalness ?? 0.05 })
         );
         mesh.position.set(x, y, z);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         return mesh;
+    }
+
+    function picture(w, h, x, y, z, rotY, frameColor, canvasColor) {
+        const g = new THREE.Group();
+        g.add(box(w, h, 0.02, frameColor, 0, 0, 0));
+        g.add(box(w - 0.05, h - 0.05, 0.01, canvasColor, 0, 0, 0.012));
+        g.position.set(x, y, z);
+        g.rotation.y = rotY;
+        return g;
+    }
+
+    function houseplant(x, y, z, scale = 1) {
+        const g = new THREE.Group();
+        g.add(cyl(0.09 * scale, 0.11 * scale, 0.22 * scale, 0xb5652f, 0, 0.11 * scale, 0));
+        g.add(cyl(0.012 * scale, 0.016 * scale, 0.55 * scale, 0x3e6b2e, 0, 0.22 * scale + 0.27 * scale, 0, { seg: 6 }));
+        const leafColors = [0x2f7d32, 0x3d8f3a, 0x2a6b28];
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2;
+            const leaf = ball3(0.12 * scale, leafColors[i % leafColors.length], Math.cos(a) * 0.10 * scale, 0.22 * scale + 0.5 * scale + Math.sin(i) * 0.05 * scale, Math.sin(a) * 0.10 * scale, { seg: 8 });
+            leaf.scale.set(1, 1.4, 1);
+            g.add(leaf);
+        }
+        g.position.set(x, y, z);
+        return g;
+    }
+
+    function lampFloor(x, y, z) {
+        const g = new THREE.Group();
+        g.add(cyl(0.12, 0.14, 0.02, 0x333333, 0, 0.01, 0));
+        g.add(cyl(0.012, 0.016, 1.3, 0x4a4a4a, 0, 0.66, 0, { seg: 8 }));
+        g.add(cyl(0.16, 0.11, 0.22, 0xffe6a8, 0, 1.42, 0, { roughness: 0.5 }));
+        g.position.set(x, y, z);
+        return g;
+    }
+
+    function lampTable(x, y, z) {
+        const g = new THREE.Group();
+        g.add(cyl(0.01, 0.012, 0.14, 0xcccccc, 0, 0.07, 0, { seg: 8 }));
+        g.add(cyl(0.09, 0.06, 0.13, 0xfff3d0, 0, 0.205, 0, { roughness: 0.5 }));
+        g.position.set(x, y, z);
+        return g;
+    }
+
+    function door(w, h, x, y, z, rotY, color) {
+        const g = new THREE.Group();
+        g.add(box(w, h, 0.045, color, 0, 0, 0));
+        g.add(ball3(0.014, 0xe8c468, w / 2 - 0.08, 0, 0.03, { seg: 8, metalness: 0.6, roughness: 0.3 }));
+        g.position.set(x, y, z);
+        g.rotation.y = rotY;
+        return g;
     }
 
     // ---------- Obstacles (AABB collision list) ----------
@@ -82,39 +130,46 @@
     const world = new THREE.Group();
     scene.add(world);
 
-    // House bounds: hallway x[-6,0] + kinderzimmer x[0,10], both z[-5,5]
-    const BOUNDS = { minX: -5.65, maxX: 9.65, minZ: -4.65, maxZ: 4.65 };
-    const WALL_H = 4.2;
+    // ---------- House layout (meters). Wohnzimmer + Kinderzimmer, shared depth. ----------
+    const Z_MIN = -2.9, Z_MAX = 2.9;
+    const LIVING_X_MIN = -4.6, LIVING_X_MAX = -0.15;
+    const KID_X_MIN = 0.15, KID_X_MAX = 5.15;
+    const WALL_H = 2.6;
+    const DOOR_GAP = 0.45;
+    const BOUNDS = { minX: LIVING_X_MIN, maxX: KID_X_MAX, minZ: Z_MIN, maxZ: Z_MAX };
+
+    const WALL_COLOR = 0xf2ebe0;
+    const WALL_COLOR_KID = 0xfbe9d3;
 
     // Floors
-    const hallFloor = new THREE.Mesh(
-        new THREE.PlaneGeometry(6, 10),
-        new THREE.MeshStandardMaterial({ color: 0xcdb48a, roughness: 0.9 })
+    const livingFloor = new THREE.Mesh(
+        new THREE.PlaneGeometry(LIVING_X_MAX - LIVING_X_MIN, Z_MAX - Z_MIN),
+        new THREE.MeshStandardMaterial({ color: 0xc7a274, roughness: 0.85 })
     );
-    hallFloor.rotation.x = -Math.PI / 2;
-    hallFloor.position.set(-3, 0, 0);
-    hallFloor.receiveShadow = true;
-    world.add(hallFloor);
+    livingFloor.rotation.x = -Math.PI / 2;
+    livingFloor.position.set((LIVING_X_MIN + LIVING_X_MAX) / 2, 0, 0);
+    livingFloor.receiveShadow = true;
+    world.add(livingFloor);
 
     const kidFloor = new THREE.Mesh(
-        new THREE.PlaneGeometry(10, 10),
-        new THREE.MeshStandardMaterial({ color: 0xe8d3a0, roughness: 0.9 })
+        new THREE.PlaneGeometry(KID_X_MAX - KID_X_MIN, Z_MAX - Z_MIN),
+        new THREE.MeshStandardMaterial({ color: 0xe8d3a0, roughness: 0.85 })
     );
     kidFloor.rotation.x = -Math.PI / 2;
-    kidFloor.position.set(5, 0, 0);
+    kidFloor.position.set((KID_X_MIN + KID_X_MAX) / 2, 0, 0);
     kidFloor.receiveShadow = true;
     world.add(kidFloor);
 
-    // Rugs
-    const hallRug = new THREE.Mesh(new THREE.CircleGeometry(1.8, 32), new THREE.MeshStandardMaterial({ color: 0x7a4a3a, roughness: 1 }));
-    hallRug.rotation.x = -Math.PI / 2;
-    hallRug.position.set(-3, 0.01, 1.2);
-    hallRug.receiveShadow = true;
-    world.add(hallRug);
+    // Rugs (Teppiche)
+    const livingRug = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.7), new THREE.MeshStandardMaterial({ color: 0x7a4a3a, roughness: 1 }));
+    livingRug.rotation.x = -Math.PI / 2;
+    livingRug.position.set(-3.4, 0.004, -1.15);
+    livingRug.receiveShadow = true;
+    world.add(livingRug);
 
-    const kidRug = new THREE.Mesh(new THREE.CircleGeometry(2.6, 40), new THREE.MeshStandardMaterial({ color: 0x6fb3d8, roughness: 1 }));
+    const kidRug = new THREE.Mesh(new THREE.CircleGeometry(0.95, 40), new THREE.MeshStandardMaterial({ color: 0x6fb3d8, roughness: 1 }));
     kidRug.rotation.x = -Math.PI / 2;
-    kidRug.position.set(6, 0.01, 0.5);
+    kidRug.position.set(2.6, 0.004, 0.6);
     kidRug.receiveShadow = true;
     world.add(kidRug);
 
@@ -124,83 +179,149 @@
         world.add(m);
         return m;
     }
-    // Outer walls
-    wall(0.3, WALL_H, 10.3, 0xf4ede1, -6.15, WALL_H / 2, 0);          // hallway left
-    wall(16.3, WALL_H, 0.3, 0xf4ede1, 2, WALL_H / 2, -5.15);          // back wall (both rooms)
-    wall(16.3, WALL_H, 0.3, 0xf4ede1, 2, WALL_H / 2, 5.15);           // front wall
-    wall(0.3, WALL_H, 10.3, 0xffe8ce, 10.15, WALL_H / 2, 0);          // kinderzimmer right
-    addObstacle(-6.15, 0, 0.3, 10.3);
-    addObstacle(2, -5.15, 16.3, 0.3);
-    addObstacle(2, 5.15, 16.3, 0.3);
-    addObstacle(10.15, 0, 0.3, 10.3);
+    const leftX = LIVING_X_MIN - 0.075, rightX = KID_X_MAX + 0.075;
+    const backZ = Z_MIN - 0.075, frontZ = Z_MAX + 0.075;
+    const spanZ = frontZ - backZ, spanX = rightX - leftX;
 
-    // Dividing wall with doorway gap at z[-1.3, 1.3]
-    wall(0.3, WALL_H, 3.65, 0xead9c2, 0, WALL_H / 2, -4.325);
-    wall(0.3, WALL_H, 3.65, 0xead9c2, 0, WALL_H / 2, 4.325);
-    addObstacle(0, -4.325, 0.3, 3.65);
-    addObstacle(0, 4.325, 0.3, 3.65);
-    // door frame trim
-    world.add(box(0.35, 0.25, 3, 0x8a5a3a, 0, WALL_H - 0.9, 0, { cast: false }));
+    wall(0.15, WALL_H, spanZ, WALL_COLOR, leftX, WALL_H / 2, 0);                       // outer left (Wohnzimmer)
+    wall(0.15, WALL_H, spanZ, WALL_COLOR_KID, rightX, WALL_H / 2, 0);                   // outer right (Kinderzimmer)
+    wall(spanX, WALL_H, 0.15, WALL_COLOR, (leftX + rightX) / 2, WALL_H / 2, backZ);     // back wall
+    wall(spanX, WALL_H, 0.15, WALL_COLOR, (leftX + rightX) / 2, WALL_H / 2, frontZ);    // front wall
+    addObstacle(leftX, 0, 0.15, spanZ);
+    addObstacle(rightX, 0, 0.15, spanZ);
+    addObstacle((leftX + rightX) / 2, backZ, spanX, 0.15);
+    addObstacle((leftX + rightX) / 2, frontZ, spanX, 0.15);
 
-    // Windows (visual only, cut with a lighter panel)
-    world.add(box(0.05, 1.6, 1.8, 0x9fd4ff, -6.1, 2.1, -1.5, { metalness: 0.3, roughness: 0.1, cast: false }));
-    world.add(box(0.05, 1.6, 1.8, 0x9fd4ff, 10.1, 2.1, 1.8, { metalness: 0.3, roughness: 0.1, cast: false }));
-    world.add(box(0.15, 1.8, 2.0, 0xffffff, -6.05, 2.1, -1.5, { cast: false }));
-    world.add(box(0.15, 1.8, 2.0, 0xffffff, 10.05, 2.1, 1.8, { cast: false }));
+    // Dividing wall with doorway gap
+    const seg1Len = (-DOOR_GAP) - backZ;
+    const seg1Z = (backZ + -DOOR_GAP) / 2;
+    const seg2Len = frontZ - DOOR_GAP;
+    const seg2Z = (DOOR_GAP + frontZ) / 2;
+    wall(0.3, WALL_H, seg1Len, 0xead9c2, 0, WALL_H / 2, seg1Z);
+    wall(0.3, WALL_H, seg2Len, 0xead9c2, 0, WALL_H / 2, seg2Z);
+    addObstacle(0, seg1Z, 0.3, seg1Len);
+    addObstacle(0, seg2Z, 0.3, seg2Len);
+    // door frame header above the opening
+    world.add(box(0.34, 0.12, DOOR_GAP * 2 + 0.1, 0x8a5a3a, 0, 2.15, 0, { cast: false }));
+    // interior door, swung open and resting flush against the Kinderzimmer-side wall
+    world.add(door(0.86, 2.0, 0.16, 1.0, DOOR_GAP + 0.02, Math.PI / 2, 0xd8c39a));
 
-    // ---------- Hallway furniture ----------
+    // Front door (Haustür), decorative, on the living-room outer wall
+    world.add(door(0.86, 2.0, leftX + 0.03, 1.0, 1.5, Math.PI / 2, 0x6b4429));
+    world.add(box(0.05, 2.1, 0.98, 0x4a2f1c, leftX + 0.005, 1.05, 1.5, { cast: false }));
+
+    // Windows (Fenster)
+    function makeWindow(x, y, z, w, h, wallAxis) {
+        const g = new THREE.Group();
+        g.add(box(wallAxis === 'x' ? 0.04 : w, h, wallAxis === 'x' ? w : 0.04, 0xdff2ff, 0, 0, 0, { metalness: 0.3, roughness: 0.1, cast: false }));
+        g.add(box(wallAxis === 'x' ? 0.02 : w + 0.05, 0.03, wallAxis === 'x' ? w + 0.05 : 0.02, 0xffffff, 0, h / 2 - 0.015, 0, { cast: false }));
+        g.add(box(wallAxis === 'x' ? 0.02 : 0.03, h, wallAxis === 'x' ? 0.03 : 0.02, 0xffffff, 0, 0, wallAxis === 'x' ? 0 : 0, { cast: false }));
+        g.position.set(x, y, z);
+        world.add(g);
+    }
+    makeWindow(leftX - 0.01, 1.55, 0.8, 1.15, 1.35, 'x');
+    makeWindow(rightX + 0.01, 1.55, 0.7, 1.0, 1.25, 'x');
+
+    // ---------- Wohnzimmer furniture ----------
+    // Sofa against the back wall
     const couch = new THREE.Group();
-    couch.add(box(2.2, 0.55, 0.9, 0xd45d5d, 0, 0.3, 0));
-    couch.add(box(2.2, 0.5, 0.2, 0xc24b4b, 0, 0.75, -0.35));
-    couch.add(box(0.22, 0.6, 0.9, 0xc24b4b, -1.1, 0.45, 0));
-    couch.add(box(0.22, 0.6, 0.9, 0xc24b4b, 1.1, 0.45, 0));
-    couch.position.set(-4.9, 0, -3.5);
+    couch.add(box(1.9, 0.42, 0.85, 0xd45d5d, 0, 0.21, 0));
+    couch.add(box(1.9, 0.4, 0.15, 0xc24b4b, 0, 0.5, -0.36));
+    couch.add(box(0.18, 0.5, 0.85, 0xc24b4b, -0.95, 0.34, 0));
+    couch.add(box(0.18, 0.5, 0.85, 0xc24b4b, 0.95, 0.34, 0));
+    couch.position.set(-3.4, 0, -2.45);
     world.add(couch);
-    addObstacle(-4.9, -3.5, 2.3, 1.1);
+    addObstacle(-3.4, -2.45, 2.1, 0.9);
 
-    const table = new THREE.Group();
-    table.add(cyl(0.55, 0.55, 0.08, 0x8a5a3a, 0, 0.5, 0));
-    table.add(cyl(0.06, 0.06, 0.5, 0x6b4429, 0, 0.25, 0));
-    table.position.set(-4.4, 0, -1.1);
-    world.add(table);
-    addObstacle(-4.4, -1.1, 1.1, 1.1);
+    // Coffee table
+    const coffeeTable = new THREE.Group();
+    coffeeTable.add(box(1.0, 0.04, 0.55, 0x8a5a3a, 0, 0.42, 0));
+    [[-0.44, -0.23], [0.44, -0.23], [-0.44, 0.23], [0.44, 0.23]].forEach(([lx, lz]) => {
+        coffeeTable.add(cyl(0.02, 0.02, 0.4, 0x6b4429, lx, 0.2, lz, { seg: 8 }));
+    });
+    coffeeTable.position.set(-3.4, 0, -1.15);
+    world.add(coffeeTable);
+    addObstacle(-3.4, -1.15, 1.05, 0.6);
 
-    const lampPole = new THREE.Group();
-    lampPole.add(cyl(0.04, 0.06, 1.6, 0x4a4a4a, 0, 0.8, 0));
-    lampPole.add(cyl(0.28, 0.2, 0.35, 0xffe6a8, 0, 1.7, 0));
-    lampPole.position.set(-1.0, 0, -4.0);
-    world.add(lampPole);
-    addObstacle(-1.0, -4.0, 0.5, 0.5);
+    // Dining table + 2 chairs
+    function chair(x, z, rotY) {
+        const g = new THREE.Group();
+        g.add(box(0.42, 0.04, 0.42, 0x7a5230, 0, 0.42, 0));
+        g.add(box(0.42, 0.42, 0.04, 0x7a5230, 0, 0.63, -0.19));
+        [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]].forEach(([lx, lz]) => {
+            g.add(cyl(0.017, 0.017, 0.42, 0x5a3d22, lx, 0.21, lz, { seg: 8 }));
+        });
+        g.position.set(x, 0, z);
+        g.rotation.y = rotY;
+        world.add(g);
+        addObstacle(x, z, 0.42, 0.42);
+    }
+    const diningTable = new THREE.Group();
+    diningTable.add(box(1.1, 0.04, 0.72, 0x9c6b3f, 0, 0.75, 0));
+    [[-0.5, -0.31], [0.5, -0.31], [-0.5, 0.31], [0.5, 0.31]].forEach(([lx, lz]) => {
+        diningTable.add(cyl(0.022, 0.022, 0.73, 0x7a5230, lx, 0.365, lz, { seg: 8 }));
+    });
+    diningTable.position.set(-1.15, 0, 1.9);
+    world.add(diningTable);
+    addObstacle(-1.15, 1.9, 1.15, 0.75);
+    chair(-1.15, 2.65, Math.PI);
+    chair(-1.15, 1.15, 0);
+
+    // Console table with table lamp, near the front door wall
+    const console1 = new THREE.Group();
+    console1.add(box(0.85, 0.035, 0.3, 0x8a5a3a, 0, 0.75, 0));
+    [[-0.38, -0.11], [0.38, -0.11], [-0.38, 0.11], [0.38, 0.11]].forEach(([lx, lz]) => {
+        console1.add(cyl(0.018, 0.018, 0.73, 0x6b4429, lx, 0.365, lz, { seg: 8 }));
+    });
+    console1.position.set(leftX + 0.2, 0, -0.6);
+    world.add(console1);
+    addObstacle(leftX + 0.2, -0.6, 0.4, 0.35);
+    world.add(lampTable(leftX + 0.2, 0.77, -0.6));
+
+    world.add(lampFloor(-0.6, 0, -2.55));
+    addObstacle(-0.6, -2.55, 0.28, 0.28);
+
+    world.add(houseplant(-4.35, 0, 2.55, 1.15));
+    addObstacle(-4.35, 2.55, 0.35, 0.35);
+
+    world.add(picture(0.42, 0.55, leftX + 0.01, 1.55, -1.55, Math.PI / 2, 0x5a3d22, 0x7fa8c9));
+    world.add(picture(0.36, 0.36, -0.15 - 0.01, 1.5, -0.9, -Math.PI / 2, 0x5a3d22, 0xe8b04a));
 
     // ---------- Kinderzimmer furniture ----------
     const bed = new THREE.Group();
-    bed.add(box(1.6, 0.45, 2.6, 0xffffff, 0, 0.3, 0));
-    bed.add(box(1.7, 0.5, 0.15, 0x6fb3d8, 0, 0.55, -1.28));
-    bed.add(box(0.7, 0.15, 0.5, 0xffd6e0, 0.35, 0.6, -0.9));
-    bed.position.set(8.6, 0, -3.4);
+    bed.add(box(1.35, 0.32, 0.7, 0xffffff, 0, 0.16, 0));
+    bed.add(box(1.4, 0.5, 0.07, 0x6fb3d8, 0, 0.41, -0.345));
+    bed.add(box(0.55, 0.09, 0.4, 0xffd6e0, 0.3, 0.37, -0.12));
     world.add(bed);
-    addObstacle(8.6, -3.4, 1.7, 2.7);
+    bed.position.set(4.35, 0, -2.35);
+    addObstacle(4.35, -2.35, 1.4, 0.75);
+    world.add(lampTable(4.35 - 0.85, 0.5, -2.35));
+    world.add(box(0.32, 0.5, 0.32, 0x9c6b3f, 4.35 - 0.85, 0.25, -2.35));
+    addObstacle(4.35 - 0.85, -2.35, 0.34, 0.34);
 
     const shelf = new THREE.Group();
-    shelf.add(box(1.8, 1.6, 0.35, 0xd98f4a, 0, 0.8, 0));
-    shelf.add(box(1.7, 0.06, 0.3, 0x8a5a2a, 0, 0.5, 0));
-    shelf.add(box(1.7, 0.06, 0.3, 0x8a5a2a, 0, 1.1, 0));
-    shelf.add(box(0.35, 0.35, 0.28, 0xff8a5b, -0.6, 1.35, 0.02));
-    shelf.add(box(0.3, 0.3, 0.28, 0x6fcf97, 0.1, 1.32, 0.02));
-    shelf.add(cyl(0.15, 0.15, 0.3, 0xffd166, 0.6, 1.3, 0.02));
-    shelf.position.set(3.6, 0, -4.6);
+    shelf.add(box(0.32, 1.3, 0.9, 0xd98f4a, 0, 0.65, 0));
+    shelf.add(box(0.34, 0.05, 0.85, 0x8a5a2a, 0, 0.42, 0));
+    shelf.add(box(0.34, 0.05, 0.85, 0x8a5a2a, 0, 0.92, 0));
+    shelf.add(box(0.02, 0.24, 0.2, 0xff8a5b, 0.18, 1.1, -0.3));
+    shelf.add(box(0.02, 0.2, 0.18, 0x6fcf97, 0.18, 1.06, 0.05));
+    shelf.add(cyl(0.1, 0.1, 0.2, 0xffd166, 0.18, 1.08, 0.32, { rotZ: Math.PI / 2 }));
+    shelf.position.set(rightX - 0.18, 0, -1.0);
     world.add(shelf);
-    addObstacle(3.6, -4.6, 1.9, 0.5);
+    addObstacle(rightX - 0.18, -1.0, 0.36, 0.95);
 
     const toyChest = new THREE.Group();
-    toyChest.add(box(1.1, 0.6, 0.6, 0x5b8fd9, 0, 0.3, 0));
-    toyChest.add(box(1.15, 0.1, 0.65, 0x3e6bb0, 0, 0.65, 0));
-    toyChest.position.set(9.0, 0, 3.7);
+    toyChest.add(box(0.62, 0.38, 0.4, 0x5b8fd9, 0, 0.19, 0));
+    toyChest.add(box(0.65, 0.06, 0.43, 0x3e6bb0, 0, 0.41, 0));
+    toyChest.position.set(4.6, 0, 2.4);
     world.add(toyChest);
-    addObstacle(9.0, 3.7, 1.2, 0.7);
+    addObstacle(4.6, 2.4, 0.7, 0.46);
 
-    // Curtain
-    world.add(cyl(0.04, 0.04, 2.1, 0xff8a8a, 10.08, 3.0, 1.8, { rotZ: Math.PI / 2, cast: false }));
+    world.add(houseplant(0.55, 0, 2.55, 0.85));
+    addObstacle(0.55, 2.55, 0.28, 0.28);
+
+    world.add(picture(0.4, 0.4, rightX - 0.01, 1.5, 1.9, -Math.PI / 2, 0xd98f4a, 0xffd166));
+    world.add(picture(0.3, 0.3, 0.16, 1.4, -1.9, Math.PI / 2, 0xd98f4a, 0x6fcf97));
 
     // ---------- Toys: rocking horse ----------
     function createRockingHorse() {
@@ -209,69 +330,60 @@
         const woodDark = 0xb5792e;
         const mane = 0x5b3a29;
 
-        // Rockers (curved base) using partial torus arcs laid flat
-        const rockerGeo = new THREE.TorusGeometry(0.9, 0.07, 8, 32, Math.PI * 0.62);
+        const rockerGeo = new THREE.TorusGeometry(0.26, 0.02, 8, 32, Math.PI * 0.62);
         const rockerMat = new THREE.MeshStandardMaterial({ color: woodDark, roughness: 0.6 });
         const rockerL = new THREE.Mesh(rockerGeo, rockerMat);
         rockerL.rotation.set(Math.PI / 2, 0, Math.PI * 1.19);
-        rockerL.position.set(0, 0.12, -0.42);
+        rockerL.position.set(0, 0.035, -0.12);
         rockerL.castShadow = true;
         const rockerR = rockerL.clone();
-        rockerR.position.set(0, 0.12, 0.42);
+        rockerR.position.set(0, 0.035, 0.12);
         g.add(rockerL, rockerR);
 
-        // Legs connecting body to rockers
-        [[-0.55, -0.42], [0.5, -0.42], [-0.55, 0.42], [0.5, 0.42]].forEach(([lx, lz]) => {
-            g.add(cyl(0.05, 0.05, 0.55, wood, lx, 0.42, lz, { seg: 8 }));
+        [[-0.16, -0.12], [0.14, -0.12], [-0.16, 0.12], [0.14, 0.12]].forEach(([lx, lz]) => {
+            g.add(cyl(0.014, 0.014, 0.16, wood, lx, 0.12, lz, { seg: 8 }));
         });
 
-        // Body
-        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.33, 0.75, 6, 12), new THREE.MeshStandardMaterial({ color: wood, roughness: 0.55 }));
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.095, 0.22, 6, 12), new THREE.MeshStandardMaterial({ color: wood, roughness: 0.55 }));
         body.rotation.z = Math.PI / 2;
-        body.position.set(-0.1, 0.72, 0);
+        body.position.set(-0.03, 0.21, 0);
         body.castShadow = true;
         g.add(body);
 
-        // Neck + head
-        const neck = cyl(0.16, 0.2, 0.5, wood, -0.55, 1.05, 0, { rotZ: 0.55, seg: 10 });
+        const neck = cyl(0.046, 0.058, 0.145, wood, -0.16, 0.305, 0, { rotZ: 0.55, seg: 10 });
         g.add(neck);
-        const head = box(0.28, 0.32, 0.26, wood, -0.86, 1.42, 0, { rotY: 0 });
+        const head = box(0.08, 0.093, 0.075, wood, -0.25, 0.41, 0);
         g.add(head);
-        const snout = box(0.22, 0.16, 0.2, wood, -1.05, 1.34, 0);
+        const snout = box(0.064, 0.046, 0.058, wood, -0.305, 0.39, 0);
         g.add(snout);
-        g.add(box(0.08, 0.14, 0.05, 0x2b2b2b, -0.78, 1.5, 0.11));
-        g.add(box(0.08, 0.14, 0.05, 0x2b2b2b, -0.78, 1.5, -0.11));
-        // ears
-        g.add(box(0.07, 0.16, 0.06, wood, -0.78, 1.62, 0.08, { rotY: -0.3 }));
-        g.add(box(0.07, 0.16, 0.06, wood, -0.78, 1.62, -0.08, { rotY: 0.3 }));
-        // mane
+        g.add(box(0.023, 0.04, 0.014, 0x2b2b2b, -0.226, 0.435, 0.032));
+        g.add(box(0.023, 0.04, 0.014, 0x2b2b2b, -0.226, 0.435, -0.032));
+        g.add(box(0.02, 0.046, 0.017, wood, -0.226, 0.47, 0.023, { rotY: -0.3 }));
+        g.add(box(0.02, 0.046, 0.017, wood, -0.226, 0.47, -0.023, { rotY: 0.3 }));
         for (let i = 0; i < 5; i++) {
-            g.add(box(0.06, 0.14, 0.1, mane, -0.75 + i * 0.1, 1.5 - i * 0.02, 0));
+            g.add(box(0.017, 0.04, 0.029, mane, -0.217 + i * 0.029, 0.435 - i * 0.006, 0));
         }
-        // tail
-        g.add(cyl(0.02, 0.09, 0.35, mane, 0.28, 0.85, 0, { rotZ: -0.5, seg: 8 }));
-        // saddle
-        g.add(box(0.35, 0.08, 0.4, 0xc0392b, -0.1, 0.98, 0));
-        // handle pole near head
-        g.add(cyl(0.02, 0.02, 0.28, woodDark, -0.62, 1.28, 0, { rotX: 0, seg: 6 }));
+        g.add(cyl(0.006, 0.026, 0.1, mane, 0.081, 0.245, 0, { rotZ: -0.5, seg: 8 }));
+        g.add(box(0.1, 0.023, 0.115, 0xc0392b, -0.03, 0.284, 0));
+        g.add(cyl(0.006, 0.006, 0.08, woodDark, -0.18, 0.37, 0, { seg: 6 }));
 
         g.rotation.y = -0.5;
         return g;
     }
 
     const rockingHorse = createRockingHorse();
-    rockingHorse.position.set(6.6, 0, -1.0);
+    rockingHorse.position.set(2.6, 0, -1.55);
     world.add(rockingHorse);
-    addObstacle(6.6, -1.0, 1.9, 1.6);
+    addObstacle(2.6, -1.55, 0.55, 0.5);
 
     // ---------- Toys: balls ----------
     const BALL_COLORS = [0xff5e5e, 0x5b9dff, 0xffd166, 0x6fcf67, 0xb570ff];
     const balls = [];
     const ballSpots = [
-        [4.5, 1.5], [5.6, 2.6], [7.4, 1.0], [3.4, -1.5], [8.4, -0.2]
+        [1.6, 0.9], [2.0, 1.7], [3.4, 1.0], [1.5, -0.6], [3.9, 0.2]
     ];
     ballSpots.forEach(([x, z], i) => {
-        const r = 0.26 + (i % 2) * 0.05;
+        const r = 0.075 + (i % 2) * 0.015;
         const g = new THREE.Group();
         const sphere = ball3(r, BALL_COLORS[i % BALL_COLORS.length], 0, 0, 0);
         g.add(sphere);
@@ -288,66 +400,66 @@
     const blockColors = [0xff5e5e, 0xffd166, 0x5b9dff];
     const blocksGroup = new THREE.Group();
     for (let i = 0; i < 3; i++) {
-        const b = box(0.32, 0.32, 0.32, blockColors[i], 0, 0.16 + i * 0.33, 0, { rotY: i * 0.35 });
+        const b = box(0.09, 0.09, 0.09, blockColors[i], 0, 0.045 + i * 0.093, 0, { rotY: i * 0.35 });
         blocksGroup.add(b);
     }
-    blocksGroup.position.set(2.4, 0, 3.2);
+    blocksGroup.position.set(1.0, 0, 1.9);
     world.add(blocksGroup);
-    addObstacle(2.4, 3.2, 0.6, 0.6);
+    addObstacle(1.0, 1.9, 0.17, 0.17);
 
     // ---------- Teddy bear ----------
     function createTeddy() {
         const g = new THREE.Group();
         const fur = 0x9a6b3f;
-        g.add(ball3(0.28, fur, 0, 0.3, 0));
-        g.add(ball3(0.18, fur, 0, 0.58, 0));
-        g.add(ball3(0.06, 0x6b4429, -0.09, 0.6, 0.15));
-        g.add(ball3(0.06, 0x6b4429, 0.09, 0.6, 0.15));
-        g.add(ball3(0.15, fur, -0.28, 0.3, 0));
-        g.add(ball3(0.15, fur, 0.28, 0.3, 0));
-        g.add(ball3(0.12, fur, -0.15, 0.08, 0));
-        g.add(ball3(0.12, fur, 0.15, 0.08, 0));
+        g.add(ball3(0.08, fur, 0, 0.085, 0));
+        g.add(ball3(0.051, fur, 0, 0.165, 0));
+        g.add(ball3(0.017, 0x6b4429, -0.026, 0.17, 0.042));
+        g.add(ball3(0.017, 0x6b4429, 0.026, 0.17, 0.042));
+        g.add(ball3(0.043, fur, -0.08, 0.085, 0));
+        g.add(ball3(0.043, fur, 0.08, 0.085, 0));
+        g.add(ball3(0.034, fur, -0.043, 0.023, 0));
+        g.add(ball3(0.034, fur, 0.043, 0.023, 0));
         return g;
     }
     const teddy = createTeddy();
-    teddy.position.set(5.0, 0, 3.6);
+    teddy.position.set(2.7, 0, 2.15);
     teddy.rotation.y = 0.4;
     world.add(teddy);
-    addObstacle(5.0, 3.6, 0.6, 0.6);
+    addObstacle(2.7, 2.15, 0.2, 0.2);
 
-    // ---------- Player (small toy figure / game piece) ----------
+    // ---------- Player: small toy figure / game piece (10 cm tall) ----------
     const player = new THREE.Group();
     const skin = 0xffcf9e;
     const tunic = 0x3f6fd1;
     const trim = 0xffd166;
 
-    const base = cyl(0.32, 0.34, 0.06, 0x2b2b2b, 0, 0.03, 0, { seg: 24 });
+    const base = cyl(0.030, 0.032, 0.006, 0x2b2b2b, 0, 0.003, 0, { seg: 24 });
     player.add(base);
 
-    const legL = cyl(0.07, 0.08, 0.32, 0x274a8f, -0.11, 0.22, 0, { seg: 10 });
-    const legR = cyl(0.07, 0.08, 0.32, 0x274a8f, 0.11, 0.22, 0, { seg: 10 });
+    const legL = cyl(0.007, 0.008, 0.030, 0x274a8f, -0.010, 0.021, 0, { seg: 10 });
+    const legR = cyl(0.007, 0.008, 0.030, 0x274a8f, 0.010, 0.021, 0, { seg: 10 });
     player.add(legL, legR);
 
-    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 0.32, 4, 10), new THREE.MeshStandardMaterial({ color: tunic, roughness: 0.6 }));
-    torso.position.set(0, 0.56, 0);
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.018, 0.030, 4, 10), new THREE.MeshStandardMaterial({ color: tunic, roughness: 0.6 }));
+    torso.position.set(0, 0.053, 0);
     torso.castShadow = true;
     player.add(torso);
 
-    player.add(box(0.42, 0.06, 0.2, trim, 0, 0.42, 0));
+    player.add(box(0.040, 0.006, 0.019, trim, 0, 0.040, 0));
 
-    const armL = cyl(0.055, 0.06, 0.28, tunic, -0.24, 0.55, 0, { seg: 8 });
-    const armR = cyl(0.055, 0.06, 0.28, tunic, 0.24, 0.55, 0, { seg: 8 });
+    const armL = cyl(0.005, 0.006, 0.027, tunic, -0.023, 0.052, 0, { seg: 8 });
+    const armR = cyl(0.005, 0.006, 0.027, tunic, 0.023, 0.052, 0, { seg: 8 });
     player.add(armL, armR);
 
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 20, 16), new THREE.MeshStandardMaterial({ color: skin, roughness: 0.6 }));
-    head.position.set(0, 0.86, 0);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.016, 20, 16), new THREE.MeshStandardMaterial({ color: skin, roughness: 0.6 }));
+    head.position.set(0, 0.082, 0);
     head.castShadow = true;
     player.add(head);
 
-    player.add(box(0.19, 0.08, 0.19, 0x3a2a1a, 0, 0.96, -0.01)); // hair cap
-    player.add(box(0.22, 0.1, 0.2, 0xd6413f, 0, 1.0, -0.02, { rotY: 0.05 })); // little beret
-    player.add(ball3(0.02, 0x222222, -0.06, 0.87, 0.15));
-    player.add(ball3(0.02, 0x222222, 0.06, 0.87, 0.15));
+    player.add(box(0.018, 0.008, 0.018, 0x3a2a1a, 0, 0.091, -0.001)); // hair cap
+    player.add(box(0.021, 0.010, 0.019, 0xd6413f, 0, 0.095, -0.002, { rotY: 0.05 })); // little beret
+    player.add(ball3(0.002, 0x222222, -0.006, 0.083, 0.014, { seg: 8 }));
+    player.add(ball3(0.002, 0x222222, 0.006, 0.083, 0.014, { seg: 8 }));
 
     const bodyTilt = new THREE.Group();
     bodyTilt.add(player);
@@ -362,7 +474,7 @@
     const LAND_DUR = 0.25;
 
     const state = {
-        x: -3, z: 3, y: 0, vy: 0,
+        x: -3, z: 1.9, y: 0, vy: 0,
         yaw: Math.PI,
         grounded: true,
         moveSpeed: 0,
@@ -372,13 +484,13 @@
         jumpBuffered: false,
     };
 
-    const PLAYER_RADIUS = 0.35;
-    const SPEED_MAX = 3.6;
-    const ACCEL_RATE = 8.5;
-    const DECEL_RATE = 11;
-    const TURN_RATE = 2.0;
-    const GRAVITY = -20;
-    const JUMP_VEL = 7.4;
+    const PLAYER_RADIUS = 0.035;
+    const SPEED_MAX = 1.5;
+    const ACCEL_RATE = 4.5;
+    const DECEL_RATE = 6.0;
+    const TURN_RATE = 2.2;
+    const GRAVITY = -14;
+    const JUMP_VEL = 2.1;
 
     function lerp(a, b, t) { return a + (b - a) * t; }
 
@@ -391,10 +503,10 @@
     window.addEventListener('keyup', (e) => keys.delete(e.code));
 
     // ---------- Camera rig (fixed auto-follow chase camera, toy's-eye style) ----------
-    const CAM_DIST_MOVE = 3.8;
-    const CAM_DIST_IDLE = 2.5;
-    const CAM_HEIGHT = 1.4;
-    const CAM_LOOK_HEIGHT = 0.65;
+    const CAM_DIST_MOVE = 0.62;
+    const CAM_DIST_IDLE = 0.42;
+    const CAM_HEIGHT = 0.30;
+    const CAM_LOOK_HEIGHT = 0.075;
     let camDist = CAM_DIST_IDLE;
 
     const camTarget = new THREE.Vector3();
@@ -422,7 +534,7 @@
 
     // ---------- Update ----------
     // Objects the camera should not clip through (excludes floors/rugs/player/loose balls)
-    const excludedFromCamera = new Set([hallFloor, kidFloor, hallRug, kidRug, bodyTilt, ...balls.map(b => b.mesh)]);
+    const excludedFromCamera = new Set([livingFloor, kidFloor, livingRug, kidRug, bodyTilt, ...balls.map(b => b.mesh)]);
     const cameraBlockers = world.children.filter(child => !excludedFromCamera.has(child));
 
     const clock = new THREE.Clock();
@@ -475,7 +587,7 @@
         state.vy += GRAVITY * dt;
         state.y += state.vy * dt;
         if (state.y <= 0) {
-            if (state.vy < -1.5 && state.jumpState === JUMP_STATE.AIR) {
+            if (state.vy < -0.4 && state.jumpState === JUMP_STATE.AIR) {
                 state.jumpState = JUMP_STATE.LAND;
                 state.jumpTimer = 0;
             } else if (state.jumpState === JUMP_STATE.AIR) {
@@ -488,7 +600,7 @@
             state.grounded = false;
         }
 
-        const moving = state.moveSpeed > 0.05;
+        const moving = state.moveSpeed > 0.02;
 
         // Ball interactions
         for (const b of balls) {
@@ -501,7 +613,7 @@
                 const nx = dx / dist, nz = dz / dist;
                 b.mesh.position.x += nx * push;
                 b.mesh.position.z += nz * push;
-                const kick = 3.2 + state.moveSpeed * 0.6;
+                const kick = 0.8 + state.moveSpeed * 0.5;
                 b.vx += nx * kick * dt * 20;
                 b.vz += nz * kick * dt * 20;
             }
@@ -524,14 +636,14 @@
         }
 
         // Rocking horse idle sway
-        rockingHorse.rotation.z = Math.sin(clock.elapsedTime * 1.3) * 0.06 - 0.0;
+        rockingHorse.rotation.z = Math.sin(clock.elapsedTime * 1.3) * 0.06;
 
         // Apply player transform
         bodyTilt.position.set(state.x, state.y, state.z);
         bodyTilt.rotation.y = state.yaw;
 
         // Pose per jump-state (windup crouch / air tuck / land squat / walk-idle)
-        const TORSO_Y = 0.56;
+        const TORSO_Y = 0.053;
         if (state.jumpState === JUMP_STATE.WINDUP) {
             const t = Math.min(state.jumpTimer / WINDUP_DUR, 1);
             const sq = Math.sin(t * Math.PI * 0.5);
@@ -539,14 +651,14 @@
             legR.rotation.x = lerp(legR.rotation.x, 0.5 * sq, 0.4);
             armL.rotation.x = lerp(armL.rotation.x, -0.6 * sq, 0.3);
             armR.rotation.x = lerp(armR.rotation.x, -0.6 * sq, 0.3);
-            torso.position.y = lerp(torso.position.y, TORSO_Y - 0.12 * sq, 0.4);
+            torso.position.y = lerp(torso.position.y, TORSO_Y - 0.011 * sq, 0.4);
             torso.rotation.x = lerp(torso.rotation.x, -0.25 * sq, 0.3);
         } else if (state.jumpState === JUMP_STATE.AIR) {
             legL.rotation.x = lerp(legL.rotation.x, 0.9, 0.2);
             legR.rotation.x = lerp(legR.rotation.x, 0.9, 0.2);
             armL.rotation.x = lerp(armL.rotation.x, -0.9, 0.2);
             armR.rotation.x = lerp(armR.rotation.x, -0.9, 0.2);
-            torso.position.y = lerp(torso.position.y, TORSO_Y + 0.05, 0.2);
+            torso.position.y = lerp(torso.position.y, TORSO_Y + 0.005, 0.2);
             torso.rotation.x = lerp(torso.rotation.x, 0.08, 0.15);
         } else if (state.jumpState === JUMP_STATE.LAND) {
             const t = Math.min(state.jumpTimer / LAND_DUR, 1);
@@ -555,7 +667,7 @@
             legR.rotation.x = lerp(legR.rotation.x, 0.55 * sq, 0.4);
             armL.rotation.x = lerp(armL.rotation.x, -0.5 * sq, 0.3);
             armR.rotation.x = lerp(armR.rotation.x, -0.5 * sq, 0.3);
-            torso.position.y = lerp(torso.position.y, TORSO_Y - 0.16 * sq, 0.4);
+            torso.position.y = lerp(torso.position.y, TORSO_Y - 0.015 * sq, 0.4);
             torso.rotation.x = lerp(torso.rotation.x, 0, 0.3);
         } else {
             const swing = moving ? Math.sin(state.walkPhase) * 0.55 : 0;
@@ -563,7 +675,7 @@
             legR.rotation.x = lerp(legR.rotation.x, -swing, 0.3);
             armL.rotation.x = lerp(armL.rotation.x, -swing, 0.3);
             armR.rotation.x = lerp(armR.rotation.x, swing, 0.3);
-            torso.position.y = lerp(torso.position.y, TORSO_Y + (moving ? Math.abs(Math.sin(state.walkPhase)) * 0.02 : 0), 0.3);
+            torso.position.y = lerp(torso.position.y, TORSO_Y + (moving ? Math.abs(Math.sin(state.walkPhase)) * 0.002 : 0), 0.3);
             torso.rotation.x = lerp(torso.rotation.x, 0, 0.3);
         }
 
@@ -572,7 +684,7 @@
         // wall-avoidance raycast so it never clips through the house.
         camDist = lerp(camDist, moving ? CAM_DIST_MOVE : CAM_DIST_IDLE, Math.min(1, dt * 2.5));
 
-        camPivot.set(state.x, state.y + 0.55, state.z);
+        camPivot.set(state.x, state.y + 0.055, state.z);
         camDesired.set(
             state.x - fwdX * camDist,
             state.y + CAM_HEIGHT,
@@ -583,10 +695,10 @@
         camRayDir.normalize();
         camRay.set(camPivot, camRayDir);
         camRay.far = desiredDist;
-        camRay.near = 0.05;
+        camRay.near = 0.02;
         const hits = camRay.intersectObjects(cameraBlockers, true);
         let allowedDist = desiredDist;
-        if (hits.length) allowedDist = Math.max(0.6, hits[0].distance - 0.2);
+        if (hits.length) allowedDist = Math.max(0.15, hits[0].distance - 0.06);
         if (allowedDist < desiredDist) {
             camDesired.copy(camPivot).addScaledVector(camRayDir, allowedDist);
         }
@@ -594,8 +706,6 @@
 
         camTarget.lerp(new THREE.Vector3(state.x, state.y + CAM_LOOK_HEIGHT, state.z), Math.min(1, dt * 8));
         camera.lookAt(camTarget);
-
-        lamp.position.set(6, 3.3, 2.5);
     }
 
     function onResize() {
@@ -630,8 +740,7 @@
     });
 
     // Render one static frame behind the start screen
-    renderer.render(scene, camera);
-    camera.position.set(-2, 3.2, 6);
-    camera.lookAt(0, 1, 0);
+    camera.position.set(-1.5, 1.7, 3.3);
+    camera.lookAt(-1, 0.6, 0);
     renderer.render(scene, camera);
 })();
