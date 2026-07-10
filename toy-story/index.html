@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spielzeug-Abenteuer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="game"></canvas>
+
+    <div id="hud">
+        <div id="hint">
+            <strong>Steuerung</strong><br>
+            W / ↑ — vorwärts<br>
+            S / ↓ — rückwärts<br>
+            A/D / ←/→ — drehen<br>
+            Leertaste — Hüpfen
+        </div>
+        <button id="hint-toggle">?</button>
+    </div>
+
+    <div id="start-screen">
+        <div id="start-card">
+            <h1>Spielzeug-Abenteuer</h1>
+            <p>Nur 10 cm groß läufst du durch ein ganz normal großes Haus ins Kinderzimmer — dort türmen sich die Spielzeuge über dir auf.</p>
+            <button id="start-btn">Loslaufen</button>
+        </div>
+    </div>
+
+    <script src="vendor/three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
