@@ -11,25 +11,42 @@ https://hofmiker.github.io/Claude_Test/toy-story/
 
 ## Konzept
 Als 10 cm kleine Spielfigur (Spielfigur-/Pawn-Optik) durch ein normal
-großes, real proportioniertes Haus (Wohnzimmer → Kinderzimmer) laufen.
-1 Welteinheit = 1 Meter; Raum/Möbel sind in echten Maßen gebaut (2,6 m
-Deckenhöhe, 0,9 m Türen, Sofa/Tisch/Stühle in Normalgröße), sodass sie
-dramatisch über der winzigen Figur aufragen. Im Wohnzimmer: Sofa,
-Couchtisch, Esstisch mit 2 Stühlen, Konsolentisch mit Tischlampe,
-Stehlampe, Fenster, Bilder, Zimmerpflanze, Haustür. Im Kinderzimmer:
-Bett mit Nachttischlampe, Regal, Spielzeugkiste, Fenster, Bilder,
-Zimmerpflanze sowie anstoßbare Bälle, ein Schaukelpferd, ein Teddy und
-Bauklötze. Eine offene Zwischentür (mit Rahmen, Scharnieren, Klinke)
-markiert den Durchgang, eine geschlossene Haustür sitzt in der
-Wohnzimmer-Außenwand. Fußbodenleisten an allen Innenwänden, Holzdielen-
-boden als prozedurale Canvas-Textur (kein externes Asset).
+großes, real proportioniertes zweistöckiges Einfamilienhaus laufen.
+1 Welteinheit = 1 Meter; Raum/Möbel sind in echten Maßen gebaut, sodass
+sie dramatisch über der winzigen Figur aufragen.
+
+**Erdgeschoss** (klassischer Grundriss, Fenster ringsum): Hauseingang/
+Flur mit Haustür, Wohnzimmer (Sofa, Couchtisch, Esstisch, Konsolen-
+tisch, Stehlampe, Bilder, Zimmerpflanze), Küche (Herd, Spüle,
+Kühlschrank, Ober-/Unterschränke), Toilette. Fußbodenleisten,
+Holzdielenboden als prozedurale Canvas-Textur (kein externes Asset).
+
+**Treppe**: sichtbare Stufen über einer durchgehenden Rampe (für die
+Kollision), sodass die Höhe beim Rauf-/Runterlaufen stufenlos
+mitwächst statt zu springen.
+
+**Dachgeschoss** (Dachschrägen ab Kniestockhöhe, jedes Zimmer mit
+Dachfenster): Elternschlafzimmer mit Kleiderschrank, Kinderzimmer 1
+(große Schwester, Schreibtisch), Kinderzimmer 2 (Junge — Bett, Regal,
+Spielzeugkiste, anstoßbare Bälle, Schaukelpferd, Teddy, Bauklötze,
+Rennautos + Rennbahn), Bad (Badewanne, Toilette, Waschbecken).
+
+**Außenansicht**: Durch die Fenster sind ringsum niedrig-poly Häuser
+und Bäume sichtbar (nicht begehbar — man kann das Haus nicht verlassen).
+
+**Katze**: läuft mit einfacher Wander-KI zwischen zufälligen Punkten im
+Erdgeschoss umher.
+
+Türen (Zwischentüren + Haustür + Bad/Zimmertüren) haben Rahmen,
+Scharniere und Klinke und pivotieren um eine echte Scharnierachse.
 
 ## Steuerung & Kamera
 Mechanik an `dhl-city/character.html` angelehnt:
 - Panzer-Lenkung: W/↑ vorwärts, S/↓ rückwärts, A/D bzw. ←/→ drehen
 - Touch (ohne virtuelle Buttons): Wischen = laufen/drehen (wie im
   Original), kurzes Tippen = hüpfen
-- Leertaste hüpft — Sprung als Zustandsautomat (Ausholen → Luft → Landung)
+- Leertaste hüpft — Sprung als Zustandsautomat (Ausholen → Luft → Landung),
+  behält dabei Vor-/Rückwärtsschwung (Sprung nach vorne/hinten möglich)
 - Sanfte Beschleunigung/Bremsung statt sofortiger Geschwindigkeit
 - Beine als Hüfte+Knie-Gelenkkette, mit denselben Lauf-/Sprung-Formeln
   wie im Original animiert (kein Bodenplatten-Sockel mehr unter der Figur)

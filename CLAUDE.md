@@ -10,7 +10,7 @@
 | `spice-wars/` | Spice Wars — 2D Sci-Fi Strategie (Dune-2-Stil) | `.../spice-wars/` |
 | `dark-city/` | Dark City — 2D Nacht-Jump'n'Run | `.../dark-city/` |
 | `neon-rain-game/` | The Neon Rain — Noir-Detektiv-Adventure | `.../neon-rain-game/` |
-| `toy-story/` | Spielzeug-Abenteuer — 3D-Lauf-/Hüpfspiel | `.../toy-story/` |
+| `toy-story/` | Spielzeug-Abenteuer — 3D-Lauf-/Hüpfspiel im Puppenhaus | `.../toy-story/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
 **Base-URL:** https://hofmiker.github.io/Claude_Test/
