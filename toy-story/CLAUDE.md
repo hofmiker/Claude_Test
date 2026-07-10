@@ -19,13 +19,20 @@ Couchtisch, Esstisch mit 2 Stühlen, Konsolentisch mit Tischlampe,
 Stehlampe, Fenster, Bilder, Zimmerpflanze, Haustür. Im Kinderzimmer:
 Bett mit Nachttischlampe, Regal, Spielzeugkiste, Fenster, Bilder,
 Zimmerpflanze sowie anstoßbare Bälle, ein Schaukelpferd, ein Teddy und
-Bauklötze. Eine offene Zwischentür markiert den Durchgang.
+Bauklötze. Eine offene Zwischentür (mit Rahmen, Scharnieren, Klinke)
+markiert den Durchgang, eine geschlossene Haustür sitzt in der
+Wohnzimmer-Außenwand. Fußbodenleisten an allen Innenwänden, Holzdielen-
+boden als prozedurale Canvas-Textur (kein externes Asset).
 
 ## Steuerung & Kamera
 Mechanik an `dhl-city/character.html` angelehnt:
 - Panzer-Lenkung: W/↑ vorwärts, S/↓ rückwärts, A/D bzw. ←/→ drehen
+- Touch (ohne virtuelle Buttons): Wischen = laufen/drehen (wie im
+  Original), kurzes Tippen = hüpfen
 - Leertaste hüpft — Sprung als Zustandsautomat (Ausholen → Luft → Landung)
 - Sanfte Beschleunigung/Bremsung statt sofortiger Geschwindigkeit
+- Beine als Hüfte+Knie-Gelenkkette, mit denselben Lauf-/Sprung-Formeln
+  wie im Original animiert (kein Bodenplatten-Sockel mehr unter der Figur)
 - Feste Verfolgungskamera hinter dem Charakter (kein Maus-Orbit), zieht
   beim Stehen näher heran; zusätzlich Wandkollisions-Raycast, damit die
   Kamera nie durch Wände/Möbel clippt (Ergänzung ggü. dem Original, da
