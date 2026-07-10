@@ -59,56 +59,13 @@ html, body {
     box-shadow: 0 6px 18px rgba(0,0,0,0.35);
 }
 
-#start-screen {
+#version-tag {
     position: fixed;
-    inset: 0;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: radial-gradient(circle at 50% 30%, rgba(255, 209, 102, 0.25), rgba(10,13,20,0.92) 65%);
-}
-
-#start-card {
-    background: rgba(24, 26, 40, 0.85);
-    border: 1px solid rgba(255,255,255,0.08);
-    padding: 32px 36px;
-    border-radius: 18px;
-    text-align: center;
-    color: #f4f1ff;
-    max-width: 360px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-
-#start-card h1 {
-    margin: 0 0 12px;
-    font-size: 26px;
-    color: #ff6b6b;
-}
-
-#start-card p {
-    margin: 0 0 20px;
-    font-size: 14px;
-    line-height: 1.5;
-    color: #cfcbe0;
-}
-
-#start-btn {
-    background: linear-gradient(135deg, #ff6b6b, #ffd166);
-    border: none;
-    padding: 12px 28px;
-    border-radius: 999px;
-    font-size: 15px;
-    font-weight: bold;
-    color: #24243a;
-    cursor: pointer;
-    box-shadow: 0 8px 20px rgba(255, 107, 107, 0.35);
-}
-
-#start-btn:hover {
-    filter: brightness(1.05);
-}
-
-#start-screen.hidden {
-    display: none;
+    left: 10px;
+    bottom: 8px;
+    z-index: 5;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+    pointer-events: none;
+    user-select: none;
 }

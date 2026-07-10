@@ -557,7 +557,6 @@
     head.castShadow = true;
     player.add(head);
 
-    player.add(box(0.018, 0.008, 0.018, 0x3a2a1a, 0, 0.091, -0.001)); // hair cap
     player.add(box(0.021, 0.010, 0.019, 0xd6413f, 0, 0.095, -0.002, { rotY: 0.05 })); // little beret
     player.add(ball3(0.002, 0x222222, -0.006, 0.083, 0.014, { seg: 8 }));
     player.add(ball3(0.002, 0x222222, 0.006, 0.083, 0.014, { seg: 8 }));
@@ -862,31 +861,16 @@
     window.addEventListener('resize', onResize);
     onResize();
 
-    let running = false;
     function loop() {
         requestAnimationFrame(loop);
-        if (!running) return;
         update(clock.getDelta());
         renderer.render(scene, camera);
     }
     clock.start();
     loop();
 
-    // ---------- Start screen ----------
-    const startScreen = document.getElementById('start-screen');
-    document.getElementById('start-btn').addEventListener('click', () => {
-        startScreen.classList.add('hidden');
-        running = true;
-        clock.getDelta();
-    });
-
     const hint = document.getElementById('hint');
     document.getElementById('hint-toggle').addEventListener('click', () => {
         hint.style.display = hint.style.display === 'none' ? 'block' : 'none';
     });
-
-    // Render one static frame behind the start screen
-    camera.position.set(-1.5, 1.7, 3.3);
-    camera.lookAt(-1, 0.6, 0);
-    renderer.render(scene, camera);
 })();
