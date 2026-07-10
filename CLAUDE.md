@@ -17,7 +17,18 @@
 
 ## Deployment
 GitHub Pages aus Branch `main`. Jede HTML-Datei in einem Unterordner
-heißt `index.html` → saubere URLs ohne Dateiendung.
+heißt `index.html` → saubere URLs ohne Dateiendung. `.github/workflows/deploy.yml`
+deployed automatisch bei jedem Push auf `main` — kein manuelles Pages-Setting,
+kein PR nötig.
+
+## Neues Projekt hinzufügen
+1. Direkt auf `main` committen (kein Feature-Branch/PR erforderlich)
+2. `<projekt>/index.html` anlegen (komplettes, selbstständiges Spiel/Projekt)
+3. `<projekt>/CLAUDE.md` anlegen (Live-URL, Features, Steuerung, Tech-Stack —
+   siehe bestehende Projekte als Vorlage)
+4. Eintrag in der Projekte-Tabelle oben in dieser Datei ergänzen
+5. Karte in der Root-`index.html` (Landing Page) ergänzen
+6. Push auf `main` → Pages deployed automatisch, i. d. R. live in 1–2 Minuten
 
 ## Entwicklung
 Für projektspezifischen Kontext → CLAUDE.md im jeweiligen Unterordner lesen.
