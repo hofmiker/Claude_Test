@@ -71,6 +71,50 @@
         return mesh;
     }
 
+    // Procedural wood-plank floor texture (Holzdielenboden) — no external assets.
+    function createPlankTexture(baseHex, seed) {
+        const w = 512, h = 512;
+        const cnv = document.createElement('canvas');
+        cnv.width = w; cnv.height = h;
+        const ctx = cnv.getContext('2d');
+        const base = new THREE.Color(baseHex);
+        let s = seed;
+        const rnd = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return (s / 0x7fffffff); };
+
+        const plankPx = 44;
+        for (let x = 0; x < w; x += plankPx) {
+            const shade = 0.85 + rnd() * 0.3;
+            const c = base.clone().multiplyScalar(shade);
+            ctx.fillStyle = `rgb(${c.r * 255 | 0},${c.g * 255 | 0},${c.b * 255 | 0})`;
+            ctx.fillRect(x, 0, plankPx - 1, h);
+
+            // subtle grain streaks
+            ctx.fillStyle = 'rgba(40,20,8,0.06)';
+            for (let i = 0; i < 10; i++) {
+                const gy = rnd() * h;
+                ctx.fillRect(x + 2, gy, plankPx - 5, 1 + rnd() * 2);
+            }
+
+            // staggered end-seams
+            let y = rnd() * h * 0.6;
+            while (y < h) {
+                ctx.fillStyle = 'rgba(35,18,8,0.45)';
+                ctx.fillRect(x, y, plankPx - 1, 2);
+                y += h * 0.35 + rnd() * h * 0.35;
+            }
+
+            // long seam between planks
+            ctx.fillStyle = 'rgba(30,15,6,0.5)';
+            ctx.fillRect(x + plankPx - 2, 0, 2, h);
+        }
+
+        const tex = new THREE.CanvasTexture(cnv);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+    }
+
     function picture(w, h, x, y, z, rotY, frameColor, canvasColor) {
         const g = new THREE.Group();
         g.add(box(w, h, 0.02, frameColor, 0, 0, 0));
@@ -112,13 +156,40 @@
         return g;
     }
 
-    function door(w, h, x, y, z, rotY, color) {
-        const g = new THREE.Group();
-        g.add(box(w, h, 0.045, color, 0, 0, 0));
-        g.add(ball3(0.014, 0xe8c468, w / 2 - 0.08, 0, 0.03, { seg: 8, metalness: 0.6, roughness: 0.3 }));
-        g.position.set(x, y, z);
-        g.rotation.y = rotY;
-        return g;
+    // Door assembly: static frame (jambs + header) mounted in the wall opening,
+    // plus a leaf that pivots around a vertical hinge line, with hinge plates
+    // (static, on the frame) and a lever handle (on the leaf, opposite the hinge).
+    function buildDoor(opts) {
+        const {
+            x, hingeZ, hingeSign, width = 0.80, height = 2.0, openAngle = 0,
+            wallDepth = 0.15, frameColor = 0x8a5a3a, doorColor = 0xd8c39a,
+        } = opts;
+        const farZ = hingeZ + hingeSign * width;
+
+        // Frame (Zarge): two jambs + header, does not rotate with the leaf
+        const jambDepth = wallDepth + 0.05;
+        world.add(box(jambDepth, height + 0.08, 0.05, frameColor, x, height / 2 + 0.02, hingeZ));
+        world.add(box(jambDepth, height + 0.08, 0.05, frameColor, x, height / 2 + 0.02, farZ));
+        world.add(box(jambDepth, 0.06, Math.abs(farZ - hingeZ) + 0.1, frameColor, x, height + 0.06, (hingeZ + farZ) / 2));
+
+        // Hinges (Scharniere): static plates on the frame at the hinge line
+        [0.18, 0.5, 0.82].forEach((f) => {
+            world.add(box(0.05, 0.05, 0.014, 0x8c8c8c, x, f * height, hingeZ, { metalness: 0.6, roughness: 0.35 }));
+        });
+
+        // Leaf, pivoting around the hinge line at (x, hingeZ)
+        const pivot = new THREE.Group();
+        pivot.position.set(x, 0, hingeZ);
+        pivot.rotation.y = openAngle;
+        const leaf = box(0.045, height - 0.06, width, doorColor, 0, height / 2, hingeSign * width / 2);
+        pivot.add(leaf);
+        // Lever handle (Klinke) on the face, near the edge opposite the hinge
+        const handleZ = hingeSign * (width - 0.11);
+        pivot.add(box(0.014, 0.05, 0.008, 0xd8c23a, 0.03, height / 2, handleZ, { metalness: 0.7, roughness: 0.3 }));
+        pivot.add(cyl(0.006, 0.006, 0.05, 0xd8c23a, 0.055, height / 2, handleZ, { seg: 8, rotZ: Math.PI / 2, roughness: 0.3, metalness: 0.7 }));
+        world.add(pivot);
+
+        return pivot;
     }
 
     // ---------- Obstacles (AABB collision list) ----------
@@ -135,25 +206,30 @@
     const LIVING_X_MIN = -4.6, LIVING_X_MAX = -0.15;
     const KID_X_MIN = 0.15, KID_X_MAX = 5.15;
     const WALL_H = 2.6;
-    const DOOR_GAP = 0.45;
+    const DOOR_GAP = 0.43;
     const BOUNDS = { minX: LIVING_X_MIN, maxX: KID_X_MAX, minZ: Z_MIN, maxZ: Z_MAX };
 
     const WALL_COLOR = 0xf2ebe0;
     const WALL_COLOR_KID = 0xfbe9d3;
 
-    // Floors
+    // Floors: Holzdielenboden (wood plank flooring), procedural texture
+    const TILE_M = 1.4; // real-world meters represented by one texture tile
+    const livingPlankTex = createPlankTexture(0xc79a63, 7);
+    livingPlankTex.repeat.set((LIVING_X_MAX - LIVING_X_MIN) / TILE_M, (Z_MAX - Z_MIN) / TILE_M);
     const livingFloor = new THREE.Mesh(
         new THREE.PlaneGeometry(LIVING_X_MAX - LIVING_X_MIN, Z_MAX - Z_MIN),
-        new THREE.MeshStandardMaterial({ color: 0xc7a274, roughness: 0.85 })
+        new THREE.MeshStandardMaterial({ map: livingPlankTex, roughness: 0.8 })
     );
     livingFloor.rotation.x = -Math.PI / 2;
     livingFloor.position.set((LIVING_X_MIN + LIVING_X_MAX) / 2, 0, 0);
     livingFloor.receiveShadow = true;
     world.add(livingFloor);
 
+    const kidPlankTex = createPlankTexture(0xdcb37e, 23);
+    kidPlankTex.repeat.set((KID_X_MAX - KID_X_MIN) / TILE_M, (Z_MAX - Z_MIN) / TILE_M);
     const kidFloor = new THREE.Mesh(
         new THREE.PlaneGeometry(KID_X_MAX - KID_X_MIN, Z_MAX - Z_MIN),
-        new THREE.MeshStandardMaterial({ color: 0xe8d3a0, roughness: 0.85 })
+        new THREE.MeshStandardMaterial({ map: kidPlankTex, roughness: 0.8 })
     );
     kidFloor.rotation.x = -Math.PI / 2;
     kidFloor.position.set((KID_X_MIN + KID_X_MAX) / 2, 0, 0);
@@ -192,6 +268,19 @@
     addObstacle((leftX + rightX) / 2, backZ, spanX, 0.15);
     addObstacle((leftX + rightX) / 2, frontZ, spanX, 0.15);
 
+    // Fußbodenleisten (baseboards) along every interior wall face
+    const BASE_H = 0.09, BASE_T = 0.02, BASE_COLOR = 0xf5f0e6;
+    function baseboardZRun(x, zFrom, zTo) {
+        world.add(box(BASE_T, BASE_H, zTo - zFrom, BASE_COLOR, x, BASE_H / 2, (zFrom + zTo) / 2, { cast: false }));
+    }
+    function baseboardXRun(z, xFrom, xTo) {
+        world.add(box(xTo - xFrom, BASE_H, BASE_T, BASE_COLOR, (xFrom + xTo) / 2, BASE_H / 2, z, { cast: false }));
+    }
+    baseboardZRun(leftX + 0.085, backZ + 0.08, frontZ - 0.08);
+    baseboardZRun(rightX - 0.085, backZ + 0.08, frontZ - 0.08);
+    baseboardXRun(backZ + 0.085, leftX + 0.08, rightX - 0.08);
+    baseboardXRun(frontZ - 0.085, leftX + 0.08, rightX - 0.08);
+
     // Dividing wall with doorway gap
     const seg1Len = (-DOOR_GAP) - backZ;
     const seg1Z = (backZ + -DOOR_GAP) / 2;
@@ -201,14 +290,16 @@
     wall(0.3, WALL_H, seg2Len, 0xead9c2, 0, WALL_H / 2, seg2Z);
     addObstacle(0, seg1Z, 0.3, seg1Len);
     addObstacle(0, seg2Z, 0.3, seg2Len);
-    // door frame header above the opening
-    world.add(box(0.34, 0.12, DOOR_GAP * 2 + 0.1, 0x8a5a3a, 0, 2.15, 0, { cast: false }));
-    // interior door, swung open and resting flush against the Kinderzimmer-side wall
-    world.add(door(0.86, 2.0, 0.16, 1.0, DOOR_GAP + 0.02, Math.PI / 2, 0xd8c39a));
+    baseboardZRun(-0.16, backZ + 0.08, -DOOR_GAP);
+    baseboardZRun(-0.16, DOOR_GAP, frontZ - 0.08);
+    baseboardZRun(0.16, backZ + 0.08, -DOOR_GAP);
+    baseboardZRun(0.16, DOOR_GAP, frontZ - 0.08);
 
-    // Front door (Haustür), decorative, on the living-room outer wall
-    world.add(door(0.86, 2.0, leftX + 0.03, 1.0, 1.5, Math.PI / 2, 0x6b4429));
-    world.add(box(0.05, 2.1, 0.98, 0x4a2f1c, leftX + 0.005, 1.05, 1.5, { cast: false }));
+    // Interior door: frame + hinged leaf, swung open into the Kinderzimmer
+    buildDoor({ x: 0, hingeZ: -DOOR_GAP, hingeSign: 1, width: DOOR_GAP * 2 - 0.06, openAngle: Math.PI / 2, wallDepth: 0.3 });
+
+    // Front door (Haustür), closed, mounted proud of the living-room outer wall's inner face
+    buildDoor({ x: leftX + 0.11, hingeZ: 1.1, hingeSign: 1, width: 0.8, openAngle: 0, wallDepth: 0.05, frameColor: 0x6b4429, doorColor: 0x5a3a24 });
 
     // Windows (Fenster)
     function makeWindow(x, y, z, w, h, wallAxis) {
@@ -433,12 +524,22 @@
     const tunic = 0x3f6fd1;
     const trim = 0xffd166;
 
-    const base = cyl(0.030, 0.032, 0.006, 0x2b2b2b, 0, 0.003, 0, { seg: 24 });
-    player.add(base);
-
-    const legL = cyl(0.007, 0.008, 0.030, 0x274a8f, -0.010, 0.021, 0, { seg: 10 });
-    const legR = cyl(0.007, 0.008, 0.030, 0x274a8f, 0.010, 0.021, 0, { seg: 10 });
-    player.add(legL, legR);
+    // Legs: hip + knee joint chain (like dhl-city/character.html) so the walk
+    // cycle bends naturally at the knee instead of swinging a stiff single leg.
+    const HIP_Y = 0.036, THIGH_LEN = 0.020, SHIN_LEN = 0.016;
+    function legChain(x) {
+        const hip = new THREE.Group();
+        hip.position.set(x, HIP_Y, 0);
+        player.add(hip);
+        hip.add(cyl(0.0075, 0.008, THIGH_LEN, 0x274a8f, 0, -THIGH_LEN / 2, 0, { seg: 10 }));
+        const knee = new THREE.Group();
+        knee.position.set(0, -THIGH_LEN, 0);
+        hip.add(knee);
+        knee.add(cyl(0.006, 0.0075, SHIN_LEN, 0x274a8f, 0, -SHIN_LEN / 2, 0, { seg: 10 }));
+        return { hip, knee };
+    }
+    const legL = legChain(-0.010);
+    const legR = legChain(0.010);
 
     const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.018, 0.030, 4, 10), new THREE.MeshStandardMaterial({ color: tunic, roughness: 0.6 }));
     torso.position.set(0, 0.053, 0);
@@ -502,6 +603,39 @@
     });
     window.addEventListener('keyup', (e) => keys.delete(e.code));
 
+    // Touch: swipe (modeled on dhl-city/character.html's swipe-to-move) instead
+    // of on-screen buttons — drag to move/turn, a quick tap jumps.
+    const touch = { forward: false, back: false, left: false, right: false };
+    const TOUCH_THRESHOLD = 18;
+    let touchOrigin = null, touchMoved = false, touchStartTime = 0;
+    function resetTouch() {
+        touch.forward = touch.back = touch.left = touch.right = false;
+    }
+    canvas.addEventListener('touchstart', (e) => {
+        const t = e.touches[0];
+        touchOrigin = { x: t.clientX, y: t.clientY };
+        touchMoved = false;
+        touchStartTime = performance.now();
+        resetTouch();
+    }, { passive: true });
+    canvas.addEventListener('touchmove', (e) => {
+        if (!touchOrigin) return;
+        const t = e.touches[0];
+        const dx = t.clientX - touchOrigin.x, dy = t.clientY - touchOrigin.y;
+        if (Math.abs(dx) > TOUCH_THRESHOLD || Math.abs(dy) > TOUCH_THRESHOLD) touchMoved = true;
+        touch.forward = dy < -TOUCH_THRESHOLD;
+        touch.back = dy > TOUCH_THRESHOLD;
+        touch.left = dx < -TOUCH_THRESHOLD;
+        touch.right = dx > TOUCH_THRESHOLD;
+        e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => {
+        if (!touchMoved && performance.now() - touchStartTime < 300) state.jumpBuffered = true;
+        resetTouch();
+        touchOrigin = null;
+    }, { passive: true });
+    canvas.addEventListener('touchcancel', () => { resetTouch(); touchOrigin = null; }, { passive: true });
+
     // ---------- Camera rig (fixed auto-follow chase camera, toy's-eye style) ----------
     const CAM_DIST_MOVE = 0.62;
     const CAM_DIST_IDLE = 0.42;
@@ -542,13 +676,14 @@
     function update(dt) {
         dt = Math.min(dt, 0.05);
 
-        // Tank steering: A/D (or ←/→) turn in place, W/S (or ↑/↓) move along facing direction
-        if (keys.has('KeyA') || keys.has('ArrowLeft')) state.yaw += TURN_RATE * dt;
-        if (keys.has('KeyD') || keys.has('ArrowRight')) state.yaw -= TURN_RATE * dt;
+        // Tank steering: A/D (or ←/→ / touch-swipe sideways) turn in place,
+        // W/S (or ↑/↓ / touch-swipe up/down) move along facing direction
+        if (keys.has('KeyA') || keys.has('ArrowLeft') || touch.left) state.yaw += TURN_RATE * dt;
+        if (keys.has('KeyD') || keys.has('ArrowRight') || touch.right) state.yaw -= TURN_RATE * dt;
 
         const fwdX = Math.sin(state.yaw), fwdZ = Math.cos(state.yaw);
-        const wantForward = keys.has('KeyW') || keys.has('ArrowUp');
-        const wantBack = keys.has('KeyS') || keys.has('ArrowDown');
+        const wantForward = keys.has('KeyW') || keys.has('ArrowUp') || touch.forward;
+        const wantBack = keys.has('KeyS') || keys.has('ArrowDown') || touch.back;
         const wantMove = (wantForward || wantBack) && state.jumpState !== JUMP_STATE.WINDUP;
 
         if (wantMove) state.moveSpeed = Math.min(state.moveSpeed + ACCEL_RATE * dt, SPEED_MAX);
@@ -642,20 +777,25 @@
         bodyTilt.position.set(state.x, state.y, state.z);
         bodyTilt.rotation.y = state.yaw;
 
-        // Pose per jump-state (windup crouch / air tuck / land squat / walk-idle)
+        // Pose per jump-state (windup crouch / air tuck / land squat / walk-idle).
+        // Hip/knee formulas follow dhl-city/character.html's leg animation.
         const TORSO_Y = 0.053;
         if (state.jumpState === JUMP_STATE.WINDUP) {
             const t = Math.min(state.jumpTimer / WINDUP_DUR, 1);
             const sq = Math.sin(t * Math.PI * 0.5);
-            legL.rotation.x = lerp(legL.rotation.x, 0.5 * sq, 0.4);
-            legR.rotation.x = lerp(legR.rotation.x, 0.5 * sq, 0.4);
+            legL.hip.rotation.x = lerp(legL.hip.rotation.x, 0.52 * sq, 0.32);
+            legR.hip.rotation.x = lerp(legR.hip.rotation.x, 0.52 * sq, 0.32);
+            legL.knee.rotation.x = lerp(legL.knee.rotation.x, 0.78 * sq, 0.32);
+            legR.knee.rotation.x = lerp(legR.knee.rotation.x, 0.78 * sq, 0.32);
             armL.rotation.x = lerp(armL.rotation.x, -0.6 * sq, 0.3);
             armR.rotation.x = lerp(armR.rotation.x, -0.6 * sq, 0.3);
             torso.position.y = lerp(torso.position.y, TORSO_Y - 0.011 * sq, 0.4);
             torso.rotation.x = lerp(torso.rotation.x, -0.25 * sq, 0.3);
         } else if (state.jumpState === JUMP_STATE.AIR) {
-            legL.rotation.x = lerp(legL.rotation.x, 0.9, 0.2);
-            legR.rotation.x = lerp(legR.rotation.x, 0.9, 0.2);
+            legL.hip.rotation.x = lerp(legL.hip.rotation.x, -0.70, 0.17);
+            legR.hip.rotation.x = lerp(legR.hip.rotation.x, -0.70, 0.17);
+            legL.knee.rotation.x = lerp(legL.knee.rotation.x, 1.45, 0.17);
+            legR.knee.rotation.x = lerp(legR.knee.rotation.x, 1.45, 0.17);
             armL.rotation.x = lerp(armL.rotation.x, -0.9, 0.2);
             armR.rotation.x = lerp(armR.rotation.x, -0.9, 0.2);
             torso.position.y = lerp(torso.position.y, TORSO_Y + 0.005, 0.2);
@@ -663,19 +803,25 @@
         } else if (state.jumpState === JUMP_STATE.LAND) {
             const t = Math.min(state.jumpTimer / LAND_DUR, 1);
             const sq = 1 - t;
-            legL.rotation.x = lerp(legL.rotation.x, 0.55 * sq, 0.4);
-            legR.rotation.x = lerp(legR.rotation.x, 0.55 * sq, 0.4);
+            legL.hip.rotation.x = lerp(legL.hip.rotation.x, 0.72 * sq, 0.32);
+            legR.hip.rotation.x = lerp(legR.hip.rotation.x, 0.72 * sq, 0.32);
+            legL.knee.rotation.x = lerp(legL.knee.rotation.x, 1.10 * sq, 0.32);
+            legR.knee.rotation.x = lerp(legR.knee.rotation.x, 1.10 * sq, 0.32);
             armL.rotation.x = lerp(armL.rotation.x, -0.5 * sq, 0.3);
             armR.rotation.x = lerp(armR.rotation.x, -0.5 * sq, 0.3);
             torso.position.y = lerp(torso.position.y, TORSO_Y - 0.015 * sq, 0.4);
             torso.rotation.x = lerp(torso.rotation.x, 0, 0.3);
         } else {
-            const swing = moving ? Math.sin(state.walkPhase) * 0.55 : 0;
-            legL.rotation.x = lerp(legL.rotation.x, swing, 0.3);
-            legR.rotation.x = lerp(legR.rotation.x, -swing, 0.3);
+            const s = moving ? Math.sin(state.walkPhase) : 0;
+            const lLeg = s * 0.68, rLeg = -s * 0.68;
+            legL.hip.rotation.x = lerp(legL.hip.rotation.x, lLeg * 0.88, 0.3);
+            legR.hip.rotation.x = lerp(legR.hip.rotation.x, rLeg * 0.88, 0.3);
+            legL.knee.rotation.x = lerp(legL.knee.rotation.x, Math.max(0, lLeg) * 1.0 + Math.max(0, -lLeg) * 0.7, 0.3);
+            legR.knee.rotation.x = lerp(legR.knee.rotation.x, Math.max(0, rLeg) * 1.0 + Math.max(0, -rLeg) * 0.7, 0.3);
+            const swing = s * 0.55;
             armL.rotation.x = lerp(armL.rotation.x, -swing, 0.3);
             armR.rotation.x = lerp(armR.rotation.x, swing, 0.3);
-            torso.position.y = lerp(torso.position.y, TORSO_Y + (moving ? Math.abs(Math.sin(state.walkPhase)) * 0.002 : 0), 0.3);
+            torso.position.y = lerp(torso.position.y, TORSO_Y + (moving ? Math.abs(s) * 0.002 : 0), 0.3);
             torso.rotation.x = lerp(torso.rotation.x, 0, 0.3);
         }
 
