@@ -35,81 +35,84 @@
   }
 
   #time {
-    color:#0ff; font-size:14px; text-shadow:0 0 10px #0ff;
-    background:rgba(0,0,0,.5); padding:6px 10px; border:1px solid rgba(0,255,255,.4); border-radius:3px;
+    color:#0ff; font-size:16px; letter-spacing:1px; text-shadow:0 0 8px #0ff;
+    background:#000; padding:6px 12px; border:3px double #0ff;
   }
 
-  #inventoryBar { display:flex; gap:6px; margin-top:6px; pointer-events:auto; }
+  #inventoryBar { display:flex; gap:6px; margin-top:8px; pointer-events:auto; }
   .invItem {
-    width:34px; height:34px; border:1px solid rgba(0,255,255,.5); border-radius:4px;
-    background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center;
-    font-size:17px; box-shadow:0 0 8px rgba(0,255,255,.25);
+    width:38px; height:38px; border:2px solid #0ff;
+    background:#000; display:flex; align-items:center; justify-content:center;
+    font-size:19px; box-shadow:0 0 8px rgba(0,255,255,.25);
   }
 
   #journalBtn {
-    pointer-events:auto; cursor:pointer; background:rgba(0,0,0,.6); color:#0ff;
-    border:1px solid rgba(0,255,255,.5); border-radius:3px; padding:6px 10px; font-size:12px;
-    font-family:inherit;
+    pointer-events:auto; cursor:pointer; background:#000; color:#0ff;
+    border:3px double #0ff; padding:7px 12px; font-size:14px;
+    font-family:inherit; letter-spacing:1px; text-transform:uppercase;
   }
   #journalBtn:hover { background:rgba(0,255,255,.15); }
 
   #journalPanel {
-    position:absolute; top:60px; left:14px; width:270px; max-height:60vh; overflow-y:auto;
-    background:rgba(5,5,15,.92); border:1px solid #0ff; border-radius:4px; padding:14px;
-    pointer-events:auto; display:none; box-shadow:0 0 22px rgba(0,255,255,.25); z-index:30;
+    position:absolute; top:64px; left:14px; width:300px; max-height:60vh; overflow-y:auto;
+    background:#000; border:3px double #0ff; padding:16px;
+    pointer-events:auto; display:none; box-shadow:0 0 22px rgba(0,255,255,.2); z-index:30;
   }
   #journalPanel.active { display:block; }
-  #journalPanel h3 { color:#0ff; font-size:13px; letter-spacing:1px; margin-bottom:10px; text-shadow:0 0 8px #0ff; }
+  #journalPanel h3 { color:#0ff; font-size:15px; letter-spacing:1px; margin-bottom:12px; text-shadow:0 0 8px #0ff; text-transform:uppercase; }
   #journalPanel ul { list-style:none; }
-  #journalPanel li { font-size:12px; line-height:1.6; margin-bottom:6px; color:#888; }
+  #journalPanel li { font-size:14px; line-height:1.7; margin-bottom:8px; color:#888; }
   #journalPanel li.done { color:#7fffcf; text-decoration:line-through; }
   #journalPanel li.locked { color:#444; font-style:italic; }
 
   #objectDescription {
-    position:absolute; top:110px; left:14px; max-width:340px;
-    background:rgba(0,0,0,.85); border:2px solid #fff; border-radius:4px; padding:12px;
-    display:none; pointer-events:none; color:#ddd; font-size:12px; line-height:1.5; z-index:25;
+    position:absolute; top:118px; left:14px; max-width:360px;
+    background:#000; border:3px double #fff; padding:14px;
+    display:none; pointer-events:none; color:#ddd; font-size:15px; line-height:1.6; z-index:25;
   }
   #objectDescription.active { display:block; animation:fadeIn .25s ease-in; }
 
   #dialogBox {
-    position:absolute; bottom:20px; left:20px; right:20px; max-width:640px; margin:0 auto;
-    background:rgba(0,0,0,.88); border:2px solid #0ff; border-radius:4px; padding:16px;
-    max-height:170px; overflow-y:auto; display:none; pointer-events:auto; cursor:pointer;
-    color:#0ff; text-shadow:0 0 8px #0ff; box-shadow:0 0 24px rgba(0,255,255,.3); z-index:25;
+    position:absolute; bottom:20px; left:20px; right:20px; max-width:720px; margin:0 auto;
+    background:#000; border:3px double #0ff; padding:18px 20px;
+    max-height:220px; overflow-y:auto; display:none; pointer-events:auto; cursor:pointer;
+    color:#0ff; text-shadow:0 0 6px #0ff; box-shadow:0 0 24px rgba(0,255,255,.25); z-index:25;
   }
   #dialogBox.active { display:block; animation:fadeIn .25s ease-in; }
-  #dialogBox h3 { color:#fff; margin-bottom:8px; font-size:14px; letter-spacing:1px; }
-  #dialogBox p { line-height:1.6; font-size:13px; }
-  #dialogBox .hint { display:block; margin-top:8px; font-size:10px; color:#567; text-shadow:none; }
+  #dialogBox h3 { color:#fff; margin-bottom:10px; font-size:17px; letter-spacing:2px; text-transform:uppercase; }
+  #dialogBox p { line-height:1.7; font-size:17px; }
+  #dialogBox .hint { display:block; margin-top:10px; font-size:12px; color:#567; text-shadow:none; }
+  #dialogBox .cursor { display:inline-block; margin-left:2px; color:#0ff; animation:blinkCursor 1s steps(1) infinite; }
+  @keyframes blinkCursor { 0%,49%{opacity:1} 50%,100%{opacity:0} }
 
   #toast {
     position:absolute; top:14px; left:50%; transform:translate(-50%,-8px);
-    background:rgba(0,0,0,.9); border:1px solid #f0f; color:#f0f; text-shadow:0 0 8px #f0f;
-    padding:8px 16px; border-radius:3px; font-size:12px; opacity:0; transition:all .35s ease;
-    pointer-events:none; z-index:35; white-space:nowrap;
+    background:#000; border:3px double #f0f; color:#f0f; text-shadow:0 0 8px #f0f;
+    padding:9px 18px; font-size:14px; opacity:0; transition:all .35s ease;
+    pointer-events:none; z-index:35; white-space:nowrap; letter-spacing:.5px;
   }
   #toast.show { opacity:1; transform:translate(-50%,0); }
 
   #cursorInfo {
     position:absolute; bottom:20px; left:70px; right:14px; text-align:right;
-    color:#777; font-size:11px; line-height:1.4; pointer-events:none;
+    color:#8a8; font-size:13px; line-height:1.5; pointer-events:none; letter-spacing:.5px;
   }
   @media (max-width:600px) {
-    #cursorInfo { font-size:10px; }
+    #cursorInfo { font-size:11px; }
   }
 
   #soundBtn {
     position:absolute; bottom:20px; left:20px; pointer-events:auto; cursor:pointer;
-    background:rgba(0,0,0,.6); color:#0ff; border:1px solid rgba(0,255,255,.5);
-    border-radius:50%; width:38px; height:38px; font-size:16px; z-index:30;
+    background:#000; color:#0ff; border:3px double #0ff;
+    width:42px; height:42px; font-size:17px; z-index:30;
   }
   #soundBtn:hover { background:rgba(0,255,255,.15); }
 
   #hintArrow {
-    position:absolute; bottom:70px; left:50%; transform:translateX(-50%);
-    color:#0ff; font-size:13px; text-shadow:0 0 8px #0ff; opacity:.85;
+    position:absolute; bottom:74px; left:50%; transform:translateX(-50%);
+    color:#0ff; font-size:14px; text-shadow:0 0 8px #0ff; opacity:.85;
     animation:pulseArrow 1.4s ease-in-out infinite; pointer-events:none; z-index:20;
+    letter-spacing:1px;
   }
   @keyframes pulseArrow { 0%,100%{opacity:.3;transform:translateX(-50%) translateX(0)} 50%{opacity:1;transform:translateX(-50%) translateX(10px)} }
 
@@ -118,7 +121,7 @@
   .overlay {
     position:absolute; inset:0; z-index:100; display:flex; flex-direction:column;
     align-items:center; justify-content:center; text-align:center; padding:20px;
-    background:radial-gradient(ellipse at center, rgba(15,15,35,.97) 0%, rgba(0,0,0,.99) 100%);
+    background:#000;
   }
   .overlay.hidden { display:none; }
   .neonTitle {
@@ -130,20 +133,20 @@
     0%,19%,21%,23%,80%,100% { opacity:1; }
     20%,22%,79% { opacity:.6; }
   }
-  .subTitle { margin-top:14px; color:#f0f; text-shadow:0 0 10px #f0f; letter-spacing:2px; font-size:1rem; }
-  .flavorText { margin-top:26px; max-width:520px; color:#aaa; font-size:.85rem; line-height:1.7; }
+  .subTitle { margin-top:14px; color:#f0f; text-shadow:0 0 10px #f0f; letter-spacing:2px; font-size:1.1rem; }
+  .flavorText { margin-top:26px; max-width:560px; color:#aaa; font-size:1rem; line-height:1.8; }
   .bigBtn {
-    margin-top:34px; background:transparent; border:2px solid #0ff; color:#0ff;
-    padding:12px 30px; font-size:.95rem; letter-spacing:3px; cursor:pointer;
+    margin-top:34px; background:#000; border:3px double #0ff; color:#0ff;
+    padding:14px 32px; font-size:1.05rem; letter-spacing:3px; cursor:pointer;
     font-family:inherit; text-shadow:0 0 8px #0ff; box-shadow:0 0 16px rgba(0,255,255,.3);
-    transition:all .2s ease;
+    transition:all .2s ease; text-transform:uppercase;
   }
   .bigBtn:hover { background:rgba(0,255,255,.12); box-shadow:0 0 30px rgba(0,255,255,.55); }
   .choiceRow { display:flex; gap:20px; margin-top:30px; flex-wrap:wrap; justify-content:center; }
   .choiceBtn {
-    background:transparent; border:2px solid #f0f; color:#f0f; padding:12px 24px;
-    font-size:.85rem; letter-spacing:1px; cursor:pointer; font-family:inherit;
-    text-shadow:0 0 8px #f0f; max-width:260px;
+    background:#000; border:3px double #f0f; color:#f0f; padding:14px 26px;
+    font-size:1rem; letter-spacing:1px; cursor:pointer; font-family:inherit;
+    text-shadow:0 0 8px #f0f; max-width:280px; text-transform:uppercase;
   }
   .choiceBtn:hover { background:rgba(255,0,255,.12); }
 </style>
@@ -289,6 +292,8 @@
   let lightningAlpha = 0;
 
   // ---------- STATE ----------
+  let scene = 'street';
+  let sadieConversationDone = false;
   const flags = {
     talkedAlex:false, readNews:false, talkedRose:false,
     calledPhone:false, caseClosed:false
@@ -353,16 +358,64 @@
     clearTimeout(descTimer);
     descTimer = setTimeout(() => box.classList.remove('active'), 4500);
   }
-  let dialogTimer = null;
-  function showDialog(character, text, hint){
+  let dialogQueue = [];
+  let dialogOnComplete = null;
+  let typeTimer = null;
+  let typingFullText = '';
+  let typingDone = true;
+
+  function typeInto(el, text, speed){
+    typingFullText = text;
+    typingDone = false;
+    let i = 0;
+    clearInterval(typeTimer);
+    el.textContent = '';
+    typeTimer = setInterval(() => {
+      i++;
+      el.textContent = text.slice(0,i);
+      if (i >= text.length){
+        clearInterval(typeTimer);
+        typingDone = true;
+      }
+    }, 28);
+  }
+  function skipTyping(){
+    if (!typingDone){
+      clearInterval(typeTimer);
+      const el = document.getElementById('dialogTypeTarget');
+      if (el) el.textContent = typingFullText;
+      typingDone = true;
+      return true;
+    }
+    return false;
+  }
+  function renderDialogLine(line){
     const box = document.getElementById('dialogBox');
-    box.innerHTML = `<h3>${character}</h3><p>${text}</p>` + (hint ? `<span class="hint">${hint}</span>` : '');
+    box.innerHTML = `<h3>${line.character}</h3><p><span id="dialogTypeTarget"></span><span class="cursor">█</span></p>` +
+      (line.hint ? `<span class="hint">${line.hint}</span>` : '');
     box.classList.add('active');
-    clearTimeout(dialogTimer);
-    dialogTimer = setTimeout(() => box.classList.remove('active'), 6500);
+    typeInto(document.getElementById('dialogTypeTarget'), line.text, 28);
+  }
+  function showDialog(character, text, hint){
+    dialogQueue = [];
+    dialogOnComplete = null;
+    renderDialogLine({character, text, hint});
+  }
+  function showDialogSequence(lines, onComplete){
+    dialogQueue = lines.slice(1);
+    dialogOnComplete = onComplete || null;
+    renderDialogLine(lines[0]);
   }
   document.getElementById('dialogBox').addEventListener('click', () => {
-    document.getElementById('dialogBox').classList.remove('active');
+    if (skipTyping()) return;
+    if (dialogQueue.length){
+      renderDialogLine(dialogQueue.shift());
+    } else {
+      document.getElementById('dialogBox').classList.remove('active');
+      const cb = dialogOnComplete;
+      dialogOnComplete = null;
+      if (cb) cb();
+    }
   });
 
   document.getElementById('journalBtn').addEventListener('click', () => {
@@ -390,6 +443,9 @@
       ctx.translate(sx, gy - bob);
       if (this.direction === -1) ctx.scale(-1,1);
 
+      ctx.fillStyle = 'rgba(0,0,0,.4)';
+      ctx.beginPath(); ctx.ellipse(0,1,20,5,0,0,Math.PI*2); ctx.fill();
+
       ctx.fillStyle = 'rgba(255,255,255,.55)';
       const breathY = -90 - (this.breath%20);
       const breathA = Math.max(0, 1 - (this.breath%20)/20);
@@ -401,42 +457,94 @@
         ctx.globalAlpha = 1;
       }
 
-      const legSwing = 13;
+      const legSwing = 14;
       const footA = swing*legSwing;
       const footB = -swing*legSwing;
-      ctx.strokeStyle = '#111'; ctx.lineWidth = 9; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(-3,-42); ctx.lineTo(footB*0.6,-20); ctx.lineTo(footB,0); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(3,-42); ctx.lineTo(footA*0.6,-20); ctx.lineTo(footA,0); ctx.stroke();
-      ctx.fillStyle = '#0a0a0a';
+      function drawLeg(hipX, kneeX, footX, footY){
+        ctx.beginPath();
+        ctx.moveTo(hipX-5,-42);
+        ctx.quadraticCurveTo(kneeX-4,-21, footX-4, footY);
+        ctx.lineTo(footX+5, footY);
+        ctx.quadraticCurveTo(kneeX+4,-21, hipX+5,-42);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = '#0d0d10';
+      drawLeg(-3, footB*0.6, footB, 0);
+      drawLeg(3, footA*0.6, footA, 0);
+      ctx.fillStyle = '#050505';
       ctx.beginPath(); ctx.ellipse(footB,1,8,4,0,0,Math.PI*2); ctx.fill();
       ctx.beginPath(); ctx.ellipse(footA,1,8,4,0,0,Math.PI*2); ctx.fill();
 
-      ctx.fillStyle = '#23232a';
+      const coatGrad = ctx.createLinearGradient(-24,-76,24,-28);
+      coatGrad.addColorStop(0,'#34343e'); coatGrad.addColorStop(.55,'#232329'); coatGrad.addColorStop(1,'#141418');
+      ctx.fillStyle = coatGrad;
       ctx.beginPath();
-      ctx.moveTo(-16,-75); ctx.lineTo(-21,-36); ctx.lineTo(-14,-30);
-      ctx.lineTo(14,-30); ctx.lineTo(21,-36); ctx.lineTo(16,-75);
+      ctx.moveTo(-15,-76);
+      ctx.quadraticCurveTo(-23,-58,-21,-38);
+      ctx.quadraticCurveTo(-20,-30,-13,-28);
+      ctx.lineTo(13,-28);
+      ctx.quadraticCurveTo(20,-30,21,-38);
+      ctx.quadraticCurveTo(23,-58,15,-76);
+      ctx.quadraticCurveTo(0,-83,-15,-76);
       ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#0ff'; ctx.lineWidth=.6; ctx.globalAlpha=.25; ctx.stroke(); ctx.globalAlpha=1;
 
-      const armSwing = -swing*10;
-      ctx.strokeStyle = '#23232a'; ctx.lineWidth = 7; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(10,-70); ctx.lineTo(10+armSwing*0.5,-50); ctx.lineTo(6+armSwing,-30); ctx.stroke();
+      ctx.save();
+      ctx.shadowColor = '#0ff'; ctx.shadowBlur = 6;
+      ctx.strokeStyle = 'rgba(0,255,255,.4)'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(15,-76); ctx.quadraticCurveTo(23,-58,21,-38); ctx.quadraticCurveTo(20,-30,13,-28);
+      ctx.stroke();
+      ctx.restore();
+
+      const armSwing = -swing*11;
+      ctx.fillStyle = '#1c1c22';
+      ctx.beginPath();
+      ctx.moveTo(7,-72);
+      ctx.quadraticCurveTo(13+armSwing*0.4,-52, 4+armSwing,-31);
+      ctx.lineTo(10+armSwing,-30);
+      ctx.quadraticCurveTo(18+armSwing*0.4,-52, 13,-72);
+      ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#3a3a3e';
-      ctx.beginPath(); ctx.arc(6+armSwing,-30,3.5,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(7+armSwing,-30,3.5,0,Math.PI*2); ctx.fill();
 
       ctx.fillStyle = '#3a3a3e'; ctx.fillRect(-4,-82,8,8);
 
       ctx.beginPath(); ctx.arc(0,-90,11,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(9,-92); ctx.lineTo(16,-89); ctx.lineTo(9,-86); ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(8,-93); ctx.quadraticCurveTo(17,-91,9,-86); ctx.quadraticCurveTo(10,-89,8,-93);
+      ctx.closePath(); ctx.fill();
 
-      ctx.fillStyle = '#0ff'; ctx.globalAlpha=.8;
-      ctx.fillRect(6,-92,2,2);
+      ctx.save();
+      ctx.shadowColor = '#0ff'; ctx.shadowBlur = 5;
+      ctx.fillStyle = '#0ff'; ctx.globalAlpha=.85;
+      ctx.beginPath(); ctx.arc(6,-91,1.4,0,Math.PI*2); ctx.fill();
       ctx.globalAlpha = 1;
+      ctx.restore();
 
-      ctx.fillStyle = '#141414';
-      ctx.beginPath(); ctx.ellipse(1,-99,17,6,0,0,Math.PI*2); ctx.fill();
-      ctx.fillRect(-9,-112,18,13);
-      ctx.beginPath(); ctx.ellipse(0,-105,9,5,0,0,Math.PI*2); ctx.fill();
+      const hatGrad = ctx.createLinearGradient(0,-116,0,-96);
+      hatGrad.addColorStop(0,'#40404a'); hatGrad.addColorStop(1,'#222228');
+      ctx.fillStyle = hatGrad;
+      ctx.beginPath();
+      ctx.moveTo(-9,-100);
+      ctx.quadraticCurveTo(-10,-115,0,-116);
+      ctx.quadraticCurveTo(10,-115,9,-100);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = 1; ctx.stroke();
+
+      ctx.fillStyle = '#2c2c32';
+      ctx.beginPath();
+      ctx.moveTo(-16,-99);
+      ctx.quadraticCurveTo(0,-107,20,-98);
+      ctx.quadraticCurveTo(4,-102,-16,-99);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.save();
+      ctx.shadowColor = '#0ff'; ctx.shadowBlur = 4;
+      ctx.strokeStyle = 'rgba(0,255,255,.5)'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-16,-99); ctx.quadraticCurveTo(0,-107,20,-98);
+      ctx.stroke();
+      ctx.restore();
 
       ctx.restore();
 
@@ -466,7 +574,9 @@
           obj.interact();
         }
       }
-      camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, this.x - canvas.width/2));
+      camera.x = scene === 'street'
+        ? Math.max(0, Math.min(WORLD_WIDTH - canvas.width, this.x - canvas.width/2))
+        : 0;
     }
   };
   player.y = 0;
@@ -646,6 +756,136 @@
       }
       ctx.fillStyle = '#0a0a12';
       ctx.fillRect(bx+bw*0.5-14, gy-40, 28, 40);
+    }
+  }
+
+  // ---------- WAREHOUSE ENDING SCENE ----------
+  function sadieX(){ return canvas.width*0.6; }
+
+  function drawCrateStack(cx, gy){
+    ctx.fillStyle = '#2e2417';
+    ctx.fillRect(cx-32,gy-52,58,52);
+    ctx.fillRect(cx+18,gy-84,42,84);
+    ctx.strokeStyle = '#1a1410'; ctx.lineWidth = 2;
+    ctx.strokeRect(cx-32,gy-52,58,52);
+    ctx.strokeRect(cx+18,gy-84,42,84);
+    ctx.beginPath(); ctx.moveTo(cx-32,gy-26); ctx.lineTo(cx+26,gy-26); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+18,gy-42); ctx.lineTo(cx+60,gy-42); ctx.stroke();
+  }
+
+  function drawWarehouseInterior(){
+    const gy = groundY();
+    const wallGrad = ctx.createLinearGradient(0,0,0,canvas.height);
+    wallGrad.addColorStop(0,'#08080b'); wallGrad.addColorStop(1,'#121216');
+    ctx.fillStyle = wallGrad; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle = '#1a1712'; ctx.fillRect(0,gy,canvas.width,canvas.height-gy);
+    ctx.strokeStyle = '#242018'; ctx.lineWidth = 1;
+    for (let x=0;x<canvas.width;x+=60){
+      ctx.beginPath(); ctx.moveTo(x,gy); ctx.lineTo(x,canvas.height); ctx.stroke();
+    }
+
+    drawCrateStack(canvas.width*0.12, gy);
+    drawCrateStack(canvas.width*0.88, gy);
+
+    const t = performance.now();
+    const bulbX = canvas.width*0.4, bulbSwing = Math.sin(t*0.0012)*10;
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(bulbX,0); ctx.lineTo(bulbX+bulbSwing,90); ctx.stroke();
+    const flick = 0.6 + Math.sin(t*0.02)*0.15 + (Math.random()<0.03 ? -0.3 : 0);
+    ctx.fillStyle = '#ffdd88'; ctx.globalAlpha = Math.max(0.2,flick);
+    ctx.beginPath(); ctx.arc(bulbX+bulbSwing,95,10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ffcc66'; ctx.globalAlpha = Math.max(0.05,flick*0.4);
+    ctx.beginPath(); ctx.arc(bulbX+bulbSwing,95,90,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = 'rgba(120,150,200,.08)';
+    ctx.fillRect(canvas.width-90,60,50,70);
+    ctx.strokeStyle = '#333'; ctx.lineWidth=1; ctx.strokeRect(canvas.width-90,60,50,70);
+    ctx.strokeStyle = 'rgba(200,220,255,.2)';
+    for (let i=0;i<4;i++){
+      const rx = canvas.width-80+i*10 + Math.sin(t*0.003+i)*2;
+      ctx.beginPath(); ctx.moveTo(rx,65); ctx.lineTo(rx-4,124); ctx.stroke();
+    }
+  }
+
+  function drawSadie(cx, gy, t){
+    const bob = Math.sin(t*0.0015)*1;
+    ctx.save();
+    ctx.translate(cx, gy);
+
+    ctx.fillStyle = '#3a2f22';
+    ctx.fillRect(-24,-28,48,28);
+    ctx.strokeStyle = '#22190f'; ctx.lineWidth = 2; ctx.strokeRect(-24,-28,48,28);
+
+    ctx.fillStyle = '#5a3d2a';
+    ctx.fillRect(22,-22,24,18);
+    ctx.strokeStyle = '#2a1c10'; ctx.strokeRect(22,-22,24,18);
+
+    ctx.fillStyle = '#232025';
+    ctx.beginPath(); ctx.ellipse(-11,-24,10,10,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(5,-24,10,10,0,0,Math.PI*2); ctx.fill();
+
+    const bodyGrad = ctx.createLinearGradient(-16,-72,16,-26);
+    bodyGrad.addColorStop(0,'#5a3348'); bodyGrad.addColorStop(1,'#2e1c26');
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.moveTo(-14,-27+bob);
+    ctx.quadraticCurveTo(-18,-50+bob,-11,-71+bob);
+    ctx.lineTo(11,-71+bob);
+    ctx.quadraticCurveTo(18,-50+bob,14,-27+bob);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = '#caa27a';
+    ctx.beginPath(); ctx.arc(0,-79+bob,9,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1a1410';
+    ctx.beginPath(); ctx.arc(0,-82+bob,10,Math.PI,Math.PI*2.15); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-9,-72+bob,3,10,0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(9,-72+bob,3,10,-0.3,0,Math.PI*2); ctx.fill();
+
+    ctx.save();
+    ctx.shadowColor = '#0ff'; ctx.shadowBlur = 4;
+    ctx.fillStyle = '#0ff'; ctx.globalAlpha = .6;
+    ctx.fillRect(-4,-80+bob,2,2); ctx.fillRect(2,-80+bob,2,2);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  function enterWarehouse(){
+    scene = 'warehouse';
+    player.x = 70; player.targetX = 70; player.direction = 1;
+    player.pendingInteract = null;
+    camera.x = 0;
+    document.getElementById('cursorInfo').textContent = 'Klick auf Sadie zum Sprechen';
+    document.getElementById('hintArrow').style.display = 'none';
+  }
+
+  function talkToSadie(){
+    if (sadieConversationDone){
+      showDialog('SADIE', '„Ich hab dir schon gesagt, was es zu sagen gibt."');
+      return;
+    }
+    showDialogSequence([
+      {character:'SADIE', text:'„Ich wusste, dass jemand kommt." Sie sitzt zwischen Kisten, ein gepackter Koffer neben sich.'},
+      {character:'SADIE', text:'„Ich schulde den falschen Leuten Geld, Vale. Verschwinden war der einzige Ausweg, den ich hatte."'},
+      {character:'SADIE', text:'„Also. Was jetzt?"'}
+    ], () => {
+      sadieConversationDone = true;
+      showEndingChoice();
+    });
+  }
+
+  function handleWarehouseClick(x, y){
+    const gy = groundY();
+    const sx = sadieX();
+    if (x > sx-30 && x < sx+50 && y > gy-95 && y < gy){
+      player.targetX = sx-55;
+      player.pendingInteract = { interact: talkToSadie };
+    } else {
+      player.pendingInteract = null;
+      player.targetX = Math.max(30, Math.min(canvas.width-30, x));
     }
   }
 
@@ -849,7 +1089,7 @@
         }
         if (flags.caseClosed) return;
         completeObjective('caseClosed');
-        triggerEnding();
+        enterWarehouse();
       }
     },
   ];
@@ -870,12 +1110,11 @@
   }
 
   // ---------- ENDING ----------
-  function triggerEnding(){
-    flags.caseClosed = true;
+  function showEndingChoice(){
     const endScreen = document.getElementById('endScreen');
     const endText = document.getElementById('endText');
     const choices = document.getElementById('endChoices');
-    endText.innerHTML = 'Das Lagerhaus riecht nach Salz und altem Öl. In der Ecke, zwischen Kisten, sitzt sie: Sadie Vance, lebendig, ein Koffer neben sich. „Ich wusste, dass jemand kommt", sagt sie. „Ich schulde den falschen Leuten Geld. Verschwinden war der einzige Ausweg, den ich hatte."<br><br>Was macht Vale Cross?';
+    endText.innerHTML = 'Was macht Vale Cross?';
     choices.innerHTML = '';
     const reportBtn = document.createElement('button');
     reportBtn.className = 'choiceBtn';
@@ -918,6 +1157,13 @@
 
   canvas.addEventListener('mousemove', e => {
     const w = screenToWorld(e.clientX, e.clientY);
+    if (scene !== 'street'){
+      const gy = groundY(), sx = sadieX();
+      const overSadie = w.x > sx-30 && w.x < sx+50 && w.y > gy-95 && w.y < gy;
+      hovered = null;
+      canvas.style.cursor = overSadie ? 'pointer' : 'crosshair';
+      return;
+    }
     const obj = findObjectAt(w.x, w.y);
     hovered = obj;
     canvas.style.cursor = obj ? 'pointer' : 'crosshair';
@@ -925,9 +1171,13 @@
 
   canvas.addEventListener('click', e => {
     if (!gameStarted) return;
+    const w = screenToWorld(e.clientX, e.clientY);
+    if (scene !== 'street'){
+      handleWarehouseClick(w.x, w.y);
+      return;
+    }
     hasMoved = true;
     document.getElementById('hintArrow').style.display = 'none';
-    const w = screenToWorld(e.clientX, e.clientY);
     const obj = findObjectAt(w.x, w.y);
     if (obj){
       const approach = obj.talkX !== undefined ? obj.talkX : obj.w/2;
@@ -961,22 +1211,31 @@
   function gameLoop(now){
     const dt = now - lastTime; lastTime = now;
     if (gameStarted){
-      drawSky();
-      drawParallaxBuildings();
-      drawMidgroundBuildings();
-      drawBlueCatSign();
-      drawStreet();
-      drawSplashes();
-      drawObjects();
-      player.update();
-      player.draw();
-      drawRain();
-      updateClock(dt);
+      if (scene === 'street'){
+        drawSky();
+        drawParallaxBuildings();
+        drawMidgroundBuildings();
+        drawBlueCatSign();
+        drawStreet();
+        drawSplashes();
+        drawObjects();
+        player.update();
+        player.draw();
+        drawRain();
+        updateClock(dt);
 
-      if (lightningAlpha > 0){
-        document.getElementById('lightning').style.opacity = lightningAlpha;
-        lightningAlpha -= 0.03;
+        if (lightningAlpha > 0){
+          document.getElementById('lightning').style.opacity = lightningAlpha;
+          lightningAlpha -= 0.03;
+        } else {
+          document.getElementById('lightning').style.opacity = 0;
+        }
       } else {
+        drawWarehouseInterior();
+        drawSadie(sadieX(), groundY(), now);
+        drawSplashes();
+        player.update();
+        player.draw();
         document.getElementById('lightning').style.opacity = 0;
       }
     }
