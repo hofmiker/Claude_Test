@@ -8,6 +8,7 @@
 | `dhl-city/` | DHL City Drive — 3D-Fahrspiel | `.../dhl-city/` |
 | `bitcoin-3d/` | Bitcoin 3D — Candlestick-Chart | `.../bitcoin-3d/` |
 | `spice-wars/` | Spice Wars — 2D Sci-Fi Strategie (Dune-2-Stil) | `.../spice-wars/` |
+| `dark-city/` | Dark City — 2D Nacht-Jump'n'Run | `.../dark-city/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
 **Base-URL:** https://hofmiker.github.io/Claude_Test/
