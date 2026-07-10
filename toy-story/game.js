@@ -326,7 +326,11 @@
     const KNEE_H = 1.3;          // upper floor wall height before the roof slope starts
     const RIDGE_H = 3.0;         // roof ridge height above FLOOR2_Y, at z=0
     const CORR_X_MIN = -0.5, CORR_X_MAX = 0.5;
-    const STAIR_Z_START = -2.0, STAIR_Z_END = 2.0;
+    // The staircase sits near the back (front-door) end of the corridor, so the
+    // entire rest of the upstairs hallway is one continuous piece reachable in
+    // a single direction from the top of the stairs — no need to cross back
+    // over the stairwell opening to reach any bedroom.
+    const STAIR_Z_START = -3.5, STAIR_Z_END = -1.3;
     const BOUNDS = { minX: X_MIN, maxX: X_MAX, minZ: Z_MIN, maxZ: Z_MAX };
 
     const leftX = X_MIN - 0.075, rightX = X_MAX + 0.075;
@@ -370,21 +374,20 @@
     groundFloors.push(plankFloor(0.5, 2.5, 2.3, Z_MAX, 0, 0xc79a63, 13));
 
     const upperFloors = [];
-    upperFloors.push(plankFloor(X_MIN, -0.5, Z_MIN, 0, FLOOR2_Y, 0xcdb290, 19));          // Elternschlafzimmer
-    upperFloors.push(plankFloor(X_MIN, -0.5, 0, Z_MAX, FLOOR2_Y, 0xdcb37e, 23));          // Kinderzimmer 1
-    upperFloors.push(tileFloor(0.5, X_MAX, Z_MIN, -1.5, FLOOR2_Y, 0xe6f2f5, 0xd2e6ea));   // Bad
-    upperFloors.push(plankFloor(0.5, X_MAX, -1.5, Z_MAX, FLOOR2_Y, 0xdcb37e, 29));        // Kinderzimmer 2
-    // Landing floor (with a hole for the stairwell)
+    upperFloors.push(plankFloor(X_MIN, -0.5, Z_MIN, 1.0, FLOOR2_Y, 0xcdb290, 19));         // Elternschlafzimmer
+    upperFloors.push(plankFloor(X_MIN, -0.5, 1.0, Z_MAX, FLOOR2_Y, 0xdcb37e, 23));         // Kinderzimmer 1
+    upperFloors.push(tileFloor(0.5, X_MAX, Z_MIN, -0.5, FLOOR2_Y, 0xe6f2f5, 0xd2e6ea));    // Bad
+    upperFloors.push(plankFloor(0.5, X_MAX, -0.5, Z_MAX, FLOOR2_Y, 0xdcb37e, 29));         // Kinderzimmer 2
+    // Landing floor: one continuous piece from the top of the stairs to the
+    // front wall (the stairwell shaft below has no upper-floor slab at all).
     const landingMat = new THREE.MeshStandardMaterial({ color: 0xb98a55, roughness: 0.8 });
-    [[CORR_X_MIN, CORR_X_MAX, Z_MIN, STAIR_Z_START], [CORR_X_MIN, CORR_X_MAX, STAIR_Z_END, Z_MAX]].forEach(([x0, x1, z0, z1]) => {
-        const m = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0), landingMat);
-        m.rotation.x = -Math.PI / 2;
-        m.position.set((x0 + x1) / 2, FLOOR2_Y, (z0 + z1) / 2);
-        m.receiveShadow = true;
-        world.add(m);
-    });
+    const landingMesh = new THREE.Mesh(new THREE.PlaneGeometry(CORR_X_MAX - CORR_X_MIN, Z_MAX - STAIR_Z_END), landingMat);
+    landingMesh.rotation.x = -Math.PI / 2;
+    landingMesh.position.set(0, FLOOR2_Y, (STAIR_Z_END + Z_MAX) / 2);
+    landingMesh.receiveShadow = true;
+    world.add(landingMesh);
     // Ceiling of the ground floor / underside of the upper floor slab (closes the gap visually, minus the stairwell)
-    [[X_MIN, -0.5, Z_MIN, Z_MAX], [-0.5, 0.5, Z_MIN, STAIR_Z_START], [-0.5, 0.5, STAIR_Z_END, Z_MAX], [0.5, X_MAX, Z_MIN, Z_MAX]].forEach(([x0, x1, z0, z1]) => {
+    [[X_MIN, -0.5, Z_MIN, Z_MAX], [-0.5, 0.5, STAIR_Z_END, Z_MAX], [0.5, X_MAX, Z_MIN, Z_MAX]].forEach(([x0, x1, z0, z1]) => {
         world.add(box(x1 - x0, 0.1, z1 - z0, 0xece6da, (x0 + x1) / 2, WALL_H + 0.05, (z0 + z1) / 2, { cast: false }));
     });
 
@@ -404,11 +407,13 @@
         wall(0.1, WALL_H, zTo - zFrom, color, x, WALL_H / 2, (zFrom + zTo) / 2);
         addObstacle(0, x, (zFrom + zTo) / 2, 0.1, zTo - zFrom);
     }
-    // Living room opening (wide, doorless) at z[-1.2,1.2]; kitchen opening at x=0.5 z[-1.6,0.4]
-    corridorWallRun(-0.5, backZ, -1.2, WALL_LIGHT);
-    corridorWallRun(-0.5, 1.2, frontZ, WALL_LIGHT);
-    corridorWallRun(0.5, backZ, -1.6, WALL_KITCHEN);
-    corridorWallRun(0.5, 0.4, frontZ, WALL_KITCHEN);
+    // Living room + kitchen openings (wide, doorless). The stair ramp occupies
+    // z[STAIR_Z_START, STAIR_Z_END] = z[-3.5, -1.3], so both openings sit safely
+    // past its end, near the middle of the corridor.
+    corridorWallRun(-0.5, backZ, -1.1, WALL_LIGHT);
+    corridorWallRun(-0.5, 0.1, frontZ, WALL_LIGHT);
+    corridorWallRun(0.5, backZ, -1.1, WALL_KITCHEN);
+    corridorWallRun(0.5, 0.1, frontZ, WALL_KITCHEN);
 
     // Toilette room walls (with a real door on its south side)
     wall(0.1, WALL_H, 2.0, WALL_LIGHT, 2.5, WALL_H / 2, 1.3); // x=2.5 wall
@@ -600,20 +605,27 @@
         wall(xTo - xFrom, KNEE_H, 0.1, color, (xFrom + xTo) / 2, FLOOR2_Y + KNEE_H / 2, z);
         addObstacle(1, (xFrom + xTo) / 2, z, xTo - xFrom, 0.1);
     }
-    // West corridor wall with doors to Eltern (back) and Kinderzimmer 1 (front)
-    upperPartitionZ(-0.5, backZ, -1.6, WALL_PARENT);
-    upperPartitionZ(-0.5, 0.9, frontZ, WALL_KID1);
-    // East corridor wall with doors to Bad (back) and Kinderzimmer 2 (front)
-    upperPartitionZ(0.5, backZ, -2.6, WALL_PARENT);
-    upperPartitionZ(0.5, -0.6, frontZ, WALL_KID2);
+    // The stairs sit at one end of the corridor (z < STAIR_Z_END = -1.3); the
+    // upper landing is a single continuous piece from there to the front wall.
+    // Every bedroom door gap therefore must lie entirely within z > STAIR_Z_END,
+    // so the doorway always sits on flat landing, never on the sloped ramp.
+    // West corridor wall: doors to Eltern (back room) and Kinderzimmer 1 (front room)
+    upperPartitionZ(-0.5, backZ, -1.1, WALL_PARENT);
+    upperPartitionZ(-0.5, -0.4, 1.0, WALL_PARENT);
+    upperPartitionZ(-0.5, 1.0, 1.6, WALL_KID1);
+    upperPartitionZ(-0.5, 2.4, frontZ, WALL_KID1);
+    // East corridor wall: doors to Bad (back room) and Kinderzimmer 2 (front room)
+    upperPartitionZ(0.5, backZ, -1.2, WALL_KID2);
+    upperPartitionZ(0.5, -0.6, 1.6, WALL_KID2);
+    upperPartitionZ(0.5, 2.3, frontZ, WALL_KID2);
     // Eltern <-> Kinderzimmer1 divider, Bad <-> Kinderzimmer2 divider
-    upperPartitionX(0, X_MIN, -0.5, WALL_PARENT);
-    upperPartitionX(-1.5, 0.5, X_MAX, WALL_KID2);
+    upperPartitionX(1.0, X_MIN, -0.5, WALL_PARENT);
+    upperPartitionX(-0.5, 0.5, X_MAX, WALL_KID2);
 
-    buildDoor({ axis: 'z', x: -0.5, hinge: -1.6, hingeSign: -1, width: 0.7, height: KNEE_H + 0.6, openAngle: Math.PI / 2, wallDepth: 0.1, doorColor: 0xdccdb8 });
-    buildDoor({ axis: 'z', x: -0.5, hinge: 0.9, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xf3d7e6 });
-    buildDoor({ axis: 'z', x: 0.5, hinge: -2.6, hingeSign: -1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdcecef });
-    buildDoor({ axis: 'z', x: 0.5, hinge: -0.6, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: Math.PI / 2, wallDepth: 0.1, doorColor: 0xbfe0ea });
+    buildDoor({ axis: 'z', x: -0.5, hinge: -1.1, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdccdb8 });
+    buildDoor({ axis: 'z', x: -0.5, hinge: 1.6, hingeSign: 1, width: 0.8, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xf3d7e6 });
+    buildDoor({ axis: 'z', x: 0.5, hinge: -1.2, hingeSign: 1, width: 0.6, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdcecef });
+    buildDoor({ axis: 'z', x: 0.5, hinge: 1.6, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xbfe0ea });
 
     // ---------- Sloped ceilings (Dachschrägen) + gable roof shell ----------
     function slopedCeiling(zSign, color) {
@@ -622,7 +634,7 @@
         const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.9, side: THREE.DoubleSide });
         const mesh = new THREE.Mesh(geo, mat);
         const angle = Math.atan2(RIDGE_H - KNEE_H, 4);
-        mesh.rotation.x = zSign > 0 ? Math.PI / 2 - angle : -(Math.PI / 2 - angle);
+        mesh.rotation.x = zSign * (Math.PI / 2 + angle);
         mesh.position.set(0, FLOOR2_Y + (KNEE_H + RIDGE_H) / 2, zSign * 2);
         mesh.receiveShadow = true;
         mesh.castShadow = false;
@@ -637,7 +649,7 @@
         const run = Math.hypot(4.4, RIDGE_H - KNEE_H + 0.15);
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(spanX + 0.6, run), new THREE.MeshStandardMaterial({ color: 0x7a3d33, roughness: 0.8, side: THREE.DoubleSide }));
         const angle = Math.atan2(RIDGE_H - KNEE_H + 0.15, 4.4);
-        mesh.rotation.x = zSign > 0 ? Math.PI / 2 - angle : -(Math.PI / 2 - angle);
+        mesh.rotation.x = zSign * (Math.PI / 2 + angle);
         mesh.position.set(0, FLOOR2_Y + (KNEE_H + RIDGE_H) / 2 + 0.05, zSign * 2);
         mesh.castShadow = true;
         world.add(mesh);
@@ -647,14 +659,14 @@
 
     function addSkylight(xCenter, zCenter, zSign) {
         const angle = Math.atan2(RIDGE_H - KNEE_H, 4);
-        const t = Math.abs(zCenter) / 4; // 0 at eave, 1 at ridge along the slope
-        const y = FLOOR2_Y + KNEE_H + t * (RIDGE_H - KNEE_H);
+        const t = Math.abs(zCenter) / 4; // 0 at the ridge, 1 at the eave along the slope
+        const y = FLOOR2_Y + RIDGE_H - t * (RIDGE_H - KNEE_H);
         const g = new THREE.Group();
         g.add(box(0.55, 0.03, 0.4, 0xdff2ff, 0, 0, 0, { metalness: 0.3, roughness: 0.1, cast: false }));
         g.add(box(0.6, 0.015, 0.06, 0xffffff, 0, 0.01, -0.19, { cast: false }));
         g.add(box(0.6, 0.015, 0.06, 0xffffff, 0, 0.01, 0.19, { cast: false }));
         g.position.set(xCenter, y - 0.01, zCenter);
-        g.rotation.x = zSign > 0 ? -(Math.PI / 2 - angle) : (Math.PI / 2 - angle);
+        g.rotation.x = zSign * (Math.PI / 2 + angle);
         world.add(g);
     }
     addSkylight(-2.7, -2.2, -1);   // Elternschlafzimmer
@@ -700,11 +712,13 @@
     world.add(sisterBed);
     addObstacle(1, -4.0, 2.0, 1.1, 1.95);
     const sisterDesk = createDesk(0xe8b6cf);
-    sisterDesk.position.set(-1.1, FLOOR2_Y, 1.0);
+    sisterDesk.position.set(-1.1, FLOOR2_Y, 1.5);
     world.add(sisterDesk);
-    addObstacle(1, -1.1, 1.0, 0.8, 0.55);
-    world.add(chair(-1.1, 1.35, Math.PI, 0xd6a0bf));
-    addObstacle(1, -1.1, 1.35, 0.42, 0.42);
+    addObstacle(1, -1.1, 1.5, 0.8, 0.55);
+    const sisterChair = chair(-1.1, 1.85, Math.PI, 0xd6a0bf);
+    sisterChair.position.y = FLOOR2_Y;
+    world.add(sisterChair);
+    addObstacle(1, -1.1, 1.85, 0.42, 0.42);
     const sisterRug = new THREE.Mesh(new THREE.CircleGeometry(0.75, 32), new THREE.MeshStandardMaterial({ color: 0xf0a8c8, roughness: 1 }));
     sisterRug.rotation.x = -Math.PI / 2;
     sisterRug.position.set(-2.6, FLOOR2_Y + 0.004, 2.6);
@@ -713,9 +727,9 @@
 
     // ================= Bad (upstairs) =================
     const tub = createBathtub(1.5, 0.7);
-    tub.position.set(1.3, FLOOR2_Y, backZ + 0.5);
+    tub.position.set(2.0, FLOOR2_Y, backZ + 0.5);
     world.add(tub);
-    addObstacle(1, 1.3, backZ + 0.5, 1.55, 0.75);
+    addObstacle(1, 2.0, backZ + 0.5, 1.55, 0.75);
     const badWc = createToilet();
     badWc.position.set(4.4, FLOOR2_Y, -1.9);
     badWc.rotation.y = -Math.PI / 2;
@@ -749,9 +763,9 @@
     boyShelf.add(box(0.02, 0.24, 0.2, 0xff8a5b, 0.18, 1.1, -0.3));
     boyShelf.add(box(0.02, 0.2, 0.18, 0x6fcf97, 0.18, 1.06, 0.05));
     boyShelf.add(cyl(0.1, 0.1, 0.2, 0xffd166, 0.18, 1.08, 0.32, { rotZ: Math.PI / 2 }));
-    boyShelf.position.set(rightX - 0.18, FLOOR2_Y, -1.0);
+    boyShelf.position.set(rightX - 0.18, FLOOR2_Y, 0.4);
     world.add(boyShelf);
-    addObstacle(1, rightX - 0.18, -1.0, 0.36, 0.95);
+    addObstacle(1, rightX - 0.18, 0.4, 0.36, 0.95);
 
     const boyChest = new THREE.Group();
     boyChest.add(box(0.62, 0.38, 0.4, 0x5b8fd9, 0, 0.19, 0));
@@ -800,9 +814,9 @@
         return g;
     }
     const rockingHorse = createRockingHorse();
-    rockingHorse.position.set(2.4, FLOOR2_Y, -0.4);
+    rockingHorse.position.set(2.4, FLOOR2_Y, 0.15);
     world.add(rockingHorse);
-    addObstacle(1, 2.4, -0.4, 0.55, 0.5);
+    addObstacle(1, 2.4, 0.15, 0.55, 0.5);
 
     const BALL_COLORS = [0xff5e5e, 0x5b9dff, 0xffd166, 0x6fcf67, 0xb570ff];
     const balls = [];
