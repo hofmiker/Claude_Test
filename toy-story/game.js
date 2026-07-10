@@ -354,45 +354,48 @@
     world.add(bodyTilt);
 
     // ---------- Player state ----------
+    // Control + camera mechanics modeled after dhl-city/character.html:
+    // tank steering (turn + forward/back), fixed auto-follow chase camera,
+    // accel/decel movement, and a windup/air/land jump state machine.
+    const JUMP_STATE = { NONE: 0, WINDUP: 1, AIR: 2, LAND: 3 };
+    const WINDUP_DUR = 0.15;
+    const LAND_DUR = 0.25;
+
     const state = {
         x: -3, z: 3, y: 0, vy: 0,
         yaw: Math.PI,
         grounded: true,
-        speed: 0,
-        squash: 1,
+        moveSpeed: 0,
         walkPhase: 0,
+        jumpState: JUMP_STATE.NONE,
+        jumpTimer: 0,
+        jumpBuffered: false,
     };
 
     const PLAYER_RADIUS = 0.35;
-    const WALK_SPEED = 3.6;
-    const RUN_SPEED = 5.6;
+    const SPEED_MAX = 3.6;
+    const ACCEL_RATE = 8.5;
+    const DECEL_RATE = 11;
+    const TURN_RATE = 2.0;
     const GRAVITY = -20;
-    const JUMP_SPEED = 7.4;
+    const JUMP_VEL = 7.4;
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
 
     // ---------- Input ----------
     const keys = new Set();
     window.addEventListener('keydown', (e) => {
         keys.add(e.code);
-        if (e.code === 'Space') e.preventDefault();
+        if (e.code === 'Space') { state.jumpBuffered = true; e.preventDefault(); }
     });
     window.addEventListener('keyup', (e) => keys.delete(e.code));
 
-    // ---------- Camera rig (mouse-orbit third person, toy's-eye style) ----------
-    const camRig = { yaw: Math.PI * 0.15, pitch: 0.32, distance: 4.2 };
-    let dragging = false, lastPX = 0, lastPY = 0;
-    canvas.addEventListener('pointerdown', (e) => { dragging = true; lastPX = e.clientX; lastPY = e.clientY; canvas.setPointerCapture(e.pointerId); });
-    canvas.addEventListener('pointerup', () => dragging = false);
-    canvas.addEventListener('pointercancel', () => dragging = false);
-    canvas.addEventListener('pointermove', (e) => {
-        if (!dragging) return;
-        const dx = e.clientX - lastPX, dy = e.clientY - lastPY;
-        lastPX = e.clientX; lastPY = e.clientY;
-        camRig.yaw -= dx * 0.006;
-        camRig.pitch = Math.max(0.08, Math.min(0.75, camRig.pitch - dy * 0.004));
-    });
-    canvas.addEventListener('wheel', (e) => {
-        camRig.distance = Math.max(2.4, Math.min(7.5, camRig.distance + e.deltaY * 0.003));
-    }, { passive: true });
+    // ---------- Camera rig (fixed auto-follow chase camera, toy's-eye style) ----------
+    const CAM_DIST_MOVE = 3.8;
+    const CAM_DIST_IDLE = 2.5;
+    const CAM_HEIGHT = 1.4;
+    const CAM_LOOK_HEIGHT = 0.65;
+    let camDist = CAM_DIST_IDLE;
 
     const camTarget = new THREE.Vector3();
     const camDesired = new THREE.Vector3();
@@ -427,38 +430,21 @@
     function update(dt) {
         dt = Math.min(dt, 0.05);
 
-        const forward = new THREE.Vector3(Math.sin(camRig.yaw), 0, Math.cos(camRig.yaw));
-        const right = new THREE.Vector3(forward.z, 0, -forward.x);
+        // Tank steering: A/D (or ←/→) turn in place, W/S (or ↑/↓) move along facing direction
+        if (keys.has('KeyA') || keys.has('ArrowLeft')) state.yaw += TURN_RATE * dt;
+        if (keys.has('KeyD') || keys.has('ArrowRight')) state.yaw -= TURN_RATE * dt;
 
-        let mx = 0, mz = 0;
-        if (keys.has('KeyW') || keys.has('ArrowUp')) mz -= 1;
-        if (keys.has('KeyS') || keys.has('ArrowDown')) mz += 1;
-        if (keys.has('KeyA') || keys.has('ArrowLeft')) mx -= 1;
-        if (keys.has('KeyD') || keys.has('ArrowRight')) mx += 1;
+        const fwdX = Math.sin(state.yaw), fwdZ = Math.cos(state.yaw);
+        const wantForward = keys.has('KeyW') || keys.has('ArrowUp');
+        const wantBack = keys.has('KeyS') || keys.has('ArrowDown');
+        const wantMove = (wantForward || wantBack) && state.jumpState !== JUMP_STATE.WINDUP;
 
-        const moving = mx !== 0 || mz !== 0;
-        const running = keys.has('ShiftLeft') || keys.has('ShiftRight');
-        const targetSpeed = moving ? (running ? RUN_SPEED : WALK_SPEED) : 0;
-        state.speed += (targetSpeed - state.speed) * Math.min(1, dt * 10);
+        if (wantMove) state.moveSpeed = Math.min(state.moveSpeed + ACCEL_RATE * dt, SPEED_MAX);
+        else state.moveSpeed = Math.max(state.moveSpeed - DECEL_RATE * dt, 0);
 
-        if (moving) {
-            const len = Math.hypot(mx, mz) || 1;
-            mx /= len; mz /= len;
-            const moveDir = new THREE.Vector3()
-                .addScaledVector(forward, -mz)
-                .addScaledVector(right, mx)
-                .normalize();
-
-            state.x += moveDir.x * state.speed * dt;
-            state.z += moveDir.z * state.speed * dt;
-
-            const targetYaw = Math.atan2(moveDir.x, moveDir.z);
-            let diff = targetYaw - state.yaw;
-            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-            state.yaw += diff * Math.min(1, dt * 12);
-
-            state.walkPhase += dt * state.speed * 3.2;
-        }
+        if (wantForward) { state.x += fwdX * state.moveSpeed * dt; state.z += fwdZ * state.moveSpeed * dt; }
+        if (wantBack) { state.x -= fwdX * state.moveSpeed * dt; state.z -= fwdZ * state.moveSpeed * dt; }
+        if (wantMove) state.walkPhase += dt * state.moveSpeed * 3.2;
 
         // Clamp to house bounds
         state.x = Math.max(BOUNDS.minX + PLAYER_RADIUS, Math.min(BOUNDS.maxX - PLAYER_RADIUS, state.x));
@@ -466,22 +452,43 @@
 
         [state.x, state.z] = resolveObstacles(state.x, state.z, PLAYER_RADIUS);
 
-        // Jump / gravity
-        if (keys.has('Space') && state.grounded) {
-            state.vy = JUMP_SPEED;
-            state.grounded = false;
-            state.squash = 1.25;
+        // Jump state machine: buffered input -> windup (crouch) -> air (tuck) -> land (squat)
+        if (state.jumpBuffered && state.grounded && state.jumpState !== JUMP_STATE.WINDUP && state.jumpState !== JUMP_STATE.AIR) {
+            state.jumpState = JUMP_STATE.WINDUP;
+            state.jumpTimer = 0;
+            state.jumpBuffered = false;
         }
+        if (state.jumpState === JUMP_STATE.WINDUP) {
+            state.jumpTimer += dt;
+            if (state.jumpTimer >= WINDUP_DUR) {
+                state.vy = JUMP_VEL;
+                state.grounded = false;
+                state.jumpState = JUMP_STATE.AIR;
+                state.jumpTimer = 0;
+            }
+        }
+        if (state.jumpState === JUMP_STATE.LAND) {
+            state.jumpTimer += dt;
+            if (state.jumpTimer >= LAND_DUR) state.jumpState = JUMP_STATE.NONE;
+        }
+
         state.vy += GRAVITY * dt;
         state.y += state.vy * dt;
         if (state.y <= 0) {
-            if (!state.grounded) state.squash = 0.75;
+            if (state.vy < -1.5 && state.jumpState === JUMP_STATE.AIR) {
+                state.jumpState = JUMP_STATE.LAND;
+                state.jumpTimer = 0;
+            } else if (state.jumpState === JUMP_STATE.AIR) {
+                state.jumpState = JUMP_STATE.NONE;
+            }
             state.y = 0;
             state.vy = 0;
             state.grounded = true;
+        } else {
+            state.grounded = false;
         }
 
-        state.squash += (1 - state.squash) * Math.min(1, dt * 9);
+        const moving = state.moveSpeed > 0.05;
 
         // Ball interactions
         for (const b of balls) {
@@ -494,7 +501,7 @@
                 const nx = dx / dist, nz = dz / dist;
                 b.mesh.position.x += nx * push;
                 b.mesh.position.z += nz * push;
-                const kick = 3.2 + state.speed * 0.6;
+                const kick = 3.2 + state.moveSpeed * 0.6;
                 b.vx += nx * kick * dt * 20;
                 b.vz += nz * kick * dt * 20;
             }
@@ -519,25 +526,57 @@
         // Rocking horse idle sway
         rockingHorse.rotation.z = Math.sin(clock.elapsedTime * 1.3) * 0.06 - 0.0;
 
-        // Apply player transform + animation
+        // Apply player transform
         bodyTilt.position.set(state.x, state.y, state.z);
         bodyTilt.rotation.y = state.yaw;
-        player.scale.set(1 / Math.sqrt(state.squash), state.squash, 1 / Math.sqrt(state.squash));
 
-        const walkSwing = moving ? Math.sin(state.walkPhase) * 0.55 : 0;
-        legL.rotation.x = walkSwing;
-        legR.rotation.x = -walkSwing;
-        armL.rotation.x = -walkSwing;
-        armR.rotation.x = walkSwing;
-        torso.position.y = 0.56 + (moving ? Math.abs(Math.sin(state.walkPhase)) * 0.02 : 0);
+        // Pose per jump-state (windup crouch / air tuck / land squat / walk-idle)
+        const TORSO_Y = 0.56;
+        if (state.jumpState === JUMP_STATE.WINDUP) {
+            const t = Math.min(state.jumpTimer / WINDUP_DUR, 1);
+            const sq = Math.sin(t * Math.PI * 0.5);
+            legL.rotation.x = lerp(legL.rotation.x, 0.5 * sq, 0.4);
+            legR.rotation.x = lerp(legR.rotation.x, 0.5 * sq, 0.4);
+            armL.rotation.x = lerp(armL.rotation.x, -0.6 * sq, 0.3);
+            armR.rotation.x = lerp(armR.rotation.x, -0.6 * sq, 0.3);
+            torso.position.y = lerp(torso.position.y, TORSO_Y - 0.12 * sq, 0.4);
+            torso.rotation.x = lerp(torso.rotation.x, -0.25 * sq, 0.3);
+        } else if (state.jumpState === JUMP_STATE.AIR) {
+            legL.rotation.x = lerp(legL.rotation.x, 0.9, 0.2);
+            legR.rotation.x = lerp(legR.rotation.x, 0.9, 0.2);
+            armL.rotation.x = lerp(armL.rotation.x, -0.9, 0.2);
+            armR.rotation.x = lerp(armR.rotation.x, -0.9, 0.2);
+            torso.position.y = lerp(torso.position.y, TORSO_Y + 0.05, 0.2);
+            torso.rotation.x = lerp(torso.rotation.x, 0.08, 0.15);
+        } else if (state.jumpState === JUMP_STATE.LAND) {
+            const t = Math.min(state.jumpTimer / LAND_DUR, 1);
+            const sq = 1 - t;
+            legL.rotation.x = lerp(legL.rotation.x, 0.55 * sq, 0.4);
+            legR.rotation.x = lerp(legR.rotation.x, 0.55 * sq, 0.4);
+            armL.rotation.x = lerp(armL.rotation.x, -0.5 * sq, 0.3);
+            armR.rotation.x = lerp(armR.rotation.x, -0.5 * sq, 0.3);
+            torso.position.y = lerp(torso.position.y, TORSO_Y - 0.16 * sq, 0.4);
+            torso.rotation.x = lerp(torso.rotation.x, 0, 0.3);
+        } else {
+            const swing = moving ? Math.sin(state.walkPhase) * 0.55 : 0;
+            legL.rotation.x = lerp(legL.rotation.x, swing, 0.3);
+            legR.rotation.x = lerp(legR.rotation.x, -swing, 0.3);
+            armL.rotation.x = lerp(armL.rotation.x, -swing, 0.3);
+            armR.rotation.x = lerp(armR.rotation.x, swing, 0.3);
+            torso.position.y = lerp(torso.position.y, TORSO_Y + (moving ? Math.abs(Math.sin(state.walkPhase)) * 0.02 : 0), 0.3);
+            torso.rotation.x = lerp(torso.rotation.x, 0, 0.3);
+        }
 
-        // Camera follow (toy's-eye chase camera) with wall-avoidance raycast
-        const camHeight = 1.0 + camRig.pitch * camRig.distance;
-        camPivot.set(state.x, state.y + 0.9, state.z);
+        // Camera: fixed auto-follow chase camera behind the character's facing
+        // direction (no mouse orbit), pulling in closer when idle, with a
+        // wall-avoidance raycast so it never clips through the house.
+        camDist = lerp(camDist, moving ? CAM_DIST_MOVE : CAM_DIST_IDLE, Math.min(1, dt * 2.5));
+
+        camPivot.set(state.x, state.y + 0.55, state.z);
         camDesired.set(
-            state.x - Math.sin(camRig.yaw) * camRig.distance,
-            state.y + camHeight,
-            state.z - Math.cos(camRig.yaw) * camRig.distance
+            state.x - fwdX * camDist,
+            state.y + CAM_HEIGHT,
+            state.z - fwdZ * camDist
         );
         camRayDir.subVectors(camDesired, camPivot);
         const desiredDist = camRayDir.length();
@@ -547,13 +586,13 @@
         camRay.near = 0.05;
         const hits = camRay.intersectObjects(cameraBlockers, true);
         let allowedDist = desiredDist;
-        if (hits.length) allowedDist = Math.max(0.6, hits[0].distance - 0.25);
+        if (hits.length) allowedDist = Math.max(0.6, hits[0].distance - 0.2);
         if (allowedDist < desiredDist) {
             camDesired.copy(camPivot).addScaledVector(camRayDir, allowedDist);
         }
-        camera.position.lerp(camDesired, Math.min(1, dt * 8));
+        camera.position.lerp(camDesired, Math.min(1, dt * 6));
 
-        camTarget.lerp(new THREE.Vector3(state.x, state.y + 0.75, state.z), Math.min(1, dt * 8));
+        camTarget.lerp(new THREE.Vector3(state.x, state.y + CAM_LOOK_HEIGHT, state.z), Math.min(1, dt * 8));
         camera.lookAt(camTarget);
 
         lamp.position.set(6, 3.3, 2.5);
