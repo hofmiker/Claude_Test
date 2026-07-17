@@ -49,10 +49,10 @@ scene.fog = new THREE.Fog(0x171a1d, CITY_HALF * 0.9, CITY_HALF * 1.85);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 900);
 const CAM_HEIGHT = 38;
-const CAM_BACK = 9; // fixed world-space offset -> camera never rotates with the car
-const camOffset = new THREE.Vector3(0, CAM_HEIGHT, CAM_BACK);
+const CAM_BACK = 9; // distance behind the car; camera now rotates to stay behind it
 const camTarget = new THREE.Vector3();
 const camPos = new THREE.Vector3(0, CAM_HEIGHT, CAM_BACK);
+let camHeading = 0;
 camera.position.copy(camPos);
 
 // ---------- Lighting ----------------------------------------------------
@@ -976,33 +976,38 @@ function drawMinimap() {
   const scale = (w / 2) / range;
   const cx = w / 2, cy = h / 2;
   const focus = player.inCar ? player.inCar.pos : player.pos;
+  const heading = player.inCar ? player.inCar.heading : player.heading;
 
   mmCtx.save();
   mmCtx.beginPath();
   mmCtx.arc(cx, cy, w / 2, 0, Math.PI * 2);
   mmCtx.clip();
 
+  // heading-up: rotate the whole world under the player so "forward" always points up
+  mmCtx.translate(cx, cy);
+  mmCtx.rotate(heading - Math.PI);
+
   mmCtx.fillStyle = '#3a3d41';
   for (const b of buildingColliders) {
-    const x1 = cx + (b.minX - focus.x) * scale;
-    const y1 = cy + (b.minZ - focus.z) * scale;
-    const x2 = cx + (b.maxX - focus.x) * scale;
-    const y2 = cy + (b.maxZ - focus.z) * scale;
+    const x1 = (b.minX - focus.x) * scale;
+    const y1 = (b.minZ - focus.z) * scale;
+    const x2 = (b.maxX - focus.x) * scale;
+    const y2 = (b.maxZ - focus.z) * scale;
     mmCtx.fillRect(x1, y1, x2 - x1, y2 - y1);
   }
 
   mmCtx.fillStyle = '#2f6b34';
   for (const p of parkCells) {
-    const x = cx + (p.x - focus.x) * scale;
-    const y = cy + (p.z - focus.z) * scale;
+    const x = (p.x - focus.x) * scale;
+    const y = (p.z - focus.z) * scale;
     const s = p.half * 2 * scale;
     mmCtx.fillRect(x - s / 2, y - s / 2, s, s);
   }
 
   mmCtx.fillStyle = '#ffd23f';
   for (const p of pickups) {
-    const x = cx + (p.pos.x - focus.x) * scale;
-    const y = cy + (p.pos.z - focus.z) * scale;
+    const x = (p.pos.x - focus.x) * scale;
+    const y = (p.pos.z - focus.z) * scale;
     mmCtx.beginPath();
     mmCtx.arc(x, y, 2.2, 0, Math.PI * 2);
     mmCtx.fill();
@@ -1010,8 +1015,8 @@ function drawMinimap() {
 
   if (mission) {
     const targetPos = mission.stage === 'pickup' ? mission.pickupPos : mission.dropoffPos;
-    const x = cx + (targetPos.x - focus.x) * scale;
-    const y = cy + (targetPos.z - focus.z) * scale;
+    const x = (targetPos.x - focus.x) * scale;
+    const y = (targetPos.z - focus.z) * scale;
     mmCtx.fillStyle = mission.stage === 'pickup' ? '#ffd23f' : '#36c7ff';
     mmCtx.beginPath();
     mmCtx.arc(x, y, 4.5, 0, Math.PI * 2);
@@ -1023,17 +1028,14 @@ function drawMinimap() {
 
   mmCtx.fillStyle = '#2050ff';
   for (const car of policeCars) {
-    const x = cx + (car.pos.x - focus.x) * scale;
-    const y = cy + (car.pos.z - focus.z) * scale;
+    const x = (car.pos.x - focus.x) * scale;
+    const y = (car.pos.z - focus.z) * scale;
     mmCtx.beginPath();
     mmCtx.arc(x, y, 3.2, 0, Math.PI * 2);
     mmCtx.fill();
   }
 
-  const heading = player.inCar ? player.inCar.heading : player.heading;
-  mmCtx.save();
-  mmCtx.translate(cx, cy);
-  mmCtx.rotate(heading);
+  // player marker always points straight up since the map rotates instead
   mmCtx.fillStyle = '#ff3b3b';
   mmCtx.beginPath();
   mmCtx.moveTo(0, -6);
@@ -1041,7 +1043,6 @@ function drawMinimap() {
   mmCtx.lineTo(-4, 5);
   mmCtx.closePath();
   mmCtx.fill();
-  mmCtx.restore();
 
   mmCtx.restore();
   mmCtx.strokeStyle = 'rgba(255,255,255,0.5)';
@@ -1071,9 +1072,17 @@ function checkPedestrianHits() {
 // ---------- Camera --------------------------------------------------------
 function updateCamera(dt) {
   const focus = player.inCar ? player.inCar.pos : player.pos;
+  const targetHeading = player.inCar ? player.inCar.heading : player.heading;
   camTarget.lerp(new THREE.Vector3(focus.x, 0, focus.z), Math.min(1, dt * 4.5));
-  const desired = new THREE.Vector3(camTarget.x + camOffset.x, camOffset.y, camTarget.z + camOffset.z);
-  camPos.lerp(desired, Math.min(1, dt * 4.5));
+  camHeading += wrapAngle(targetHeading - camHeading) * Math.min(1, dt * 5);
+
+  const forward = new THREE.Vector3(Math.sin(camHeading), 0, Math.cos(camHeading));
+  const desired = new THREE.Vector3(
+    camTarget.x - forward.x * CAM_BACK,
+    CAM_HEIGHT,
+    camTarget.z - forward.z * CAM_BACK
+  );
+  camPos.lerp(desired, Math.min(1, dt * 5));
   camera.position.copy(camPos);
 
   if (shakeTime > 0) {
