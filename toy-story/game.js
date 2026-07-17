@@ -409,9 +409,14 @@
     landingMesh.position.set(0, FLOOR2_Y, (STAIR_Z_END + Z_MAX) / 2);
     landingMesh.receiveShadow = true;
     world.add(landingMesh);
-    // Ceiling of the ground floor / underside of the upper floor slab (closes the gap visually, minus the stairwell)
+    // Ceiling of the ground floor / underside of the upper floor slab (closes the gap visually, minus the stairwell).
+    // Its top face must stay clearly below FLOOR2_Y — the actual upper-floor room
+    // planes sit exactly at FLOOR2_Y, and this slab used to reach all the way up
+    // to that same height across almost the entire upper-floor footprint, which
+    // is why the floor flickered everywhere upstairs, not just near the stairs.
+    const SLAB_TOP = FLOOR2_Y - 0.02, SLAB_H = SLAB_TOP - WALL_H;
     [[X_MIN, CORR_X_MIN, Z_MIN, Z_MAX], [CORR_X_MIN, CORR_X_MAX, STAIR_Z_END, Z_MAX], [CORR_X_MAX, X_MAX, Z_MIN, Z_MAX]].forEach(([x0, x1, z0, z1]) => {
-        world.add(box(x1 - x0, 0.1, z1 - z0, 0xece6da, (x0 + x1) / 2, WALL_H + 0.05, (z0 + z1) / 2, { cast: false }));
+        world.add(box(x1 - x0, SLAB_H, z1 - z0, 0xece6da, (x0 + x1) / 2, WALL_H + SLAB_H / 2, (z0 + z1) / 2, { cast: false }));
     });
 
     // ---------- Ground floor exterior + structural walls ----------
