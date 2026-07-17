@@ -51,5 +51,16 @@ Kachel und Screenshot sind kein optionaler Politur-Schritt, sondern Teil der
 Definition of Done für "neues Projekt hinzufügen" — ein Projekt ohne Kachel
 in der Landing Page gilt als unvollständig.
 
+## Branch-Namenskonvention
+Neue Sessions bekommen automatisch einen Branch mit Zufallsnamen
+(`claude/<beschreibung>-<code>`). Sobald im Laufe der Session klar wird,
+zu welchem Projektordner (siehe Tabelle oben) die Änderungen gehören,
+den Branch vor dem finalen Push umbenennen zu:
+
+`<projekt>/<kurzbeschreibung>` — z. B. `solar-orbit/add-moon-texture`
+
+Betrifft die Session kein einzelnes Projekt (repo-weite Aufräum-/Meta-Arbeit),
+stattdessen `chore/<kurzbeschreibung>` verwenden.
+
 ## Entwicklung
 Für projektspezifischen Kontext → CLAUDE.md im jeweiligen Unterordner lesen.
