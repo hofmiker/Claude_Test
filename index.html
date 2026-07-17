@@ -25,25 +25,37 @@
             margin-bottom: 48px;
         }
         .projects {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 16px;
             width: 100%;
-            max-width: 360px;
+            max-width: 840px;
         }
         a {
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            padding: 20px 24px;
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 12px;
             text-decoration: none;
+            overflow: hidden;
             transition: border-color 0.2s, background 0.2s;
         }
         a:hover, a:active {
             border-color: rgba(255,255,255,0.22);
             background: rgba(255,255,255,0.03);
+        }
+        .thumb {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+            background: #000;
+            display: block;
+        }
+        .label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 16px 20px;
         }
         .name {
             font-size: 13px;
@@ -62,36 +74,60 @@
     <h1>Projects</h1>
     <div class="projects">
         <a href="hello/">
-            <span class="name">Hello</span>
-            <span class="desc">Interaktive Partikel-Typografie</span>
+            <img class="thumb" src="screenshots/hello.png" alt="">
+            <span class="label">
+                <span class="name">Hello</span>
+                <span class="desc">Interaktive Partikel-Typografie</span>
+            </span>
         </a>
         <a href="solar-orbit/">
-            <span class="name">Solar Orbit</span>
-            <span class="desc">Interaktives 3D-Sonnensystem</span>
+            <img class="thumb" src="screenshots/solar-orbit.png" alt="">
+            <span class="label">
+                <span class="name">Solar Orbit</span>
+                <span class="desc">Interaktives 3D-Sonnensystem</span>
+            </span>
         </a>
         <a href="dhl-city/">
-            <span class="name">DHL City Drive</span>
-            <span class="desc">3D-Fahrspiel mit Paketzustellung</span>
+            <img class="thumb" src="screenshots/dhl-city.png" alt="">
+            <span class="label">
+                <span class="name">DHL City Drive</span>
+                <span class="desc">3D-Fahrspiel mit Paketzustellung</span>
+            </span>
         </a>
         <a href="bitcoin-3d/">
-            <span class="name">Bitcoin 3D</span>
-            <span class="desc">3D Candlestick-Visualisierung</span>
+            <img class="thumb" src="screenshots/bitcoin-3d.png" alt="">
+            <span class="label">
+                <span class="name">Bitcoin 3D</span>
+                <span class="desc">3D Candlestick-Visualisierung</span>
+            </span>
         </a>
         <a href="spice-wars/">
-            <span class="name">Spice Wars</span>
-            <span class="desc">2D Sci-Fi Echtzeitstrategie im Dune-2-Stil</span>
+            <img class="thumb" src="screenshots/spice-wars.png" alt="">
+            <span class="label">
+                <span class="name">Spice Wars</span>
+                <span class="desc">2D Sci-Fi Echtzeitstrategie im Dune-2-Stil</span>
+            </span>
         </a>
         <a href="dark-city/">
-            <span class="name">Dark City</span>
-            <span class="desc">2D Nacht-Jump'n'Run über die Dächer der Stadt</span>
+            <img class="thumb" src="screenshots/dark-city.png" alt="">
+            <span class="label">
+                <span class="name">Dark City</span>
+                <span class="desc">2D Nacht-Jump'n'Run über die Dächer der Stadt</span>
+            </span>
         </a>
         <a href="neon-rain-game/">
-            <span class="name">The Neon Rain</span>
-            <span class="desc">Noir-Detektiv-Adventure in einer Regennacht-Stadt</span>
+            <img class="thumb" src="screenshots/neon-rain-game.png" alt="">
+            <span class="label">
+                <span class="name">The Neon Rain</span>
+                <span class="desc">Noir-Detektiv-Adventure in einer Regennacht-Stadt</span>
+            </span>
         </a>
         <a href="toy-story/">
-            <span class="name">Spielzeug-Abenteuer</span>
-            <span class="desc">3D-Lauf-/Hüpfspiel als 10cm-Spielfigur durch ein zweistöckiges Haus</span>
+            <img class="thumb" src="screenshots/toy-story.png" alt="">
+            <span class="label">
+                <span class="name">Spielzeug-Abenteuer</span>
+                <span class="desc">3D-Lauf-/Hüpfspiel als 10cm-Spielfigur durch ein zweistöckiges Haus</span>
+            </span>
         </a>
     </div>
 </body>
