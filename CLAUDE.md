@@ -28,8 +28,28 @@ kein PR nötig.
 3. `<projekt>/CLAUDE.md` anlegen (Live-URL, Features, Steuerung, Tech-Stack —
    siehe bestehende Projekte als Vorlage)
 4. Eintrag in der Projekte-Tabelle oben in dieser Datei ergänzen
-5. Karte in der Root-`index.html` (Landing Page) ergänzen
-6. Push auf `main` → Pages deployed automatisch, i. d. R. live in 1–2 Minuten
+5. **Kachel in der Root-`index.html` ergänzen — Pflichtschritt, jedes Projekt
+   braucht eine Kachel.** Jede Kachel ist ein `<a>` innerhalb von
+   `.projects` mit exakt dieser Struktur (Klassen `thumb`/`label`/`name`/`desc`
+   sind bereits per CSS gestylt, nichts weiter nötig):
+   ```html
+   <a href="<projekt>/">
+       <img class="thumb" src="screenshots/<projekt>.png" alt="">
+       <span class="label">
+           <span class="name">Projektname</span>
+           <span class="desc">Kurzbeschreibung</span>
+       </span>
+   </a>
+   ```
+6. Screenshot bzw. GIF für die Kachel erzeugen und unter
+   `screenshots/<projekt>.png` (oder `.gif`) ablegen — Startscreen wenn
+   möglich überspringen (Klick/Taste simulieren), damit echtes Gameplay zu
+   sehen ist. Ohne dieses Bild bleibt die Kachel schwarz.
+7. Push auf `main` → Pages deployed automatisch, i. d. R. live in 1–2 Minuten
+
+Kachel und Screenshot sind kein optionaler Politur-Schritt, sondern Teil der
+Definition of Done für "neues Projekt hinzufügen" — ein Projekt ohne Kachel
+in der Landing Page gilt als unvollständig.
 
 ## Entwicklung
 Für projektspezifischen Kontext → CLAUDE.md im jeweiligen Unterordner lesen.
