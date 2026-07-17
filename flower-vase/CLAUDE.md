@@ -3,6 +3,10 @@
 ## Live-URL
 https://hofmiker.github.io/Claude_Test/flower-vase/
 
+## Aktuelle Version: v1.3 (17.07.2026)
+Versionsnummer im `#deploy-time` div (oben rechts). Beim nächsten
+Commit auf v1.4 hochzählen.
+
 ## Konzept
 Eine 3D-Blumenvase (Lathe-Geometrie) mit 5 prozedural erzeugten Blumen
 (Stängel, Blätter, Blütenblätter, Pollen). Ein Zeit-Regler unten (nach
