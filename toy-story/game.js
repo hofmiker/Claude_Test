@@ -276,7 +276,7 @@
     function buildDoor(opts) {
         const {
             axis = 'z', x, z, hinge, hingeSign, width = 0.80, height = 2.0,
-            openAngle = 0, wallDepth = 0.15, frameColor = 0x8a5a3a, doorColor = 0xd8c39a,
+            openAngle = 0, wallDepth = 0.15, frameColor = 0x8a5a3a, doorColor = 0xd8c39a, baseY = 0,
         } = opts;
         const jambDepth = wallDepth + 0.05;
         const farC = hinge + hingeSign * width;
@@ -285,18 +285,18 @@
                 ? world.add(box(w, h, d, color, x, fixedCoord, along))
                 : world.add(box(d, h, w, color, along, fixedCoord, z));
 
-        put(jambDepth, height + 0.08, 0.05, frameColor, hinge, height / 2 + 0.02);
-        put(jambDepth, height + 0.08, 0.05, frameColor, farC, height / 2 + 0.02);
-        put(jambDepth, 0.06, Math.abs(farC - hinge) + 0.1, frameColor, (hinge + farC) / 2, height + 0.06);
+        put(jambDepth, height + 0.08, 0.05, frameColor, hinge, baseY + height / 2 + 0.02);
+        put(jambDepth, height + 0.08, 0.05, frameColor, farC, baseY + height / 2 + 0.02);
+        put(jambDepth, 0.06, Math.abs(farC - hinge) + 0.1, frameColor, (hinge + farC) / 2, baseY + height + 0.06);
 
         [0.18, 0.5, 0.82].forEach((f) => {
             axis === 'z'
-                ? world.add(box(0.05, 0.05, 0.014, 0x8c8c8c, x, f * height, hinge, { metalness: 0.6, roughness: 0.35 }))
-                : world.add(box(0.014, 0.05, 0.05, 0x8c8c8c, hinge, f * height, z, { metalness: 0.6, roughness: 0.35 }));
+                ? world.add(box(0.05, 0.05, 0.014, 0x8c8c8c, x, baseY + f * height, hinge, { metalness: 0.6, roughness: 0.35 }))
+                : world.add(box(0.014, 0.05, 0.05, 0x8c8c8c, hinge, baseY + f * height, z, { metalness: 0.6, roughness: 0.35 }));
         });
 
         const pivot = new THREE.Group();
-        if (axis === 'z') pivot.position.set(x, 0, hinge); else pivot.position.set(hinge, 0, z);
+        if (axis === 'z') pivot.position.set(x, baseY, hinge); else pivot.position.set(hinge, baseY, z);
         pivot.rotation.y = axis === 'z' ? openAngle : openAngle + Math.PI / 2;
         const leaf = box(0.045, height - 0.06, width, doorColor, 0, height / 2, hingeSign * width / 2);
         pivot.add(leaf);
@@ -605,7 +605,11 @@
     for (let i = 0; i <= STAIR_STEPS; i++) {
         const t = i / STAIR_STEPS;
         const z = STAIR_Z_START + t * (STAIR_Z_END - STAIR_Z_START);
-        const y = t * FLOOR2_Y;
+        // Treads sit just below the walking-surface height (top face ~5mm under
+        // t*FLOOR2_Y) rather than centered on it — otherwise the top tread's upper
+        // half pokes through, or sits exactly coplanar with, the landing floor
+        // plane at the same height, both of which cause z-fighting.
+        const y = t * FLOOR2_Y - 0.025;
         world.add(box((CORR_X_MAX - CORR_X_MIN) - 0.06, 0.04, (STAIR_Z_END - STAIR_Z_START) / STAIR_STEPS + 0.02, 0x9c6b3f, 0, y, z, { cast: false }));
     }
     world.add(box(0.06, FLOOR2_Y + 0.1, STAIR_Z_END - STAIR_Z_START, 0x6b4429, CORR_X_MIN + 0.03, FLOOR2_Y / 2, (STAIR_Z_START + STAIR_Z_END) / 2, { cast: false }));
@@ -675,10 +679,10 @@
     upperPartitionX(1.0, X_MIN, CORR_X_MIN, WALL_PARENT);
     upperPartitionX(-0.5, CORR_X_MAX, X_MAX, WALL_KID2);
 
-    buildDoor({ axis: 'z', x: CORR_X_MIN, hinge: -1.1, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdccdb8 });
-    buildDoor({ axis: 'z', x: CORR_X_MIN, hinge: 1.6, hingeSign: 1, width: 0.8, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xf3d7e6 });
-    buildDoor({ axis: 'z', x: CORR_X_MAX, hinge: -1.2, hingeSign: 1, width: 0.6, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdcecef });
-    buildDoor({ axis: 'z', x: CORR_X_MAX, hinge: 1.6, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xbfe0ea });
+    buildDoor({ axis: 'z', x: CORR_X_MIN, hinge: -1.1, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdccdb8, baseY: FLOOR2_Y });
+    buildDoor({ axis: 'z', x: CORR_X_MIN, hinge: 1.6, hingeSign: 1, width: 0.8, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xf3d7e6, baseY: FLOOR2_Y });
+    buildDoor({ axis: 'z', x: CORR_X_MAX, hinge: -1.2, hingeSign: 1, width: 0.6, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdcecef, baseY: FLOOR2_Y });
+    buildDoor({ axis: 'z', x: CORR_X_MAX, hinge: 1.6, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xbfe0ea, baseY: FLOOR2_Y });
 
     // ---------- Sloped ceilings (Dachschrägen) + gable roof shell ----------
     function slopedCeiling(zSign, color) {
