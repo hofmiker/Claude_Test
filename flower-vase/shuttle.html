@@ -161,7 +161,7 @@
 </head>
 <body>
 
-<div id="deploy-time">v2.0&thinsp;|&thinsp;17.07.2026</div>
+<div id="deploy-time">v2.1&thinsp;|&thinsp;17.07.2026</div>
 <nav id="sceneTabs">
   <a href="./index.html">🌸 Blumenvase</a>
   <a href="./shuttle.html" class="active">🚀 Spaceshuttle</a>
@@ -253,6 +253,7 @@ renderer.toneMappingExposure = 1.15;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x02030a);
+scene.fog = new THREE.FogExp2(0x02030a, 0.012);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 200);
 camera.position.set(4.2, 4.3, 5.6);
@@ -268,7 +269,7 @@ controls.autoRotateSpeed = 0.5;
 controls.addEventListener("start", () => (controls.autoRotate = false));
 
 // ---------- lighting (deep space: one hard sun, faint ambient) ----------
-scene.add(new THREE.HemisphereLight(0x2a3550, 0x05050a, 0.35));
+scene.add(new THREE.HemisphereLight(0x4a5a80, 0x0a0a10, 0.7));
 
 const sun = new THREE.DirectionalLight(0xfff2df, 3.0);
 sun.position.set(6, 5, 4);
@@ -290,6 +291,10 @@ scene.add(rimLight);
 const blastLight = new THREE.PointLight(0xff7a33, 0, 16, 2);
 blastLight.position.set(0, 0, 0);
 scene.add(blastLight);
+
+// soft light that follows the camera so the model is never lit from only one hard angle
+const camLight = new THREE.PointLight(0xffffff, 2.2, 20, 1.5);
+scene.add(camLight);
 
 // ---------- starfield ----------
 {
@@ -324,142 +329,244 @@ scene.add(blastLight);
   scene.add(planet);
 }
 
-// ---------- shuttle geometry (nose points +Z, tail at -Z) ----------
-const shuttleGroup = new THREE.Group();
-scene.add(shuttleGroup);
+// ---------- ground / display ambience (toy sitting in a lit display space) ----------
+const GROUND_Y = -1.15;
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(9, 64),
+  new THREE.MeshStandardMaterial({ color: 0x0b0d18, roughness: 0.7, metalness: 0.2 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = GROUND_Y;
+ground.receiveShadow = true;
+scene.add(ground);
 
-const intactMats = [];
-function makeMat(color, opts = {}) {
-  const m = new THREE.MeshStandardMaterial({
-    color, roughness: opts.roughness ?? 0.5, metalness: opts.metalness ?? 0.2,
-    transparent: true, emissive: opts.emissive ?? 0x000000, emissiveIntensity: opts.emissiveIntensity ?? 1,
+const haloRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.05, 0.06, 96),
+  new THREE.MeshBasicMaterial({ color: 0xff8a3c, transparent: true, opacity: 0.16, side: THREE.DoubleSide })
+);
+haloRing.rotation.x = -Math.PI / 2;
+haloRing.position.y = GROUND_Y + 0.01;
+scene.add(haloRing);
+
+const groundFill = new THREE.PointLight(0x3a5a8a, 2.2, 8, 2);
+groundFill.position.set(0, GROUND_Y + 0.6, 1.5);
+scene.add(groundFill);
+
+// ---------- fragments registry (shared by big hull chunks + small shrapnel) ----------
+// each fragment: { mesh, basePos, baseQuat, baseScale, dir, dist, axis, spin, delay, gravity, fade }
+const fragments = [];
+
+function addFragment(geometry, material, basePos, baseQuat, opts = {}) {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.copy(basePos);
+  mesh.quaternion.copy(baseQuat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = false;
+  scene.add(mesh);
+
+  const dir = (opts.dir || new THREE.Vector3(rand(-1, 1), rand(0.2, 1), rand(-1, 1))).clone().normalize();
+  fragments.push({
+    mesh,
+    basePos: basePos.clone(),
+    baseQuat: baseQuat.clone(),
+    baseScale: mesh.scale.clone(),
+    dir,
+    dist: opts.dist ?? rand(2, 4),
+    axis: opts.axis || new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize(),
+    spin: opts.spin ?? rand(1.5, 4.5) * (Math.random() < 0.5 ? -1 : 1),
+    delay: opts.delay ?? rand(0, 0.05),
+    fade: opts.fade ?? false,
+    gravity: opts.gravity ?? rand(0.1, 0.4),
   });
-  intactMats.push(m);
-  return m;
+  return mesh;
 }
 
-const hullMat = makeMat(0xeef1f6, { roughness: 0.55, metalness: 0.1 });
-const darkMat = makeMat(0x121319, { roughness: 0.6, metalness: 0.2 });
-const engineMat = makeMat(0x2a2c34, { roughness: 0.4, metalness: 0.65 });
-const noseGlowMat = makeMat(0x3a1a12, { roughness: 0.5, metalness: 0.1, emissive: 0xff5a1e, emissiveIntensity: 0.25 });
+// a slightly-jittered copy of another fragment's explosion params, so an
+// attached detail piece (cockpit, wing trim, engine bell) tears away
+// together with its parent chunk instead of flying off on its own
+function attachedExplosion(base) {
+  return {
+    dir: base.dir.clone().add(new THREE.Vector3(rand(-0.06, 0.06), rand(-0.06, 0.06), rand(-0.06, 0.06))).normalize(),
+    dist: base.dist * rand(0.94, 1.06),
+    axis: base.axis.clone(),
+    spin: base.spin * rand(0.9, 1.1),
+    delay: base.delay + rand(0, 0.015),
+    gravity: base.gravity,
+  };
+}
 
-const FUSELAGE_LEN = 1.9, FUSELAGE_R = 0.32;
-const fuselageGeo = new THREE.CylinderGeometry(FUSELAGE_R * 0.9, FUSELAGE_R, FUSELAGE_LEN, 16);
-fuselageGeo.rotateX(Math.PI / 2);
-const fuselage = new THREE.Mesh(fuselageGeo, hullMat);
-fuselage.castShadow = true; fuselage.receiveShadow = true;
-shuttleGroup.add(fuselage);
+// ---------- shuttle geometry (nose points +Z, tail at -Z) — a chunky toy model ----------
+function makeToyMat(color, opts = {}) {
+  return new THREE.MeshPhysicalMaterial({
+    color, roughness: opts.roughness ?? 0.32, metalness: opts.metalness ?? 0.08,
+    clearcoat: opts.clearcoat ?? 0.6, clearcoatRoughness: 0.25,
+    emissive: opts.emissive ?? 0x000000, emissiveIntensity: opts.emissiveIntensity ?? 1,
+  });
+}
 
-const NOSE_LEN = 0.55;
-const noseGeo = new THREE.ConeGeometry(FUSELAGE_R * 0.9, NOSE_LEN, 16);
+const hullMat = makeToyMat(0xf4f2ea, { roughness: 0.35, metalness: 0.05 });
+const darkMat = makeToyMat(0x5c6068, { roughness: 0.6, metalness: 0.1, clearcoat: 0 });
+const stripeMat = makeToyMat(0xff5a33, { roughness: 0.3, metalness: 0.05, clearcoat: 0.7 });
+const engineMat = makeToyMat(0x33353e, { roughness: 0.35, metalness: 0.5, clearcoat: 0.4 });
+const glassMat = makeToyMat(0x1c2a3a, { roughness: 0.15, metalness: 0.3, clearcoat: 0.9, emissive: 0x2a4a6a, emissiveIntensity: 0.3 });
+const noseGlowMat = makeToyMat(0x3a1a12, { roughness: 0.5, metalness: 0.1, emissive: 0xff5a1e, emissiveIntensity: 0.25 });
+
+const FUSELAGE_LEN = 1.7, FUSELAGE_R = 0.38;
+const NOSE_LEN = 0.62;
+const NOSE_R = FUSELAGE_R * 0.88;
+const SEG = 28;
+
+// fuselage split into a front and rear half so both can fly apart as big chunks
+const fuselageFrontGeo = new THREE.CylinderGeometry(NOSE_R, FUSELAGE_R * 0.98, FUSELAGE_LEN / 2, SEG);
+fuselageFrontGeo.rotateX(Math.PI / 2);
+fuselageFrontGeo.translate(0, 0, FUSELAGE_LEN / 4);
+
+const fuselageRearGeo = new THREE.CylinderGeometry(FUSELAGE_R * 0.98, FUSELAGE_R, FUSELAGE_LEN / 2, SEG);
+fuselageRearGeo.rotateX(Math.PI / 2);
+fuselageRearGeo.translate(0, 0, -FUSELAGE_LEN / 4);
+
+const noseGeo = new THREE.ConeGeometry(NOSE_R, NOSE_LEN, SEG);
 noseGeo.rotateX(Math.PI / 2);
-const nose = new THREE.Mesh(noseGeo, darkMat);
-nose.position.z = FUSELAGE_LEN / 2 + NOSE_LEN / 2 - 0.02;
-nose.castShadow = true;
-shuttleGroup.add(nose);
+noseGeo.translate(0, 0, FUSELAGE_LEN / 2 + NOSE_LEN / 2 - 0.02);
 
-// cockpit window strip
-const cockpitGeo = new THREE.BoxGeometry(0.22, 0.06, 0.32);
-const cockpit = new THREE.Mesh(cockpitGeo, noseGlowMat);
-cockpit.position.set(0, FUSELAGE_R * 0.75, FUSELAGE_LEN / 2 - 0.35);
-cockpit.rotation.x = -0.15;
-shuttleGroup.add(cockpit);
+// domed cockpit bubble (toy-style canopy instead of a flat window strip)
+const cockpitGeo = new THREE.SphereGeometry(0.14, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.55);
+cockpitGeo.translate(0, FUSELAGE_R * 0.82, FUSELAGE_LEN / 2 - 0.42);
+
+// accent stripes hugging the hull
+const stripeFrontGeo = new THREE.CylinderGeometry(NOSE_R * 1.02, NOSE_R * 1.02, 0.07, SEG, 1, true);
+stripeFrontGeo.rotateX(Math.PI / 2);
+stripeFrontGeo.translate(0, 0, FUSELAGE_LEN / 2 - 0.14);
+
+const stripeRearGeo = new THREE.CylinderGeometry(FUSELAGE_R * 1.02, FUSELAGE_R * 1.02, 0.08, SEG, 1, true);
+stripeRearGeo.rotateX(Math.PI / 2);
+stripeRearGeo.translate(0, 0, -0.35);
 
 // delta wings (built flat in XY, extruded along Z as thickness, then rotated to lie horizontal)
+const WING_Z = -FUSELAGE_LEN * 0.2;
+const WING_Y = -FUSELAGE_R * 0.5;
 function makeWingGeo(mirror) {
   const s = new THREE.Shape();
   const sgn = mirror ? -1 : 1;
-  s.moveTo(0.08 * sgn, 0.15);
-  s.lineTo(0.95 * sgn, -0.30);
-  s.lineTo(0.08 * sgn, -0.62);
+  s.moveTo(0.10 * sgn, 0.18);
+  s.lineTo(1.02 * sgn, -0.32);
+  s.lineTo(0.10 * sgn, -0.68);
   s.closePath();
-  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: false });
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.05, bevelEnabled: true, bevelThickness: 0.014, bevelSize: 0.014, bevelSegments: 2 });
   geo.rotateX(-Math.PI / 2);
+  geo.translate(sgn * FUSELAGE_R * 0.85, WING_Y, WING_Z);
   return geo;
 }
-const wingR = new THREE.Mesh(makeWingGeo(false), hullMat);
-wingR.position.set(FUSELAGE_R * 0.85, -FUSELAGE_R * 0.5, -0.35);
-wingR.castShadow = true;
-shuttleGroup.add(wingR);
-
-const wingL = new THREE.Mesh(makeWingGeo(true), hullMat);
-wingL.position.set(-FUSELAGE_R * 0.85, -FUSELAGE_R * 0.5, -0.35);
-wingL.castShadow = true;
-shuttleGroup.add(wingL);
+const wingRGeo = makeWingGeo(false);
+const wingLGeo = makeWingGeo(true);
 
 // wing leading-edge trim (dark heat-shield strip)
 function makeWingTrimGeo(mirror) {
   const s = new THREE.Shape();
   const sgn = mirror ? -1 : 1;
-  s.moveTo(0.08 * sgn, 0.15);
-  s.lineTo(0.95 * sgn, -0.30);
-  s.lineTo(0.85 * sgn, -0.38);
-  s.lineTo(0.08 * sgn, 0.02);
+  s.moveTo(0.10 * sgn, 0.18);
+  s.lineTo(1.02 * sgn, -0.32);
+  s.lineTo(0.90 * sgn, -0.41);
+  s.lineTo(0.10 * sgn, 0.04);
   s.closePath();
-  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.042, bevelEnabled: false });
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.054, bevelEnabled: false });
   geo.rotateX(-Math.PI / 2);
+  geo.translate(sgn * FUSELAGE_R * 0.85, WING_Y + 0.002, WING_Z);
   return geo;
 }
-const wingTrimR = new THREE.Mesh(makeWingTrimGeo(false), darkMat);
-wingTrimR.position.set(FUSELAGE_R * 0.85, -FUSELAGE_R * 0.5 + 0.002, -0.35);
-shuttleGroup.add(wingTrimR);
-const wingTrimL = new THREE.Mesh(makeWingTrimGeo(true), darkMat);
-wingTrimL.position.set(-FUSELAGE_R * 0.85, -FUSELAGE_R * 0.5 + 0.002, -0.35);
-shuttleGroup.add(wingTrimL);
+const wingTrimRGeo = makeWingTrimGeo(false);
+const wingTrimLGeo = makeWingTrimGeo(true);
 
 // vertical tail fin
+const FIN_Z = -FUSELAGE_LEN / 2 + 0.2;
 function makeFinGeo() {
   const s = new THREE.Shape();
   s.moveTo(0, 0);
-  s.lineTo(-0.15, 0.55);
-  s.lineTo(-0.42, 0.5);
-  s.lineTo(-0.35, 0);
+  s.lineTo(-0.18, 0.6);
+  s.lineTo(-0.48, 0.54);
+  s.lineTo(-0.38, 0);
   s.closePath();
-  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.035, bevelEnabled: false });
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.045, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2 });
   geo.rotateY(Math.PI / 2);
+  geo.translate(0, FUSELAGE_R * 0.68, FIN_Z);
   return geo;
 }
-const tailFin = new THREE.Mesh(makeFinGeo(), hullMat);
-tailFin.position.set(0, FUSELAGE_R * 0.7, -FUSELAGE_LEN / 2 + 0.15);
-tailFin.castShadow = true;
-shuttleGroup.add(tailFin);
+const finGeo = makeFinGeo();
 
-// main engines (cluster of 3 at the tail)
+// ---------- assemble big hull chunks as fragments (fly apart as large pieces) ----------
+addFragment(noseGeo, darkMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(rand(-0.15, 0.15), rand(0.1, 0.4), 1).normalize(),
+  dist: rand(2.4, 3.6), delay: rand(0, 0.02), gravity: rand(0.1, 0.3),
+});
+addFragment(stripeFrontGeo, stripeMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(fragments[fragments.length - 1]));
+
+addFragment(fuselageFrontGeo, hullMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(rand(-0.3, 0.3), rand(0.2, 0.6), 0.6).normalize(),
+  dist: rand(2.0, 3.2), delay: rand(0, 0.03), gravity: rand(0.15, 0.35),
+});
+addFragment(cockpitGeo, glassMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(fragments[fragments.length - 1]));
+
+addFragment(fuselageRearGeo, hullMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(rand(-0.3, 0.3), rand(0.15, 0.5), -0.7).normalize(),
+  dist: rand(1.8, 3.0), delay: rand(0, 0.04), gravity: rand(0.2, 0.45),
+});
+addFragment(stripeRearGeo, stripeMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(fragments[fragments.length - 1]));
+
+addFragment(wingRGeo, hullMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(1, rand(0.2, 0.5), rand(-0.2, 0.2)).normalize(),
+  dist: rand(2.2, 3.4), delay: rand(0, 0.03), gravity: rand(0.15, 0.35),
+});
+addFragment(wingTrimRGeo, darkMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(fragments[fragments.length - 1]));
+
+addFragment(wingLGeo, hullMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(-1, rand(0.2, 0.5), rand(-0.2, 0.2)).normalize(),
+  dist: rand(2.2, 3.4), delay: rand(0, 0.03), gravity: rand(0.15, 0.35),
+});
+addFragment(wingTrimLGeo, darkMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(fragments[fragments.length - 1]));
+
+addFragment(finGeo, hullMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(rand(-0.3, 0.3), 1, rand(-0.3, -0.05)).normalize(),
+  dist: rand(2.0, 3.2), delay: rand(0, 0.03), gravity: rand(0.15, 0.35),
+});
+
+// main engines (cluster of 3 at the tail) — each its own big chunk + bell
 const ENGINE_Z = -FUSELAGE_LEN / 2 - 0.05;
 const enginePositions = [
-  new THREE.Vector3(0, 0.14, ENGINE_Z),
-  new THREE.Vector3(0.13, -0.08, ENGINE_Z),
-  new THREE.Vector3(-0.13, -0.08, ENGINE_Z),
+  new THREE.Vector3(0, FUSELAGE_R * 0.4, ENGINE_Z),
+  new THREE.Vector3(FUSELAGE_R * 0.38, -FUSELAGE_R * 0.22, ENGINE_Z),
+  new THREE.Vector3(-FUSELAGE_R * 0.38, -FUSELAGE_R * 0.22, ENGINE_Z),
 ];
 for (const p of enginePositions) {
-  const eGeo = new THREE.CylinderGeometry(0.085, 0.1, 0.22, 12);
+  const eGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.26, 20);
   eGeo.rotateX(Math.PI / 2);
-  const e = new THREE.Mesh(eGeo, engineMat);
-  e.position.copy(p);
-  e.position.z -= 0.02;
-  e.castShadow = true;
-  shuttleGroup.add(e);
+  eGeo.translate(p.x, p.y, p.z - 0.02);
 
-  const bell = new THREE.Mesh(new THREE.CircleGeometry(0.07, 16), noseGlowMat);
-  bell.position.copy(p);
-  bell.position.z -= 0.14;
-  bell.rotation.y = Math.PI;
-  shuttleGroup.add(bell);
+  const outward = new THREE.Vector3(p.x, p.y, 0).normalize();
+  if (outward.lengthSq() < 1e-6) outward.set(0, 1, 0);
+  addFragment(eGeo, engineMat, new THREE.Vector3(), new THREE.Quaternion(), {
+    dir: outward.multiplyScalar(0.5).add(new THREE.Vector3(0, 0.3, -1)).normalize(),
+    dist: rand(1.6, 2.6), delay: rand(0, 0.04), gravity: rand(0.2, 0.5),
+  });
+
+  const bellGeo = new THREE.CircleGeometry(0.08, 20);
+  bellGeo.rotateY(Math.PI);
+  bellGeo.translate(p.x, p.y, p.z - 0.14);
+  addFragment(bellGeo, noseGlowMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(fragments[fragments.length - 1]));
 }
 
-// ---------- debris / shrapnel system ----------
+// ---------- small shrapnel (secondary debris supplementing the big chunks) ----------
 const SHUTTLE_CENTER = new THREE.Vector3(0, 0, 0);
 const debrisSources = [
-  { center: new THREE.Vector3(0, 0, 0.05), half: new THREE.Vector3(FUSELAGE_R, FUSELAGE_R, FUSELAGE_LEN / 2), weight: 34 },
+  { center: new THREE.Vector3(0, 0, 0.05), half: new THREE.Vector3(FUSELAGE_R, FUSELAGE_R, FUSELAGE_LEN / 2), weight: 30 },
   { center: new THREE.Vector3(0, 0, FUSELAGE_LEN / 2 + NOSE_LEN / 2), half: new THREE.Vector3(0.22, 0.22, NOSE_LEN / 2), weight: 10 },
-  { center: new THREE.Vector3(FUSELAGE_R * 1.4, -FUSELAGE_R * 0.5, -0.35), half: new THREE.Vector3(0.5, 0.08, 0.4), weight: 15 },
-  { center: new THREE.Vector3(-FUSELAGE_R * 1.4, -FUSELAGE_R * 0.5, -0.35), half: new THREE.Vector3(0.5, 0.08, 0.4), weight: 15 },
-  { center: new THREE.Vector3(0, FUSELAGE_R * 1.0, -FUSELAGE_LEN / 2 + 0.15), half: new THREE.Vector3(0.05, 0.3, 0.25), weight: 6 },
+  { center: new THREE.Vector3(FUSELAGE_R * 1.4, WING_Y, WING_Z), half: new THREE.Vector3(0.5, 0.08, 0.4), weight: 16 },
+  { center: new THREE.Vector3(-FUSELAGE_R * 1.4, WING_Y, WING_Z), half: new THREE.Vector3(0.5, 0.08, 0.4), weight: 16 },
+  { center: new THREE.Vector3(0, FUSELAGE_R * 1.0, FIN_Z), half: new THREE.Vector3(0.05, 0.3, 0.25), weight: 6 },
   { center: new THREE.Vector3(0, 0, ENGINE_Z), half: new THREE.Vector3(0.22, 0.22, 0.15), weight: 8 },
 ];
 
-const DEBRIS_COUNT = 1100;
-const debrisGeo = new THREE.BoxGeometry(0.05, 0.035, 0.01).toNonIndexed();
+const DEBRIS_COUNT = 380;
+const debrisGeo = new THREE.BoxGeometry(0.045, 0.032, 0.009).toNonIndexed();
 {
   const colors = [];
   const faceColors = [
@@ -505,7 +612,7 @@ for (let i = 0; i < DEBRIS_COUNT; i++) {
     basePos: pos,
     baseQuat,
     dir,
-    dist: rand(2.2, 6.5),
+    dist: rand(2.6, 7.0),
     axis: new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize(),
     spin: rand(2, 8) * (Math.random() < 0.5 ? -1 : 1),
     delay: rand(0, 0.08),
@@ -663,11 +770,27 @@ function smokeEnvelope(tt) {
 }
 
 function updateScene() {
-  const shipBurst = smoothstep(clamp(t / 0.05, 0, 1));
-  for (const m of intactMats) m.opacity = 1 - shipBurst;
-  shuttleGroup.visible = shipBurst < 0.999;
-  debrisMat.opacity = shipBurst;
-  debrisMesh.visible = shipBurst > 0.001;
+  camLight.position.copy(camera.position);
+
+  // small shrapnel fades in fast alongside the big chunks breaking apart
+  const shrapnelIn = smoothstep(clamp(t / 0.05, 0, 1));
+  debrisMat.opacity = shrapnelIn * 0.9;
+  debrisMesh.visible = shrapnelIn > 0.001;
+
+  // big hull chunks: fly apart directly from their intact position (no crossfade needed)
+  for (const fr of fragments) {
+    const localT = clamp((t - fr.delay) / Math.max(0.0001, 1 - fr.delay), 0, 1);
+    const eff = easeOutBlast(localT);
+
+    tmpV.copy(fr.dir).multiplyScalar(fr.dist * eff);
+    tmpV.y -= fr.gravity * eff * eff * 0.6;
+    fr.mesh.position.copy(fr.basePos).add(tmpV);
+
+    tmpQ.setFromAxisAngle(fr.axis, fr.spin * eff * Math.PI);
+    fr.mesh.quaternion.copy(fr.baseQuat).multiply(tmpQ);
+
+    if (fr.fade) fr.mesh.material.opacity = lerp(1, 0.4, eff);
+  }
 
   const fEnv = fireEnvelope(t);
   const sEnv = smokeEnvelope(t);

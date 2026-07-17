@@ -8,9 +8,9 @@ weitere Szenen):
 - **🌸 Blumenvase** (`index.html`) — Vase + Blumenstrauß explodiert
 - **🚀 Spaceshuttle** (`shuttle.html`) — Shuttle explodiert mit Feuer & Rauch
 
-## Aktuelle Version: v2.0 (17.07.2026)
+## Aktuelle Version: v2.1 (17.07.2026)
 Versionsnummer im `#deploy-time` div (oben rechts), gilt für beide
-Szenen gemeinsam. Beim nächsten Commit auf v2.1 hochzählen.
+Szenen gemeinsam. Beim nächsten Commit auf v2.2 hochzählen.
 
 ## Konzept
 Jede Szene zeigt ein 3D-Objekt, dessen Bestandteile bei einem Regler-
@@ -33,16 +33,25 @@ Crossfade lässt die glatte Vasenoberfläche in die Scherbenwolke
 übergehen.
 
 ### Spaceshuttle (`shuttle.html`)
-Prozedural aus Primitiven gebautes Shuttle (Fuselage, Nase, Delta-
-Flügel via `ExtrudeGeometry`, Seitenleitwerk, 3 Triebwerke), schwebend
-im All (Sternenfeld + ferner Planet). Explodiert in ~1100 Metall-
-Trümmerteilen (`InstancedMesh`, Box-Shards), plus zwei separate
-`THREE.Points`-Partikelsysteme für Feuer (additiv, kurzer heller
-Blitz, klingt schnell ab) und Rauch (alpha-blended, wächst langsam,
-verblasst über die zweite Hälfte des Reglers). Die Debris-Richtung
-strahlt radial vom Shuttle-Zentrum aus (kein Oberflächen-Sampling wie
-bei der Vase, da das Shuttle aus mehreren Primitiven statt einer
-einzelnen Lathe-Fläche besteht).
+Prozedural aus Primitiven gebautes Shuttle im Spielzeug-Look (glänzige
+`MeshPhysicalMaterial` mit Clearcoat, orangene Zierstreifen, domförmiges
+Cockpitfenster) — Fuselage (2-teilig), Nase, Delta-Flügel via
+`ExtrudeGeometry` mit Bevel, Seitenleitwerk, 3 Triebwerke. Steht auf
+einem Boden/Halo-Ring wie bei der Vase, vor Sternenfeld + fernem
+Planeten für die Raum-Ambience.
+
+Jedes Bauteil (Nase, Rumpfhälften, Flügel, Leitwerk, Triebwerke) ist
+ein eigenes `addFragment`-Fragment (wie die Blüten-Fragmente bei der
+Vase) und fliegt beim Explodieren als **großes, erkennbares Teil**
+auseinander — nicht alles zerfällt in Kleinteile. Angehängte
+Detailteile (Cockpit, Flügelvorderkante, Triebwerksdüse) übernehmen
+per `attachedExplosion()` die (leicht variierte) Flugbahn ihres
+Trägerteils, damit sie sichtbar zusammenbleiben. Zusätzlich sorgt ein
+reduziertes `InstancedMesh` aus ~380 kleinen Metall-Shards für
+ergänzendes Schrapnell. Dazu zwei `THREE.Points`-Partikelsysteme für
+Feuer (additiv, kurzer heller Blitz, klingt schnell ab) und Rauch
+(alpha-blended, wächst langsam, verblasst über die zweite Hälfte des
+Reglers).
 
 ## Steuerung (beide Szenen identisch)
 - Regler unten: Zeit vor-/zurückscrubben
