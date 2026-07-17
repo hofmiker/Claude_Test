@@ -162,6 +162,22 @@
     transition: opacity 0.3s ease;
   }
   #missionPanel.hidden { opacity: 0; }
+  @media (max-width: 700px) {
+    #minimapWrap {
+      width: 130px;
+      height: 130px;
+    }
+    #missionPanel {
+      left: 16px;
+      top: 96px;
+      transform: none;
+      min-width: 0;
+      max-width: 180px;
+      text-align: left;
+      font-size: 11px;
+      padding: 5px 10px 7px;
+    }
+  }
   #missionTimerBar {
     margin-top: 5px;
     height: 5px;
@@ -237,9 +253,36 @@
     #btnLeft { left: 16px; bottom: 96px; }
     #btnRight { left: 92px; bottom: 96px; }
     #btnGas { right: 16px; bottom: 168px; background: rgba(80,220,100,0.25); }
-    #btnBrake { right: 92px; bottom: 96px; background: rgba(220,80,80,0.25); }
-    #btnAction { right: 16px; bottom: 96px; font-size: 13px; }
+    #btnBrake { right: 16px; bottom: 96px; background: rgba(220,80,80,0.25); }
     #btnJump { right: 92px; bottom: 168px; background: rgba(255,210,0,0.25); font-size: 13px; }
+    #btnAction { right: 92px; bottom: 96px; font-size: 13px; }
+
+    #btnControlMode {
+      position: absolute;
+      top: 150px;
+      right: 16px;
+      width: auto;
+      height: auto;
+      padding: 6px 12px;
+      border-radius: 14px;
+      pointer-events: auto;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: #fff;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    /* drag mode: steer/throttle by swiping the screen instead of the d-pad */
+    body.drag-mode #btnLeft,
+    body.drag-mode #btnRight,
+    body.drag-mode #btnGas,
+    body.drag-mode #btnBrake {
+      display: none;
+    }
+  }
+  @media (max-width: 700px) {
+    #btnControlMode { top: 172px; }
   }
 </style>
 </head>
@@ -281,6 +324,7 @@
     <div class="mbtn" id="btnBrake">▼</div>
     <div class="mbtn" id="btnAction">F</div>
     <div class="mbtn" id="btnJump">⬆</div>
+    <div id="btnControlMode">🕹️ Tasten</div>
   </div>
 </div>
 
