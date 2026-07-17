@@ -80,6 +80,7 @@ function flatMat(color) {
 function rand(min, max) { return min + Math.random() * (max - min); }
 function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function lerp(a, b, t) { return a + (b - a) * t; }
 function wrapAngle(a) {
   while (a > Math.PI) a -= Math.PI * 2;
   while (a < -Math.PI) a += Math.PI * 2;
@@ -340,17 +341,28 @@ function createCarMesh(color, isPolice) {
 
   const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.35, 10);
   const wheelMat = flatMat(0x161616);
-  const wheelPositions = [
-    [-1.05, 0.42, 1.35], [1.05, 0.42, 1.35],
-    [-1.05, 0.42, -1.35], [1.05, 0.42, -1.35],
-  ];
-  for (const [wx, wy, wz] of wheelPositions) {
+  const rearWheelPositions = [[-1.05, 0.42, -1.35], [1.05, 0.42, -1.35]];
+  for (const [wx, wy, wz] of rearWheelPositions) {
     const wheel = new THREE.Mesh(wheelGeo, wheelMat);
     wheel.rotation.z = Math.PI / 2;
     wheel.position.set(wx, wy, wz);
     wheel.castShadow = true;
     group.add(wheel);
   }
+  // front wheels get their own yaw group so they can visually steer
+  const frontWheels = [];
+  const frontWheelPositions = [[-1.05, 0.42, 1.35], [1.05, 0.42, 1.35]];
+  for (const [wx, wy, wz] of frontWheelPositions) {
+    const yaw = new THREE.Group();
+    yaw.position.set(wx, wy, wz);
+    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+    wheel.rotation.z = Math.PI / 2;
+    wheel.castShadow = true;
+    yaw.add(wheel);
+    group.add(yaw);
+    frontWheels.push(yaw);
+  }
+  group.userData.frontWheels = frontWheels;
 
   const headlight = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.2, 0.08), flatMat(0xfff2b0));
   headlight.position.set(0, 0.65, 2.16);
@@ -387,6 +399,7 @@ class Car {
     this.radius = 2.5;
     this.wheelBase = 2.6;
     this.crashCooldown = 0;
+    this.wheelSteer = 0;
     this.maxSpeed = isPolice ? 27 : (isPlayer ? 30 : 15);
     this.accel = isPolice ? 16 : (isPlayer ? 20 : 8);
     scene.add(this.mesh);
@@ -416,9 +429,20 @@ class Car {
     this.speed = clamp(this.speed, -this.maxSpeed * 0.45, this.maxSpeed);
     if (Math.abs(this.speed) < 0.04) this.speed = 0;
 
-    const speedFactor = clamp(Math.abs(this.speed) / this.maxSpeed, 0, 1);
-    const turnRate = steer * (0.85 + speedFactor * 1.5) * (this.speed < 0 ? -1 : 1);
-    this.heading += turnRate * dt * (handbrake ? 1.6 : 1);
+    // DHL City Drive-style steering: no turning while stationary, turn rate
+    // scales with current speed, direction flips in reverse.
+    let steerTgt = 0;
+    if (Math.abs(this.speed) > 0.15) {
+      const speedFactor = clamp(Math.abs(this.speed) / this.maxSpeed, 0.25, 1);
+      const sdir = this.speed >= 0 ? 1 : -1;
+      const turnRate = steer * 2.1 * speedFactor * sdir;
+      this.heading += turnRate * dt * (handbrake ? 1.6 : 1);
+      steerTgt = steer * 0.5;
+    }
+    this.wheelSteer = lerp(this.wheelSteer, steerTgt, Math.min(1, dt * 8));
+    if (this.mesh.userData.frontWheels) {
+      for (const w of this.mesh.userData.frontWheels) w.rotation.y = this.wheelSteer;
+    }
 
     const dir = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading));
     this.pos.addScaledVector(dir, this.speed * dt);
@@ -582,20 +606,246 @@ function updateTraffic(dt) {
   }
 }
 
-// ---------- Player character (on-foot) ------------------------------------
+// ---------- Player character (on-foot, ported from dhl-city/character.html) -
+const CHAR_BASE_Y = 0.10;
+const CHAR_GRAVITY = -22;
+const CHAR_JUMP_VEL = 8.2;
+const CHAR_WINDUP_DUR = 0.17;
+const CHAR_LAND_DUR = 0.28;
+const CHAR_SPEED_MAX = 5.94;
+const CHAR_ACCEL_RATE = 14.0;
+const CHAR_DECEL_RATE = 18.0;
+const CHAR_TURN_RATE = 0.90;
+
+function charCyl(rT, rB, h, color, segs = 6) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, segs), flatMat(color));
+  m.castShadow = true;
+  return m;
+}
+function charIco(r, color) {
+  const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), flatMat(color));
+  m.castShadow = true;
+  return m;
+}
+function charBone(parent, px, py, pz, rT, rB, h, color) {
+  const j = new THREE.Group();
+  j.position.set(px, py, pz);
+  parent.add(j);
+  const b = charCyl(rT, rB, h, color);
+  b.position.y = -h / 2;
+  j.add(b);
+  return j;
+}
+
 function createPlayerMesh() {
-  const group = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 0.75, 3, 8), flatMat(0xffffff));
-  body.position.y = 0.9;
-  body.castShadow = true;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), flatMat(0xe8b98a));
-  head.position.y = 1.65;
-  head.castShadow = true;
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.2, 6), flatMat(0xe8b98a));
-  nose.position.set(0, 1.63, 0.24);
-  nose.rotation.x = Math.PI / 2;
-  group.add(body, head, nose);
-  return group;
+  const PC = { skin: 0xF0BC94, shirt: 0x1E88E5, pants: 0x37474F, shoes: 0x1A1A1A, hair: 0x3E2723 };
+  const charRoot = new THREE.Group();
+
+  const torso = new THREE.Group();
+  torso.position.y = 1.26;
+  charRoot.add(torso);
+  torso.add(charCyl(0.21, 0.26, 0.62, PC.shirt));
+
+  const neckJoint = charBone(torso, 0, 0.40, 0, 0.080, 0.088, 0.13, PC.skin);
+  const headJoint = new THREE.Group();
+  headJoint.position.y = 0.19;
+  neckJoint.add(headJoint);
+
+  const skull = charIco(0.16, PC.skin);
+  skull.scale.set(0.97, 1.17, 0.97);
+  headJoint.add(skull);
+
+  const jaw = charIco(0.11, PC.skin);
+  jaw.scale.set(0.85, 0.50, 0.80);
+  jaw.position.set(0, -0.09, 0.02);
+  headJoint.add(jaw);
+
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.028, 5, 4), flatMat(PC.skin));
+  nose.position.set(0, 0.0, 0.155);
+  headJoint.add(nose);
+
+  function makeEar(side) {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.038, 5, 4), flatMat(PC.skin));
+    e.scale.set(0.45, 0.75, 0.30);
+    e.position.set(side * 0.162, 0.01, -0.02);
+    return e;
+  }
+  headJoint.add(makeEar(-1));
+  headJoint.add(makeEar(1));
+
+  const hTop = charIco(0.162, PC.hair);
+  hTop.scale.set(0.92, 0.36, 0.96); hTop.position.set(0, 0.140, -0.010); headJoint.add(hTop);
+  const hBack = charIco(0.150, PC.hair);
+  hBack.scale.set(0.96, 0.82, 0.62); hBack.position.set(0, 0.022, -0.108); headJoint.add(hBack);
+  const hNeck = charIco(0.096, PC.hair);
+  hNeck.scale.set(0.84, 0.58, 0.70); hNeck.position.set(0, -0.068, -0.098); headJoint.add(hNeck);
+  const hSideL = charIco(0.100, PC.hair);
+  hSideL.scale.set(0.54, 0.72, 0.76); hSideL.position.set(-0.124, 0.042, -0.054); headJoint.add(hSideL);
+  const hSideR = hSideL.clone(); hSideR.position.x = 0.124; headJoint.add(hSideR);
+
+  function makeEye(side) {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.024, 5, 4), flatMat(0x1A0F08));
+    e.scale.set(1.2, 0.9, 0.6); e.position.set(side * 0.067, 0.030, 0.148); return e;
+  }
+  function makeBrow(side) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.013, 0.012), flatMat(0x2C1810));
+    b.position.set(side * 0.067, 0.066, 0.148); b.rotation.z = side * 0.18; return b;
+  }
+  headJoint.add(makeEye(-1)); headJoint.add(makeEye(1));
+  headJoint.add(makeBrow(-1)); headJoint.add(makeBrow(1));
+  const mouthM = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.016, 0.012), flatMat(0x7A2E1E));
+  mouthM.position.set(0, -0.056, 0.148); headJoint.add(mouthM);
+
+  function makeHand(elbowJoint) {
+    const g = new THREE.Group(); g.position.y = -0.27; elbowJoint.add(g);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.068, 6, 5), flatMat(PC.skin));
+    m.scale.set(1.0, 0.62, 0.92); m.castShadow = true; g.add(m);
+  }
+  function makeShoulderCap(shoulderJoint) {
+    const cap = charIco(0.085, PC.shirt);
+    cap.scale.set(1.05, 0.90, 1.05); shoulderJoint.add(cap);
+  }
+
+  const lShoulder = charBone(torso, -0.24, 0.22, 0, 0.071, 0.062, 0.30, PC.shirt);
+  makeShoulderCap(lShoulder);
+  const lElbow = charBone(lShoulder, 0, -0.30, 0, 0.062, 0.052, 0.27, PC.skin);
+  makeHand(lElbow);
+
+  const rShoulder = charBone(torso, 0.24, 0.22, 0, 0.071, 0.062, 0.30, PC.shirt);
+  makeShoulderCap(rShoulder);
+  const rElbow = charBone(rShoulder, 0, -0.30, 0, 0.062, 0.052, 0.27, PC.skin);
+  makeHand(rElbow);
+
+  const hipsGrp = new THREE.Group();
+  hipsGrp.position.y = -0.34;
+  torso.add(hipsGrp);
+  hipsGrp.add(charCyl(0.23, 0.21, 0.19, PC.pants));
+
+  const lHip = charBone(hipsGrp, -0.13, -0.095, 0, 0.10, 0.088, 0.38, PC.pants);
+  const lKnee = charBone(lHip, 0, -0.38, 0, 0.088, 0.075, 0.35, PC.pants);
+  const lAnkle = charBone(lKnee, 0, -0.35, 0, 0.075, 0.065, 0.12, PC.pants);
+  const lFootG = new THREE.Group(); lFootG.position.y = -0.12; lAnkle.add(lFootG);
+  const lFootM = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.075, 0.22), flatMat(PC.shoes));
+  lFootM.position.set(0, -0.038, 0.07); lFootM.castShadow = true; lFootG.add(lFootM);
+
+  const rHip = charBone(hipsGrp, 0.13, -0.095, 0, 0.10, 0.088, 0.38, PC.pants);
+  const rKnee = charBone(rHip, 0, -0.38, 0, 0.088, 0.075, 0.35, PC.pants);
+  const rAnkle = charBone(rKnee, 0, -0.35, 0, 0.075, 0.065, 0.12, PC.pants);
+  const rFootG = new THREE.Group(); rFootG.position.y = -0.12; rAnkle.add(rFootG);
+  const rFootM = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.075, 0.22), flatMat(PC.shoes));
+  rFootM.position.set(0, -0.038, 0.07); rFootM.castShadow = true; rFootG.add(rFootM);
+
+  charRoot.userData = { torso, headJoint, lShoulder, rShoulder, lElbow, rElbow, lHip, rHip, lKnee, rKnee, lAnkle, rAnkle };
+  return charRoot;
+}
+
+function animateCharacter(p, dt, input) {
+  const j = p.mesh.userData;
+  const moving = (input.up || input.down) && p.jumpState === 'none';
+  if (moving) p.animT += dt * 9.5;
+  const s = Math.sin(p.animT);
+  const eff = moving ? 1 : 0;
+  const lLeg = s * 0.68, rLeg = -s * 0.68;
+
+  const anyInput = input.up || input.down || input.left || input.right;
+  if (anyInput) p.idleTimer = 0; else p.idleTimer += dt;
+  const doScratch = p.idleTimer >= 5.0 && p.jumpState === 'none' && !moving;
+  if (doScratch) {
+    p.scratchPhase += dt * 2.0;
+    const cyc = p.scratchPhase % (Math.PI * 2);
+    const reach = Math.sin(cyc * 0.5) * Math.max(0, Math.sin(cyc * 0.5));
+    const wiggle = reach > 0.55 ? Math.sin(p.scratchPhase * 7) * 0.09 : 0;
+    j.rShoulder.rotation.x = lerp(j.rShoulder.rotation.x, -1.85 * reach, 0.14);
+    j.rShoulder.rotation.z = lerp(j.rShoulder.rotation.z, -0.80 * reach, 0.14);
+    j.rElbow.rotation.x = lerp(j.rElbow.rotation.x, -1.60 * reach + wiggle, 0.14);
+    j.headJoint.rotation.z = lerp(j.headJoint.rotation.z, wiggle * 0.18, 0.12);
+  } else {
+    p.scratchPhase = 0;
+  }
+
+  const headYawTgt = input.left ? 0.38 : (input.right ? -0.38 : 0);
+  j.headJoint.rotation.y = lerp(j.headJoint.rotation.y, headYawTgt, 0.06);
+
+  if (p.jumpState === 'windup') {
+    const t = Math.min(p.jumpTimer / CHAR_WINDUP_DUR, 1.0);
+    const sq = Math.sin(t * Math.PI * 0.5);
+    j.lHip.rotation.x = lerp(j.lHip.rotation.x, 0.52 * sq, 0.32);
+    j.rHip.rotation.x = lerp(j.rHip.rotation.x, 0.52 * sq, 0.32);
+    j.lKnee.rotation.x = lerp(j.lKnee.rotation.x, 0.78 * sq, 0.32);
+    j.rKnee.rotation.x = lerp(j.rKnee.rotation.x, 0.78 * sq, 0.32);
+    j.lAnkle.rotation.x = lerp(j.lAnkle.rotation.x, 0.20 * sq, 0.32);
+    j.rAnkle.rotation.x = lerp(j.rAnkle.rotation.x, 0.20 * sq, 0.32);
+    j.lShoulder.rotation.x = lerp(j.lShoulder.rotation.x, 0.32 * sq, 0.25);
+    j.rShoulder.rotation.x = lerp(j.rShoulder.rotation.x, 0.32 * sq, 0.25);
+    j.lElbow.rotation.x = lerp(j.lElbow.rotation.x, -0.55, 0.22);
+    j.rElbow.rotation.x = lerp(j.rElbow.rotation.x, -0.55, 0.22);
+    j.lShoulder.rotation.z = lerp(j.lShoulder.rotation.z, -0.10, 0.08);
+    j.rShoulder.rotation.z = lerp(j.rShoulder.rotation.z, 0.10, 0.08);
+    j.torso.position.y = lerp(j.torso.position.y, 1.26 - 0.14 * sq, 0.32);
+    j.torso.rotation.x = lerp(j.torso.rotation.x, -0.20 * sq, 0.25);
+    j.torso.rotation.y = 0;
+    j.headJoint.rotation.x = lerp(j.headJoint.rotation.x, 0.10 * sq, 0.20);
+  } else if (p.jumpState === 'air') {
+    j.lHip.rotation.x = lerp(j.lHip.rotation.x, -0.70, 0.17);
+    j.rHip.rotation.x = lerp(j.rHip.rotation.x, -0.70, 0.17);
+    j.lKnee.rotation.x = lerp(j.lKnee.rotation.x, 1.45, 0.17);
+    j.rKnee.rotation.x = lerp(j.rKnee.rotation.x, 1.45, 0.17);
+    j.lAnkle.rotation.x = lerp(j.lAnkle.rotation.x, -0.45, 0.17);
+    j.rAnkle.rotation.x = lerp(j.rAnkle.rotation.x, -0.45, 0.17);
+    j.lShoulder.rotation.x = lerp(j.lShoulder.rotation.x, -0.52, 0.14);
+    j.rShoulder.rotation.x = lerp(j.rShoulder.rotation.x, -0.52, 0.14);
+    j.lShoulder.rotation.z = lerp(j.lShoulder.rotation.z, -0.48, 0.10);
+    j.rShoulder.rotation.z = lerp(j.rShoulder.rotation.z, 0.48, 0.10);
+    j.lElbow.rotation.x = lerp(j.lElbow.rotation.x, -0.95, 0.15);
+    j.rElbow.rotation.x = lerp(j.rElbow.rotation.x, -0.95, 0.15);
+    j.torso.position.y = lerp(j.torso.position.y, 1.26, 0.15);
+    j.torso.rotation.x = lerp(j.torso.rotation.x, 0.0, 0.10);
+    j.torso.rotation.y = 0;
+    j.headJoint.rotation.x = lerp(j.headJoint.rotation.x, 0.32, 0.14);
+  } else if (p.jumpState === 'land') {
+    const t = Math.min(p.jumpTimer / CHAR_LAND_DUR, 1.0);
+    const sq = 1.0 - t;
+    j.lHip.rotation.x = lerp(j.lHip.rotation.x, 0.72 * sq, 0.32);
+    j.rHip.rotation.x = lerp(j.rHip.rotation.x, 0.72 * sq, 0.32);
+    j.lKnee.rotation.x = lerp(j.lKnee.rotation.x, 1.10 * sq, 0.32);
+    j.rKnee.rotation.x = lerp(j.rKnee.rotation.x, 1.10 * sq, 0.32);
+    j.lAnkle.rotation.x = lerp(j.lAnkle.rotation.x, 0.22 * sq, 0.32);
+    j.rAnkle.rotation.x = lerp(j.rAnkle.rotation.x, 0.22 * sq, 0.32);
+    j.lShoulder.rotation.x = lerp(j.lShoulder.rotation.x, 0.22 * sq, 0.25);
+    j.rShoulder.rotation.x = lerp(j.rShoulder.rotation.x, 0.22 * sq, 0.25);
+    j.lShoulder.rotation.z = lerp(j.lShoulder.rotation.z, -0.09, 0.08);
+    j.rShoulder.rotation.z = lerp(j.rShoulder.rotation.z, 0.09, 0.08);
+    j.lElbow.rotation.x = lerp(j.lElbow.rotation.x, -0.55 * sq - 0.12, 0.25);
+    j.rElbow.rotation.x = lerp(j.rElbow.rotation.x, -0.55 * sq - 0.12, 0.25);
+    j.torso.position.y = lerp(j.torso.position.y, 1.26 - 0.22 * sq, 0.32);
+    j.torso.rotation.x = lerp(j.torso.rotation.x, 0.0, 0.10);
+    j.torso.rotation.y = 0;
+    j.headJoint.rotation.x = lerp(j.headJoint.rotation.x, 0.0, 0.15);
+  } else {
+    if (!doScratch) {
+      j.rShoulder.rotation.x = lerp(j.rShoulder.rotation.x, -rLeg * 0.68 * eff, 0.30);
+      j.rShoulder.rotation.z = lerp(j.rShoulder.rotation.z, 0.09, 0.08);
+      j.rElbow.rotation.x = lerp(j.rElbow.rotation.x, moving ? -1.22 : -0.12, 0.20);
+    }
+    const t = 0.30;
+    j.lHip.rotation.x = lerp(j.lHip.rotation.x, lLeg * 0.88 * eff, t);
+    j.rHip.rotation.x = lerp(j.rHip.rotation.x, rLeg * 0.88 * eff, t);
+    const lKT = (Math.max(0, lLeg) * 1.00 + Math.max(0, -lLeg) * 0.70) * eff;
+    const rKT = (Math.max(0, rLeg) * 1.00 + Math.max(0, -rLeg) * 0.70) * eff;
+    j.lKnee.rotation.x = lerp(j.lKnee.rotation.x, lKT, t);
+    j.rKnee.rotation.x = lerp(j.rKnee.rotation.x, rKT, t);
+    j.lAnkle.rotation.x = lerp(j.lAnkle.rotation.x, -lLeg * 0.38 * eff, t);
+    j.rAnkle.rotation.x = lerp(j.rAnkle.rotation.x, -rLeg * 0.38 * eff, t);
+    j.lShoulder.rotation.x = lerp(j.lShoulder.rotation.x, -lLeg * 0.68 * eff, t);
+    j.lShoulder.rotation.z = lerp(j.lShoulder.rotation.z, -0.09, 0.08);
+    j.lElbow.rotation.x = lerp(j.lElbow.rotation.x, moving ? -1.22 : -0.12, 0.20);
+    j.torso.rotation.y = lerp(j.torso.rotation.y, s * 0.13 * eff, 0.18);
+    j.torso.rotation.x = lerp(j.torso.rotation.x, moving ? -0.10 : 0.0, 0.07);
+    j.torso.rotation.z = lerp(j.torso.rotation.z, Math.cos(p.animT) * 0.042 * eff, 0.20);
+    j.torso.position.y = lerp(j.torso.position.y, 1.26 + (moving ? Math.abs(s) * 0.14 : 0), 0.28);
+    j.headJoint.rotation.x = lerp(j.headJoint.rotation.x, moving ? Math.abs(s) * (-0.07) : 0, 0.18);
+    if (!doScratch) j.headJoint.rotation.z = lerp(j.headJoint.rotation.z, 0, 0.10);
+  }
 }
 
 const player = {
@@ -603,12 +853,21 @@ const player = {
   pos: new THREE.Vector3(0, 0, 6),
   heading: 0,
   speed: 0,
+  moveSpeed: 0,
   inCar: null,
   health: 100,
   wanted: 0,
   money: 0,
   busted: false,
   wasted: false,
+  animT: 0,
+  idleTimer: 0,
+  scratchPhase: 0,
+  jumpState: 'none',
+  jumpTimer: 0,
+  velY: 0,
+  onGround: true,
+  jumpBuf: false,
 };
 scene.add(player.mesh);
 player.mesh.position.copy(player.pos);
@@ -788,6 +1047,7 @@ const keys = new Set();
 window.addEventListener('keydown', (e) => {
   keys.add(e.code);
   if (e.code === 'KeyF') tryToggleVehicle();
+  if (e.code === 'Space' && !player.inCar) player.jumpBuf = true;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
 });
 window.addEventListener('keyup', (e) => keys.delete(e.code));
@@ -808,6 +1068,9 @@ bindHold('btnGas', 'gas');
 bindHold('btnBrake', 'brake');
 document.getElementById('btnAction')?.addEventListener('touchstart', (e) => { e.preventDefault(); tryToggleVehicle(); });
 document.getElementById('btnAction')?.addEventListener('click', tryToggleVehicle);
+function triggerJump() { if (!player.inCar) player.jumpBuf = true; }
+document.getElementById('btnJump')?.addEventListener('touchstart', (e) => { e.preventDefault(); triggerJump(); });
+document.getElementById('btnJump')?.addEventListener('click', triggerJump);
 
 function readInput() {
   const up = keys.has('KeyW') || keys.has('ArrowUp') || mobileState.gas;
@@ -897,6 +1160,11 @@ function respawnPlayer() {
   player.mesh.visible = true;
   player.pos.set(4, 0, 2);
   player.heading = Math.PI;
+  player.moveSpeed = 0;
+  player.velY = 0;
+  player.onGround = true;
+  player.jumpState = 'none';
+  player.jumpBuf = false;
   playerCar.place(4, 2, Math.PI);
   playerCar.occupied = false;
   player.money = Math.max(0, player.money - 100);
@@ -1109,19 +1377,61 @@ function updatePlayer(dt, input) {
     if (player.inCar.occupied) player.inCar.physicsStep(dt, input);
     return;
   }
-  const moveDir = new THREE.Vector3(
-    (input.right ? 1 : 0) - (input.left ? 1 : 0),
-    0,
-    (input.down ? 1 : 0) - (input.up ? 1 : 0)
-  );
-  if (moveDir.lengthSq() > 0) {
-    moveDir.normalize();
-    const speed = 5.4;
-    player.pos.addScaledVector(moveDir, speed * dt);
-    player.heading = Math.atan2(moveDir.x, moveDir.z);
-    collideWithBuildings(player.pos, 0.5);
+
+  // tank controls, ported from dhl-city/character.html: left/right turn the
+  // character, up/down move forward/backward along its current facing
+  if (input.left) player.heading += CHAR_TURN_RATE * dt;
+  if (input.right) player.heading -= CHAR_TURN_RATE * dt;
+
+  const fwdX = Math.sin(player.heading), fwdZ = Math.cos(player.heading);
+  const wantMove = input.up || input.down;
+  if (wantMove) player.moveSpeed = Math.min(player.moveSpeed + CHAR_ACCEL_RATE * dt, CHAR_SPEED_MAX);
+  else player.moveSpeed = Math.max(player.moveSpeed - CHAR_DECEL_RATE * dt, 0);
+
+  if (input.up) { player.pos.x += fwdX * player.moveSpeed * dt; player.pos.z += fwdZ * player.moveSpeed * dt; }
+  if (input.down) { player.pos.x -= fwdX * player.moveSpeed * dt; player.pos.z -= fwdZ * player.moveSpeed * dt; }
+  collideWithBuildings(player.pos, 0.5);
+  player.speed = player.moveSpeed;
+
+  // jump state machine
+  if (player.jumpBuf && player.onGround && player.jumpState !== 'windup' && player.jumpState !== 'air') {
+    player.jumpState = 'windup';
+    player.jumpTimer = 0;
+    player.jumpBuf = false;
   }
-  player.mesh.position.set(player.pos.x, 0, player.pos.z);
+  if (player.jumpState === 'windup') {
+    player.jumpTimer += dt;
+    if (player.jumpTimer >= CHAR_WINDUP_DUR) {
+      player.velY = CHAR_JUMP_VEL;
+      player.onGround = false;
+      player.jumpState = 'air';
+      player.jumpTimer = 0;
+    }
+  }
+  if (player.jumpState === 'land') {
+    player.jumpTimer += dt;
+    if (player.jumpTimer >= CHAR_LAND_DUR) player.jumpState = 'none';
+  }
+
+  player.velY += CHAR_GRAVITY * dt;
+  player.pos.y += player.velY * dt;
+  if (player.pos.y <= 0) {
+    if (player.velY < -1.5 && player.jumpState === 'air') {
+      player.jumpState = 'land';
+      player.jumpTimer = 0;
+    } else if (player.jumpState === 'air') {
+      player.jumpState = 'none';
+    }
+    player.pos.y = 0;
+    player.velY = 0;
+    player.onGround = true;
+  } else {
+    player.onGround = false;
+  }
+
+  animateCharacter(player, dt, input);
+
+  player.mesh.position.set(player.pos.x, player.pos.y + CHAR_BASE_Y, player.pos.z);
   player.mesh.rotation.y = player.heading;
 
   // run over by traffic/police while on foot

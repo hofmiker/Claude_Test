@@ -88,8 +88,8 @@
 
   #minimapWrap {
     position: absolute;
-    bottom: 22px;
-    left: 22px;
+    top: 14px;
+    right: 16px;
     width: 168px;
     height: 168px;
     border-radius: 50%;
@@ -239,6 +239,7 @@
     #btnGas { right: 16px; bottom: 168px; background: rgba(80,220,100,0.25); }
     #btnBrake { right: 92px; bottom: 96px; background: rgba(220,80,80,0.25); }
     #btnAction { right: 16px; bottom: 96px; font-size: 13px; }
+    #btnJump { right: 92px; bottom: 168px; background: rgba(255,210,0,0.25); font-size: 13px; }
   }
 </style>
 </head>
@@ -269,7 +270,7 @@
     </div>
     <div id="minimapWrap"><canvas id="minimap"></canvas></div>
     <div id="controlsHint">
-      <b>W/↑</b> Gas &nbsp; <b>S/↓</b> Bremse/Rückwärts &nbsp; <b>A/D ←/→</b> Lenken &nbsp; <b>Space</b> Handbremse &nbsp; <b>F</b> Ein-/Aussteigen
+      <b>W/↑</b> Gas &nbsp; <b>S/↓</b> Bremse/Rückwärts &nbsp; <b>A/D ←/→</b> Lenken/Drehen &nbsp; <b>Space</b> Handbremse/Springen &nbsp; <b>F</b> Ein-/Aussteigen
     </div>
   </div>
 
@@ -279,6 +280,7 @@
     <div class="mbtn" id="btnGas">▲</div>
     <div class="mbtn" id="btnBrake">▼</div>
     <div class="mbtn" id="btnAction">F</div>
+    <div class="mbtn" id="btnJump">⬆</div>
   </div>
 </div>
 
