@@ -40,10 +40,10 @@ canvas { display: block; }
 </div>
 <div id="endpanel">
   <div id="endpanel-inner">
-    <h2>&#127881; Ziel erreicht!</h2>
-    <div class="ep-row">&#128230; <strong id="ep-pkgs"></strong></div>
-    <div class="ep-row">&#9201; <strong id="ep-time"></strong></div>
-    <div class="ep-row">&#128165; <strong id="ep-crash"></strong></div>
+    <h2><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><polyline points="20 6 9 17 4 12"/></svg>Ziel erreicht!</h2>
+    <div class="ep-row"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg><strong id="ep-pkgs"></strong></div>
+    <div class="ep-row"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px"><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 13"/><line x1="9" y1="2" x2="15" y2="2"/><line x1="12" y1="2" x2="12" y2="5"/></svg><strong id="ep-time"></strong></div>
+    <div class="ep-row"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><strong id="ep-crash"></strong></div>
     <div id="ep-score"></div>
     <div id="ep-score-label">Punkte</div>
     <button id="btn-retry" onclick="tryAgain()">Try again</button>
@@ -54,9 +54,9 @@ canvas { display: block; }
   <div id="ts"></div>
   <canvas id="minimap" width="156" height="156"></canvas>
   <div id="bottom-hud">
-    <div class="hud-item">&#128230; <span id="pkgcnt">0 / 10</span></div>
-    <div class="hud-item">&#9201; <span id="timer">0:00</span></div>
-    <div class="hud-item">&#128165; <span id="crashcnt">0</span></div>
+    <div class="hud-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> <span id="pkgcnt">0 / 10</span></div>
+    <div class="hud-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 14.5 13"/><line x1="9" y1="2" x2="15" y2="2"/><line x1="12" y1="2" x2="12" y2="5"/></svg> <span id="timer">0:00</span></div>
+    <div class="hud-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> <span id="crashcnt">0</span></div>
   </div>
   <div id="hint">Hoch/Runter wischen = Gas/Bremse · Links/Rechts = Lenken</div>
 </div>
@@ -1512,8 +1512,8 @@ function drawMM(vx,vz,vAng){
   mmCtx.save();
   mmCtx.beginPath(); mmCtx.arc(cx,cy,cx-1,0,Math.PI*2); mmCtx.clip();
   mmCtx.translate(cx,cy);
-  // North-up: no map rotation; east=right, north=up
-  const mx=(x)=>(x-vx)*sc, mz=(z)=>-(z-vz)*sc;
+  mmCtx.rotate(vAng);
+  const mx=(x)=>-(x-vx)*sc, mz=(z)=>-(z-vz)*sc;
   ZS.forEach(z=>{
     mmCtx.strokeStyle='#555566';
     mmCtx.lineWidth=z===ZS[1]?9:5;
@@ -1528,15 +1528,8 @@ function drawMM(vx,vz,vAng){
   [RING_X_W,RING_X_E].forEach(x=>{ mmCtx.beginPath(); mmCtx.moveTo(mx(x),mz(RING_Z_N)); mmCtx.lineTo(mx(x),mz(RING_Z_S)); mmCtx.stroke(); });
   packages.forEach(p=>{ if(!p.collected){ mmCtx.fillStyle='#FFcc00'; mmCtx.fillRect(mx(p.x)-3,mz(p.z)-3,6,6); }});
   mmCtx.restore();
-  // North indicator — upward arrow then N, fixed at top of circle
-  mmCtx.save();
-  mmCtx.fillStyle='rgba(255,255,255,0.75)';
-  mmCtx.beginPath(); mmCtx.moveTo(cx,4); mmCtx.lineTo(cx-4,14); mmCtx.lineTo(cx+4,14); mmCtx.closePath(); mmCtx.fill();
-  mmCtx.font='bold 10px sans-serif'; mmCtx.textAlign='center';
-  mmCtx.fillText('N',cx,24);
-  mmCtx.restore();
-  // Van arrow — centered, rotates with heading
-  mmCtx.save(); mmCtx.translate(cx,cy); mmCtx.rotate(vAng); mmCtx.fillStyle='#FC0';
+  // Van arrow — fixed at center, always points up (= heading direction)
+  mmCtx.save(); mmCtx.translate(cx,cy); mmCtx.fillStyle='#FC0';
   mmCtx.beginPath(); mmCtx.moveTo(0,-8); mmCtx.lineTo(-5,5); mmCtx.lineTo(0,2); mmCtx.lineTo(5,5); mmCtx.closePath(); mmCtx.fill();
   mmCtx.restore();
 }
@@ -1545,7 +1538,7 @@ function drawMM(vx,vz,vAng){
 const MAXSPD=0.018, ACC=0.000007, BRK=0.000035, FRIC=0.000006, STEER=0.002;
 let vanX=0, vanZ=30, vanAngle=Math.PI, spd=0, steerAng=0;
 const tsEl=document.getElementById('ts');
-tsEl.textContent=`v2.17 · 21.05.2026`;
+tsEl.textContent=`v2.18 · 21.05.2026`;
 
 let prev=performance.now();
 const camP=new THREE.Vector3();
