@@ -11,7 +11,7 @@
 | `dark-city/` | Dark City — 2D Nacht-Jump'n'Run | `.../dark-city/` |
 | `neon-rain-game/` | The Neon Rain — Noir-Detektiv-Adventure | `.../neon-rain-game/` |
 | `toy-story/` | Spielzeug-Abenteuer — 3D-Lauf-/Hüpfspiel im Puppenhaus | `.../toy-story/` |
-| `flower-vase/` | Flower Vase — 3D-Blumenvase-Explosion mit Zeit-Regler | `.../flower-vase/` |
+| `flower-vase/` | Explosion-Szenen — Blumenvase & Spaceshuttle, per Tabs wechselbar | `.../flower-vase/` |
 | `snake/` | Snake — Nokia-Klassiker | `.../snake/` |
 | `btc/` | Bitcoin On-Chain Dashboard — Live-Kurs & Netzwerk-Metriken | `.../btc/` |
 | `gta/` | Vice Grid — 3D-Top-Down-Fahrspiel im GTA-Stil | `.../gta/` |
