@@ -11,6 +11,7 @@
 | `dark-city/` | Dark City — 2D Nacht-Jump'n'Run | `.../dark-city/` |
 | `neon-rain-game/` | The Neon Rain — Noir-Detektiv-Adventure | `.../neon-rain-game/` |
 | `toy-story/` | Spielzeug-Abenteuer — 3D-Lauf-/Hüpfspiel im Puppenhaus | `.../toy-story/` |
+| `flower-vase/` | Flower Vase — 3D-Blumenvase-Explosion mit Zeit-Regler | `.../flower-vase/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
 **Base-URL:** https://hofmiker.github.io/Claude_Test/
