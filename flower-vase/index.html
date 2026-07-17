@@ -98,7 +98,7 @@
 
 <div id="hud">
   <h1>🌸 3D Blumenvase — Explosion</h1>
-  <p>Regler unten: durch die Zeit scrollen, vor &amp; zurück. Maus / Finger auf der Szene: Kamera drehen &amp; zoomen.</p>
+  <p>Vase und Blumen zerbersten gemeinsam. Regler unten: durch die Zeit scrollen, vor &amp; zurück. Maus / Finger auf der Szene: Kamera drehen &amp; zoomen.</p>
 </div>
 
 <div id="loading">Lade Szene …</div>
@@ -225,6 +225,7 @@ const vaseMat = new THREE.MeshPhysicalMaterial({
   clearcoat: 0.8,
   clearcoatRoughness: 0.15,
   reflectivity: 0.5,
+  transparent: true,
 });
 const vase = new THREE.Mesh(vaseGeo, vaseMat);
 vase.castShadow = true;
@@ -232,16 +233,119 @@ vase.receiveShadow = true;
 scene.add(vase);
 
 // water surface just below the rim
-const water = new THREE.Mesh(
-  new THREE.CircleGeometry(0.24, 32),
-  new THREE.MeshPhysicalMaterial({
-    color: 0x1c3a55, roughness: 0.05, metalness: 0,
-    transmission: 0.85, thickness: 0.3, transparent: true, opacity: 0.9,
-  })
-);
+const waterMat = new THREE.MeshPhysicalMaterial({
+  color: 0x1c3a55, roughness: 0.05, metalness: 0,
+  transmission: 0.85, thickness: 0.3, transparent: true, opacity: 0.9,
+});
+const water = new THREE.Mesh(new THREE.CircleGeometry(0.24, 32), waterMat);
 water.rotation.x = -Math.PI / 2;
 water.position.y = VASE_TOP_Y - 0.12;
 scene.add(water);
+
+// ---------- vase shard system (the vase itself shatters into ~1000 pieces) ----------
+const SHARD_COUNT = 1000;
+
+const segLengths = [];
+let totalProfileLen = 0;
+for (let i = 0; i < profile.length - 1; i++) {
+  const l = profile[i].distanceTo(profile[i + 1]);
+  segLengths.push(l);
+  totalProfileLen += l;
+}
+function pickProfileSegment() {
+  let r = Math.random() * totalProfileLen;
+  for (let i = 0; i < segLengths.length; i++) {
+    if (r < segLengths[i]) return i;
+    r -= segLengths[i];
+  }
+  return segLengths.length - 1;
+}
+
+function vaseSurfaceSample() {
+  const k = pickProfileSegment();
+  const p0 = profile[k], p1 = profile[k + 1];
+  const v = Math.random();
+  const radius = lerp(p0.x, p1.x, v);
+  const y = lerp(p0.y, p1.y, v);
+  const theta = Math.random() * Math.PI * 2;
+
+  const dx = p1.x - p0.x, dy = p1.y - p0.y;
+  let nx = dy, ny = -dx;
+  const nLen = Math.hypot(nx, ny) || 1;
+  nx /= nLen; ny /= nLen;
+  const isFlatBottom = Math.abs(dy) < 1e-5 && p0.y < 0.01;
+  if (isFlatBottom) { nx = 0; ny = -1; }
+  else if (nx < 0) { nx = -nx; ny = -ny; }
+
+  const pos = new THREE.Vector3(radius * Math.cos(theta), y, radius * Math.sin(theta));
+  const normal = new THREE.Vector3(nx * Math.cos(theta), ny, nx * Math.sin(theta)).normalize();
+  const tangent = new THREE.Vector3(-Math.sin(theta), 0, Math.cos(theta));
+  return { pos, normal, tangent };
+}
+
+const shardGeo = new THREE.TetrahedronGeometry(0.045, 0).toNonIndexed();
+{
+  const colors = [];
+  const faceColors = [
+    new THREE.Color(0xf3e6cf), // inner ceramic
+    new THREE.Color(0x3a6ea8),
+    new THREE.Color(0x477fbd),
+    new THREE.Color(0x2e5a8c),
+  ];
+  const posAttr = shardGeo.getAttribute("position");
+  const faceCount = posAttr.count / 3;
+  for (let f = 0; f < faceCount; f++) {
+    const c = faceColors[f % faceColors.length];
+    for (let v = 0; v < 3; v++) colors.push(c.r, c.g, c.b);
+  }
+  shardGeo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+}
+
+const shardMat = new THREE.MeshStandardMaterial({
+  vertexColors: true, roughness: 0.3, metalness: 0.05, transparent: true, opacity: 0,
+});
+const shardMesh = new THREE.InstancedMesh(shardGeo, shardMat, SHARD_COUNT);
+shardMesh.castShadow = true;
+shardMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+shardMesh.frustumCulled = false;
+shardMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(SHARD_COUNT * 3), 3);
+scene.add(shardMesh);
+
+const shards = [];
+const shardTmpColor = new THREE.Color();
+for (let i = 0; i < SHARD_COUNT; i++) {
+  const { pos, normal, tangent } = vaseSurfaceSample();
+  const bitangent = normal.clone().cross(tangent).normalize();
+  const basis = new THREE.Matrix4().makeBasis(tangent, bitangent, normal);
+  const baseQuat = new THREE.Quaternion().setFromRotationMatrix(basis);
+
+  const dir = normal.clone();
+  if (dir.y < -0.4) {
+    dir.set(pos.x, 0, pos.z);
+    if (dir.lengthSq() < 1e-6) dir.set(rand(-1, 1), 0, rand(-1, 1));
+    dir.normalize().multiplyScalar(0.8);
+    dir.y = rand(0.2, 0.5);
+  } else {
+    dir.multiplyScalar(0.75).add(new THREE.Vector3(0, rand(0.3, 0.8), 0));
+  }
+  dir.normalize();
+
+  shards.push({
+    basePos: pos,
+    baseQuat,
+    dir,
+    dist: rand(1.6, 4.2),
+    axis: new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize(),
+    spin: rand(2, 7) * (Math.random() < 0.5 ? -1 : 1),
+    delay: rand(0, 0.1),
+    gravity: rand(1.0, 2.4),
+    scale: rand(0.6, 1.8),
+  });
+
+  shardTmpColor.setScalar(rand(0.82, 1.18));
+  shardMesh.setColorAt(i, shardTmpColor);
+}
+shardMesh.instanceColor.needsUpdate = true;
 
 // ---------- fragments registry ----------
 // each fragment: { mesh, basePos, baseQuat, baseScale, dir(Vector3), dist, axis(Vector3), spin, delay, opacityFade }
@@ -424,7 +528,7 @@ function setT(newT, fromSlider) {
   const pct = Math.round(t * 100);
   pctLabel.textContent = pct + "%";
   slider.style.setProperty("--fill", pct + "%");
-  stateLabel.textContent = t < 0.02 ? "Intakt" : t > 0.97 ? "Vollständig zersplittert" : "Explosion läuft …";
+  stateLabel.textContent = t < 0.02 ? "Intakt" : t > 0.97 ? "Vase & Inhalt vollständig zersplittert" : "Explosion läuft …";
 }
 
 slider.addEventListener("input", () => {
@@ -449,6 +553,10 @@ setT(0);
 // ---------- animate ----------
 const tmpV = new THREE.Vector3();
 const tmpQ = new THREE.Quaternion();
+const tmpPos = new THREE.Vector3();
+const tmpScale = new THREE.Vector3();
+const tmpQuat2 = new THREE.Quaternion();
+const tmpMatrix = new THREE.Matrix4();
 const clock = new THREE.Clock();
 
 function updateFragments() {
@@ -478,9 +586,36 @@ function updateFragments() {
   shockwave.scale.setScalar(0.4 + eb * 5.5);
   shockMat.opacity = (1 - eb) * smoothstep(clamp(t * 12, 0, 1)) * 0.6;
 
-  // vase / water settle slightly (subtle shake right at the start of explosion)
+  // vase shakes right before it shatters, then crossfades into the shard cloud
   const shake = (1 - smoothstep(clamp(t / 0.12, 0, 1))) * smoothstep(clamp(t * 30, 0, 1));
   vase.position.y = Math.sin(t * 400) * 0.004 * shake;
+
+  const vaseBurst = smoothstep(clamp(t / 0.08, 0, 1));
+  vaseMat.opacity = 1 - vaseBurst;
+  vase.visible = vaseBurst < 0.999;
+  waterMat.opacity = 0.9 * (1 - vaseBurst);
+  water.visible = vaseBurst < 0.999;
+  shardMat.opacity = vaseBurst;
+  shardMesh.visible = vaseBurst > 0.001;
+
+  for (let i = 0; i < shards.length; i++) {
+    const sh = shards[i];
+    const localT = clamp((t - sh.delay) / Math.max(0.0001, 1 - sh.delay), 0, 1);
+    const eff = smoothstep(localT);
+
+    tmpV.copy(sh.dir).multiplyScalar(sh.dist * eff);
+    tmpV.y -= sh.gravity * eff * eff * 0.6;
+    tmpPos.copy(sh.basePos).add(tmpV);
+
+    tmpQ.setFromAxisAngle(sh.axis, sh.spin * eff * Math.PI);
+    tmpQuat2.copy(sh.baseQuat).multiply(tmpQ);
+
+    tmpScale.setScalar(sh.scale * (1 + Math.sin(eff * Math.PI) * 0.15));
+
+    tmpMatrix.compose(tmpPos, tmpQuat2, tmpScale);
+    shardMesh.setMatrixAt(i, tmpMatrix);
+  }
+  shardMesh.instanceMatrix.needsUpdate = true;
 }
 
 function animate() {
