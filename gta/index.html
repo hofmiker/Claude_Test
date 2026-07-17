@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Vice Grid — Top-Down City</title>
+<style>
+  :root {
+    color-scheme: dark;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: "Segoe UI", Arial, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #app {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+  canvas#scene {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  #hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  }
+
+  #topLeft {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  #stars {
+    font-size: 26px;
+    letter-spacing: 3px;
+    color: #ffd23f;
+  }
+  #stars .off { color: rgba(255,255,255,0.25); }
+
+  #money {
+    font-size: 22px;
+    font-weight: 700;
+    color: #7CFC7A;
+  }
+
+  #busted, #wanted-banner {
+    display: none;
+  }
+
+  #speedWrap {
+    position: absolute;
+    bottom: 22px;
+    right: 22px;
+    text-align: right;
+  }
+  #speed {
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  #speedUnit {
+    font-size: 13px;
+    opacity: 0.75;
+    letter-spacing: 2px;
+  }
+  #gear {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 2px;
+  }
+
+  #minimapWrap {
+    position: absolute;
+    bottom: 22px;
+    left: 22px;
+    width: 168px;
+    height: 168px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.55);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.6);
+    overflow: hidden;
+    background: #111;
+  }
+  #minimap {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  #controlsHint {
+    position: absolute;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    background: rgba(0,0,0,0.45);
+    padding: 8px 14px;
+    border-radius: 8px;
+    text-align: center;
+    line-height: 1.5;
+    transition: opacity 1s ease;
+  }
+
+  #centerMsg {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 54px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: #ff3b3b;
+    text-shadow: 0 0 18px rgba(255,0,0,0.8), 0 2px 4px #000;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  #centerMsg.show { opacity: 1; }
+
+  #subMsg {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 15px;
+    background: rgba(0,0,0,0.5);
+    padding: 6px 16px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  #subMsg.show { opacity: 1; }
+
+  #missionPanel {
+    position: absolute;
+    top: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 240px;
+    text-align: center;
+    background: rgba(0,0,0,0.45);
+    padding: 6px 16px 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: opacity 0.3s ease;
+  }
+  #missionPanel.hidden { opacity: 0; }
+  #missionTimerBar {
+    margin-top: 5px;
+    height: 5px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #missionTimerFill {
+    height: 100%;
+    background: #ffd23f;
+    width: 100%;
+  }
+
+  #loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+    background: #000;
+    color: #fff;
+    z-index: 10;
+    font-size: 20px;
+    letter-spacing: 2px;
+  }
+  #loading .bar {
+    width: 240px;
+    height: 6px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #loading .fill {
+    width: 30%;
+    height: 100%;
+    background: #ff3b3b;
+    animation: pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+
+  #mobileControls {
+    display: none;
+  }
+  @media (pointer: coarse) {
+    #mobileControls {
+      display: block;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .mbtn {
+      position: absolute;
+      pointer-events: auto;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.12);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: #fff;
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #btnLeft { left: 16px; bottom: 96px; }
+    #btnRight { left: 92px; bottom: 96px; }
+    #btnGas { right: 16px; bottom: 168px; background: rgba(80,220,100,0.25); }
+    #btnBrake { right: 92px; bottom: 96px; background: rgba(220,80,80,0.25); }
+    #btnAction { right: 16px; bottom: 96px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="scene"></canvas>
+
+  <div id="loading">
+    <div>VICE GRID WIRD GELADEN…</div>
+    <div class="bar"><div class="fill"></div></div>
+  </div>
+
+  <div id="hud">
+    <div id="topLeft">
+      <div id="stars">★★★</div>
+      <div id="money">$0</div>
+    </div>
+    <div id="subMsg"></div>
+    <div id="missionPanel" class="hidden">
+      <div id="missionText"></div>
+      <div id="missionTimerBar"><div id="missionTimerFill"></div></div>
+    </div>
+    <div id="centerMsg"></div>
+    <div id="speedWrap">
+      <div id="speed">0</div>
+      <div id="speedUnit">KM/H</div>
+      <div id="gear"></div>
+    </div>
+    <div id="minimapWrap"><canvas id="minimap"></canvas></div>
+    <div id="controlsHint">
+      <b>W/↑</b> Gas &nbsp; <b>S/↓</b> Bremse/Rückwärts &nbsp; <b>A/D ←/→</b> Lenken &nbsp; <b>Space</b> Handbremse &nbsp; <b>F</b> Ein-/Aussteigen
+    </div>
+  </div>
+
+  <div id="mobileControls">
+    <div class="mbtn" id="btnLeft">◀</div>
+    <div class="mbtn" id="btnRight">▶</div>
+    <div class="mbtn" id="btnGas">▲</div>
+    <div class="mbtn" id="btnBrake">▼</div>
+    <div class="mbtn" id="btnAction">F</div>
+  </div>
+</div>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>
