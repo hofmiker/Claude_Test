@@ -132,6 +132,29 @@
         return tex;
     }
 
+    function createCloudTexture(skyHex, cloudHex) {
+        const w = 512, h = 512;
+        const cnv = document.createElement('canvas');
+        cnv.width = w; cnv.height = h;
+        const ctx = cnv.getContext('2d');
+        ctx.fillStyle = `#${new THREE.Color(skyHex).getHexString()}`;
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = `#${new THREE.Color(cloudHex).getHexString()}`;
+        function cloud(cx, cy, s) {
+            [[-0.9, 0, 0.55], [-0.3, -0.35, 0.65], [0.35, -0.3, 0.6], [0.9, 0.05, 0.5], [0.1, 0.15, 0.7]].forEach(([dx, dy, r]) => {
+                ctx.beginPath();
+                ctx.arc(cx + dx * s, cy + dy * s, r * s, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        [[90, 110, 55], [340, 90, 48], [210, 240, 65], [430, 270, 42], [70, 390, 50], [300, 430, 60], [460, 140, 38]].forEach(([x, y, s]) => cloud(x, y, s));
+        const tex = new THREE.CanvasTexture(cnv);
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+    }
+
     function picture(w, h, x, y, z, rotY, frameColor, canvasColor) {
         const g = new THREE.Group();
         g.add(box(w, h, 0.02, frameColor, 0, 0, 0));
@@ -325,7 +348,7 @@
     const FLOOR2_Y = 2.7;        // upper floor level
     const KNEE_H = 1.3;          // upper floor wall height before the roof slope starts
     const RIDGE_H = 3.0;         // roof ridge height above FLOOR2_Y, at z=0
-    const CORR_X_MIN = -0.5, CORR_X_MAX = 0.5;
+    const CORR_X_MIN = -0.65, CORR_X_MAX = 0.65;
     // The staircase sits near the back (front-door) end of the corridor, so the
     // entire rest of the upstairs hallway is one continuous piece reachable in
     // a single direction from the top of the stairs — no need to cross back
@@ -366,18 +389,18 @@
     }
 
     const groundFloors = [];
-    groundFloors.push(plankFloor(X_MIN, -0.5, Z_MIN, Z_MAX, 0, 0xc79a63, 7));           // Wohnzimmer
+    groundFloors.push(plankFloor(X_MIN, CORR_X_MIN, Z_MIN, Z_MAX, 0, 0xc79a63, 7));           // Wohnzimmer
     groundFloors.push(plankFloor(CORR_X_MIN, CORR_X_MAX, Z_MIN, Z_MAX, 0, 0xb98a55, 3)); // Flur
-    groundFloors.push(tileFloor(0.5, X_MAX, Z_MIN, 0.3, 0, 0xe9e6dc, 0xd8d3c4));         // Küche
-    groundFloors.push(tileFloor(0.5, 2.5, 0.3, 2.3, 0, 0xdfeef2, 0xc9dfe6));             // Toilette
+    groundFloors.push(tileFloor(CORR_X_MAX, X_MAX, Z_MIN, 0.3, 0, 0xe9e6dc, 0xd8d3c4));         // Küche
+    groundFloors.push(tileFloor(CORR_X_MAX, 2.5, 0.3, 2.3, 0, 0xdfeef2, 0xc9dfe6));             // Toilette
     groundFloors.push(plankFloor(2.5, X_MAX, 0.3, Z_MAX, 0, 0xc79a63, 11));              // offener Rest
-    groundFloors.push(plankFloor(0.5, 2.5, 2.3, Z_MAX, 0, 0xc79a63, 13));
+    groundFloors.push(plankFloor(CORR_X_MAX, 2.5, 2.3, Z_MAX, 0, 0xc79a63, 13));
 
     const upperFloors = [];
-    upperFloors.push(plankFloor(X_MIN, -0.5, Z_MIN, 1.0, FLOOR2_Y, 0xcdb290, 19));         // Elternschlafzimmer
-    upperFloors.push(plankFloor(X_MIN, -0.5, 1.0, Z_MAX, FLOOR2_Y, 0xdcb37e, 23));         // Kinderzimmer 1
-    upperFloors.push(tileFloor(0.5, X_MAX, Z_MIN, -0.5, FLOOR2_Y, 0xe6f2f5, 0xd2e6ea));    // Bad
-    upperFloors.push(plankFloor(0.5, X_MAX, -0.5, Z_MAX, FLOOR2_Y, 0xdcb37e, 29));         // Kinderzimmer 2
+    upperFloors.push(plankFloor(X_MIN, CORR_X_MIN, Z_MIN, 1.0, FLOOR2_Y, 0xcdb290, 19));         // Elternschlafzimmer
+    upperFloors.push(plankFloor(X_MIN, CORR_X_MIN, 1.0, Z_MAX, FLOOR2_Y, 0xdcb37e, 23));         // Kinderzimmer 1
+    upperFloors.push(tileFloor(CORR_X_MAX, X_MAX, Z_MIN, -0.5, FLOOR2_Y, 0xe6f2f5, 0xd2e6ea));    // Bad
+    upperFloors.push(plankFloor(CORR_X_MAX, X_MAX, -0.5, Z_MAX, FLOOR2_Y, 0xdcb37e, 29));         // Kinderzimmer 2
     // Landing floor: one continuous piece from the top of the stairs to the
     // front wall (the stairwell shaft below has no upper-floor slab at all).
     const landingMat = new THREE.MeshStandardMaterial({ color: 0xb98a55, roughness: 0.8 });
@@ -387,21 +410,28 @@
     landingMesh.receiveShadow = true;
     world.add(landingMesh);
     // Ceiling of the ground floor / underside of the upper floor slab (closes the gap visually, minus the stairwell)
-    [[X_MIN, -0.5, Z_MIN, Z_MAX], [-0.5, 0.5, STAIR_Z_END, Z_MAX], [0.5, X_MAX, Z_MIN, Z_MAX]].forEach(([x0, x1, z0, z1]) => {
+    [[X_MIN, CORR_X_MIN, Z_MIN, Z_MAX], [CORR_X_MIN, CORR_X_MAX, STAIR_Z_END, Z_MAX], [CORR_X_MAX, X_MAX, Z_MIN, Z_MAX]].forEach(([x0, x1, z0, z1]) => {
         world.add(box(x1 - x0, 0.1, z1 - z0, 0xece6da, (x0 + x1) / 2, WALL_H + 0.05, (z0 + z1) / 2, { cast: false }));
     });
 
     // ---------- Ground floor exterior + structural walls ----------
+    function extWallRunX(z, xFrom, xTo, color) {
+        if (xTo - xFrom <= 0.001) return;
+        wall(xTo - xFrom, WALL_H, 0.15, color, (xFrom + xTo) / 2, WALL_H / 2, z);
+        addObstacle(0, (xFrom + xTo) / 2, z, xTo - xFrom, 0.15);
+    }
     wall(0.15, WALL_H, spanZ, WALL_LIGHT, leftX, WALL_H / 2, 0);
     wall(0.15, WALL_H, spanZ, WALL_KITCHEN, rightX, WALL_H / 2, 0);
-    wall(spanX, WALL_H, 0.15, WALL_LIGHT, (leftX + rightX) / 2, WALL_H / 2, backZ);
+    // Back wall has a real gap for the front door (hinge -0.35..0.35) instead of
+    // a solid wall with a purely decorative door drawn on top of it.
+    extWallRunX(backZ, leftX, -0.35, WALL_LIGHT);
+    extWallRunX(backZ, 0.35, rightX, WALL_LIGHT);
     wall(spanX, WALL_H, 0.15, WALL_LIGHT, (leftX + rightX) / 2, WALL_H / 2, frontZ);
     addObstacle(0, leftX, 0, 0.15, spanZ);
     addObstacle(0, rightX, 0, 0.15, spanZ);
-    addObstacle(0, (leftX + rightX) / 2, backZ, spanX, 0.15);
     addObstacle(0, (leftX + rightX) / 2, frontZ, spanX, 0.15);
 
-    // Corridor partition walls (x = -0.5 and x = 0.5), each with door gaps
+    // Corridor partition walls (x = CORR_X_MIN and x = CORR_X_MAX), each with door gaps
     function corridorWallRun(x, zFrom, zTo, color) {
         if (zTo - zFrom <= 0.001) return;
         wall(0.1, WALL_H, zTo - zFrom, color, x, WALL_H / 2, (zFrom + zTo) / 2);
@@ -410,17 +440,23 @@
     // Living room + kitchen openings (wide, doorless). The stair ramp occupies
     // z[STAIR_Z_START, STAIR_Z_END] = z[-3.5, -1.3], so both openings sit safely
     // past its end, near the middle of the corridor.
-    corridorWallRun(-0.5, backZ, -1.1, WALL_LIGHT);
-    corridorWallRun(-0.5, 0.1, frontZ, WALL_LIGHT);
-    corridorWallRun(0.5, backZ, -1.1, WALL_KITCHEN);
-    corridorWallRun(0.5, 0.1, frontZ, WALL_KITCHEN);
+    corridorWallRun(CORR_X_MIN, backZ, -1.1, WALL_LIGHT);
+    corridorWallRun(CORR_X_MIN, 0.1, frontZ, WALL_LIGHT);
+    corridorWallRun(CORR_X_MAX, backZ, -1.1, WALL_KITCHEN);
+    corridorWallRun(CORR_X_MAX, 0.1, frontZ, WALL_KITCHEN);
 
-    // Toilette room walls (with a real door on its south side)
-    wall(0.1, WALL_H, 2.0, WALL_LIGHT, 2.5, WALL_H / 2, 1.3); // x=2.5 wall
+    // Toilette room walls: fully enclosed on all four sides except one door on
+    // the south side (opening into the kitchen/dining area), with each wall's
+    // gap sized to exactly match the door frame — no unintended hole, no overlap.
+    wall(0.1, WALL_H, 2.0, WALL_LIGHT, 2.5, WALL_H / 2, 1.3); // east wall (x=2.5)
     addObstacle(0, 2.5, 1.3, 0.1, 2.0);
-    wall(1.15, WALL_H, 0.1, WALL_LIGHT, 1.925, WALL_H / 2, 2.3); // z=2.3 wall (partial, leaves door gap)
-    addObstacle(0, 1.925, 2.3, 1.15, 0.1);
-    buildDoor({ axis: 'x', x: undefined, z: 2.3, hinge: 0.7, hingeSign: 1, width: 0.7, height: 2.0, openAngle: 0, wallDepth: 0.1, frameColor: 0x8a5a3a, doorColor: 0xdfeef2 });
+    wall(2.5 - CORR_X_MAX, WALL_H, 0.1, WALL_LIGHT, (CORR_X_MAX + 2.5) / 2, WALL_H / 2, 2.3); // north wall, fully solid
+    addObstacle(0, (CORR_X_MAX + 2.5) / 2, 2.3, 2.5 - CORR_X_MAX, 0.1);
+    wall(1.0 - CORR_X_MAX, WALL_H, 0.1, WALL_LIGHT, (CORR_X_MAX + 1.0) / 2, WALL_H / 2, 0.3); // south wall, west of door
+    addObstacle(0, (CORR_X_MAX + 1.0) / 2, 0.3, 1.0 - CORR_X_MAX, 0.1);
+    wall(2.5 - 1.7, WALL_H, 0.1, WALL_LIGHT, (1.7 + 2.5) / 2, WALL_H / 2, 0.3); // south wall, east of door
+    addObstacle(0, (1.7 + 2.5) / 2, 0.3, 2.5 - 1.7, 0.1);
+    buildDoor({ axis: 'x', z: 0.3, hinge: 1.0, hingeSign: 1, width: 0.7, height: 2.0, openAngle: 0, wallDepth: 0.1, frameColor: 0x8a5a3a, doorColor: 0xdfeef2 });
 
     // ---------- Ground floor doors ----------
     buildDoor({ axis: 'x', z: backZ, hinge: -0.35, hingeSign: 1, width: 0.7, height: 2.0, openAngle: 0, wallDepth: 0.15, frameColor: 0x6b4429, doorColor: 0x5a3a24 });
@@ -503,7 +539,7 @@
         world.add(g);
         addObstacle(0, x, z, rotY ? d : w, rotY ? w : d);
     }
-    kitchenCounter(1.3, backZ + 0.35, 1.6, 0.62, 0);
+    kitchenCounter(1.4, backZ + 0.35, 1.4, 0.62, 0);
     kitchenCounter(rightX - 0.35, -2.6, 0.62, 1.6, Math.PI / 2);
 
     const stove = new THREE.Group();
@@ -513,6 +549,18 @@
     stove.position.set(2.4, 0, backZ + 0.35);
     world.add(stove);
     addObstacle(0, 2.4, backZ + 0.35, 0.65, 0.65);
+
+    function createRangeHood(color = 0xd6d6d6) {
+        const g = new THREE.Group();
+        g.add(box(0.5, 0.02, 0.42, 0x2b2b2b, 0, -0.02, 0, { cast: false }));                     // dark vent grille, underside
+        g.add(box(0.6, 0.04, 0.5, color, 0, 0.02, 0, { metalness: 0.4, roughness: 0.3 }));       // bottom flange
+        g.add(box(0.4, 0.3, 0.32, color, 0, 0.19, -0.06, { metalness: 0.4, roughness: 0.3 }));   // tapered body
+        g.add(box(0.18, 0.56, 0.16, color, 0, 0.62, -0.1, { metalness: 0.3, roughness: 0.35 })); // duct up to the ceiling
+        return g;
+    }
+    const rangeHood = createRangeHood();
+    rangeHood.position.set(2.4, 1.7, backZ + 0.32); // directly above the stove
+    world.add(rangeHood);
 
     const sinkUnit = new THREE.Group();
     sinkUnit.add(box(0.55, 0.06, 0.42, 0xcfd6d8, 0, 0.86, 0));
@@ -541,16 +589,16 @@
     world.add(wcGroup);
     addObstacle(0, 2.2, 2.0, 0.3, 0.45);
     const wcSink = createSinkPedestal();
-    wcSink.position.set(0.75, 0, 0.75);
+    wcSink.position.set(0.95, 0, 0.75);
     world.add(wcSink);
-    addObstacle(0, 0.75, 0.75, 0.3, 0.25);
+    addObstacle(0, 0.95, 0.75, 0.3, 0.25);
 
     // ================= Hauseingang (Flur) =================
     world.add(houseplant(0.3, 0, -3.6, 0.8));
     addObstacle(0, 0.3, -3.6, 0.25, 0.25);
-    const bench = box(0.9, 0.42, 0.32, 0x7a5230, -0.28, 0.21, 3.6);
+    const bench = box(0.9, 0.42, 0.32, 0x7a5230, 0, 0.21, 3.6);
     world.add(bench);
-    addObstacle(0, -0.28, 3.6, 0.9, 0.32);
+    addObstacle(0, 0, 3.6, 0.9, 0.32);
 
     // ---------- Stairs (Treppe): visual treads over a smooth ramp for collision ----------
     const STAIR_STEPS = 16;
@@ -558,10 +606,10 @@
         const t = i / STAIR_STEPS;
         const z = STAIR_Z_START + t * (STAIR_Z_END - STAIR_Z_START);
         const y = t * FLOOR2_Y;
-        world.add(box(0.94, 0.04, (STAIR_Z_END - STAIR_Z_START) / STAIR_STEPS + 0.02, 0x9c6b3f, 0, y, z, { cast: false }));
+        world.add(box((CORR_X_MAX - CORR_X_MIN) - 0.06, 0.04, (STAIR_Z_END - STAIR_Z_START) / STAIR_STEPS + 0.02, 0x9c6b3f, 0, y, z, { cast: false }));
     }
-    world.add(box(0.06, FLOOR2_Y + 0.1, STAIR_Z_END - STAIR_Z_START, 0x6b4429, -0.47, FLOOR2_Y / 2, (STAIR_Z_START + STAIR_Z_END) / 2, { cast: false }));
-    world.add(box(0.06, FLOOR2_Y + 0.1, STAIR_Z_END - STAIR_Z_START, 0x6b4429, 0.47, FLOOR2_Y / 2, (STAIR_Z_START + STAIR_Z_END) / 2, { cast: false }));
+    world.add(box(0.06, FLOOR2_Y + 0.1, STAIR_Z_END - STAIR_Z_START, 0x6b4429, CORR_X_MIN + 0.03, FLOOR2_Y / 2, (STAIR_Z_START + STAIR_Z_END) / 2, { cast: false }));
+    world.add(box(0.06, FLOOR2_Y + 0.1, STAIR_Z_END - STAIR_Z_START, 0x6b4429, CORR_X_MAX - 0.03, FLOOR2_Y / 2, (STAIR_Z_START + STAIR_Z_END) / 2, { cast: false }));
 
     // ================= Upper floor structure =================
     const UPPER_H = FLOOR2_Y + KNEE_H;
@@ -584,7 +632,12 @@
         const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.15, bevelEnabled: false });
         const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.85 }));
         mesh.rotation.y = Math.PI / 2;
-        mesh.position.set(x + 0.075, FLOOR2_Y, 0);
+        // The 0.15-deep extrusion runs from local Z=0 to Z=0.15 (one-sided, not
+        // centered), so after the rotation it must be positioned starting AT x
+        // (not x+half-depth) to end up centered on x like every other wall here —
+        // otherwise it sits flush with its own collision box on one side only,
+        // leaving a same-size gap with no wall mesh in it on the other side.
+        mesh.position.set(x, FLOOR2_Y, 0);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         world.add(mesh);
@@ -610,22 +663,22 @@
     // Every bedroom door gap therefore must lie entirely within z > STAIR_Z_END,
     // so the doorway always sits on flat landing, never on the sloped ramp.
     // West corridor wall: doors to Eltern (back room) and Kinderzimmer 1 (front room)
-    upperPartitionZ(-0.5, backZ, -1.1, WALL_PARENT);
-    upperPartitionZ(-0.5, -0.4, 1.0, WALL_PARENT);
-    upperPartitionZ(-0.5, 1.0, 1.6, WALL_KID1);
-    upperPartitionZ(-0.5, 2.4, frontZ, WALL_KID1);
+    upperPartitionZ(CORR_X_MIN, backZ, -1.1, WALL_PARENT);
+    upperPartitionZ(CORR_X_MIN, -0.4, 1.0, WALL_PARENT);
+    upperPartitionZ(CORR_X_MIN, 1.0, 1.6, WALL_KID1);
+    upperPartitionZ(CORR_X_MIN, 2.4, frontZ, WALL_KID1);
     // East corridor wall: doors to Bad (back room) and Kinderzimmer 2 (front room)
-    upperPartitionZ(0.5, backZ, -1.2, WALL_KID2);
-    upperPartitionZ(0.5, -0.6, 1.6, WALL_KID2);
-    upperPartitionZ(0.5, 2.3, frontZ, WALL_KID2);
+    upperPartitionZ(CORR_X_MAX, backZ, -1.2, WALL_KID2);
+    upperPartitionZ(CORR_X_MAX, -0.6, 1.6, WALL_KID2);
+    upperPartitionZ(CORR_X_MAX, 2.3, frontZ, WALL_KID2);
     // Eltern <-> Kinderzimmer1 divider, Bad <-> Kinderzimmer2 divider
-    upperPartitionX(1.0, X_MIN, -0.5, WALL_PARENT);
-    upperPartitionX(-0.5, 0.5, X_MAX, WALL_KID2);
+    upperPartitionX(1.0, X_MIN, CORR_X_MIN, WALL_PARENT);
+    upperPartitionX(-0.5, CORR_X_MAX, X_MAX, WALL_KID2);
 
-    buildDoor({ axis: 'z', x: -0.5, hinge: -1.1, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdccdb8 });
-    buildDoor({ axis: 'z', x: -0.5, hinge: 1.6, hingeSign: 1, width: 0.8, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xf3d7e6 });
-    buildDoor({ axis: 'z', x: 0.5, hinge: -1.2, hingeSign: 1, width: 0.6, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdcecef });
-    buildDoor({ axis: 'z', x: 0.5, hinge: 1.6, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xbfe0ea });
+    buildDoor({ axis: 'z', x: CORR_X_MIN, hinge: -1.1, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdccdb8 });
+    buildDoor({ axis: 'z', x: CORR_X_MIN, hinge: 1.6, hingeSign: 1, width: 0.8, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xf3d7e6 });
+    buildDoor({ axis: 'z', x: CORR_X_MAX, hinge: -1.2, hingeSign: 1, width: 0.6, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xdcecef });
+    buildDoor({ axis: 'z', x: CORR_X_MAX, hinge: 1.6, hingeSign: 1, width: 0.7, height: KNEE_H + 0.6, openAngle: -Math.PI / 2, wallDepth: 0.1, doorColor: 0xbfe0ea });
 
     // ---------- Sloped ceilings (Dachschrägen) + gable roof shell ----------
     function slopedCeiling(zSign, color) {
@@ -745,16 +798,80 @@
     world.add(badRug);
 
     // ================= Kinderzimmer 2 (Junge, Spielsachen + Rennautos) =================
+    // Styled after a classic wooden-frontier kids' room: cloud wallpaper mural,
+    // a cowboy-style bed with post finials and a checkered blanket, a wristwatch
+    // wall clock, a corkboard, and a coiled rope — generic shapes/motifs only,
+    // no specific licensed character likenesses.
+    const cowboyBlanketTex = createTileTexture(0xc0392b, 0xf0d9a8);
+    cowboyBlanketTex.repeat.set(3, 2);
     const boyBed = new THREE.Group();
     boyBed.add(box(1.0, 0.3, 1.9, 0xffffff, 0, 0.15, 0));
-    boyBed.add(box(1.05, 0.5, 0.08, 0x4a8fd1, 0, 0.4, -0.91));
-    boyBed.add(box(0.9, 0.09, 0.45, 0xbfe0ff, 0, 0.35, -0.55));
+    boyBed.add(box(1.05, 0.5, 0.08, 0x8a5a2a, 0, 0.42, -0.91));
+    boyBed.add(box(1.05, 0.42, 0.08, 0x8a5a2a, 0, 0.38, 0.91));
+    [[-0.48, -0.91], [0.48, -0.91], [-0.48, 0.91], [0.48, 0.91]].forEach(([px, pz]) => {
+        const isHead = pz < 0;
+        boyBed.add(cyl(0.025, 0.025, isHead ? 0.62 : 0.5, 0x8a5a2a, px, (isHead ? 0.62 : 0.5) / 2 + 0.15, pz, { seg: 10 }));
+        boyBed.add(ball3(0.035, 0x6b4429, px, (isHead ? 0.62 : 0.5) + 0.15, pz, { seg: 10 }));
+    });
+    const blanket = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.45), new THREE.MeshStandardMaterial({ map: cowboyBlanketTex, roughness: 0.9 }));
+    blanket.rotation.x = -Math.PI / 2;
+    blanket.position.set(0, 0.351, -0.55);
+    boyBed.add(blanket);
     boyBed.position.set(4.3, FLOOR2_Y, 3.0);
     world.add(boyBed);
     addObstacle(1, 4.3, 3.0, 1.1, 1.95);
     world.add(lampTable(4.3 + 0.75, FLOOR2_Y + 0.5, 3.0));
     world.add(box(0.3, 0.5, 0.3, 0x9c6b3f, 4.3 + 0.75, FLOOR2_Y + 0.25, 3.0));
     addObstacle(1, 4.3 + 0.75, 3.0, 0.32, 0.32);
+
+    // Cloud-wallpaper mural on the gable end wall
+    const cloudMural = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.6, 1.1),
+        new THREE.MeshStandardMaterial({ map: createCloudTexture(0x8fc7ea, 0xffffff), roughness: 0.9 })
+    );
+    cloudMural.rotation.y = -Math.PI / 2;
+    cloudMural.position.set(X_MAX - 0.02, FLOOR2_Y + 0.62, 1.6);
+    world.add(cloudMural);
+
+    // Wristwatch-style wall clock
+    function createWristwatchClock() {
+        const g = new THREE.Group();
+        g.add(cyl(0.09, 0.09, 0.018, 0xd9a24a, 0, 0, 0, { seg: 24, metalness: 0.5, roughness: 0.4 }));
+        g.add(cyl(0.075, 0.075, 0.006, 0xfaf6ec, 0, 0.011, 0, { seg: 24 }));
+        [0, 1, 2, 3].forEach((i) => {
+            const a = (i / 4) * Math.PI * 2;
+            g.add(box(0.008, 0.004, 0.014, 0x2b2b2b, Math.sin(a) * 0.058, 0.015, Math.cos(a) * 0.058, { rotY: a, cast: false }));
+        });
+        g.add(box(0.006, 0.005, 0.04, 0x2b2b2b, 0, 0.016, -0.018, { rotY: 0.3, cast: false }));
+        g.add(box(0.005, 0.005, 0.03, 0x2b2b2b, 0.012, 0.017, 0.014, { rotY: -1.0, cast: false }));
+        [-1, 1].forEach((s) => g.add(box(0.06, 0.11, 0.02, 0x3f6fd1, 0, s * 0.135, 0)));
+        return g;
+    }
+    const wristClock = createWristwatchClock();
+    wristClock.rotation.y = -Math.PI / 2;
+    wristClock.position.set(X_MAX - 0.03, FLOOR2_Y + 1.55, 3.1);
+    world.add(wristClock);
+
+    // Corkboard with a few pinned notes/drawings
+    const corkboard = new THREE.Group();
+    corkboard.add(box(0.5, 0.36, 0.02, 0x7a5230, 0, 0, 0, { cast: false }));
+    corkboard.add(box(0.44, 0.3, 0.006, 0xc79a63, 0, 0, 0.013, { cast: false, roughness: 0.95 }));
+    [[-0.12, 0.06, 0xffffff], [0.1, 0.08, 0xffe6a8], [-0.05, -0.07, 0xbfe0ff], [0.13, -0.05, 0xffd6ea]].forEach(([nx, ny, c]) => {
+        corkboard.add(box(0.12, 0.09, 0.004, c, nx, ny, 0.018, { cast: false }));
+    });
+    corkboard.rotation.y = -Math.PI / 2;
+    corkboard.position.set(X_MAX - 0.03, FLOOR2_Y + 1.0, 0.7);
+    world.add(corkboard);
+
+    // Coiled rope decoration, hung on the wall
+    const rope = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.014, 8, 24), new THREE.MeshStandardMaterial({ color: 0xc9a85c, roughness: 0.85 }));
+    rope.rotation.y = -Math.PI / 2;
+    rope.position.set(X_MAX - 0.03, FLOOR2_Y + 0.55, 2.3);
+    world.add(rope);
+    const rope2 = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.012, 8, 24), new THREE.MeshStandardMaterial({ color: 0xc9a85c, roughness: 0.85 }));
+    rope2.rotation.set(0.3, -Math.PI / 2, 0.2);
+    rope2.position.set(X_MAX - 0.045, FLOOR2_Y + 0.5, 2.34);
+    world.add(rope2);
 
     const boyShelf = new THREE.Group();
     boyShelf.add(box(0.32, 1.3, 0.9, 0xd98f4a, 0, 0.65, 0));
