@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cape Character — 2D Charakter mit Gelenken</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+  }
+  #stage {
+    position: fixed;
+    inset: 0;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+  }
+  #hud {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #eef2f7;
+    font-size: 13px;
+    text-align: center;
+    opacity: 0.85;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    line-height: 1.5;
+    pointer-events: none;
+  }
+  #hud b { color: #ffd97a; }
+  #touch-controls {
+    position: absolute;
+    bottom: 22px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 24px;
+    pointer-events: none;
+  }
+  .touch-btn {
+    pointer-events: auto;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .touch-btn:active { background: rgba(255,255,255,0.3); }
+  #left-pad { display: flex; gap: 10px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="hud"><b>&larr; A / D &rarr;</b> laufen &nbsp;&nbsp; <b>Leertaste / W / &uarr;</b> springen</div>
+  <canvas id="c"></canvas>
+  <div id="touch-controls">
+    <div id="left-pad">
+      <div class="touch-btn" id="btn-left">&larr;</div>
+      <div class="touch-btn" id="btn-right">&rarr;</div>
+    </div>
+    <div class="touch-btn" id="btn-jump">&uarr;</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+
+  const WORLD_W = 3600;
+
+  // ---------- fullscreen canvas ----------
+  let VIEW_W, VIEW_H, GROUND_LEVEL_Y;
+  function resizeCanvas() {
+    const prevGL = GROUND_LEVEL_Y;
+    VIEW_W = window.innerWidth;
+    VIEW_H = window.innerHeight;
+    canvas.width = VIEW_W;
+    canvas.height = VIEW_H;
+    GROUND_LEVEL_Y = VIEW_H - 90;
+    if (prevGL !== undefined && typeof character !== "undefined") {
+      const delta = GROUND_LEVEL_Y - prevGL;
+      character.baseGroundY += delta;
+      character.footWorldY += delta;
+    }
+  }
+
+  // ---------- input ----------
+  const keys = Object.create(null);
+  const KEY_LEFT = ["ArrowLeft", "KeyA"];
+  const KEY_RIGHT = ["ArrowRight", "KeyD"];
+  const KEY_JUMP = ["Space", "ArrowUp", "KeyW"];
+
+  window.addEventListener("keydown", (e) => { keys[e.code] = true; if (KEY_JUMP.includes(e.code)) e.preventDefault(); });
+  window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+  function bindTouch(id, code) {
+    const el = document.getElementById(id);
+    const set = (v) => (e) => { e.preventDefault(); keys[code] = v; };
+    el.addEventListener("touchstart", set(true), { passive: false });
+    el.addEventListener("touchend", set(false), { passive: false });
+    el.addEventListener("mousedown", set(true));
+    el.addEventListener("mouseup", set(false));
+    el.addEventListener("mouseleave", set(false));
+  }
+  bindTouch("btn-left", "ArrowLeft");
+  bindTouch("btn-right", "ArrowRight");
+  bindTouch("btn-jump", "Space");
+
+  function pressed(list) { return list.some((k) => keys[k]); }
+
+  // ---------- two-bone IK ----------
+  // Solve for the middle joint position given base, target and two segment
+  // lengths. `bend` flips which side the joint bows out to (knee/elbow).
+  function solveIK(baseX, baseY, targetX, targetY, l1, l2, bend) {
+    let dx = targetX - baseX;
+    let dy = targetY - baseY;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+    const maxReach = l1 + l2 - 0.01;
+    const minReach = Math.abs(l1 - l2) + 0.01;
+    dist = Math.max(minReach, Math.min(maxReach, dist));
+    const baseAngle = Math.atan2(dy, dx);
+    const cosA = (l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist);
+    const a = Math.acos(Math.max(-1, Math.min(1, cosA)));
+    const jointAngle = baseAngle - bend * a;
+    const jx = baseX + Math.cos(jointAngle) * l1;
+    const jy = baseY + Math.sin(jointAngle) * l1;
+    const endX = baseX + Math.cos(baseAngle) * dist;
+    const endY = baseY + Math.sin(baseAngle) * dist;
+    return { jx, jy, endX, endY };
+  }
+
+  // ---------- physics constants ----------
+  const PHYS = {
+    accel: 2800,
+    maxSpeed: 300,
+    friction: 2300,
+    gravity: 2300,
+    jumpVel: 760,
+    strideRate: 0.034,  // phase radians per pixel moved
+    crouchTime: 0.11,   // seconds of anticipation squat before launch
+  };
+
+  // Skeleton proportions (local space, facing = +x to the right, 0 = feet)
+  const SK = {
+    hipY: -78,
+    torso: 46,
+    neck: 8,
+    headR: 9,
+    shoulderDrop: 4,
+    upperLeg: 34,
+    lowerLeg: 32,
+    footLen: 15,
+    upperArm: 26,
+    lowerArm: 25,
+    hipW: 20,
+    shoulderW: 24,
+    crouchDepth: 26,
+  };
+
+  // ---------- boxes to jump on ----------
+  const boxes = [
+    { x: 480, w: 90, h: 50 },
+    { x: 740, w: 90, h: 80 },
+    { x: 1000, w: 90, h: 110 },
+    { x: 1300, w: 150, h: 60 },
+    { x: 1600, w: 90, h: 95 },
+    { x: 1900, w: 220, h: 40 },
+    { x: 2250, w: 90, h: 100 },
+    { x: 2550, w: 90, h: 70 },
+  ];
+
+  function getSurfaceY(worldX) {
+    let top = GROUND_LEVEL_Y;
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      if (worldX >= b.x && worldX <= b.x + b.w) {
+        const boxTop = GROUND_LEVEL_Y - b.h;
+        if (boxTop < top) top = boxTop;
+      }
+    }
+    return top;
+  }
+
+  function resolveHorizontal(prevX, nextX, footY) {
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      const boxTop = GROUND_LEVEL_Y - b.h;
+      if (footY > boxTop + 1) {
+        if (prevX <= b.x && nextX > b.x) return b.x - 0.5;
+        if (prevX >= b.x + b.w && nextX < b.x + b.w) return b.x + b.w + 0.5;
+      }
+    }
+    return nextX;
+  }
+
+  // ---------- character ----------
+  resizeCanvas();
+  const character = {
+    worldX: 220,
+    footWorldY: GROUND_LEVEL_Y,
+    baseGroundY: GROUND_LEVEL_Y,
+    vx: 0,
+    vy: 0,
+    facing: 1,
+    state: "stand", // "stand" | "crouch" | "air"
+    crouchT: 0,
+    jumpHeld: false,
+    phase: 0,
+    airTime: 0,
+    squash: 1,
+  };
+  window.addEventListener("resize", resizeCanvas);
+
+  let cameraX = 0;
+  function updateCamera() {
+    cameraX = character.worldX - VIEW_W / 2;
+    cameraX = Math.max(0, Math.min(Math.max(0, WORLD_W - VIEW_W), cameraX));
+  }
+
+  // ---------- cape (verlet cloth: a few hanging chains filled in between) ----------
+  const CAPE_SEGMENTS = 6;
+  const CAPE_SEG_LEN = 16;
+  const CAPE_STRANDS = 3; // front edge, middle, back edge
+  const CAPE_LATERAL_REST = 9; // constant spacing between adjacent anchors (local space)
+  const CAPE_ANCHOR_OFFSET_X = [-3, -3 - CAPE_LATERAL_REST, -3 - CAPE_LATERAL_REST * 2];
+  const CAPE_ANCHOR_OFFSET_Y = [-2, 0, 2];
+  let capeStrands = []; // each: array of {x,y,ox,oy,pin}
+
+  function initCape() {
+    capeStrands = [];
+    const originY = character.footWorldY + SK.hipY - SK.torso + SK.shoulderDrop;
+    for (let s = 0; s < CAPE_STRANDS; s++) {
+      const pts = [];
+      const startX = character.worldX + CAPE_ANCHOR_OFFSET_X[s];
+      const startY = originY + CAPE_ANCHOR_OFFSET_Y[s];
+      for (let i = 0; i <= CAPE_SEGMENTS; i++) {
+        const x = startX;
+        const y = startY + i * CAPE_SEG_LEN;
+        pts.push({ x, y, ox: x, oy: y, pin: i === 0 });
+      }
+      capeStrands.push(pts);
+    }
+  }
+  initCape();
+
+  function updateCape(dt, anchors, windX) {
+    const gravity = 900;
+    const maxStep = 6; // clamp per-step displacement so a stray large correction can't explode
+    for (let s = 0; s < CAPE_STRANDS; s++) {
+      const pts = capeStrands[s];
+      const anchor = anchors[s];
+      pts[0].x = anchor.x;
+      pts[0].y = anchor.y;
+      pts[0].ox = anchor.x;
+      pts[0].oy = anchor.y;
+
+      for (let i = 1; i < pts.length; i++) {
+        const p = pts[i];
+        let vx = (p.x - p.ox) * 0.98;
+        let vy = (p.y - p.oy) * 0.98;
+        const speed = Math.sqrt(vx * vx + vy * vy);
+        if (speed > maxStep) { const k = maxStep / speed; vx *= k; vy *= k; }
+        const nx = p.x + vx + windX * dt * dt;
+        const ny = p.y + vy + gravity * dt * dt;
+        p.ox = p.x;
+        p.oy = p.y;
+        p.x = nx;
+        p.y = ny;
+      }
+
+      for (let iter = 0; iter < 4; iter++) {
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = pts[i], b = pts[i + 1];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+          const diff = (d - CAPE_SEG_LEN) / d;
+          const ax = dx * 0.5 * diff, ay = dy * 0.5 * diff;
+          if (!a.pin) { a.x += ax; a.y += ay; }
+          if (!b.pin) { b.x -= ax; b.y -= ay; }
+        }
+      }
+    }
+    for (let iter = 0; iter < 2; iter++) {
+      for (let i = 0; i <= CAPE_SEGMENTS; i++) {
+        for (let s = 0; s < CAPE_STRANDS - 1; s++) {
+          const a = capeStrands[s][i], b = capeStrands[s + 1][i];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+          const diff = (d - CAPE_LATERAL_REST) / d * 0.15;
+          if (!a.pin) { a.x += dx * diff * 0.5; a.y += dy * diff * 0.5; }
+          if (!b.pin) { b.x -= dx * diff * 0.5; b.y -= dy * diff * 0.5; }
+        }
+      }
+    }
+  }
+
+  // ---------- update ----------
+  let lastT = performance.now();
+  function update(dt) {
+    dt = Math.min(dt, 1 / 30);
+    const left = pressed(KEY_LEFT);
+    const right = pressed(KEY_RIGHT);
+    const jump = pressed(KEY_JUMP);
+    const jumpEdge = jump && !character.jumpHeld;
+    character.jumpHeld = jump;
+
+    let input = 0;
+    if (left) input -= 1;
+    if (right) input += 1;
+
+    if (input !== 0) {
+      character.vx += input * PHYS.accel * dt;
+      character.facing = input > 0 ? 1 : -1;
+    } else {
+      const sign = Math.sign(character.vx);
+      character.vx -= sign * PHYS.friction * dt;
+      if (Math.sign(character.vx) !== sign) character.vx = 0;
+    }
+    character.vx = Math.max(-PHYS.maxSpeed, Math.min(PHYS.maxSpeed, character.vx));
+
+    const prevX = character.worldX;
+    let nextX = prevX + character.vx * dt;
+    nextX = Math.max(40, Math.min(WORLD_W - 40, nextX));
+    const footYRef = character.state === "air" ? character.footWorldY : character.baseGroundY;
+    const resolvedX = resolveHorizontal(prevX, nextX, footYRef);
+    if (resolvedX !== nextX) character.vx = 0;
+    character.worldX = resolvedX;
+
+    const surfaceY = getSurfaceY(character.worldX);
+
+    if (character.state === "stand") {
+      if (surfaceY > character.baseGroundY + 0.5) {
+        // walked off a ledge
+        character.state = "air";
+        character.footWorldY = character.baseGroundY;
+        character.vy = 0;
+      } else {
+        character.baseGroundY = surfaceY;
+        if (jumpEdge) {
+          character.state = "crouch";
+          character.crouchT = 0;
+        } else {
+          character.phase += Math.abs(character.vx) * dt * PHYS.strideRate;
+        }
+      }
+    } else if (character.state === "crouch") {
+      character.crouchT += dt;
+      if (character.crouchT >= PHYS.crouchTime) {
+        character.vy = -PHYS.jumpVel;
+        character.state = "air";
+        character.airTime = 0;
+        character.footWorldY = character.baseGroundY;
+      }
+    } else if (character.state === "air") {
+      character.vy += PHYS.gravity * dt;
+      const prevFootY = character.footWorldY;
+      const nextFootY = prevFootY + character.vy * dt;
+      if (character.vy >= 0 && prevFootY <= surfaceY + 0.5 && nextFootY >= surfaceY) {
+        character.footWorldY = surfaceY;
+        character.vy = 0;
+        character.state = "stand";
+        character.baseGroundY = surfaceY;
+        character.squash = 1.22;
+      } else {
+        character.footWorldY = nextFootY;
+      }
+      character.airTime += dt;
+    }
+
+    character.squash += (1 - character.squash) * Math.min(1, dt * 10);
+  }
+
+  // ---------- pose ----------
+  function computePose() {
+    const speedRatio = Math.min(1, Math.abs(character.vx) / PHYS.maxSpeed);
+    const running = speedRatio > 0.03 && character.state === "stand";
+    const crouching = character.state === "crouch";
+    const airborne = character.state === "air";
+
+    let crouchAmt = 0;
+    if (crouching) {
+      const p = Math.min(1, character.crouchT / PHYS.crouchTime);
+      crouchAmt = Math.sin(p * Math.PI * 0.5) * SK.crouchDepth;
+    }
+
+    // hip bounces twice per stride cycle, the way a real run bobs at each footstrike
+    const bob = running ? -Math.abs(Math.sin(character.phase)) * 6 * speedRatio : 0;
+    const hipY = SK.hipY + crouchAmt + bob;
+    const hipX = 0;
+
+    // lean uses forward speed (vx * facing), not raw vx, so a left-facing run
+    // leans the same way relative to travel as a right-facing run does
+    const forwardSpeed = character.vx * character.facing;
+    const lean = crouching ? 0
+      : (forwardSpeed / PHYS.maxSpeed) * 9 + (airborne ? -Math.max(-1, Math.min(1, character.vy / PHYS.jumpVel)) * 8 : 0);
+    const shoulderX = hipX + lean;
+    const shoulderY = hipY - SK.torso + crouchAmt * 0.35;
+
+    const strideLen = running ? 30 * speedRatio : 0;   // half-stride reach
+    const lift = running ? 30 * speedRatio : 0;        // swing-leg foot height
+    const DUTY = 0.36; // fraction of the cycle each foot spends on the ground — well
+                        // under 0.5 so both feet are airborne together (a real running
+                        // flight phase, not a walk's continuous ground contact)
+
+    function footTarget(sign) {
+      if (airborne) {
+        const tuck = Math.min(1, character.airTime * 6);
+        return {
+          x: hipX + sign * 4,
+          y: -(SK.upperLeg + SK.lowerLeg) * (0.8 - 0.45 * tuck),
+        };
+      }
+      if (crouching) {
+        return { x: hipX + sign * 9, y: 0 };
+      }
+      const t = character.phase + (sign > 0 ? 0 : Math.PI);
+      const p = (((t / (2 * Math.PI)) % 1) + 1) % 1; // 0..1 through this leg's cycle
+      const stanceSpread = 7;
+      let x, y;
+      if (p < DUTY) {
+        // stance: foot planted, sweeping back underneath the body
+        const sp = p / DUTY;
+        x = strideLen - sp * 2 * strideLen;
+        y = 0;
+      } else {
+        // swing: foot lifts off and arcs forward for the next footstrike
+        const sp = (p - DUTY) / (1 - DUTY);
+        x = -strideLen + sp * 2 * strideLen;
+        y = -Math.sin(sp * Math.PI) * lift;
+      }
+      return { x: hipX + sign * stanceSpread + x, y };
+    }
+
+    function handTarget(sign) {
+      const bentHang = (SK.upperArm + SK.lowerArm) * 0.55;
+      if (airborne) {
+        const t = Math.max(-1, Math.min(1, -character.vy / PHYS.jumpVel));
+        return { x: shoulderX + sign * (SK.shoulderW * 0.55), y: shoulderY + bentHang * 0.6 - t * 14 };
+      }
+      if (crouching) {
+        return { x: shoulderX + sign * (SK.shoulderW * 0.5) - 4, y: shoulderY + bentHang * 0.8 };
+      }
+      if (!running) {
+        return { x: shoulderX + sign * (SK.shoulderW * 0.6), y: shoulderY + (SK.upperArm + SK.lowerArm) * 0.86 };
+      }
+      // running: bent-elbow arm pump, swinging opposite the same-side leg
+      const t = character.phase + (sign > 0 ? Math.PI : 0);
+      const swing = Math.sin(t) * (strideLen * 1.1);
+      return {
+        x: shoulderX + sign * (SK.shoulderW * 0.35) + swing,
+        y: shoulderY + bentHang - Math.max(0, -Math.cos(t)) * 12,
+      };
+    }
+
+    const backFoot = footTarget(-1);
+    const frontFoot = footTarget(1);
+    const backHand = handTarget(-1);
+    const frontHand = handTarget(1);
+
+    const hip = { x: hipX, y: hipY };
+    const shoulder = { x: shoulderX, y: shoulderY };
+
+    return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean };
+  }
+
+  // ---------- draw ----------
+  function draw() {
+    ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+    updateCamera();
+    drawBackground();
+    drawBoxes();
+    drawShadow();
+
+    const facing = character.facing;
+    const screenX = character.worldX - cameraX;
+    ctx.save();
+    ctx.translate(screenX, character.footWorldY);
+    ctx.scale(facing, 1);
+
+    const pose = computePose();
+    const hip = pose.hip;
+    const shoulder = pose.shoulder;
+
+    const backFootTarget = { x: pose.backFoot.x, y: pose.backFoot.y };
+    const frontFootTarget = { x: pose.frontFoot.x, y: pose.frontFoot.y };
+    const backHandTarget = { x: pose.backHand.x, y: pose.backHand.y };
+    const frontHandTarget = { x: pose.frontHand.x, y: pose.frontHand.y };
+
+    const backLegIK = solveIK(hip.x, hip.y, backFootTarget.x, backFootTarget.y, SK.upperLeg, SK.lowerLeg, 1);
+    const frontLegIK = solveIK(hip.x, hip.y, frontFootTarget.x, frontFootTarget.y, SK.upperLeg, SK.lowerLeg, 1);
+    const backArmIK = solveIK(shoulder.x, shoulder.y, backHandTarget.x, backHandTarget.y, SK.upperArm, SK.lowerArm, -1);
+    const frontArmIK = solveIK(shoulder.x, shoulder.y, frontHandTarget.x, frontHandTarget.y, SK.upperArm, SK.lowerArm, -1);
+
+    const neckPt = { x: shoulder.x, y: shoulder.y - SK.neck };
+    const headCenter = { x: neckPt.x + pose.lean * 0.3, y: neckPt.y - SK.headR - 2 };
+
+    const capeAnchorsLocal = CAPE_ANCHOR_OFFSET_X.map((ox, s) => ({
+      x: shoulder.x + ox,
+      y: shoulder.y + SK.shoulderDrop + CAPE_ANCHOR_OFFSET_Y[s],
+    }));
+    const worldAnchors = capeAnchorsLocal.map((a) => ({
+      x: character.worldX + a.x * facing,
+      y: character.footWorldY + a.y,
+    }));
+    const windX = -character.vx * 1.4;
+    updateCape(dtGlobal, worldAnchors, windX);
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    drawCape(facing);
+    drawLimb(hip, backLegIK, "#3a3f52", 11, true);
+    drawLimb(shoulder, backArmIK, "#3a3f52", 8, false);
+
+    drawTorso(hip, shoulder);
+
+    drawLimb(hip, frontLegIK, "#4d5570", 12, true);
+    drawLimb(shoulder, frontArmIK, "#4d5570", 9, false);
+
+    drawHood(headCenter, shoulder, facing);
+
+    ctx.restore();
+  }
+
+  function drawBackground() {
+    const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+    g.addColorStop(0, "#1b2735");
+    g.addColorStop(1, "#4a5a72");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+    ctx.fillStyle = "#232a36";
+    ctx.fillRect(0, GROUND_LEVEL_Y + 2, VIEW_W, VIEW_H - GROUND_LEVEL_Y - 2);
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_LEVEL_Y + 2);
+    ctx.lineTo(VIEW_W, GROUND_LEVEL_Y + 2);
+    ctx.stroke();
+  }
+
+  function drawBoxes() {
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      const sx = b.x - cameraX;
+      if (sx + b.w < 0 || sx > VIEW_W) continue;
+      const topY = GROUND_LEVEL_Y - b.h;
+      const grad = ctx.createLinearGradient(0, topY, 0, GROUND_LEVEL_Y + 4);
+      grad.addColorStop(0, "#8a6a4a");
+      grad.addColorStop(1, "#4d3826");
+      ctx.fillStyle = grad;
+      ctx.fillRect(sx, topY, b.w, GROUND_LEVEL_Y + 4 - topY);
+
+      ctx.fillStyle = "rgba(255,255,255,0.14)";
+      ctx.fillRect(sx, topY, b.w, 5);
+
+      ctx.strokeStyle = "rgba(0,0,0,0.28)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(sx + 3, topY + 3, b.w - 6, GROUND_LEVEL_Y - topY - 6);
+      ctx.beginPath();
+      ctx.moveTo(sx + 3, topY + 3);
+      ctx.lineTo(sx + b.w - 3, GROUND_LEVEL_Y - 3);
+      ctx.moveTo(sx + b.w - 3, topY + 3);
+      ctx.lineTo(sx + 3, GROUND_LEVEL_Y - 3);
+      ctx.stroke();
+    }
+  }
+
+  function drawShadow() {
+    const groundBelow = getSurfaceY(character.worldX);
+    const heightAbove = Math.max(0, groundBelow - character.footWorldY);
+    const shadowScreenX = character.worldX - cameraX;
+    ctx.save();
+    ctx.globalAlpha = 0.35 * Math.max(0, 1 - heightAbove / 140);
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.ellipse(shadowScreenX, groundBelow + 6, 34 / Math.max(0.6, character.squash), 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawLimb(base, ik, color, width, isLeg) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(base.x, base.y);
+    ctx.lineTo(ik.jx, ik.jy);
+    ctx.lineTo(ik.endX, ik.endY);
+    ctx.stroke();
+
+    if (isLeg) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width * 0.85;
+      ctx.beginPath();
+      ctx.moveTo(ik.endX, ik.endY);
+      ctx.lineTo(ik.endX + SK.footLen, ik.endY + 2);
+      ctx.stroke();
+    }
+  }
+
+  function drawTorso(hip, shoulder) {
+    ctx.fillStyle = "#565f7d";
+    ctx.beginPath();
+    ctx.moveTo(hip.x - SK.hipW * 0.5, hip.y);
+    ctx.quadraticCurveTo(hip.x - SK.shoulderW * 0.3, (hip.y + shoulder.y) / 2, shoulder.x - SK.shoulderW * 0.5, shoulder.y);
+    ctx.lineTo(shoulder.x + SK.shoulderW * 0.5, shoulder.y);
+    ctx.quadraticCurveTo(hip.x + SK.shoulderW * 0.3, (hip.y + shoulder.y) / 2, hip.x + SK.hipW * 0.5, hip.y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawHead(c) {
+    ctx.fillStyle = "#e7b98f";
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y, SK.headR, SK.headR * 1.15, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#2b2f3a";
+    ctx.beginPath();
+    ctx.arc(c.x + SK.headR * 0.5, c.y - 1, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawHood(headC, shoulder, facing) {
+    // a cowl that fully wraps the head — only a face opening (drawn on top,
+    // shifted slightly toward the front) breaks through the fabric
+    const r = SK.headR;
+    ctx.fillStyle = "#4a2f52";
+    ctx.beginPath();
+    ctx.ellipse(headC.x, headC.y - r * 0.1, r * 1.65, r * 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // drape connecting the cowl down onto the shoulders/collar
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x - SK.shoulderW * 0.6, shoulder.y + 4);
+    ctx.quadraticCurveTo(headC.x - r * 1.6, headC.y + r * 0.9, headC.x - r * 1.2, headC.y + r * 0.35);
+    ctx.lineTo(headC.x + r * 1.2, headC.y + r * 0.35);
+    ctx.quadraticCurveTo(headC.x + r * 1.6, headC.y + r * 0.9, shoulder.x + SK.shoulderW * 0.6, shoulder.y + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // recessed shadow ring framing the face, then the face itself on top
+    const faceC = { x: headC.x + r * 0.2, y: headC.y + r * 0.18 };
+    ctx.fillStyle = "#2b1a30";
+    ctx.beginPath();
+    ctx.ellipse(faceC.x, faceC.y, r * 1.05, r * 1.15, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    drawHead(faceC);
+  }
+
+  function drawCape(facing) {
+    ctx.save();
+    ctx.scale(1 / facing, 1);
+    ctx.translate(-character.worldX, -character.footWorldY);
+
+    for (let s = 0; s < CAPE_STRANDS - 1; s++) {
+      const a = capeStrands[s];
+      const b = capeStrands[s + 1];
+      const grad = ctx.createLinearGradient(0, a[0].y, 0, a[a.length - 1].y);
+      grad.addColorStop(0, "#5a2d63");
+      grad.addColorStop(1, "#2b1730");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(a[0].x, a[0].y);
+      for (let i = 1; i < a.length; i++) ctx.lineTo(a[i].x, a[i].y);
+      for (let i = b.length - 1; i >= 0; i--) ctx.lineTo(b[i].x, b[i].y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 1.2;
+    for (let s = 1; s < CAPE_STRANDS - 1; s++) {
+      const strand = capeStrands[s];
+      ctx.beginPath();
+      ctx.moveTo(strand[0].x, strand[0].y);
+      for (let i = 1; i < strand.length; i++) ctx.lineTo(strand[i].x, strand[i].y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---------- main loop ----------
+  let dtGlobal = 1 / 60;
+  function frame(now) {
+    const dt = Math.min(0.033, (now - lastT) / 1000 || 1 / 60);
+    lastT = now;
+    dtGlobal = dt;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
