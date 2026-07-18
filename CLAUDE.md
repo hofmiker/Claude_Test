@@ -46,10 +46,13 @@ kein PR nötig.
        </span>
    </a>
    ```
-6. Screenshot bzw. GIF für die Kachel erzeugen und unter
-   `screenshots/<projekt>.png` (oder `.gif`) ablegen — Startscreen wenn
-   möglich überspringen (Klick/Taste simulieren), damit echtes Gameplay zu
-   sehen ist. Ohne dieses Bild bleibt die Kachel schwarz.
+6. **Bevorzugt ein kurzes GIF für die Kachel erzeugen** (wie bei `hello/`):
+   Startscreen wenn möglich überspringen (Klick/Taste simulieren) und ein
+   paar Sekunden echtes Gameplay als `screenshots/<projekt>.gif` aufnehmen.
+   Nur wenn das nicht geht (z. B. Projekt hängt von per Netzwerk-Policy
+   geblockten CDNs/APIs ab, siehe `solar-orbit`/`dhl-city`/`bitcoin-3d`),
+   stattdessen auf ein statisches Bild unter `screenshots/<projekt>.png`
+   zurückfallen. Ohne dieses Bild bleibt die Kachel schwarz.
    **Hinweis:** `create_or_update_file` über die GitHub-MCP-Tools kann keine
    echten Binärdateien schreiben (der Content wird nochmal als Text durch
    base64 geschickt, das Ergebnis ist ein korruptes Bild). Für Kacheln, die
