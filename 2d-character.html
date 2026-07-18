@@ -163,7 +163,7 @@
     hipY: -78,
     torso: 46,
     neck: 8,
-    headR: 12,
+    headR: 9,
     shoulderDrop: 4,
     upperLeg: 34,
     lowerLeg: 32,
@@ -401,16 +401,24 @@
       crouchAmt = Math.sin(p * Math.PI * 0.5) * SK.crouchDepth;
     }
 
-    const hipY = SK.hipY + crouchAmt;
+    // hip bounces twice per stride cycle, the way a real run bobs at each footstrike
+    const bob = running ? -Math.abs(Math.sin(character.phase)) * 6 * speedRatio : 0;
+    const hipY = SK.hipY + crouchAmt + bob;
     const hipX = 0;
 
+    // lean uses forward speed (vx * facing), not raw vx, so a left-facing run
+    // leans the same way relative to travel as a right-facing run does
+    const forwardSpeed = character.vx * character.facing;
     const lean = crouching ? 0
-      : (character.vx / PHYS.maxSpeed) * 7 + (airborne ? -Math.max(-1, Math.min(1, character.vy / PHYS.jumpVel)) * 8 : 0);
+      : (forwardSpeed / PHYS.maxSpeed) * 9 + (airborne ? -Math.max(-1, Math.min(1, character.vy / PHYS.jumpVel)) * 8 : 0);
     const shoulderX = hipX + lean;
     const shoulderY = hipY - SK.torso + crouchAmt * 0.35;
 
-    const stride = running ? 34 * speedRatio : 0;
-    const lift = running ? 27 * speedRatio : 0;
+    const strideLen = running ? 30 * speedRatio : 0;   // half-stride reach
+    const lift = running ? 30 * speedRatio : 0;        // swing-leg foot height
+    const DUTY = 0.36; // fraction of the cycle each foot spends on the ground — well
+                        // under 0.5 so both feet are airborne together (a real running
+                        // flight phase, not a walk's continuous ground contact)
 
     function footTarget(sign) {
       if (airborne) {
@@ -424,10 +432,21 @@
         return { x: hipX + sign * 9, y: 0 };
       }
       const t = character.phase + (sign > 0 ? 0 : Math.PI);
+      const p = (((t / (2 * Math.PI)) % 1) + 1) % 1; // 0..1 through this leg's cycle
       const stanceSpread = 7;
-      const x = hipX + sign * stanceSpread + Math.sin(t) * stride;
-      const liftAmt = Math.max(0, Math.cos(t)) * lift;
-      return { x, y: -liftAmt };
+      let x, y;
+      if (p < DUTY) {
+        // stance: foot planted, sweeping back underneath the body
+        const sp = p / DUTY;
+        x = strideLen - sp * 2 * strideLen;
+        y = 0;
+      } else {
+        // swing: foot lifts off and arcs forward for the next footstrike
+        const sp = (p - DUTY) / (1 - DUTY);
+        x = -strideLen + sp * 2 * strideLen;
+        y = -Math.sin(sp * Math.PI) * lift;
+      }
+      return { x: hipX + sign * stanceSpread + x, y };
     }
 
     function handTarget(sign) {
@@ -444,10 +463,10 @@
       }
       // running: bent-elbow arm pump, swinging opposite the same-side leg
       const t = character.phase + (sign > 0 ? Math.PI : 0);
-      const swing = Math.sin(t) * (stride * 0.85);
+      const swing = Math.sin(t) * (strideLen * 1.1);
       return {
         x: shoulderX + sign * (SK.shoulderW * 0.35) + swing,
-        y: shoulderY + bentHang - Math.max(0, -Math.cos(t)) * 10,
+        y: shoulderY + bentHang - Math.max(0, -Math.cos(t)) * 12,
       };
     }
 
@@ -578,17 +597,6 @@
     ctx.restore();
   }
 
-  function drawJoint(x, y, r) {
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = "#20232d";
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(x, y, r * 0.55, 0, Math.PI * 2);
-    ctx.fillStyle = "#9aa3bd";
-    ctx.fill();
-  }
-
   function drawLimb(base, ik, color, width, isLeg) {
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
@@ -598,8 +606,6 @@
     ctx.lineTo(ik.endX, ik.endY);
     ctx.stroke();
 
-    drawJoint(ik.jx, ik.jy, width * 0.46);
-
     if (isLeg) {
       ctx.strokeStyle = color;
       ctx.lineWidth = width * 0.85;
@@ -607,9 +613,6 @@
       ctx.moveTo(ik.endX, ik.endY);
       ctx.lineTo(ik.endX + SK.footLen, ik.endY + 2);
       ctx.stroke();
-      drawJoint(ik.endX, ik.endY, width * 0.4);
-    } else {
-      drawJoint(ik.endX, ik.endY, width * 0.36);
     }
   }
 
@@ -622,9 +625,6 @@
     ctx.quadraticCurveTo(hip.x + SK.shoulderW * 0.3, (hip.y + shoulder.y) / 2, hip.x + SK.hipW * 0.5, hip.y);
     ctx.closePath();
     ctx.fill();
-
-    drawJoint(hip.x, hip.y, 6);
-    drawJoint(shoulder.x, shoulder.y, 5.5);
   }
 
   function drawHead(c) {
@@ -639,27 +639,31 @@
   }
 
   function drawHood(headC, shoulder, facing) {
+    // a cowl that fully wraps the head — only a face opening (drawn on top,
+    // shifted slightly toward the front) breaks through the fabric
     const r = SK.headR;
     ctx.fillStyle = "#4a2f52";
     ctx.beginPath();
-    ctx.moveTo(shoulder.x - SK.shoulderW * 0.55, shoulder.y + 3);
-    ctx.quadraticCurveTo(headC.x - r * 1.25, headC.y + r * 0.3, headC.x - r * 0.95, headC.y - r * 0.55);
-    ctx.quadraticCurveTo(headC.x - r * 0.55, headC.y - r * 1.35, headC.x + r * 0.1, headC.y - r * 1.4);
-    ctx.quadraticCurveTo(headC.x + r * 0.85, headC.y - r * 1.3, headC.x + r * 0.95, headC.y - r * 0.3);
-    ctx.quadraticCurveTo(headC.x + r * 1.0, headC.y + r * 0.5, headC.x + r * 0.35, headC.y + r * 0.95);
-    ctx.quadraticCurveTo(headC.x - r * 0.1, headC.y + r * 0.65, headC.x - r * 0.5, headC.y + r * 0.7);
-    ctx.quadraticCurveTo(shoulder.x - SK.shoulderW * 0.1, shoulder.y - 4, shoulder.x - SK.shoulderW * 0.55, shoulder.y + 3);
+    ctx.ellipse(headC.x, headC.y - r * 0.1, r * 1.65, r * 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // drape connecting the cowl down onto the shoulders/collar
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x - SK.shoulderW * 0.6, shoulder.y + 4);
+    ctx.quadraticCurveTo(headC.x - r * 1.6, headC.y + r * 0.9, headC.x - r * 1.2, headC.y + r * 0.35);
+    ctx.lineTo(headC.x + r * 1.2, headC.y + r * 0.35);
+    ctx.quadraticCurveTo(headC.x + r * 1.6, headC.y + r * 0.9, shoulder.x + SK.shoulderW * 0.6, shoulder.y + 4);
     ctx.closePath();
     ctx.fill();
 
+    // recessed shadow ring framing the face, then the face itself on top
+    const faceC = { x: headC.x + r * 0.2, y: headC.y + r * 0.18 };
     ctx.fillStyle = "#2b1a30";
     ctx.beginPath();
-    ctx.arc(headC.x + r * 0.05, headC.y + r * 0.05, r * 1.05, Math.PI * 0.15, Math.PI * 0.95);
-    ctx.arc(headC.x, headC.y, r * 0.7, Math.PI * 0.95, Math.PI * 0.15, true);
-    ctx.closePath();
+    ctx.ellipse(faceC.x, faceC.y, r * 1.05, r * 1.15, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    drawHead(headC);
+    drawHead(faceC);
   }
 
   function drawCape(facing) {
