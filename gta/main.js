@@ -48,12 +48,22 @@ scene.background = new THREE.Color(0x171a1d);
 scene.fog = new THREE.Fog(0x171a1d, CITY_HALF * 0.9, CITY_HALF * 1.85);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 900);
+// top-down GTA1-style chase cam, separate profile for car vs on-foot
 const CAM_HEIGHT = 38;
-const CAM_BACK = 9; // distance behind the car; camera now rotates to stay behind it
+const CAM_BACK = 9;
+const CAM_HEIGHT_FOOT = 22;
+const CAM_BACK_FOOT = 6;
+// low behind-the-subject 3rd-person alternative
+const CAM3_HEIGHT_CAR = 5.4;
+const CAM3_BACK_CAR = 8.5;
+const CAM3_HEIGHT_FOOT = 3.0;
+const CAM3_BACK_FOOT = 5.0;
 const camTarget = new THREE.Vector3();
 const camPos = new THREE.Vector3(0, CAM_HEIGHT, CAM_BACK);
 let camHeading = 0;
 camera.position.copy(camPos);
+
+let cameraMode = localStorage.getItem('viceGridCameraMode') || 'top';
 
 // ---------- Lighting ----------------------------------------------------
 scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x2b2116, 0.65));
@@ -348,6 +358,29 @@ function collideWithBuildings(pos, radius) {
   return false;
 }
 
+// unlike collideWithBuildings (tuned for agents grazing a building edge from
+// outside), this pushes a point out to the NEAREST edge even if it landed
+// deep inside the footprint -- needed for random spawn points, since a
+// building can occupy most of its block's "sidewalk" cell
+function pushClearOfBuildings(pos, clearance) {
+  for (const b of buildingColliders) {
+    const minX = b.minX - clearance, maxX = b.maxX + clearance;
+    const minZ = b.minZ - clearance, maxZ = b.maxZ + clearance;
+    if (pos.x <= minX || pos.x >= maxX || pos.z <= minZ || pos.z >= maxZ) continue;
+    const distLeft = pos.x - minX;
+    const distRight = maxX - pos.x;
+    const distTop = pos.z - minZ;
+    const distBottom = maxZ - pos.z;
+    const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+    if (minDist === distLeft) pos.x = minX;
+    else if (minDist === distRight) pos.x = maxX;
+    else if (minDist === distTop) pos.z = minZ;
+    else pos.z = maxZ;
+    return true;
+  }
+  return false;
+}
+
 // ---------- Vehicle factory ---------------------------------------------
 // Per-type footprint/handling specs. halfW/halfL drive the OBB collision
 // shape (so cars only "hit" when they actually touch); wheelR/frontZ/rearZ
@@ -639,6 +672,7 @@ class Pedestrian {
     this.cell = cell;
     this.mesh = createPedMesh();
     this.pos = new THREE.Vector3(cell.x + rand(-cell.half, cell.half), 0, cell.z + rand(-cell.half, cell.half));
+    pushClearOfBuildings(this.pos, 1.2);
     this.target = this.pos.clone();
     this.speed = rand(1.4, 2.6);
     this.alive = true;
@@ -652,6 +686,7 @@ class Pedestrian {
       0,
       this.cell.z + rand(-this.cell.half, this.cell.half)
     );
+    pushClearOfBuildings(this.target, 1.2);
     this.waitTimer = rand(0.5, 2.5);
   }
   syncMesh() {
@@ -1159,6 +1194,7 @@ function spawnPickup() {
   const cell = pick(cells);
   const mesh = createPickupMesh();
   const pos = new THREE.Vector3(cell.x + rand(-cell.half, cell.half), 0.9, cell.z + rand(-cell.half, cell.half));
+  pushClearOfBuildings(pos, 1.5);
   mesh.position.copy(pos);
   scene.add(mesh);
   pickups.push({ mesh, pos, value: 50 + ((Math.random() * 4) | 0) * 25 });
@@ -1202,11 +1238,16 @@ function createBeaconMesh(color) {
 function pickMissionPoint() {
   const cells = sidewalkCells.length ? sidewalkCells : parkCells;
   const cell = pick(cells);
-  return new THREE.Vector3(
+  const point = new THREE.Vector3(
     cell.x + rand(-cell.half * 0.6, cell.half * 0.6),
     0,
     cell.z + rand(-cell.half * 0.6, cell.half * 0.6)
   );
+  // sidewalk cells share their footprint with the building on that block,
+  // so nudge the point clear of it -- otherwise the marker can land inside
+  // the building and become unreachable
+  pushClearOfBuildings(point, 3);
+  return point;
 }
 
 function startNewMission() {
@@ -1292,33 +1333,49 @@ function triggerJump() { if (!player.inCar) player.jumpBuf = true; }
 document.getElementById('btnJump')?.addEventListener('touchstart', (e) => { e.preventDefault(); triggerJump(); });
 document.getElementById('btnJump')?.addEventListener('click', triggerJump);
 
-// ---------- Control mode: virtual d-pad buttons vs. swiping the screen directly
-let controlMode = localStorage.getItem('viceGridControlMode') || 'buttons';
+// ---------- Controls: screen-drag steering is always live; this only
+// toggles whether the on-screen d-pad buttons are shown on top of it
+let buttonsVisible = localStorage.getItem('viceGridButtonsVisible') !== 'false';
 const controlModeBtn = document.getElementById('btnControlMode');
-function applyControlMode() {
-  document.body.classList.toggle('drag-mode', controlMode === 'drag');
-  if (controlModeBtn) controlModeBtn.textContent = controlMode === 'drag' ? '👆 Wischen' : '🕹️ Tasten';
+function applyButtonsVisible() {
+  document.body.classList.toggle('buttons-hidden', !buttonsVisible);
+  if (controlModeBtn) controlModeBtn.textContent = buttonsVisible ? '👆 Tasten aus' : '🕹️ Tasten ein';
 }
-function toggleControlMode() {
-  controlMode = controlMode === 'drag' ? 'buttons' : 'drag';
-  localStorage.setItem('viceGridControlMode', controlMode);
-  applyControlMode();
+function toggleButtonsVisible() {
+  buttonsVisible = !buttonsVisible;
+  localStorage.setItem('viceGridButtonsVisible', String(buttonsVisible));
+  applyButtonsVisible();
 }
-controlModeBtn?.addEventListener('touchstart', (e) => { e.preventDefault(); toggleControlMode(); });
-controlModeBtn?.addEventListener('click', toggleControlMode);
-applyControlMode();
+controlModeBtn?.addEventListener('touchstart', (e) => { e.preventDefault(); toggleButtonsVisible(); });
+controlModeBtn?.addEventListener('click', toggleButtonsVisible);
+applyButtonsVisible();
+
+// ---------- Camera mode: top-down (GTA1 style) vs low 3rd-person -----------
+const cameraModeBtn = document.getElementById('btnCamera');
+function applyCameraMode() {
+  if (cameraModeBtn) cameraModeBtn.textContent = cameraMode === 'top' ? '🎥 Oben' : '🎥 3rd Person';
+}
+function toggleCameraMode() {
+  cameraMode = cameraMode === 'top' ? 'third' : 'top';
+  localStorage.setItem('viceGridCameraMode', cameraMode);
+  applyCameraMode();
+}
+cameraModeBtn?.addEventListener('touchstart', (e) => { e.preventDefault(); toggleCameraMode(); });
+cameraModeBtn?.addEventListener('click', toggleCameraMode);
+window.addEventListener('keydown', (e) => { if (e.code === 'KeyC') toggleCameraMode(); });
+applyCameraMode();
 
 const dragState = { up: false, down: false, left: false, right: false };
 let dragOrigin = null;
 const DRAG_DEADZONE = 14;
 const appEl = document.getElementById('app');
 appEl.addEventListener('touchstart', (e) => {
-  if (controlMode !== 'drag' || e.target.closest('.mbtn, #btnControlMode')) return;
+  if (e.target.closest('.mbtn, #btnControlMode, #btnCamera')) return;
   const t = e.touches[0];
   dragOrigin = { x: t.clientX, y: t.clientY };
 }, { passive: true });
 appEl.addEventListener('touchmove', (e) => {
-  if (controlMode !== 'drag' || !dragOrigin) return;
+  if (!dragOrigin) return;
   const t = e.touches[0];
   const dx = t.clientX - dragOrigin.x, dy = t.clientY - dragOrigin.y;
   dragState.up = dy < -DRAG_DEADZONE;
@@ -1333,11 +1390,10 @@ appEl.addEventListener('touchend', () => {
 });
 
 function readInput() {
-  const drag = controlMode === 'drag';
-  const up = keys.has('KeyW') || keys.has('ArrowUp') || (drag ? dragState.up : mobileState.gas);
-  const down = keys.has('KeyS') || keys.has('ArrowDown') || (drag ? dragState.down : mobileState.brake);
-  const left = keys.has('KeyA') || keys.has('ArrowLeft') || (drag ? dragState.left : mobileState.left);
-  const right = keys.has('KeyD') || keys.has('ArrowRight') || (drag ? dragState.right : mobileState.right);
+  const up = keys.has('KeyW') || keys.has('ArrowUp') || mobileState.gas || dragState.up;
+  const down = keys.has('KeyS') || keys.has('ArrowDown') || mobileState.brake || dragState.down;
+  const left = keys.has('KeyA') || keys.has('ArrowLeft') || mobileState.left || dragState.left;
+  const right = keys.has('KeyD') || keys.has('ArrowRight') || mobileState.right || dragState.right;
   const handbrake = keys.has('Space');
   return {
     throttle: up ? 1 : (down ? -1 : 0),
@@ -1614,16 +1670,32 @@ function checkPedestrianHits() {
 
 // ---------- Camera --------------------------------------------------------
 function updateCamera(dt) {
-  const focus = player.inCar ? player.inCar.pos : player.pos;
-  const targetHeading = player.inCar ? player.inCar.heading : player.heading;
+  const inCar = !!player.inCar;
+  const focus = inCar ? player.inCar.pos : player.pos;
+  const targetHeading = inCar ? player.inCar.heading : player.heading;
+  const activeSpeed = inCar ? player.inCar.speed : player.moveSpeed;
+  const maxSpeedRef = inCar ? player.inCar.maxSpeed : CHAR_SPEED_MAX;
+  const spdFac = clamp(Math.abs(activeSpeed) / Math.max(maxSpeedRef, 0.01), 0, 1);
+
   camTarget.lerp(new THREE.Vector3(focus.x, 0, focus.z), Math.min(1, dt * 4.5));
   camHeading += wrapAngle(targetHeading - camHeading) * Math.min(1, dt * 5);
-
   const forward = new THREE.Vector3(Math.sin(camHeading), 0, Math.cos(camHeading));
+
+  let height, back, lookY;
+  if (cameraMode === 'third') {
+    height = (inCar ? CAM3_HEIGHT_CAR : CAM3_HEIGHT_FOOT) * (1 + spdFac * 0.5);
+    back = (inCar ? CAM3_BACK_CAR : CAM3_BACK_FOOT) * (1 + spdFac * 0.5);
+    lookY = inCar ? 1.1 : 1.3;
+  } else {
+    height = (inCar ? CAM_HEIGHT : CAM_HEIGHT_FOOT) * (1 + spdFac * (inCar ? 0.55 : 0.35));
+    back = (inCar ? CAM_BACK : CAM_BACK_FOOT) * (1 + spdFac * (inCar ? 0.55 : 0.35));
+    lookY = 0;
+  }
+
   const desired = new THREE.Vector3(
-    camTarget.x - forward.x * CAM_BACK,
-    CAM_HEIGHT,
-    camTarget.z - forward.z * CAM_BACK
+    camTarget.x - forward.x * back,
+    height,
+    camTarget.z - forward.z * back
   );
   camPos.lerp(desired, Math.min(1, dt * 5));
   camera.position.copy(camPos);
@@ -1637,7 +1709,7 @@ function updateCamera(dt) {
     if (shakeTime <= 0) shakeMag = 0;
   }
 
-  camera.lookAt(camTarget.x, 0, camTarget.z);
+  camera.lookAt(camTarget.x, lookY, camTarget.z);
   sunTarget.position.copy(camTarget);
   sun.position.set(camTarget.x - 60, 110, camTarget.z + 40);
 }
