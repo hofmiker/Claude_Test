@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
+import { DISTRICT, ACTION, MISSION, DIALOGS, POLICE } from './mission.js';
 
 /* ------------------------------------------------------------------ *
  * Vice Grid — a GTA1-inspired top-down city driver in simple 3D.
@@ -44,8 +45,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x171a1d);
-scene.fog = new THREE.Fog(0x171a1d, CITY_HALF * 0.9, CITY_HALF * 1.85);
+scene.background = new THREE.Color(DISTRICT.fogColor);
+scene.fog = new THREE.Fog(DISTRICT.fogColor, DISTRICT.fogNear, DISTRICT.fogFar);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 900);
 // top-down GTA1-style chase cam, separate profile for car vs on-foot
@@ -66,8 +67,9 @@ camera.position.copy(camPos);
 let cameraMode = localStorage.getItem('viceGridCameraMode') || 'top';
 
 // ---------- Lighting ----------------------------------------------------
-scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x2b2116, 0.65));
-const sun = new THREE.DirectionalLight(0xfff2d6, 1.15);
+const isNight = DISTRICT.timeOfDay === 'night';
+scene.add(new THREE.HemisphereLight(isNight ? 0x2a3a5e : 0xbfd4ff, isNight ? 0x0c0e14 : 0x2b2116, isNight ? 0.35 : 0.65));
+const sun = new THREE.DirectionalLight(isNight ? 0x6c85c2 : 0xfff2d6, isNight ? 0.4 : 1.15);
 sun.position.set(-60, 110, 40);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -683,7 +685,7 @@ function resolveCarCollision(a, b) {
 }
 
 function updateCarCollisions(dt) {
-  const cars = [playerCar, ...trafficCars, ...policeCars];
+  const cars = [playerCar, ...trafficCars, ...policeCars, ...chaseCops];
   if (player.inCar && !cars.includes(player.inCar)) cars.push(player.inCar);
   for (const car of cars) car.crashCooldown = Math.max(0, car.crashCooldown - dt);
   for (let i = 0; i < cars.length; i++) {
@@ -807,44 +809,6 @@ function stepLaneCar(car, dt) {
     if (car.pos.z < -CITY_HALF - ROAD_WIDTH) car.pos.z = CITY_HALF + ROAD_WIDTH;
   }
   car.syncMesh();
-}
-
-// snaps a car onto the nearest matching lane so it can resume ambient
-// lane-driving from wherever it currently is (used when police stand down)
-function snapToPatrolLane(car) {
-  const h = wrapAngle(car.heading);
-  const horizontal = Math.abs(Math.abs(h) - Math.PI / 2) < Math.PI / 4;
-  if (horizontal) {
-    const dir = Math.sin(h) >= 0 ? 1 : -1;
-    let best = roadLines.z[0], bestD = Infinity;
-    for (const z of roadLines.z) {
-      const d = Math.abs(car.pos.z - (z + LANE_OFFSET * dir));
-      if (d < bestD) { bestD = d; best = z; }
-    }
-    car.horizontal = true;
-    car.dir = dir;
-    car.lineCoord = best;
-    car.pos.z = best + LANE_OFFSET * dir;
-    car.heading = dir > 0 ? Math.PI / 2 : -Math.PI / 2;
-  } else {
-    const dir = Math.cos(h) >= 0 ? 1 : -1;
-    let best = roadLines.x[0], bestD = Infinity;
-    for (const x of roadLines.x) {
-      const d = Math.abs(car.pos.x - (x + LANE_OFFSET * dir));
-      if (d < bestD) { bestD = d; best = x; }
-    }
-    car.horizontal = false;
-    car.dir = dir;
-    car.lineCoord = best;
-    car.pos.x = best + LANE_OFFSET * dir;
-    car.heading = dir > 0 ? 0 : Math.PI;
-  }
-  car.state = 'patrol';
-  car.speed = car.maxSpeed * rand(0.5, 0.8);
-  if (car.mesh.userData.lights) {
-    car.mesh.userData.lights[0].material.emissive.set(0);
-    car.mesh.userData.lights[1].material.emissive.set(0);
-  }
 }
 
 function updateTraffic(dt) {
@@ -1101,10 +1065,7 @@ const player = {
   moveSpeed: 0,
   inCar: null,
   health: 100,
-  wanted: 0,
   money: 0,
-  busted: false,
-  wasted: false,
   animT: 0,
   idleTimer: 0,
   scratchPhase: 0,
@@ -1124,10 +1085,9 @@ player.inCar = playerCar;
 playerCar.occupied = true;
 player.mesh.visible = false;
 
-// ---------- Police: persistent patrol, chase only while wanted -------------
+// ---------- Ambient police: pure background flavor, patrol forever --------
+// (the actual manhunt is a separate system below, driven by mission.js/POLICE)
 const POLICE_PATROL_COUNT = 5;
-const MAX_POLICE_TOTAL = 8;
-const CHASE_RADIUS = 55;
 const policeCars = [];
 
 function spawnPolicePatrol() {
@@ -1146,60 +1106,63 @@ function spawnPolicePatrol() {
     car.dir = dir;
     car.lineCoord = lineCoord;
     car.speed = car.maxSpeed * rand(0.5, 0.8);
-    car.state = 'patrol';
-    car.siren = 0;
     policeCars.push(car);
-  }
-}
-
-// converts nearby patrol cars to pursuit, spawning reinforcements from
-// off-screen only if not enough patrol cars are already near the player
-function ensurePursuers(neededCount) {
-  const pursuing = policeCars.filter((c) => c.state === 'pursuit').length;
-  let toConvert = neededCount - pursuing;
-  if (toConvert <= 0) return;
-
-  const patrol = policeCars
-    .filter((c) => c.state === 'patrol')
-    .sort((a, b) => a.pos.distanceTo(player.pos) - b.pos.distanceTo(player.pos));
-  for (const car of patrol) {
-    if (toConvert <= 0) break;
-    car.state = 'pursuit';
-    toConvert--;
-  }
-
-  for (let i = 0; i < toConvert && policeCars.length < MAX_POLICE_TOTAL; i++) {
-    const car = new Car({ isPolice: true });
-    const angle = rand(0, Math.PI * 2);
-    const dist = rand(45, 70);
-    const px = clamp(player.pos.x + Math.sin(angle) * dist, -CITY_HALF, CITY_HALF);
-    const pz = clamp(player.pos.z + Math.cos(angle) * dist, -CITY_HALF, CITY_HALF);
-    car.place(px, pz, angle);
-    car.state = 'pursuit';
-    car.siren = Math.random() * Math.PI * 2;
-    policeCars.push(car);
-    scene.add(car.mesh);
   }
 }
 spawnPolicePatrol();
 
 function updatePolice(dt) {
-  for (const car of policeCars) {
-    if (car.state === 'patrol') {
-      stepLaneCar(car, dt);
-      if (player.wanted > 0 && car.pos.distanceTo(player.pos) < CHASE_RADIUS) {
-        car.state = 'pursuit';
-      }
-      continue;
-    }
+  for (const car of policeCars) stepLaneCar(car, dt);
+}
 
-    if (player.wanted < 0.5) {
-      snapToPatrolLane(car);
-      continue;
-    }
+// ---------- Manhunt: dedicated chase units driven by mission.js POLICE -----
+const chaseCops = [];
+const policeState = { active: false, safeTimer: 0, lastRampTime: 0 };
 
-    const toPlayer = new THREE.Vector3().subVectors(player.pos, car.pos);
+function spawnChaseCop() {
+  if (chaseCops.length >= POLICE.units.max) return;
+  const focus = player.inCar ? player.inCar.pos : player.pos;
+  const angle = rand(0, Math.PI * 2);
+  const dist = rand(POLICE.ai.sightRadius * 0.7, POLICE.ai.sightRadius * 1.2);
+  const px = clamp(focus.x + Math.sin(angle) * dist, -CITY_HALF, CITY_HALF);
+  const pz = clamp(focus.z + Math.cos(angle) * dist, -CITY_HALF, CITY_HALF);
+  const car = new Car({ isPolice: true });
+  car.place(px, pz, angle);
+  car.siren = Math.random() * Math.PI * 2;
+  chaseCops.push(car);
+  scene.add(car.mesh);
+}
+
+function startPolice() {
+  policeState.active = true;
+  policeState.safeTimer = 0;
+  policeState.lastRampTime = elapsed;
+  for (let i = 0; i < POLICE.units.initial; i++) spawnChaseCop();
+}
+
+function stopPolice() {
+  policeState.active = false;
+  for (const car of chaseCops) scene.remove(car.mesh);
+  chaseCops.length = 0;
+}
+
+function updatePoliceChase(dt) {
+  if (!policeState.active) return;
+  const focus = player.inCar ? player.inCar.pos : player.pos;
+  const playerMax = (player.inCar ? player.inCar.maxSpeed : playerCar.maxSpeed) || playerCar.baseMaxSpeed;
+
+  if (elapsed - policeState.lastRampTime >= POLICE.units.rampEverySeconds && chaseCops.length < POLICE.units.max) {
+    spawnChaseCop();
+    policeState.lastRampTime = elapsed;
+  }
+
+  let anyInSight = false;
+  for (const car of chaseCops) {
+    const toPlayer = new THREE.Vector3().subVectors(focus, car.pos);
     const dist = toPlayer.length();
+    if (dist < POLICE.ai.sightRadius) anyInSight = true;
+
+    car.maxSpeed = playerMax * POLICE.ai.speed;
     const desiredHeading = Math.atan2(toPlayer.x, toPlayer.z);
     const diff = wrapAngle(desiredHeading - car.heading);
     const steer = clamp(diff * 1.4, -1, 1);
@@ -1213,9 +1176,17 @@ function updatePolice(dt) {
       car.mesh.userData.lights[1].material.emissive = new THREE.Color(!on ? 0x000033 : 0);
     }
 
-    if (dist < 3.4 && !player.busted && !player.wasted) {
-      triggerBusted();
+    if (POLICE.bust.onCollision && dist < 3.2 && !missionState.gameOver) {
+      failMission();
+      return;
     }
+  }
+
+  if (anyInSight) {
+    policeState.safeTimer = 0;
+  } else {
+    policeState.safeTimer += dt;
+    if (policeState.safeTimer >= POLICE.escape.outOfSightSeconds) stopPolice();
   }
 }
 
@@ -1259,15 +1230,13 @@ function updatePickups(dt, t) {
   }
 }
 
-// ---------- Missions (delivery runs) ---------------------------------------
-const MISSION_TIME = 40;
-let mission = null;
-
+// ---------- Story mission (driven entirely by mission.js) ------------------
 function createBeaconMesh(color) {
   const group = new THREE.Group();
   const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.14, 8, 20), flatMat(color));
   ring.rotation.x = Math.PI / 2;
   ring.position.y = 0.1;
+  ring.userData.baseY = 0.1;
   const beam = new THREE.Mesh(
     new THREE.CylinderGeometry(0.25, 0.25, 6, 8, 1, true),
     new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
@@ -1278,79 +1247,196 @@ function createBeaconMesh(color) {
   return group;
 }
 
-function pickMissionPoint() {
-  const cells = sidewalkCells.length ? sidewalkCells : parkCells;
-  const cell = pick(cells);
-  const point = new THREE.Vector3(
-    cell.x + rand(-cell.half * 0.6, cell.half * 0.6),
-    0,
-    cell.z + rand(-cell.half * 0.6, cell.half * 0.6)
+function createBriefcaseMesh(color) {
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.6, 0.32), flatMat(0x2a2018));
+  body.position.y = 0.42;
+  body.userData.baseY = 0.42;
+  body.castShadow = true;
+  const handle = new THREE.Mesh(
+    new THREE.TorusGeometry(0.18, 0.035, 6, 12, Math.PI),
+    flatMat(0x1a1410)
   );
-  // sidewalk cells share their footprint with the building on that block,
-  // so nudge the point clear of it -- otherwise the marker can land inside
-  // the building and become unreachable
-  pushClearOfBuildings(point, 3);
-  return point;
+  handle.rotation.z = Math.PI;
+  handle.position.set(0, 0.78, 0);
+  const glow = new THREE.PointLight(color, 1.1, 6);
+  glow.position.y = 0.6;
+  group.add(body, handle, glow);
+  group.userData.ring = body;
+  return group;
 }
 
-function startNewMission() {
-  const pickupPos = pickMissionPoint();
-  const mesh = createBeaconMesh(0xffd23f);
-  mesh.position.copy(pickupPos);
-  scene.add(mesh);
-  mission = { stage: 'pickup', pickupPos, mesh, timeLeft: MISSION_TIME, reward: 250 + ((Math.random() * 4) | 0) * 50 };
-  showSub('Neuer Auftrag: Fahr zum gelben Marker!');
+// mission.js gives world points as plain [x,z] placeholders; the city layout
+// is regenerated (random buildings) on every load, so we resolve each point
+// at activation time by nudging it clear of whatever building ended up there
+function resolveWorldPoint([x, z]) {
+  const v = new THREE.Vector3(x, 0, z);
+  pushClearOfBuildings(v, 4);
+  const bound = CITY_HALF + ROAD_WIDTH * 1.2;
+  v.x = clamp(v.x, -bound, bound);
+  v.z = clamp(v.z, -bound, bound);
+  return v;
 }
 
-function advanceToDropoff() {
-  scene.remove(mission.mesh);
-  const dropoffPos = pickMissionPoint();
-  const mesh = createBeaconMesh(0x36c7ff);
-  mesh.position.copy(dropoffPos);
-  scene.add(mesh);
-  mission.stage = 'dropoff';
-  mission.dropoffPos = dropoffPos;
-  mission.mesh = mesh;
-  mission.timeLeft = MISSION_TIME;
-  showSub('Abgeholt! Bring die Ladung zum blauen Marker!');
+const missionState = {
+  stepIndex: -1,
+  step: null,
+  targetPos: null,
+  targetLabel: null,
+  targetAction: null,
+  triggerRadius: 0,
+  markerMesh: null,
+  autoTriggered: false,
+  inRange: false,
+  distance: 0,
+  inDialog: false,
+  dialogLines: null,
+  dialogLineIndex: 0,
+  dialogOnDone: null,
+  gameOver: false,
+};
+
+function clearMissionMarker() {
+  if (missionState.markerMesh) {
+    scene.remove(missionState.markerMesh);
+    missionState.markerMesh = null;
+  }
 }
 
-function failMission() {
-  scene.remove(mission.mesh);
-  showSub('Auftrag verpasst!');
-  mission = null;
-  setTimeout(startNewMission, 3000);
+function activateStep(index) {
+  if (index >= MISSION.steps.length) return;
+  clearMissionMarker();
+  const step = MISSION.steps[index];
+  missionState.stepIndex = index;
+  missionState.step = step;
+  missionState.autoTriggered = false;
+  missionState.inRange = false;
+
+  const wp = step.waypoint || step.pickup;
+  if (wp) {
+    const pos = resolveWorldPoint(wp.pos);
+    missionState.targetPos = pos;
+    missionState.targetLabel = wp.label;
+    missionState.triggerRadius = step.triggerRadius || 6;
+    missionState.targetAction = step.pickup ? step.pickup.action : step.action;
+    const colorHex = new THREE.Color(step.waypoint ? step.waypoint.color : '#ffcc00').getHex();
+    const mesh = step.pickup ? createBriefcaseMesh(colorHex) : createBeaconMesh(colorHex);
+    mesh.position.copy(pos);
+    scene.add(mesh);
+    missionState.markerMesh = mesh;
+  } else {
+    missionState.targetPos = null;
+    missionState.targetLabel = null;
+    missionState.targetAction = step.action || null;
+    missionState.triggerRadius = 0;
+  }
+
+  // steps with no world target (nothing to walk/drive up to) resolve as soon
+  // as they become active: play their dialog immediately, or just chain on
+  if (!step.waypoint && !step.pickup) {
+    if (step.dialog) startDialog(step.dialog, () => runStepOnComplete(step));
+    else runStepOnComplete(step);
+  }
 }
 
-function completeMission() {
-  scene.remove(mission.mesh);
-  player.money += mission.reward;
-  showSub(`Auftrag erledigt! +$${mission.reward}`);
-  mission = null;
-  setTimeout(startNewMission, 2500);
+function advanceStep() {
+  activateStep(missionState.stepIndex + 1);
 }
 
-function updateMissions(dt) {
-  if (!mission) return;
-  mission.timeLeft -= dt;
-  mission.mesh.rotation.y += dt * 2;
-  mission.mesh.userData.ring.position.y = 0.1 + Math.sin(elapsed * 3) * 0.05;
-  const focus = player.inCar ? player.inCar.pos : player.pos;
-  const targetPos = mission.stage === 'pickup' ? mission.pickupPos : mission.dropoffPos;
-  const dx = targetPos.x - focus.x, dz = targetPos.z - focus.z;
-  if (dx * dx + dz * dz < 4 * 4) {
-    if (mission.stage === 'pickup') advanceToDropoff();
-    else completeMission();
+function runStepOnComplete(step) {
+  const oc = step.onComplete;
+  if (oc === 'startPolice') {
+    advanceStep();
+    startPolice();
+  } else if (oc === 'win') {
+    winMission();
+  } else {
+    // "activateWaypoint", or no onComplete at all -> just move on
+    advanceStep();
+  }
+}
+
+// F / context button: only fires when the active step actually has an
+// in-range action; falls back to the normal vehicle enter/exit otherwise
+function triggerContextAction() {
+  const step = missionState.step;
+  if (!step || missionState.gameOver || !missionState.inRange || !missionState.targetAction) return false;
+
+  if (step.pickup) {
+    clearMissionMarker();
+    missionState.targetPos = null;
+  }
+  if (step.dialog) startDialog(step.dialog, () => runStepOnComplete(step));
+  else runStepOnComplete(step);
+  return true;
+}
+
+function startDialog(key, onDone) {
+  const lines = DIALOGS[key]?.lines;
+  if (!lines || !lines.length) { if (onDone) onDone(); return; }
+  missionState.inDialog = true;
+  missionState.dialogLines = lines;
+  missionState.dialogLineIndex = 0;
+  missionState.dialogOnDone = onDone;
+  showDialogLine();
+}
+
+function advanceDialogLine() {
+  missionState.dialogLineIndex++;
+  if (missionState.dialogLineIndex >= missionState.dialogLines.length) {
+    dialogBox.classList.remove('show');
+    missionState.inDialog = false;
+    const onDone = missionState.dialogOnDone;
+    missionState.dialogOnDone = null;
+    if (onDone) onDone();
     return;
   }
-  if (mission.timeLeft <= 0) failMission();
+  showDialogLine();
+}
+
+function updateMission(dt) {
+  if (missionState.markerMesh) {
+    missionState.markerMesh.rotation.y += dt * 2;
+    const ring = missionState.markerMesh.userData.ring;
+    ring.position.y = ring.userData.baseY + Math.sin(elapsed * 3) * 0.05;
+  }
+  if (missionState.gameOver || missionState.inDialog || !missionState.targetPos) {
+    missionState.inRange = false;
+    return;
+  }
+  const step = missionState.step;
+  const focus = player.inCar ? player.inCar.pos : player.pos;
+  const dx = missionState.targetPos.x - focus.x, dz = missionState.targetPos.z - focus.z;
+  const distSq = dx * dx + dz * dz;
+  missionState.distance = Math.sqrt(distSq);
+  missionState.inRange = distSq < missionState.triggerRadius * missionState.triggerRadius;
+
+  // "talk" style steps (waypoint + dialog, no pickup) start the conversation
+  // the moment you walk up, no button press needed
+  if (missionState.inRange && step.dialog && step.waypoint && !missionState.autoTriggered) {
+    missionState.autoTriggered = true;
+    startDialog(step.dialog, () => runStepOnComplete(step));
+  }
+}
+
+function startMission() {
+  activateStep(0);
 }
 
 // ---------- Input -----------------------------------------------------
+// F / context button: dialog "Weiter" first, then an in-range mission
+// action, and only otherwise the plain vehicle enter/exit
+function handleActionButton() {
+  if (missionState.inDialog) { advanceDialogLine(); return; }
+  if (missionState.gameOver) return;
+  if (missionState.inRange && missionState.targetAction && triggerContextAction()) return;
+  tryToggleVehicle();
+}
+
 const keys = new Set();
 window.addEventListener('keydown', (e) => {
   keys.add(e.code);
-  if (e.code === 'KeyF') tryToggleVehicle();
+  if (e.code === 'KeyF') handleActionButton();
   if (e.code === 'Space' && !player.inCar) player.jumpBuf = true;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
 });
@@ -1370,50 +1456,56 @@ bindHold('btnLeft', 'left');
 bindHold('btnRight', 'right');
 bindHold('btnGas', 'gas');
 bindHold('btnBrake', 'brake');
-document.getElementById('btnAction')?.addEventListener('touchstart', (e) => { e.preventDefault(); tryToggleVehicle(); });
-document.getElementById('btnAction')?.addEventListener('click', tryToggleVehicle);
+const btnActionEl = document.getElementById('btnAction');
+btnActionEl?.addEventListener('touchstart', (e) => { e.preventDefault(); handleActionButton(); });
+btnActionEl?.addEventListener('click', handleActionButton);
 function triggerJump() { if (!player.inCar) player.jumpBuf = true; }
 document.getElementById('btnJump')?.addEventListener('touchstart', (e) => { e.preventDefault(); triggerJump(); });
 document.getElementById('btnJump')?.addEventListener('click', triggerJump);
 
-// ---------- Controls: screen-drag steering is always live; this only
-// toggles whether the on-screen d-pad buttons are shown on top of it
+// ---------- Settings: camera mode + buttons-visible, tucked into a gear menu
 let buttonsVisible = localStorage.getItem('viceGridButtonsVisible') !== 'false';
-const controlModeBtn = document.getElementById('btnControlMode');
+const buttonsToggleBtn = document.getElementById('btnButtonsToggle');
 function applyButtonsVisible() {
   document.body.classList.toggle('buttons-hidden', !buttonsVisible);
-  if (controlModeBtn) controlModeBtn.textContent = buttonsVisible ? '👆 Tasten aus' : '🕹️ Tasten ein';
+  if (buttonsToggleBtn) buttonsToggleBtn.textContent = buttonsVisible ? '👆 Tasten aus' : '🕹️ Tasten ein';
 }
 function toggleButtonsVisible() {
   buttonsVisible = !buttonsVisible;
   localStorage.setItem('viceGridButtonsVisible', String(buttonsVisible));
   applyButtonsVisible();
 }
-controlModeBtn?.addEventListener('touchstart', (e) => { e.preventDefault(); toggleButtonsVisible(); });
-controlModeBtn?.addEventListener('click', toggleButtonsVisible);
+buttonsToggleBtn?.addEventListener('click', toggleButtonsVisible);
 applyButtonsVisible();
 
-// ---------- Camera mode: top-down (GTA1 style) vs low 3rd-person -----------
-const cameraModeBtn = document.getElementById('btnCamera');
+const cameraToggleBtn = document.getElementById('btnCameraToggle');
 function applyCameraMode() {
-  if (cameraModeBtn) cameraModeBtn.textContent = cameraMode === 'top' ? '🎥 Oben' : '🎥 3rd Person';
+  if (cameraToggleBtn) cameraToggleBtn.textContent = cameraMode === 'top' ? '🎥 Kamera: Oben' : '🎥 Kamera: 3rd Person';
 }
 function toggleCameraMode() {
   cameraMode = cameraMode === 'top' ? 'third' : 'top';
   localStorage.setItem('viceGridCameraMode', cameraMode);
   applyCameraMode();
 }
-cameraModeBtn?.addEventListener('touchstart', (e) => { e.preventDefault(); toggleCameraMode(); });
-cameraModeBtn?.addEventListener('click', toggleCameraMode);
+cameraToggleBtn?.addEventListener('click', toggleCameraMode);
 window.addEventListener('keydown', (e) => { if (e.code === 'KeyC') toggleCameraMode(); });
 applyCameraMode();
+
+const settingsBtn = document.getElementById('btnSettings');
+const settingsMenu = document.getElementById('settingsMenu');
+settingsBtn?.addEventListener('click', () => settingsMenu.classList.toggle('show'));
+document.addEventListener('click', (e) => {
+  if (!settingsMenu.classList.contains('show')) return;
+  if (e.target.closest('#settingsMenu, #btnSettings')) return;
+  settingsMenu.classList.remove('show');
+});
 
 const dragState = { up: false, down: false, left: false, right: false };
 let dragOrigin = null;
 const DRAG_DEADZONE = 14;
 const appEl = document.getElementById('app');
 appEl.addEventListener('touchstart', (e) => {
-  if (e.target.closest('.mbtn, #btnControlMode, #btnCamera')) return;
+  if (e.target.closest('.mbtn, #btnSettings, #settingsMenu, #dialogBox, #endOverlay')) return;
   const t = e.touches[0];
   dragOrigin = { x: t.clientX, y: t.clientY };
 }, { passive: true });
@@ -1447,7 +1539,7 @@ function readInput() {
 }
 
 function tryToggleVehicle() {
-  if (player.busted || player.wasted) return;
+  if (missionState.gameOver) return;
   if (player.inCar) {
     // exit
     const car = player.inCar;
@@ -1482,40 +1574,27 @@ function tryToggleVehicle() {
   }
 }
 
-// ---------- Wanted / Busted / Wasted state --------------------------------
-let wantedCooldown = 0;
-function addWanted(amount) {
-  if (player.wanted === 0 && amount > 0) {
-    showSub('Die Polizei ist dir auf den Fersen!');
-  }
-  player.wanted = clamp(player.wanted + amount, 0, 3);
-  wantedCooldown = 6;
-  ensurePursuers(player.wanted);
+// ---------- Mission win / fail / restart -----------------------------------
+function winMission() {
+  if (missionState.gameOver) return;
+  missionState.gameOver = true;
+  stopPolice();
+  clearMissionMarker();
+  player.money += MISSION.reward;
+  showEndOverlay(MISSION.win.title, MISSION.win.subtitle, MISSION.win.restartLabel, true);
 }
 
-function triggerBusted() {
-  player.busted = true;
-  showCenter('BUSTED!');
-  setTimeout(respawnPlayer, 1800);
+function failMission() {
+  if (missionState.gameOver) return;
+  missionState.gameOver = true;
+  stopPolice();
+  showEndOverlay(MISSION.fail.title, MISSION.fail.subtitle, MISSION.fail.restartLabel, false);
 }
 
-function triggerWasted() {
-  player.wasted = true;
-  showCenter('WASTED');
-  setTimeout(respawnPlayer, 1800);
-}
-
-function respawnPlayer() {
-  player.wanted = 0;
+function respawnAtStart() {
+  if (player.inCar) player.inCar.occupied = false;
   player.health = 100;
-  player.busted = false;
-  player.wasted = false;
-  hideCenter();
-  if (player.inCar) {
-    player.inCar.occupied = false;
-    player.inCar = null;
-  }
-  player.mesh.visible = true;
+  player.mesh.visible = false;
   player.pos.set(4, 0, 2);
   player.heading = Math.PI;
   player.moveSpeed = 0;
@@ -1524,21 +1603,38 @@ function respawnPlayer() {
   player.jumpState = 'none';
   player.jumpBuf = false;
   playerCar.place(4, 2, Math.PI);
-  playerCar.occupied = false;
-  player.money = Math.max(0, player.money - 100);
+  playerCar.occupied = true;
+  player.inCar = playerCar;
+}
+
+function restartMission() {
+  endOverlay.classList.remove('show');
+  missionState.gameOver = false;
+  missionState.inDialog = false;
+  dialogBox.classList.remove('show');
+  clearMissionMarker();
+  stopPolice();
+  respawnAtStart();
+  startMission();
 }
 
 // ---------- HUD -----------------------------------------------------------
-const starsEl = document.getElementById('stars');
-const moneyEl = document.getElementById('money');
+const moneyEl = document.getElementById('moneyDisplay');
 const speedEl = document.getElementById('speed');
 const gearEl = document.getElementById('gear');
-const centerMsg = document.getElementById('centerMsg');
 const subMsg = document.getElementById('subMsg');
 const controlsHint = document.getElementById('controlsHint');
-const missionPanel = document.getElementById('missionPanel');
-const missionText = document.getElementById('missionText');
-const missionTimerFill = document.getElementById('missionTimerFill');
+const objectiveTextEl = document.getElementById('objectiveText');
+const objectiveDistanceEl = document.getElementById('objectiveDistance');
+const wantedBanner = document.getElementById('wantedBanner');
+const dialogBox = document.getElementById('dialogBox');
+const dialogSpeakerEl = document.getElementById('dialogSpeaker');
+const dialogTextEl = document.getElementById('dialogText');
+const dialogNextBtn = document.getElementById('dialogNextBtn');
+const endOverlay = document.getElementById('endOverlay');
+const endTitleEl = document.getElementById('endTitle');
+const endSubtitleEl = document.getElementById('endSubtitle');
+const endRestartBtn = document.getElementById('endRestartBtn');
 
 let subTimer = 0;
 function showSub(text) {
@@ -1546,20 +1642,26 @@ function showSub(text) {
   subMsg.classList.add('show');
   subTimer = 2.2;
 }
-function showCenter(text) {
-  centerMsg.textContent = text;
-  centerMsg.classList.add('show');
-}
-function hideCenter() {
-  centerMsg.classList.remove('show');
-}
 
-setTimeout(() => controlsHint.style.opacity = '0', 9000);
+function showDialogLine() {
+  const line = missionState.dialogLines[missionState.dialogLineIndex];
+  dialogSpeakerEl.textContent = line.speaker || '';
+  dialogTextEl.textContent = line.text;
+  dialogBox.classList.add('show');
+}
+dialogNextBtn.addEventListener('click', advanceDialogLine);
+
+function showEndOverlay(title, subtitle, restartLabel, isWin) {
+  endTitleEl.textContent = title;
+  endSubtitleEl.textContent = subtitle;
+  endRestartBtn.textContent = restartLabel;
+  endOverlay.classList.toggle('win', isWin);
+  endOverlay.classList.toggle('fail', !isWin);
+  endOverlay.classList.add('show');
+}
+endRestartBtn.addEventListener('click', restartMission);
 
 function updateHud(dt) {
-  let stars = '';
-  for (let i = 0; i < 3; i++) stars += `<span class="${i < player.wanted ? '' : 'off'}">★</span>`;
-  starsEl.innerHTML = stars;
   moneyEl.textContent = '$' + player.money;
 
   const activeSpeed = player.inCar ? player.inCar.speed : player.speed;
@@ -1571,15 +1673,22 @@ function updateHud(dt) {
     if (subTimer <= 0) subMsg.classList.remove('show');
   }
 
-  if (mission) {
-    missionPanel.classList.remove('hidden');
-    missionText.textContent = mission.stage === 'pickup'
-      ? `Auftrag: Fahre zum gelben Marker ($${mission.reward})`
-      : `Auftrag: Liefere zum blauen Marker ($${mission.reward})`;
-    missionTimerFill.style.width = clamp(mission.timeLeft / MISSION_TIME, 0, 1) * 100 + '%';
-  } else {
-    missionPanel.classList.add('hidden');
+  const step = missionState.step;
+  objectiveTextEl.textContent = step ? (step.objective || '') : '';
+  objectiveDistanceEl.textContent = (step && missionState.targetPos)
+    ? `${Math.round(missionState.distance)} m — ${missionState.targetLabel || ''}`
+    : '';
+
+  wantedBanner.classList.toggle('show', policeState.active);
+  if (policeState.active) wantedBanner.textContent = POLICE.hud.wantedLabel;
+
+  if (btnActionEl) {
+    btnActionEl.textContent = (missionState.inRange && missionState.targetAction)
+      ? missionState.targetAction
+      : 'F';
   }
+
+  controlsHint.style.opacity = (missionState.inDialog || elapsed > 9) ? '0' : '1';
 }
 
 // ---------- Minimap ---------------------------------------------------
@@ -1639,11 +1748,10 @@ function drawMinimap() {
     mmCtx.fill();
   }
 
-  if (mission) {
-    const targetPos = mission.stage === 'pickup' ? mission.pickupPos : mission.dropoffPos;
-    let x = (targetPos.x - focus.x) * scale;
-    let y = (targetPos.z - focus.z) * scale;
-    // clamp to the rim so far-away missions still show up as a radar blip
+  if (missionState.targetPos) {
+    let x = (missionState.targetPos.x - focus.x) * scale;
+    let y = (missionState.targetPos.z - focus.z) * scale;
+    // clamp to the rim so far-away targets still show up as a radar blip
     const edge = w / 2 - 16;
     const d = Math.hypot(x, y);
     if (d > edge) {
@@ -1652,7 +1760,8 @@ function drawMinimap() {
     }
     // big, pulsing marker -- this is the one thing on the map you must not miss
     const pulse = 1 + Math.sin(elapsed * 4) * 0.15;
-    mmCtx.fillStyle = mission.stage === 'pickup' ? '#ffd23f' : '#36c7ff';
+    const step = missionState.step;
+    mmCtx.fillStyle = step?.waypoint ? step.waypoint.color : '#ffcc00';
     mmCtx.beginPath();
     mmCtx.arc(x, y, 9.5 * pulse, 0, Math.PI * 2);
     mmCtx.fill();
@@ -1670,12 +1779,21 @@ function drawMinimap() {
     mmCtx.fill();
   }
 
+  mmCtx.fillStyle = '#7a8fae';
   for (const car of policeCars) {
     const x = (car.pos.x - focus.x) * scale;
     const y = (car.pos.z - focus.z) * scale;
-    mmCtx.fillStyle = car.state === 'pursuit' ? '#2050ff' : '#7a8fae';
     mmCtx.beginPath();
     mmCtx.arc(x, y, 3.2, 0, Math.PI * 2);
+    mmCtx.fill();
+  }
+
+  mmCtx.fillStyle = '#2050ff';
+  for (const car of chaseCops) {
+    const x = (car.pos.x - focus.x) * scale;
+    const y = (car.pos.z - focus.z) * scale;
+    mmCtx.beginPath();
+    mmCtx.arc(x, y, 3.6, 0, Math.PI * 2);
     mmCtx.fill();
   }
 
@@ -1698,17 +1816,14 @@ function drawMinimap() {
 
 // ---------- Collision: vehicles vs pedestrians -----------------------------
 function checkPedestrianHits() {
-  const cars = new Set([playerCar, ...trafficCars, ...policeCars]);
+  const cars = new Set([playerCar, ...trafficCars, ...policeCars, ...chaseCops]);
   if (player.inCar) cars.add(player.inCar);
   for (const car of cars) {
     if (Math.abs(car.speed) < 4) continue;
     for (const ped of pedestrians) {
       if (!ped.alive) continue;
       const dx = ped.pos.x - car.pos.x, dz = ped.pos.z - car.pos.z;
-      if (dx * dx + dz * dz < 1.6 * 1.6) {
-        ped.kill();
-        if (car.isPlayer || car === player.inCar) addWanted(1);
-      }
+      if (dx * dx + dz * dz < 1.6 * 1.6) ped.kill();
     }
   }
 }
@@ -1764,7 +1879,7 @@ const clock = new THREE.Clock();
 let elapsed = 0;
 
 function updatePlayer(dt, input) {
-  if (player.busted || player.wasted) return;
+  if (missionState.gameOver) return;
   if (player.inCar) {
     if (player.inCar.occupied) player.inCar.physicsStep(dt, input);
     return;
@@ -1827,21 +1942,13 @@ function updatePlayer(dt, input) {
   player.mesh.rotation.y = player.heading;
 
   // run over by traffic/police while on foot
-  for (const car of [...trafficCars, ...policeCars]) {
+  for (const car of [...trafficCars, ...policeCars, ...chaseCops]) {
     if (Math.abs(car.speed) < 4) continue;
     const dx = car.pos.x - player.pos.x, dz = car.pos.z - player.pos.z;
     if (dx * dx + dz * dz < 2.0 * 2.0) {
       player.health -= 60 * dt * Math.abs(car.speed) / 10;
-      if (player.health <= 0 && !player.wasted) triggerWasted();
+      if (player.health <= 0 && !missionState.gameOver) failMission();
     }
-  }
-}
-
-function decayWanted(dt) {
-  if (wantedCooldown > 0) {
-    wantedCooldown -= dt;
-  } else if (player.wanted > 0) {
-    player.wanted = clamp(player.wanted - dt * 0.08, 0, 3);
   }
 }
 
@@ -1855,12 +1962,12 @@ function animate() {
   updateTraffic(dt);
   for (const ped of pedestrians) ped.update(dt);
   updatePolice(dt);
+  updatePoliceChase(dt);
   updateCarCollisions(dt);
   updatePickups(dt, elapsed);
-  updateMissions(dt);
+  updateMission(dt);
   updateDebris(dt);
   checkPedestrianHits();
-  decayWanted(dt);
   updateHud(dt);
   updateCamera(dt);
   drawMinimap();
@@ -1887,5 +1994,24 @@ requestAnimationFrame(() => {
   setTimeout(() => loadingEl.remove(), 700);
 });
 
-setTimeout(startNewMission, 3000);
+// ---------- TEMP DEBUG: click/tap logs world [x,z] to console ----------
+// Used to fine-tune the placeholder pos values in mission.js. Remove once done.
+const DEBUG_LOG_COORDS = true;
+if (DEBUG_LOG_COORDS) {
+  const dbgRay = new THREE.Raycaster();
+  const dbgPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const dbgHit = new THREE.Vector3();
+  const dbgPointer = new THREE.Vector2();
+  const logWorldPointAt = (clientX, clientY) => {
+    dbgPointer.x = (clientX / window.innerWidth) * 2 - 1;
+    dbgPointer.y = -(clientY / window.innerHeight) * 2 + 1;
+    dbgRay.setFromCamera(dbgPointer, camera);
+    if (dbgRay.ray.intersectPlane(dbgPlane, dbgHit)) {
+      console.log(`[debug pos] [${dbgHit.x.toFixed(1)}, ${dbgHit.z.toFixed(1)}]`);
+    }
+  };
+  canvas.addEventListener('pointerdown', (e) => logWorldPointAt(e.clientX, e.clientY));
+}
+
+startMission();
 animate();
