@@ -54,10 +54,10 @@ const CAM_BACK = 9;
 const CAM_HEIGHT_FOOT = 22;
 const CAM_BACK_FOOT = 6;
 // low behind-the-subject 3rd-person alternative
-const CAM3_HEIGHT_CAR = 5.4;
-const CAM3_BACK_CAR = 8.5;
-const CAM3_HEIGHT_FOOT = 3.0;
-const CAM3_BACK_FOOT = 5.0;
+const CAM3_HEIGHT_CAR = 7.2;
+const CAM3_BACK_CAR = 12.5;
+const CAM3_HEIGHT_FOOT = 3.8;
+const CAM3_BACK_FOOT = 6.8;
 const camTarget = new THREE.Vector3();
 const camPos = new THREE.Vector3(0, CAM_HEIGHT, CAM_BACK);
 let camHeading = 0;
@@ -204,32 +204,55 @@ function triggerCrash(pos, impactSpeed, involvesPlayer) {
 }
 
 // each accident makes a car permanently 10% slower and adds a visible dent
-function applyCarDamage(car) {
+// pushes vertices near localPoint inward (toward the panel's own center),
+// so the chassis itself crumples instead of bolting extra geometry on top
+function dentBodyMesh(bodyMesh, localPoint, strength, radius) {
+  const geo = bodyMesh.geometry;
+  const posAttr = geo.attributes.position;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < posAttr.count; i++) {
+    v.fromBufferAttribute(posAttr, i);
+    const dist = v.distanceTo(localPoint);
+    if (dist < radius) {
+      const falloff = 1 - dist / radius;
+      const inward = v.clone().normalize().multiplyScalar(-1);
+      v.addScaledVector(inward, strength * falloff * falloff);
+      posAttr.setXYZ(i, v.x, v.y, v.z);
+    }
+  }
+  posAttr.needsUpdate = true;
+  geo.computeBoundingSphere();
+}
+
+// worldDirX/Z: normalized world-space direction from the car's center toward
+// whatever it hit, used to figure out which side of the chassis crumples
+function applyCarDamage(car, worldDirX = Math.sin(car.heading), worldDirZ = Math.cos(car.heading)) {
   car.damageCount += 1;
   // gentle, floored speed penalty -- a wreck should still be drivable
   car.maxSpeed = car.baseMaxSpeed * Math.max(0.6, Math.pow(0.97, car.damageCount));
-  addDentToCar(car);
+
   const bodyMesh = car.mesh.userData.bodyMesh;
-  if (bodyMesh) {
+  const dims = car.mesh.userData.bodyHalfExtents;
+  if (bodyMesh && dims) {
+    const axes = obbAxes(car.heading);
+    const localZ = worldDirX * axes.fx + worldDirZ * axes.fz;
+    const localX = worldDirX * axes.rx + worldDirZ * axes.rz;
+    const mag = Math.hypot(localX, localZ) || 1;
+    const nx = localX / mag, nz = localZ / mag;
+    const impactPoint = new THREE.Vector3(
+      nx * dims.x * 0.95,
+      rand(-dims.y * 0.5, dims.y * 0.6),
+      nz * dims.z * 0.95
+    );
+    // deeper and wider with each subsequent hit -- a heavily-crashed car
+    // should read as progressively more wrecked, not just "a bit scuffed"
+    const strength = Math.min(0.16 + car.damageCount * 0.05, 0.55);
+    const radius = Math.min(dims.x, dims.z) * (0.55 + Math.min(car.damageCount, 6) * 0.06);
+    dentBodyMesh(bodyMesh, impactPoint, strength, radius);
+
     const dirtFactor = clamp(car.damageCount / 8, 0, 0.7);
     bodyMesh.material.color.copy(new THREE.Color(car.bodyColorHex)).lerp(new THREE.Color(0x171310), dirtFactor);
   }
-}
-function addDentToCar(car) {
-  const dents = car.mesh.userData.dents || (car.mesh.userData.dents = []);
-  if (dents.length >= 16) return;
-  // later dents are bigger and darker, so a heavily-crashed car reads as
-  // progressively more wrecked rather than just "a bit scuffed"
-  const growth = 1 + Math.min(car.damageCount, 12) * 0.09;
-  const dent = new THREE.Mesh(
-    new THREE.BoxGeometry(rand(0.26, 0.48) * growth, rand(0.16, 0.28) * growth, rand(0.26, 0.48) * growth),
-    flatMat(0x0f0c0a)
-  );
-  const side = pick([-1, 1]);
-  dent.position.set(side * car.halfWidth * 0.85, rand(0.35, 0.85), pick([-1, 1]) * rand(0.3, car.halfLength * 0.85));
-  dent.rotation.y = rand(0, Math.PI);
-  car.mesh.add(dent);
-  dents.push(dent);
 }
 
 // ---------- City generation ---------------------------------------------
@@ -428,11 +451,12 @@ function createCarMesh(color, isPolice, type) {
 
   if (type === 'bus') {
     const w = spec.halfW * 2, l = spec.halfL * 2;
-    const body = new THREE.Mesh(new THREE.BoxGeometry(w, 1.7, l), flatMat(color));
+    const body = new THREE.Mesh(new THREE.BoxGeometry(w, 1.7, l, 3, 3, 10), flatMat(color));
     body.position.y = 1.05;
     body.castShadow = true;
     group.add(body);
     group.userData.bodyMesh = body;
+    group.userData.bodyHalfExtents = { x: w / 2, y: 0.85, z: l / 2 };
     const windowBand = new THREE.Mesh(new THREE.BoxGeometry(w * 0.96, 0.6, l * 0.88), flatMat(0x1d2a33));
     windowBand.position.set(0, 1.75, 0);
     windowBand.castShadow = true;
@@ -452,11 +476,12 @@ function createCarMesh(color, isPolice, type) {
   } else if (type === 'truck') {
     const w = spec.halfW * 2;
     const cabLen = 2.1, cargoLen = spec.halfL * 2 - cabLen - 0.25;
-    const cab = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, 1.3, cabLen), flatMat(color));
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, 1.3, cabLen, 3, 3, 3), flatMat(color));
     cab.position.set(0, 1.0, spec.halfL - cabLen / 2);
     cab.castShadow = true;
     group.add(cab);
     group.userData.bodyMesh = cab;
+    group.userData.bodyHalfExtents = { x: (w * 0.92) / 2, y: 0.65, z: cabLen / 2 };
     const cargo = new THREE.Mesh(new THREE.BoxGeometry(w, 1.9, cargoLen), flatMat(0xd8d8d8));
     cargo.position.set(0, 1.15, spec.halfL - cabLen - 0.25 - cargoLen / 2);
     cargo.castShadow = true;
@@ -473,7 +498,7 @@ function createCarMesh(color, isPolice, type) {
     taillight.position.set(0, 0.65, -spec.halfL - 0.02);
     group.add(taillight);
   } else {
-    const body = new THREE.Mesh(new THREE.BoxGeometry(spec.halfW * 2, 0.75, spec.halfL * 2), flatMat(color));
+    const body = new THREE.Mesh(new THREE.BoxGeometry(spec.halfW * 2, 0.75, spec.halfL * 2, 3, 3, 6), flatMat(color));
     body.position.y = 0.62;
     body.castShadow = true;
     const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.62, 2.1), flatMat(isPolice ? 0xdedede : 0x1d1d1d));
@@ -481,6 +506,7 @@ function createCarMesh(color, isPolice, type) {
     cabin.castShadow = true;
     group.add(body, cabin);
     group.userData.bodyMesh = body;
+    group.userData.bodyHalfExtents = { x: spec.halfW, y: 0.375, z: spec.halfL };
     for (const side of [-1, 1]) {
       addAxle(group, frontWheels, side, 1.05, spec.wheelR, -1.35, spec.wheelR, false);
       addAxle(group, frontWheels, side, 1.05, spec.wheelR, 1.35, spec.wheelR, true);
@@ -583,7 +609,8 @@ class Car {
     if (hitWall && Math.abs(preImpactSpeed) > 4) {
       if (this.crashCooldown <= 0) {
         triggerCrash(this.pos, Math.abs(preImpactSpeed), this === player.inCar);
-        applyCarDamage(this);
+        const impactSign = Math.sign(preImpactSpeed) || 1;
+        applyCarDamage(this, dir.x * impactSign, dir.z * impactSign);
         this.crashCooldown = 0.35;
       }
       this.speed *= 0.12;
@@ -648,8 +675,8 @@ function resolveCarCollision(a, b) {
     const mid = new THREE.Vector3((a.pos.x + b.pos.x) / 2, 0.4, (a.pos.z + b.pos.z) / 2);
     const involvesPlayer = a === player.inCar || b === player.inCar;
     triggerCrash(mid, impactSpeed, involvesPlayer);
-    applyCarDamage(a);
-    applyCarDamage(b);
+    applyCarDamage(a, nx, nz);
+    applyCarDamage(b, -nx, -nz);
     a.crashCooldown = 0.35;
     b.crashCooldown = 0.35;
   }
@@ -1207,7 +1234,9 @@ function spawnPickup() {
   const cell = pick(cells);
   const mesh = createPickupMesh();
   const pos = new THREE.Vector3(cell.x + rand(-cell.half, cell.half), 0.9, cell.z + rand(-cell.half, cell.half));
-  pushClearOfBuildings(pos, 1.5);
+  // clearance must exceed the largest vehicle's own collision radius (buses
+  // are ~4.6), otherwise the coin sits in the dead zone no car can enter
+  pushClearOfBuildings(pos, 5);
   mesh.position.copy(pos);
   scene.add(mesh);
   pickups.push({ mesh, pos, value: 50 + ((Math.random() * 4) | 0) * 25 });
@@ -1215,12 +1244,13 @@ function spawnPickup() {
 for (let i = 0; i < 12; i++) spawnPickup();
 
 function updatePickups(dt, t) {
+  const focus = player.inCar ? player.inCar.pos : player.pos;
   for (let i = pickups.length - 1; i >= 0; i--) {
     const p = pickups[i];
     p.mesh.rotation.y = t * 2;
     p.mesh.position.y = 0.9 + Math.sin(t * 3 + i) * 0.15;
-    const dx = p.pos.x - player.pos.x, dz = p.pos.z - player.pos.z;
-    if (dx * dx + dz * dz < 4) {
+    const dx = p.pos.x - focus.x, dz = p.pos.z - focus.z;
+    if (dx * dx + dz * dz < 9) {
       scene.remove(p.mesh);
       pickups.splice(i, 1);
       player.money += p.value;
@@ -1698,8 +1728,8 @@ function updateCamera(dt) {
 
   let height, back, lookY;
   if (cameraMode === 'third') {
-    height = (inCar ? CAM3_HEIGHT_CAR : CAM3_HEIGHT_FOOT) * (1 + spdFac * 0.5);
-    back = (inCar ? CAM3_BACK_CAR : CAM3_BACK_FOOT) * (1 + spdFac * 0.5);
+    height = (inCar ? CAM3_HEIGHT_CAR : CAM3_HEIGHT_FOOT) * (1 + spdFac * (inCar ? 0.85 : 0.5));
+    back = (inCar ? CAM3_BACK_CAR : CAM3_BACK_FOOT) * (1 + spdFac * (inCar ? 0.85 : 0.5));
     lookY = inCar ? 1.1 : 1.3;
   } else {
     height = (inCar ? CAM_HEIGHT : CAM_HEIGHT_FOOT) * (1 + spdFac * (inCar ? 0.55 : 0.35));
@@ -1845,6 +1875,8 @@ function onResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 window.addEventListener('resize', onResize);
+window.addEventListener('orientationchange', onResize);
+window.visualViewport?.addEventListener('resize', onResize);
 onResize();
 
 // ---------- Boot -----------------------------------------------------
