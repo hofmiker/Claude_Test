@@ -8,9 +8,9 @@ weitere Szenen):
 - **🌸 Blumenvase** (`index.html`) — Vase + Blumenstrauß explodiert
 - **🚀 Spaceshuttle** (`shuttle.html`) — Shuttle explodiert mit Feuer & Rauch
 
-## Aktuelle Version: v2.1 (17.07.2026)
+## Aktuelle Version: v2.2 (17.07.2026)
 Versionsnummer im `#deploy-time` div (oben rechts), gilt für beide
-Szenen gemeinsam. Beim nächsten Commit auf v2.2 hochzählen.
+Szenen gemeinsam. Beim nächsten Commit auf v2.3 hochzählen.
 
 ## Konzept
 Jede Szene zeigt ein 3D-Objekt, dessen Bestandteile bei einem Regler-
@@ -33,23 +33,27 @@ Crossfade lässt die glatte Vasenoberfläche in die Scherbenwolke
 übergehen.
 
 ### Spaceshuttle (`shuttle.html`)
-Prozedural aus Primitiven gebautes Shuttle im Spielzeug-Look (glänzige
-`MeshPhysicalMaterial` mit Clearcoat, orangene Zierstreifen, domförmiges
-Cockpitfenster) — Fuselage (2-teilig), Nase, Delta-Flügel via
-`ExtrudeGeometry` mit Bevel, Seitenleitwerk, 3 Triebwerke. Steht auf
-einem Boden/Halo-Ring wie bei der Vase, vor Sternenfeld + fernem
-Planeten für die Raum-Ambience.
+Modelliert nach einem realen Spielzeug (Foto-Referenz vom Nutzer):
+Rumpf + Nase sind je ein einziges nahtloses `LatheGeometry`-Profil
+(bulliger, rund auslaufender Torpedo-Körper statt Zylinder+Kegel),
+darauf eine große, elongierte Dome-Cockpitkuppel (halbtransparentes
+`MeshPhysicalMaterial`) mit einer winzigen Astronauten-Figur darin.
+Dunkle Marine-Akzente (separates Material, kein Muster/Streifen) an
+Nasenspitze, Flügelspitzen-Pods, Leitwerk und den beiden runden
+Triebwerks-Pods am Heck — alles stark abgerundet/gebevelt für den
+Spielzeug-Look, keine scharfen CAD-Kanten. Steht auf einem Boden/
+Halo-Ring wie bei der Vase, vor Sternenfeld + fernem Planeten.
 
-Jedes Bauteil (Nase, Rumpfhälften, Flügel, Leitwerk, Triebwerke) ist
+Jedes Bauteil (Rumpf vorn/hinten, Flügel, Leitwerk, Triebwerke) ist
 ein eigenes `addFragment`-Fragment (wie die Blüten-Fragmente bei der
 Vase) und fliegt beim Explodieren als **großes, erkennbares Teil**
 auseinander — nicht alles zerfällt in Kleinteile. Angehängte
-Detailteile (Cockpit, Flügelvorderkante, Triebwerksdüse) übernehmen
-per `attachedExplosion()` die (leicht variierte) Flugbahn ihres
-Trägerteils, damit sie sichtbar zusammenbleiben. Zusätzlich sorgt ein
-reduziertes `InstancedMesh` aus ~380 kleinen Metall-Shards für
-ergänzendes Schrapnell. Dazu zwei `THREE.Points`-Partikelsysteme für
-Feuer (additiv, kurzer heller Blitz, klingt schnell ab) und Rauch
+Detailteile (Nasenkappe, Kuppel, Astronaut, Flügelspitzen-Pod)
+übernehmen per `attachedExplosion()` die (leicht variierte) Flugbahn
+ihres Trägerteils, damit sie sichtbar zusammenbleiben. Zusätzlich
+sorgt ein reduziertes `InstancedMesh` aus ~380 kleinen Metall-Shards
+für ergänzendes Schrapnell. Dazu zwei `THREE.Points`-Partikelsysteme
+für Feuer (additiv, kurzer heller Blitz, klingt schnell ab) und Rauch
 (alpha-blended, wächst langsam, verblasst über die zweite Hälfte des
 Reglers).
 
