@@ -156,6 +156,7 @@
     jumpVel: 760,
     strideRate: 0.034,  // phase radians per pixel moved
     crouchTime: 0.11,   // seconds of anticipation squat before launch
+    duty: 0.36,         // fraction of the running cycle each foot spends planted
   };
 
   // Skeleton proportions (local space, facing = +x to the right, 0 = feet)
@@ -226,6 +227,8 @@
     phase: 0,
     airTime: 0,
     squash: 1,
+    accelerating: false,
+    hipBob: 0,
   };
   window.addEventListener("resize", resizeCanvas);
 
@@ -325,6 +328,7 @@
     let input = 0;
     if (left) input -= 1;
     if (right) input += 1;
+    character.accelerating = input !== 0;
 
     if (input !== 0) {
       character.vx += input * PHYS.accel * dt;
@@ -385,6 +389,19 @@
       character.airTime += dt;
     }
 
+    // hip bob: rises only while BOTH feet are actually off the ground (a real
+    // flight phase), stays low whenever either foot is planted — tied to the
+    // same stance/swing timing as the feet so it can't drift out of sync
+    const speedRatio = Math.min(1, Math.abs(character.vx) / PHYS.maxSpeed);
+    let bobTarget = 0;
+    if (character.state === "stand" && speedRatio > 0.03) {
+      const pFront = (((character.phase / (2 * Math.PI)) % 1) + 1) % 1;
+      const pBack = ((pFront + 0.5) % 1 + 1) % 1;
+      const grounded = pFront < PHYS.duty || pBack < PHYS.duty;
+      bobTarget = grounded ? 0 : -8 * speedRatio;
+    }
+    character.hipBob += (bobTarget - character.hipBob) * Math.min(1, dt * 18);
+
     character.squash += (1 - character.squash) * Math.min(1, dt * 10);
   }
 
@@ -401,24 +418,25 @@
       crouchAmt = Math.sin(p * Math.PI * 0.5) * SK.crouchDepth;
     }
 
-    // hip bounces twice per stride cycle, the way a real run bobs at each footstrike
-    const bob = running ? -Math.abs(Math.sin(character.phase)) * 6 * speedRatio : 0;
-    const hipY = SK.hipY + crouchAmt + bob;
+    // hip bob is precomputed in update() from the actual stance/swing state of
+    // both feet, so it rises only during a genuine both-feet-off flight phase
+    const hipY = SK.hipY + crouchAmt + character.hipBob;
     const hipX = 0;
 
-    // lean uses forward speed (vx * facing), not raw vx, so a left-facing run
-    // leans the same way relative to travel as a right-facing run does
+    // lean uses forward speed (vx * facing, not raw vx) so a left-facing run
+    // leans the same way relative to travel as a right-facing run does.
+    // Accelerating from a stop leans harder than cruising at steady speed,
+    // and the jump lean is likewise stronger than the running lean.
     const forwardSpeed = character.vx * character.facing;
-    const lean = crouching ? 0
-      : (forwardSpeed / PHYS.maxSpeed) * 9 + (airborne ? -Math.max(-1, Math.min(1, character.vy / PHYS.jumpVel)) * 8 : 0);
+    const cruiseLean = (forwardSpeed / PHYS.maxSpeed) * 7;
+    const accelLean = (character.accelerating && !airborne && !crouching) ? (1 - speedRatio) * 11 : 0;
+    const airLean = airborne ? -Math.max(-1, Math.min(1, character.vy / PHYS.jumpVel)) * 13 : 0;
+    const lean = crouching ? 0 : cruiseLean + accelLean + airLean;
     const shoulderX = hipX + lean;
     const shoulderY = hipY - SK.torso + crouchAmt * 0.35;
 
     const strideLen = running ? 30 * speedRatio : 0;   // half-stride reach
-    const lift = running ? 30 * speedRatio : 0;        // swing-leg foot height
-    const DUTY = 0.36; // fraction of the cycle each foot spends on the ground — well
-                        // under 0.5 so both feet are airborne together (a real running
-                        // flight phase, not a walk's continuous ground contact)
+    const heelLift = running ? 44 * speedRatio : 0;    // swing-leg heel-to-glute tuck height
 
     function footTarget(sign) {
       if (airborne) {
@@ -435,16 +453,26 @@
       const p = (((t / (2 * Math.PI)) % 1) + 1) % 1; // 0..1 through this leg's cycle
       const stanceSpread = 7;
       let x, y;
-      if (p < DUTY) {
-        // stance: foot planted, sweeping back underneath the body
-        const sp = p / DUTY;
+      if (p < PHYS.duty) {
+        // stance: foot planted flat, sweeping back underneath the body
+        const sp = p / PHYS.duty;
         x = strideLen - sp * 2 * strideLen;
         y = 0;
       } else {
-        // swing: foot lifts off and arcs forward for the next footstrike
-        const sp = (p - DUTY) / (1 - DUTY);
-        x = -strideLen + sp * 2 * strideLen;
-        y = -Math.sin(sp * Math.PI) * lift;
+        // swing has two parts: first the heel snaps up and back toward the
+        // glute (foot stays behind the hip while the knee folds), then the
+        // leg drives forward and extends back down for the next footstrike
+        const sp = (p - PHYS.duty) / (1 - PHYS.duty);
+        const foldEnd = 0.45;
+        if (sp < foldEnd) {
+          const q = sp / foldEnd;
+          x = -strideLen + q * strideLen * 0.35;
+          y = -Math.sin(q * Math.PI * 0.5) * heelLift;
+        } else {
+          const q = (sp - foldEnd) / (1 - foldEnd);
+          x = -strideLen * 0.65 + q * strideLen * 1.65;
+          y = -heelLift * Math.cos(q * Math.PI * 0.5);
+        }
       }
       return { x: hipX + sign * stanceSpread + x, y };
     }
