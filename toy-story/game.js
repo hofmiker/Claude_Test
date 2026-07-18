@@ -43,7 +43,7 @@
     function box(w, h, d, color, x, y, z, opts = {}) {
         const mesh = new THREE.Mesh(
             new THREE.BoxGeometry(w, h, d),
-            new THREE.MeshStandardMaterial({ color, roughness: opts.roughness ?? 0.8, metalness: opts.metalness ?? 0.05, side: opts.side })
+            new THREE.MeshStandardMaterial({ color, roughness: opts.roughness ?? 0.8, metalness: opts.metalness ?? 0.05, side: opts.side, transparent: opts.transparent, opacity: opts.opacity ?? 1 })
         );
         mesh.position.set(x, y, z);
         if (opts.rotY) mesh.rotation.y = opts.rotY;
@@ -196,6 +196,47 @@
         return g;
     }
 
+    // Ceiling-mounted pendant lamp: cord/rod down to a shade, with a real
+    // (non-shadow-casting) point light near the shade so the fixture actually
+    // illuminates the room. `y` is the ceiling attachment height; the cord
+    // hangs down from there.
+    function lampPendant(x, y, z, opts = {}) {
+        const drop = opts.drop ?? 0.5, shadeR = opts.shadeR ?? 0.14, shadeH = opts.shadeH ?? 0.16;
+        const g = new THREE.Group();
+        g.add(cyl(0.006, 0.006, drop, opts.cordColor ?? 0x2b2b2b, 0, -drop / 2, 0, { seg: 6, cast: false }));
+        g.add(cyl(shadeR, shadeR * 0.55, shadeH, opts.shadeColor ?? 0xf2e6c9, 0, -drop - shadeH / 2, 0, { roughness: 0.5, cast: false }));
+        const light = new THREE.PointLight(opts.lightColor ?? 0xfff0d0, opts.intensity ?? 0.6, opts.range ?? 5, 2);
+        light.castShadow = false;
+        light.position.set(0, -drop - shadeH * 0.85, 0);
+        g.add(light);
+        g.position.set(x, y, z);
+        return g;
+    }
+
+    // Wall-mounted spotlight/sconce. Follows makeWindow's axis convention:
+    // wallAxis='x' mounts on an x=const wall (thin dimension along x, e.g. the
+    // west/east exterior walls), light shines along X in the `sign` direction;
+    // wallAxis='z' mounts on a z=const wall (front/back or corridor partition
+    // walls), light shines along Z in the `sign` direction.
+    function lampWallSpot(x, y, z, wallAxis, sign, opts = {}) {
+        const g = new THREE.Group();
+        g.add(box(wallAxis === 'x' ? 0.03 : 0.09, 0.09, wallAxis === 'x' ? 0.09 : 0.03, opts.housingColor ?? 0x8c8c8c, 0, 0, 0, { metalness: 0.4, roughness: 0.4, cast: false }));
+        const shade = cyl(0.02, 0.06, 0.12, opts.shadeColor ?? 0xfff3d0, 0, 0, 0, { roughness: 0.4, seg: 14, cast: false });
+        shade.rotation.z = wallAxis === 'x' ? sign * Math.PI / 2 : 0;
+        shade.rotation.x = wallAxis === 'z' ? sign * Math.PI / 2 : 0;
+        shade.position.set(wallAxis === 'x' ? sign * 0.09 : 0, 0, wallAxis === 'z' ? sign * 0.09 : 0);
+        g.add(shade);
+        const light = new THREE.SpotLight(opts.lightColor ?? 0xfff0d0, opts.intensity ?? 0.7, opts.range ?? 4, opts.angle ?? Math.PI / 5, 0.4, 1.5);
+        light.castShadow = false;
+        const target = new THREE.Object3D();
+        target.position.set(wallAxis === 'x' ? sign * 1.5 : 0, -0.3, wallAxis === 'z' ? sign * 1.5 : 0);
+        g.add(light);
+        g.add(target);
+        light.target = target;
+        g.position.set(x, y, z);
+        return g;
+    }
+
     function chair(x, z, rotY, color) {
         const c = color ?? 0x7a5230;
         const g = new THREE.Group();
@@ -307,9 +348,18 @@
         return pivot;
     }
 
+    // Lightweight arch trim for a doorless opening: jambs + header only, no
+    // swinging leaf — for the wide walk-through gaps into the living room and
+    // kitchen, which otherwise look like the wall simply stops mid-air.
+    function archTrim(x, zFrom, zTo, color = 0x8a5a3a) {
+        const jambDepth = 0.15, jambW = 0.05, h = WALL_H;
+        [zFrom, zTo].forEach((z) => world.add(box(jambDepth, h + 0.08, jambW, color, x, h / 2 + 0.02, z)));
+        world.add(box(jambDepth, 0.06, (zTo - zFrom) + 0.1, color, x, h + 0.06, (zFrom + zTo) / 2));
+    }
+
     function makeWindow(x, y, z, w, h, wallAxis) {
         const g = new THREE.Group();
-        g.add(box(wallAxis === 'x' ? 0.04 : w, h, wallAxis === 'x' ? w : 0.04, 0xdff2ff, 0, 0, 0, { metalness: 0.3, roughness: 0.1, cast: false }));
+        g.add(box(wallAxis === 'x' ? 0.04 : w, h, wallAxis === 'x' ? w : 0.04, 0xdff2ff, 0, 0, 0, { metalness: 0.1, roughness: 0.05, side: THREE.DoubleSide, transparent: true, opacity: 0.35, cast: false }));
         g.add(box(wallAxis === 'x' ? 0.02 : w + 0.05, 0.03, wallAxis === 'x' ? w + 0.05 : 0.02, 0xffffff, 0, h / 2 - 0.015, 0, { cast: false }));
         g.add(box(wallAxis === 'x' ? 0.02 : 0.03, h, wallAxis === 'x' ? 0.03 : 0.02, 0xffffff, 0, 0, 0, { cast: false }));
         g.position.set(x, y, z);
@@ -348,12 +398,16 @@
     const FLOOR2_Y = 2.7;        // upper floor level
     const KNEE_H = 1.3;          // upper floor wall height before the roof slope starts
     const RIDGE_H = 3.0;         // roof ridge height above FLOOR2_Y, at z=0
-    const CORR_X_MIN = -0.65, CORR_X_MAX = 0.65;
+    const CORR_X_MIN = -1.3, CORR_X_MAX = 1.3;
     // The staircase sits near the back (front-door) end of the corridor, so the
     // entire rest of the upstairs hallway is one continuous piece reachable in
     // a single direction from the top of the stairs — no need to cross back
     // over the stairwell opening to reach any bedroom.
     const STAIR_Z_START = -3.5, STAIR_Z_END = -1.3;
+    // Toilette room dimensions, expressed relative to the corridor's east wall so
+    // the room keeps its own proportions (1.85m wide, door 0.35m in from the
+    // corridor, 0.7m door width) no matter how wide the corridor itself is.
+    const TOILET_X_MAX = CORR_X_MAX + 1.85, TOILET_DOOR_HINGE = CORR_X_MAX + 0.35;
     const BOUNDS = { minX: X_MIN, maxX: X_MAX, minZ: Z_MIN, maxZ: Z_MAX };
 
     const leftX = X_MIN - 0.075, rightX = X_MAX + 0.075;
@@ -392,9 +446,9 @@
     groundFloors.push(plankFloor(X_MIN, CORR_X_MIN, Z_MIN, Z_MAX, 0, 0xc79a63, 7));           // Wohnzimmer
     groundFloors.push(plankFloor(CORR_X_MIN, CORR_X_MAX, Z_MIN, Z_MAX, 0, 0xb98a55, 3)); // Flur
     groundFloors.push(tileFloor(CORR_X_MAX, X_MAX, Z_MIN, 0.3, 0, 0xe9e6dc, 0xd8d3c4));         // Küche
-    groundFloors.push(tileFloor(CORR_X_MAX, 2.5, 0.3, 2.3, 0, 0xdfeef2, 0xc9dfe6));             // Toilette
-    groundFloors.push(plankFloor(2.5, X_MAX, 0.3, Z_MAX, 0, 0xc79a63, 11));              // offener Rest
-    groundFloors.push(plankFloor(CORR_X_MAX, 2.5, 2.3, Z_MAX, 0, 0xc79a63, 13));
+    groundFloors.push(tileFloor(CORR_X_MAX, TOILET_X_MAX, 0.3, 2.3, 0, 0xdfeef2, 0xc9dfe6));             // Toilette
+    groundFloors.push(plankFloor(TOILET_X_MAX, X_MAX, 0.3, Z_MAX, 0, 0xc79a63, 11));              // offener Rest
+    groundFloors.push(plankFloor(CORR_X_MAX, TOILET_X_MAX, 2.3, Z_MAX, 0, 0xc79a63, 13));
 
     const upperFloors = [];
     upperFloors.push(plankFloor(X_MIN, CORR_X_MIN, Z_MIN, 1.0, FLOOR2_Y, 0xcdb290, 19));         // Elternschlafzimmer
@@ -420,21 +474,61 @@
     });
 
     // ---------- Ground floor exterior + structural walls ----------
-    function extWallRunX(z, xFrom, xTo, color) {
+    // Splits a straight wall run into full-height segments between windows, plus
+    // a below-sill and an above-lintel segment spanning each window's own width
+    // — the sill..lintel range is left uncovered, so it becomes a real hole in
+    // the wall instead of a decorative pane laid over solid geometry. Collision
+    // never needs a matching change: resolveObstacles() only looks at x/z, never
+    // wall height, so a window hole is invisible to it either way.
+    function wallRunAxis(axis, fixed, thickness, yBase, height, color, from, to, windows = []) {
+        const put = (spanFrom, spanLen, spanCenter, yLo, yLen, yCenter) => {
+            if (spanLen <= 0.001 || yLen <= 0.001) return;
+            axis === 'z'
+                ? wall(thickness, yLen, spanLen, color, fixed, yCenter, spanCenter)
+                : wall(spanLen, yLen, thickness, color, spanCenter, yCenter, fixed);
+        };
+        const ops = windows.map((w) => ({
+            from: w.c - w.w / 2, to: w.c + w.w / 2, sill: w.y - w.h / 2, lintel: w.y + w.h / 2,
+        })).sort((a, b) => a.from - b.from);
+        let cur = from;
+        ops.forEach((op) => {
+            put(cur, op.from - cur, (cur + op.from) / 2, yBase, height, yBase + height / 2);
+            const len = op.to - op.from, c = (op.from + op.to) / 2;
+            put(op.from, len, c, yBase, op.sill - yBase, yBase + (op.sill - yBase) / 2);
+            put(op.from, len, c, op.lintel, yBase + height - op.lintel, op.lintel + (yBase + height - op.lintel) / 2);
+            cur = op.to;
+        });
+        put(cur, to - cur, (cur + to) / 2, yBase, height, yBase + height / 2);
+    }
+    function extWallRunX(z, xFrom, xTo, color, windows = []) {
         if (xTo - xFrom <= 0.001) return;
-        wall(xTo - xFrom, WALL_H, 0.15, color, (xFrom + xTo) / 2, WALL_H / 2, z);
+        wallRunAxis('x', z, 0.15, 0, WALL_H, color, xFrom, xTo, windows);
         addObstacle(0, (xFrom + xTo) / 2, z, xTo - xFrom, 0.15);
     }
-    wall(0.15, WALL_H, spanZ, WALL_LIGHT, leftX, WALL_H / 2, 0);
-    wall(0.15, WALL_H, spanZ, WALL_KITCHEN, rightX, WALL_H / 2, 0);
+    function extWallRunZ(x, zFrom, zTo, color, windows = []) {
+        if (zTo - zFrom <= 0.001) return;
+        wallRunAxis('z', x, 0.15, 0, WALL_H, color, zFrom, zTo, windows);
+        addObstacle(0, x, (zFrom + zTo) / 2, 0.15, zTo - zFrom);
+    }
+    extWallRunZ(leftX, backZ, frontZ, WALL_LIGHT, [
+        { c: -2.3, w: 1.1, h: 1.3, y: 1.55 },
+        { c: 0.3, w: 1.1, h: 1.3, y: 1.55 },
+        { c: 2.6, w: 1.1, h: 1.3, y: 1.55 },
+    ]);
+    extWallRunZ(rightX, backZ, frontZ, WALL_KITCHEN, [
+        { c: -3.1, w: 0.9, h: 1.1, y: 1.55 },
+        { c: 3.0, w: 0.9, h: 1.1, y: 1.55 },
+    ]);
     // Back wall has a real gap for the front door (hinge -0.35..0.35) instead of
     // a solid wall with a purely decorative door drawn on top of it.
     extWallRunX(backZ, leftX, -0.35, WALL_LIGHT);
-    extWallRunX(backZ, 0.35, rightX, WALL_LIGHT);
-    wall(spanX, WALL_H, 0.15, WALL_LIGHT, (leftX + rightX) / 2, WALL_H / 2, frontZ);
-    addObstacle(0, leftX, 0, 0.15, spanZ);
-    addObstacle(0, rightX, 0, 0.15, spanZ);
-    addObstacle(0, (leftX + rightX) / 2, frontZ, spanX, 0.15);
+    extWallRunX(backZ, 0.35, rightX, WALL_LIGHT, [
+        { c: 2.7, w: 1.1, h: 1.1, y: 1.55 },
+    ]);
+    extWallRunX(frontZ, leftX, rightX, WALL_LIGHT, [
+        { c: -2.7, w: 1.1, h: 1.3, y: 1.55 },
+        { c: -0.05, w: 0.7, h: 0.9, y: 1.9 },
+    ]);
 
     // Corridor partition walls (x = CORR_X_MIN and x = CORR_X_MAX), each with door gaps
     function corridorWallRun(x, zFrom, zTo, color) {
@@ -449,19 +543,21 @@
     corridorWallRun(CORR_X_MIN, 0.1, frontZ, WALL_LIGHT);
     corridorWallRun(CORR_X_MAX, backZ, -1.1, WALL_KITCHEN);
     corridorWallRun(CORR_X_MAX, 0.1, frontZ, WALL_KITCHEN);
+    archTrim(CORR_X_MIN, -1.1, 0.1, WALL_LIGHT);
+    archTrim(CORR_X_MAX, -1.1, 0.1, WALL_KITCHEN);
 
     // Toilette room walls: fully enclosed on all four sides except one door on
     // the south side (opening into the kitchen/dining area), with each wall's
     // gap sized to exactly match the door frame — no unintended hole, no overlap.
-    wall(0.1, WALL_H, 2.0, WALL_LIGHT, 2.5, WALL_H / 2, 1.3); // east wall (x=2.5)
-    addObstacle(0, 2.5, 1.3, 0.1, 2.0);
-    wall(2.5 - CORR_X_MAX, WALL_H, 0.1, WALL_LIGHT, (CORR_X_MAX + 2.5) / 2, WALL_H / 2, 2.3); // north wall, fully solid
-    addObstacle(0, (CORR_X_MAX + 2.5) / 2, 2.3, 2.5 - CORR_X_MAX, 0.1);
-    wall(1.0 - CORR_X_MAX, WALL_H, 0.1, WALL_LIGHT, (CORR_X_MAX + 1.0) / 2, WALL_H / 2, 0.3); // south wall, west of door
-    addObstacle(0, (CORR_X_MAX + 1.0) / 2, 0.3, 1.0 - CORR_X_MAX, 0.1);
-    wall(2.5 - 1.7, WALL_H, 0.1, WALL_LIGHT, (1.7 + 2.5) / 2, WALL_H / 2, 0.3); // south wall, east of door
-    addObstacle(0, (1.7 + 2.5) / 2, 0.3, 2.5 - 1.7, 0.1);
-    buildDoor({ axis: 'x', z: 0.3, hinge: 1.0, hingeSign: 1, width: 0.7, height: 2.0, openAngle: 0, wallDepth: 0.1, frameColor: 0x8a5a3a, doorColor: 0xdfeef2 });
+    wall(0.1, WALL_H, 2.0, WALL_LIGHT, TOILET_X_MAX, WALL_H / 2, 1.3); // east wall
+    addObstacle(0, TOILET_X_MAX, 1.3, 0.1, 2.0);
+    wall(TOILET_X_MAX - CORR_X_MAX, WALL_H, 0.1, WALL_LIGHT, (CORR_X_MAX + TOILET_X_MAX) / 2, WALL_H / 2, 2.3); // north wall, fully solid
+    addObstacle(0, (CORR_X_MAX + TOILET_X_MAX) / 2, 2.3, TOILET_X_MAX - CORR_X_MAX, 0.1);
+    wall(TOILET_DOOR_HINGE - CORR_X_MAX, WALL_H, 0.1, WALL_LIGHT, (CORR_X_MAX + TOILET_DOOR_HINGE) / 2, WALL_H / 2, 0.3); // south wall, west of door
+    addObstacle(0, (CORR_X_MAX + TOILET_DOOR_HINGE) / 2, 0.3, TOILET_DOOR_HINGE - CORR_X_MAX, 0.1);
+    wall(TOILET_X_MAX - (TOILET_DOOR_HINGE + 0.7), WALL_H, 0.1, WALL_LIGHT, ((TOILET_DOOR_HINGE + 0.7) + TOILET_X_MAX) / 2, WALL_H / 2, 0.3); // south wall, east of door
+    addObstacle(0, ((TOILET_DOOR_HINGE + 0.7) + TOILET_X_MAX) / 2, 0.3, TOILET_X_MAX - (TOILET_DOOR_HINGE + 0.7), 0.1);
+    buildDoor({ axis: 'x', z: 0.3, hinge: TOILET_DOOR_HINGE, hingeSign: 1, width: 0.7, height: 2.0, openAngle: 0, wallDepth: 0.1, frameColor: 0x8a5a3a, doorColor: 0xdfeef2 });
 
     // ---------- Ground floor doors ----------
     buildDoor({ axis: 'x', z: backZ, hinge: -0.35, hingeSign: 1, width: 0.7, height: 2.0, openAngle: 0, wallDepth: 0.15, frameColor: 0x6b4429, doorColor: 0x5a3a24 });
@@ -485,54 +581,95 @@
     makeWindow(2.7, 1.55, backZ + 0.01, 1.1, 1.1, 'z');
     makeWindow(-0.05, 1.9, frontZ + 0.01, 0.7, 0.9, 'z');
 
-    // ================= Wohnzimmer (reuse the earlier furniture set) =================
-    const couch = new THREE.Group();
-    couch.add(box(1.9, 0.42, 0.85, 0xd45d5d, 0, 0.21, 0));
-    couch.add(box(1.9, 0.4, 0.15, 0xc24b4b, 0, 0.5, -0.36));
-    couch.add(box(0.18, 0.5, 0.85, 0xc24b4b, -0.95, 0.34, 0));
-    couch.add(box(0.18, 0.5, 0.85, 0xc24b4b, 0.95, 0.34, 0));
-    couch.position.set(-3.4, 0, -2.9);
-    world.add(couch);
-    addObstacle(0, -3.4, -2.9, 2.1, 0.9);
+    // ================= Wohnzimmer =================
+    // Zone A (z -4..-1.5): L-shaped sectional sofa + coffee table/rug + TV.
+    const seatColor = 0xd45d5d, backColor = 0xc24b4b;
+    const lSofaLong = new THREE.Group();
+    lSofaLong.add(box(1.9, 0.42, 0.85, seatColor, 0, 0.21, 0));
+    lSofaLong.add(box(1.9, 0.4, 0.15, backColor, 0, 0.5, -0.36));
+    lSofaLong.add(box(0.18, 0.5, 0.85, backColor, -0.95, 0.34, 0));
+    lSofaLong.add(box(0.18, 0.5, 0.85, backColor, 0.95, 0.34, 0));
+    lSofaLong.position.set(-4.55, 0, -2.7);
+    lSofaLong.rotation.y = Math.PI / 2;
+    world.add(lSofaLong);
+    addObstacle(0, -4.55, -2.7, 0.85, 1.9);
+
+    const lSofaShort = new THREE.Group();
+    lSofaShort.add(box(1.3, 0.42, 0.85, seatColor, 0, 0.21, 0));
+    lSofaShort.add(box(1.3, 0.4, 0.15, backColor, 0, 0.5, -0.36));
+    lSofaShort.add(box(0.18, 0.5, 0.85, backColor, -0.56, 0.34, 0));
+    lSofaShort.add(box(0.18, 0.5, 0.85, backColor, 0.56, 0.34, 0));
+    lSofaShort.position.set(-3.9, 0, -3.57);
+    world.add(lSofaShort);
+    addObstacle(0, -3.9, -3.57, 1.3, 0.85);
 
     const coffeeTable = new THREE.Group();
     coffeeTable.add(box(1.0, 0.04, 0.55, 0x8a5a3a, 0, 0.42, 0));
     [[-0.44, -0.23], [0.44, -0.23], [-0.44, 0.23], [0.44, 0.23]].forEach(([lx, lz]) => coffeeTable.add(cyl(0.02, 0.02, 0.4, 0x6b4429, lx, 0.2, lz, { seg: 8 })));
-    coffeeTable.position.set(-3.4, 0, -1.6);
+    coffeeTable.position.set(-3.6, 0, -2.6);
     world.add(coffeeTable);
-    addObstacle(0, -3.4, -1.6, 1.05, 0.6);
+    addObstacle(0, -3.6, -2.6, 1.05, 0.6);
 
-    const livingRug = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.7), new THREE.MeshStandardMaterial({ color: 0x7a4a3a, roughness: 1 }));
+    const livingRug = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 1.4), new THREE.MeshStandardMaterial({ color: 0x7a4a3a, roughness: 1 }));
     livingRug.rotation.x = -Math.PI / 2;
-    livingRug.position.set(-3.4, 0.004, -1.6);
+    livingRug.position.set(-3.6, 0.004, -2.6);
     livingRug.receiveShadow = true;
     world.add(livingRug);
 
+    const tvConsole = new THREE.Group();
+    tvConsole.add(box(0.4, 0.45, 1.2, 0x8a5a3a, 0, 0.225, 0));
+    tvConsole.add(box(0.42, 0.04, 1.22, 0xffffff, 0, 0.45, 0));
+    tvConsole.position.set(-1.55, 0, -2.5);
+    world.add(tvConsole);
+    addObstacle(0, -1.55, -2.5, 0.4, 1.2);
+    world.add(box(0.04, 0.58, 1.0, 0x111111, -1.32, 0.79, -2.5, { cast: false }));
+    world.add(box(0.05, 0.06, 1.02, 0x2b2b2b, -1.3, 0.48, -2.5, { cast: false }));
+
+    // Zone B (z -1.6..0.6): bookshelf + reading nook.
+    const bookshelf = new THREE.Group();
+    bookshelf.add(box(0.3, 1.6, 1.2, 0xd98f4a, 0, 0.8, 0));
+    [0.34, 0.66, 0.98, 1.3].forEach((y) => bookshelf.add(box(0.32, 0.03, 1.22, 0x8a5a2a, 0, y, 0, { cast: false })));
+    const bookColors = [0xd6413f, 0x4aa8e0, 0xffd166, 0x6fcf67, 0xb570ff, 0xff8a5b];
+    for (let shelf = 0; shelf < 3; shelf++) {
+        const shelfY = 0.5 + shelf * 0.32;
+        for (let i = 0; i < 6; i++) {
+            bookshelf.add(box(0.03, 0.16, 0.14, bookColors[(shelf * 6 + i) % bookColors.length], 0.1, shelfY, -0.5 + i * 0.16, { cast: false }));
+        }
+    }
+    bookshelf.position.set(-4.85, 0, -1.0);
+    world.add(bookshelf);
+    addObstacle(0, -4.85, -1.0, 0.3, 1.2);
+
+    const readingChair = new THREE.Group();
+    readingChair.add(box(0.55, 0.4, 0.55, 0x5b8fd9, 0, 0.2, 0));
+    readingChair.add(box(0.55, 0.5, 0.12, 0x4a72b0, 0, 0.55, -0.28));
+    readingChair.add(box(0.12, 0.35, 0.55, 0x4a72b0, -0.28, 0.38, 0));
+    readingChair.add(box(0.12, 0.35, 0.55, 0x4a72b0, 0.28, 0.38, 0));
+    [[-0.2, -0.2], [0.2, -0.2], [-0.2, 0.2], [0.2, 0.2]].forEach(([lx, lz]) => readingChair.add(cyl(0.02, 0.02, 0.2, 0x3a3a3a, lx, 0.1, lz, { seg: 8 })));
+    readingChair.position.set(-4.5, 0, 0.3);
+    readingChair.rotation.y = -Math.PI / 2;
+    world.add(readingChair);
+    addObstacle(0, -4.5, 0.3, 0.65, 0.65);
+    world.add(lampFloor(-4.9, 0, 0.75));
+    addObstacle(0, -4.9, 0.75, 0.28, 0.28);
+
+    // Zone C (z 1.85..3.35): 6-seat dining table.
     const diningTable = new THREE.Group();
-    diningTable.add(box(1.1, 0.04, 0.72, 0x9c6b3f, 0, 0.75, 0));
-    [[-0.5, -0.31], [0.5, -0.31], [-0.5, 0.31], [0.5, 0.31]].forEach(([lx, lz]) => diningTable.add(cyl(0.022, 0.022, 0.73, 0x7a5230, lx, 0.365, lz, { seg: 8 })));
-    diningTable.position.set(-1.3, 0, 2.6);
+    diningTable.add(box(0.85, 0.04, 1.5, 0x9c6b3f, 0, 0.75, 0));
+    [[-0.36, -0.68], [0.36, -0.68], [-0.36, 0.68], [0.36, 0.68]].forEach(([lx, lz]) => diningTable.add(cyl(0.022, 0.022, 0.73, 0x7a5230, lx, 0.365, lz, { seg: 8 })));
+    diningTable.position.set(-3.15, 0, 2.6);
     world.add(diningTable);
-    addObstacle(0, -1.3, 2.6, 1.15, 0.75);
-    world.add(chair(-1.3, 3.35, Math.PI));
-    world.add(chair(-1.3, 1.85, 0));
-    addObstacle(0, -1.3, 3.35, 0.42, 0.42);
-    addObstacle(0, -1.3, 1.85, 0.42, 0.42);
+    addObstacle(0, -3.15, 2.6, 0.9, 1.55);
+    [[-3.15, 1.85, 0], [-3.15, 3.35, Math.PI], [-3.815, 2.2, Math.PI / 2], [-3.815, 3.0, Math.PI / 2], [-2.485, 2.2, -Math.PI / 2], [-2.485, 3.0, -Math.PI / 2]].forEach(([cx, cz, rot]) => {
+        world.add(chair(cx, cz, rot));
+        addObstacle(0, cx, cz, 0.42, 0.42);
+    });
 
-    const console1 = new THREE.Group();
-    console1.add(box(0.85, 0.035, 0.3, 0x8a5a3a, 0, 0.75, 0));
-    [[-0.38, -0.11], [0.38, -0.11], [-0.38, 0.11], [0.38, 0.11]].forEach(([lx, lz]) => console1.add(cyl(0.018, 0.018, 0.73, 0x6b4429, lx, 0.365, lz, { seg: 8 })));
-    console1.position.set(leftX + 0.2, 0, 1.5);
-    world.add(console1);
-    addObstacle(0, leftX + 0.2, 1.5, 0.4, 0.35);
-    world.add(lampTable(leftX + 0.2, 0.77, 1.5));
-
-    world.add(lampFloor(-1.4, 0, -3.5));
-    addObstacle(0, -1.4, -3.5, 0.28, 0.28);
     world.add(houseplant(-4.35, 0, 3.55, 1.15));
     addObstacle(0, -4.35, 3.55, 0.35, 0.35);
-    world.add(picture(0.42, 0.55, leftX + 0.01, 1.55, -1.0, Math.PI / 2, 0x5a3d22, 0x7fa8c9));
+    world.add(picture(0.42, 0.55, leftX + 0.01, 1.55, -3.3, Math.PI / 2, 0x5a3d22, 0x7fa8c9));
     world.add(picture(0.36, 0.36, leftX + 0.01, 1.5, 1.6, Math.PI / 2, 0x5a3d22, 0xe8b04a));
+    world.add(lampPendant(-3.4, WALL_H, -0.5));
 
     // ================= Küche =================
     function kitchenCounter(x, z, w, d, rotY) {
@@ -544,16 +681,16 @@
         world.add(g);
         addObstacle(0, x, z, rotY ? d : w, rotY ? w : d);
     }
-    kitchenCounter(1.4, backZ + 0.35, 1.4, 0.62, 0);
+    kitchenCounter(1.95, backZ + 0.35, 1.2, 0.62, 0);
     kitchenCounter(rightX - 0.35, -2.6, 0.62, 1.6, Math.PI / 2);
 
     const stove = new THREE.Group();
     stove.add(box(0.62, 0.85, 0.62, 0x2b2b2b, 0, 0.425, 0));
     stove.add(box(0.58, 0.02, 0.58, 0x181818, 0, 0.87, 0));
     [[-0.15, -0.15], [0.15, -0.15], [-0.15, 0.15], [0.15, 0.15]].forEach(([bx, bz]) => stove.add(cyl(0.08, 0.08, 0.01, 0x3a3a3a, bx, 0.885, bz, { seg: 16 })));
-    stove.position.set(2.4, 0, backZ + 0.35);
+    stove.position.set(2.85, 0, backZ + 0.35);
     world.add(stove);
-    addObstacle(0, 2.4, backZ + 0.35, 0.65, 0.65);
+    addObstacle(0, 2.85, backZ + 0.35, 0.65, 0.65);
 
     function createRangeHood(color = 0xd6d6d6) {
         const g = new THREE.Group();
@@ -564,7 +701,7 @@
         return g;
     }
     const rangeHood = createRangeHood();
-    rangeHood.position.set(2.4, 1.7, backZ + 0.32); // directly above the stove
+    rangeHood.position.set(2.85, 1.7, backZ + 0.32); // directly above the stove
     world.add(rangeHood);
 
     const sinkUnit = new THREE.Group();
@@ -579,31 +716,43 @@
     const fridge = new THREE.Group();
     fridge.add(box(0.65, 1.75, 0.65, 0xf3f3f3, 0, 0.875, 0));
     fridge.add(box(0.02, 1.6, 0.02, 0xcccccc, -0.33, 1.0, 0.34, { cast: false }));
-    fridge.position.set(3.9, 0, backZ + 0.35);
+    fridge.position.set(4.3, 0, backZ + 0.35);
     world.add(fridge);
-    addObstacle(0, 3.9, backZ + 0.35, 0.68, 0.68);
+    addObstacle(0, 4.3, backZ + 0.35, 0.68, 0.68);
 
-    const upperCabinets = box(1.6, 0.7, 0.32, 0xdedad2, 1.3, 1.75, backZ + 0.16);
+    const upperCabinets = box(1.4, 0.7, 0.32, 0xdedad2, 1.95, 1.75, backZ + 0.16);
     world.add(upperCabinets);
     world.add(picture(0.34, 0.34, rightX - 0.01, 1.6, 1.2, -Math.PI / 2, 0xd98f4a, 0xffd166));
+    world.add(lampPendant(3.4, WALL_H, -1.8));
+    world.add(lampWallSpot(rightX, 2.0, -0.6, 'x', -1));
 
     // ================= Toilette =================
     const wcGroup = createToilet();
-    wcGroup.position.set(2.2, 0, 2.05);
+    wcGroup.position.set(2.85, 0, 2.05);
     wcGroup.rotation.y = Math.PI;
     world.add(wcGroup);
-    addObstacle(0, 2.2, 2.0, 0.3, 0.45);
+    addObstacle(0, 2.85, 2.0, 0.3, 0.45);
     const wcSink = createSinkPedestal();
-    wcSink.position.set(0.95, 0, 0.75);
+    wcSink.position.set(1.6, 0, 0.75);
     world.add(wcSink);
-    addObstacle(0, 0.95, 0.75, 0.3, 0.25);
+    addObstacle(0, 1.6, 0.75, 0.3, 0.25);
+    world.add(lampWallSpot(TOILET_X_MAX, 2.0, 1.3, 'x', -1));
+    world.add(picture(0.3, 0.3, TOILET_X_MAX - 0.01, 1.5, 1.6, -Math.PI / 2, 0xdfeef2, 0x8fc7d8));
 
     // ================= Hauseingang (Flur) =================
-    world.add(houseplant(0.3, 0, -3.6, 0.8));
-    addObstacle(0, 0.3, -3.6, 0.25, 0.25);
+    // Kept clear of the stair span (STAIR_Z_START=-3.5) and tucked to one side —
+    // it used to sit almost exactly at the foot of the stairs and, combined with
+    // tank-style controls (no strafe key), made the stairs practically unreachable.
+    world.add(houseplant(-0.9, 0, -3.82, 0.7));
+    addObstacle(0, -0.9, -3.82, 0.18, 0.18);
     const bench = box(0.9, 0.42, 0.32, 0x7a5230, 0, 0.21, 3.6);
     world.add(bench);
     addObstacle(0, 0, 3.6, 0.9, 0.32);
+    world.add(lampPendant(0, WALL_H, -2.5));
+    world.add(lampPendant(0, WALL_H, 2.8));
+    world.add(lampWallSpot(CORR_X_MIN, 2.0, -2.5, 'x', 1));
+    world.add(lampWallSpot(CORR_X_MAX, 2.0, 1.5, 'x', -1));
+    world.add(picture(0.3, 0.4, CORR_X_MIN + 0.01, 1.6, 2.0, Math.PI / 2, 0x8a5a3a, 0xffe6a8));
 
     // ---------- Stairs (Treppe): visual treads over a smooth ramp for collision ----------
     const STAIR_STEPS = 16;
@@ -630,7 +779,7 @@
     addObstacle(1, (leftX + rightX) / 2, backZ, spanX, 0.15);
     addObstacle(1, (leftX + rightX) / 2, frontZ, spanX, 0.15);
 
-    function gableEndWall(x, color) {
+    function gableEndWall(x, color, windows = []) {
         const shape = new THREE.Shape();
         shape.moveTo(backZ, 0);
         shape.lineTo(frontZ, 0);
@@ -638,6 +787,19 @@
         shape.lineTo(0, RIDGE_H);
         shape.lineTo(backZ, KNEE_H);
         shape.closePath();
+        // Shape local coords are (worldZ, worldY - FLOOR2_Y) — see mesh.position
+        // below. A real rectangular hole per window, not a pane laid over solid.
+        windows.forEach((w) => {
+            const z0 = w.c - w.w / 2, z1 = w.c + w.w / 2;
+            const y0 = w.y - w.h / 2 - FLOOR2_Y, y1 = w.y + w.h / 2 - FLOOR2_Y;
+            const hole = new THREE.Path();
+            hole.moveTo(z0, y0);
+            hole.lineTo(z1, y0);
+            hole.lineTo(z1, y1);
+            hole.lineTo(z0, y1);
+            hole.closePath();
+            shape.holes.push(hole);
+        });
         const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.15, bevelEnabled: false });
         const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.85 }));
         mesh.rotation.y = Math.PI / 2;
@@ -651,8 +813,14 @@
         mesh.receiveShadow = true;
         world.add(mesh);
     }
-    gableEndWall(leftX - 0.075, WALL_PARENT);
-    gableEndWall(rightX - 0.075, WALL_KID2);
+    gableEndWall(leftX - 0.075, WALL_PARENT, [
+        { c: -2.3, w: 0.9, h: 1.0, y: FLOOR2_Y + 0.75 },
+        { c: 2.3, w: 0.9, h: 1.0, y: FLOOR2_Y + 0.75 },
+    ]);
+    gableEndWall(rightX - 0.075, WALL_KID2, [
+        { c: -2.9, w: 0.8, h: 0.9, y: FLOOR2_Y + 0.75 },
+        { c: 2.3, w: 0.8, h: 0.9, y: FLOOR2_Y + 0.75 },
+    ]);
     addObstacle(1, leftX, 0, 0.15, spanZ);
     addObstacle(1, rightX, 0, 0.15, spanZ);
 
@@ -736,6 +904,14 @@
     addSkylight(2.5, -2.8, -1);    // Bad
     addSkylight(2.7, 2.2, 1);      // Kinderzimmer 2
 
+    // Ceiling height at a given z under the sloped roof (0 at the eaves height
+    // KNEE_H, rising to RIDGE_H at z=0) — same formula as addSkylight above,
+    // reused so upstairs pendant lamps hang from the real ceiling, not a flat one.
+    function upperCeilingY(z) {
+        const t = Math.abs(z) / 4;
+        return FLOOR2_Y + RIDGE_H - t * (RIDGE_H - KNEE_H);
+    }
+
     // ---------- Baseboards + windows (upper floor) ----------
     baseboardZ(leftX + 0.085, backZ + 0.08, frontZ - 0.08);
     baseboardZ(rightX - 0.085, backZ + 0.08, frontZ - 0.08);
@@ -746,6 +922,11 @@
     makeWindow(leftX - 0.01, FLOOR2_Y + 0.75, 2.3, 0.9, 1.0, 'x');
     makeWindow(rightX + 0.01, FLOOR2_Y + 0.75, -2.9, 0.8, 0.9, 'x');
     makeWindow(rightX + 0.01, FLOOR2_Y + 0.75, 2.3, 0.8, 0.9, 'x');
+
+    // ---------- Upper-floor landing lighting ----------
+    world.add(lampPendant(0, upperCeilingY(2.0), 2.0));
+    world.add(lampWallSpot(CORR_X_MAX, FLOOR2_Y + 1.0, 3.0, 'x', -1));
+    world.add(picture(0.3, 0.35, CORR_X_MAX - 0.01, FLOOR2_Y + 1.3, 3.2, -Math.PI / 2, 0x8a5a3a, 0xf0d9a8));
 
     // ================= Elternschlafzimmer =================
     const parentBed = new THREE.Group();
@@ -762,8 +943,10 @@
     world.add(createWardrobe(1.3, 1.9, 0.6, 0x7a5230));
     world.children[world.children.length - 1].position.set(leftX + 0.35, FLOOR2_Y, -0.6);
     addObstacle(1, leftX + 0.35, -0.6, 1.35, 0.65);
-    world.add(houseplant(-1.0, FLOOR2_Y, -3.6, 0.8));
-    addObstacle(1, -1.0, backZ + 0.4, 0.25, 0.25);
+    world.add(houseplant(-1.5, FLOOR2_Y, -3.6, 0.8));
+    addObstacle(1, -1.5, backZ + 0.4, 0.25, 0.25);
+    world.add(lampPendant(-3.0, upperCeilingY(-1.7), -1.7));
+    world.add(picture(0.4, 0.5, leftX + 0.01, FLOOR2_Y + 1.5, -2.5, Math.PI / 2, 0x7a5230, 0xdfe4f2));
 
     // ================= Kinderzimmer 1 (große Schwester) =================
     const sisterBed = new THREE.Group();
@@ -774,24 +957,25 @@
     world.add(sisterBed);
     addObstacle(1, -4.0, 2.0, 1.1, 1.95);
     const sisterDesk = createDesk(0xe8b6cf);
-    sisterDesk.position.set(-1.1, FLOOR2_Y, 1.5);
+    sisterDesk.position.set(-1.5, FLOOR2_Y, 1.5);
     world.add(sisterDesk);
-    addObstacle(1, -1.1, 1.5, 0.8, 0.55);
-    const sisterChair = chair(-1.1, 1.85, Math.PI, 0xd6a0bf);
+    addObstacle(1, -1.5, 1.5, 0.8, 0.55);
+    const sisterChair = chair(-1.5, 1.85, Math.PI, 0xd6a0bf);
     sisterChair.position.y = FLOOR2_Y;
     world.add(sisterChair);
-    addObstacle(1, -1.1, 1.85, 0.42, 0.42);
+    addObstacle(1, -1.5, 1.85, 0.42, 0.42);
     const sisterRug = new THREE.Mesh(new THREE.CircleGeometry(0.75, 32), new THREE.MeshStandardMaterial({ color: 0xf0a8c8, roughness: 1 }));
     sisterRug.rotation.x = -Math.PI / 2;
     sisterRug.position.set(-2.6, FLOOR2_Y + 0.004, 2.6);
     world.add(sisterRug);
     world.add(picture(0.32, 0.32, leftX + 0.01, FLOOR2_Y + 1.5, 1.2, Math.PI / 2, 0xe8b6cf, 0xffe27a));
+    world.add(lampPendant(-3.0, upperCeilingY(2.8), 2.8));
 
     // ================= Bad (upstairs) =================
     const tub = createBathtub(1.5, 0.7);
-    tub.position.set(2.0, FLOOR2_Y, backZ + 0.5);
+    tub.position.set(2.65, FLOOR2_Y, backZ + 0.5);
     world.add(tub);
-    addObstacle(1, 2.0, backZ + 0.5, 1.55, 0.75);
+    addObstacle(1, 2.65, backZ + 0.5, 1.55, 0.75);
     const badWc = createToilet();
     badWc.position.set(4.4, FLOOR2_Y, -1.9);
     badWc.rotation.y = -Math.PI / 2;
@@ -805,6 +989,8 @@
     badRug.rotation.x = -Math.PI / 2;
     badRug.position.set(1.3, FLOOR2_Y + 0.004, -2.7);
     world.add(badRug);
+    world.add(lampWallSpot(rightX, FLOOR2_Y + 1.0, -3.0, 'x', -1));
+    world.add(picture(0.32, 0.32, rightX - 0.01, FLOOR2_Y + 1.5, -2.0, -Math.PI / 2, 0xdcecef, 0xbfe0ea));
 
     // ================= Kinderzimmer 2 (Junge, Spielsachen + Rennautos) =================
     // Styled after a classic wooden-frontier kids' room: cloud wallpaper mural,
@@ -896,13 +1082,13 @@
     const boyChest = new THREE.Group();
     boyChest.add(box(0.62, 0.38, 0.4, 0x5b8fd9, 0, 0.19, 0));
     boyChest.add(box(0.65, 0.06, 0.43, 0x3e6bb0, 0, 0.41, 0));
-    boyChest.position.set(1.4, FLOOR2_Y, 3.5);
+    boyChest.position.set(2.05, FLOOR2_Y, 3.5);
     world.add(boyChest);
-    addObstacle(1, 1.4, 3.5, 0.7, 0.46);
+    addObstacle(1, 2.05, 3.5, 0.7, 0.46);
 
     const kidRug = new THREE.Mesh(new THREE.CircleGeometry(0.95, 40), new THREE.MeshStandardMaterial({ color: 0x6fb3d8, roughness: 1 }));
     kidRug.rotation.x = -Math.PI / 2;
-    kidRug.position.set(2.4, FLOOR2_Y + 0.004, 0.3);
+    kidRug.position.set(2.55, FLOOR2_Y + 0.004, 0.3);
     world.add(kidRug);
     world.add(picture(0.4, 0.4, rightX - 0.01, FLOOR2_Y + 1.5, 1.6, -Math.PI / 2, 0xd98f4a, 0xffd166));
 
@@ -962,9 +1148,9 @@
     const blockColors = [0xff5e5e, 0xffd166, 0x5b9dff];
     const blocksGroup = new THREE.Group();
     for (let i = 0; i < 3; i++) blocksGroup.add(box(0.09, 0.09, 0.09, blockColors[i], 0, 0.045 + i * 0.093, 0, { rotY: i * 0.35 }));
-    blocksGroup.position.set(1.0, FLOOR2_Y, 3.6);
+    blocksGroup.position.set(1.7, FLOOR2_Y, 3.6);
     world.add(blocksGroup);
-    addObstacle(1, 1.0, 3.6, 0.17, 0.17);
+    addObstacle(1, 1.7, 3.6, 0.17, 0.17);
 
     function createTeddy() {
         const g = new THREE.Group();
@@ -996,9 +1182,58 @@
     // Simple race track loop (flattened torus) on the floor
     const track = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.06, 8, 40), new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 }));
     track.rotation.x = Math.PI / 2;
-    track.position.set(2.0, FLOOR2_Y + 0.005, 2.2);
+    track.position.set(2.2, FLOOR2_Y + 0.005, 2.2);
     track.receiveShadow = true;
     world.add(track);
+
+    // Extra detail: beanbag reading corner, a play teepee (frontier theme, like
+    // the rocking horse/cowboy bed already in this room), a growth chart, a few
+    // alphabet blocks on the shelf, and one more toy figure by the chest.
+    const beanbag = ball3(0.22, 0x9c6bd9, 3.6, FLOOR2_Y + 0.121, 1.2, { seg: 16 });
+    beanbag.scale.set(1, 0.55, 1);
+    world.add(beanbag);
+    addObstacle(1, 3.6, 1.2, 0.44, 0.44);
+
+    function createTeepee() {
+        const g = new THREE.Group();
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.8, 12, 1, true), new THREE.MeshStandardMaterial({ color: 0xe8d9b5, roughness: 0.9, side: THREE.DoubleSide }));
+        cone.position.y = 0.4;
+        cone.castShadow = true;
+        g.add(cone);
+        [[-0.15, 0xc0392b], [0.15, 0x4a72b0]].forEach(([dz, c]) => {
+            g.add(box(0.02, 0.5, 0.16, c, 0.38, 0.3, dz, { rotY: 0.3, cast: false }));
+        });
+        [0, 1, 2].forEach((i) => {
+            const a = (i / 3) * Math.PI * 2;
+            g.add(cyl(0.008, 0.01, 0.22, 0x6b4429, Math.cos(a) * 0.02, 0.9, Math.sin(a) * 0.02, { seg: 6, rotX: 0.15 * Math.cos(a), rotZ: 0.15 * Math.sin(a) }));
+        });
+        return g;
+    }
+    const teepee = createTeepee();
+    teepee.position.set(1.75, FLOOR2_Y, 2.6);
+    world.add(teepee);
+    addObstacle(1, 1.75, 2.6, 0.5, 0.5);
+
+    const growthChart = new THREE.Group();
+    growthChart.add(box(0.14, 1.2, 0.015, 0xf0d9a8, 0, 0, 0, { cast: false }));
+    [0.2, 0.4, 0.6, 0.8, 1.0].forEach((h) => growthChart.add(box(0.06, 0.012, 0.02, 0x6b4429, -0.02, h - 0.6, 0.01, { cast: false })));
+    growthChart.rotation.y = -Math.PI / 2;
+    growthChart.position.set(rightX - 0.02, FLOOR2_Y + 0.7, -0.2);
+    world.add(growthChart);
+
+    const abcColors = [0xff5e5e, 0xffd166, 0x5b9dff, 0x6fcf67];
+    abcColors.forEach((c, i) => boyShelf.add(box(0.05, 0.05, 0.05, c, -0.12 + i * 0.06, 0.965, -0.15, { cast: false })));
+
+    const extraToyFigure = new THREE.Group();
+    extraToyFigure.add(cyl(0.02, 0.024, 0.08, 0x5b8fd9, 0, 0.04, 0, { seg: 10 }));
+    extraToyFigure.add(ball3(0.02, 0xffcf9e, 0, 0.1, 0, { seg: 10 }));
+    extraToyFigure.add(cyl(0.028, 0.028, 0.006, 0x6b4429, 0, 0.115, 0, { seg: 10 }));
+    extraToyFigure.add(cyl(0.016, 0.02, 0.025, 0x8a5a2a, 0, 0.13, 0, { seg: 10 }));
+    extraToyFigure.position.set(2.05, FLOOR2_Y + 0.44, 3.3);
+    world.add(extraToyFigure);
+
+    world.add(lampPendant(3.2, upperCeilingY(1.5), 1.5));
+    world.add(lampWallSpot(rightX, FLOOR2_Y + 1.0, 3.5, 'x', -1));
 
     // ================= Exterior scenery (visible through windows, not reachable) =================
     function exteriorHouse(x, z, hue) {
