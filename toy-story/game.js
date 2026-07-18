@@ -404,6 +404,10 @@
     // a single direction from the top of the stairs — no need to cross back
     // over the stairwell opening to reach any bedroom.
     const STAIR_Z_START = -3.5, STAIR_Z_END = -1.3;
+    // The stairs are a fixed width against the corridor's west wall, narrower
+    // than the (now much wider) corridor itself, leaving a walkway on the east
+    // side so the corridor stays passable without being forced onto the ramp.
+    const STAIR_X_MIN = CORR_X_MIN + 0.1, STAIR_X_MAX = STAIR_X_MIN + 1.3;
     // Toilette room dimensions, expressed relative to the corridor's east wall so
     // the room keeps its own proportions (1.85m wide, door 0.35m in from the
     // corridor, 0.7m door width) no matter how wide the corridor itself is.
@@ -417,6 +421,15 @@
     function wall(w, h, d, color, x, y, z, opts) {
         world.add(box(w, h, d, color, x, y, z, opts));
     }
+
+    // ---------- Baseboards ----------
+    // Defined early since wall-building helpers below (corridorWallRun etc.)
+    // add their own baseboards inline. `floorY` (ground=0, upper=FLOOR2_Y) —
+    // without it every upper-floor call rendered its baseboard at ground-floor
+    // height, i.e. nowhere near any upper-floor wall, reading as simply missing.
+    const BASE_H = 0.09, BASE_COLOR = 0xf5f0e6;
+    function baseboardZ(x, zFrom, zTo, floorY = 0) { if (zTo > zFrom) world.add(box(0.02, BASE_H, zTo - zFrom, BASE_COLOR, x, floorY + BASE_H / 2, (zFrom + zTo) / 2, { cast: false })); }
+    function baseboardX(z, xFrom, xTo, floorY = 0) { if (xTo > xFrom) world.add(box(xTo - xFrom, BASE_H, 0.02, BASE_COLOR, (xFrom + xTo) / 2, floorY + BASE_H / 2, z, { cast: false })); }
 
     // ---------- Floors ----------
     const WALL_LIGHT = 0xf2ebe0, WALL_KITCHEN = 0xeef2ea, WALL_KID2 = 0xdff0f7, WALL_KID1 = 0xf7e6ef, WALL_PARENT = 0xece4d8;
@@ -455,6 +468,9 @@
     upperFloors.push(plankFloor(X_MIN, CORR_X_MIN, 1.0, Z_MAX, FLOOR2_Y, 0xdcb37e, 23));         // Kinderzimmer 1
     upperFloors.push(tileFloor(CORR_X_MAX, X_MAX, Z_MIN, -0.5, FLOOR2_Y, 0xe6f2f5, 0xd2e6ea));    // Bad
     upperFloors.push(plankFloor(CORR_X_MAX, X_MAX, -0.5, Z_MAX, FLOOR2_Y, 0xdcb37e, 29));         // Kinderzimmer 2
+    // Walkway strip beside the (now narrower) stairs: real upstairs floor so
+    // the passage next to the stairwell shaft isn't just floating over a void.
+    upperFloors.push(plankFloor(STAIR_X_MAX, CORR_X_MAX, STAIR_Z_START, STAIR_Z_END, FLOOR2_Y, 0xb98a55, 31));
     // Landing floor: one continuous piece from the top of the stairs to the
     // front wall (the stairwell shaft below has no upper-floor slab at all).
     const landingMat = new THREE.MeshStandardMaterial({ color: 0xb98a55, roughness: 0.8 });
@@ -468,8 +484,19 @@
     // planes sit exactly at FLOOR2_Y, and this slab used to reach all the way up
     // to that same height across almost the entire upper-floor footprint, which
     // is why the floor flickered everywhere upstairs, not just near the stairs.
+    // The open stairwell shaft is now only as wide as the stairs themselves
+    // (STAIR_X_MIN..STAIR_X_MAX) — the walkway strip beside them, and the small
+    // foyer between the front door and the foot of the stairs, both get a real
+    // ceiling like every other room instead of being lumped into the shaft.
     const SLAB_TOP = FLOOR2_Y - 0.02, SLAB_H = SLAB_TOP - WALL_H;
-    [[X_MIN, CORR_X_MIN, Z_MIN, Z_MAX], [CORR_X_MIN, CORR_X_MAX, STAIR_Z_END, Z_MAX], [CORR_X_MAX, X_MAX, Z_MIN, Z_MAX]].forEach(([x0, x1, z0, z1]) => {
+    [
+        [X_MIN, CORR_X_MIN, Z_MIN, Z_MAX],                     // Wohnzimmer
+        [CORR_X_MIN, CORR_X_MAX, Z_MIN, STAIR_Z_START],        // Flur-Vorraum vor der Treppe
+        [CORR_X_MIN, STAIR_X_MIN, STAIR_Z_START, STAIR_Z_END], // schmaler Streifen wandseitig neben der Treppe
+        [STAIR_X_MAX, CORR_X_MAX, STAIR_Z_START, STAIR_Z_END], // Durchgang neben der Treppe
+        [CORR_X_MIN, CORR_X_MAX, STAIR_Z_END, Z_MAX],          // unter dem Treppenabsatz
+        [CORR_X_MAX, X_MAX, Z_MIN, Z_MAX],                     // Küche
+    ].forEach(([x0, x1, z0, z1]) => {
         world.add(box(x1 - x0, SLAB_H, z1 - z0, 0xece6da, (x0 + x1) / 2, WALL_H + SLAB_H / 2, (z0 + z1) / 2, { cast: false }));
     });
 
@@ -520,11 +547,20 @@
         { c: 3.0, w: 0.9, h: 1.1, y: 1.55 },
     ]);
     // Back wall has a real gap for the front door (hinge -0.35..0.35) instead of
-    // a solid wall with a purely decorative door drawn on top of it.
+    // a solid wall with a purely decorative door drawn on top of it. The two
+    // separate extWallRunX calls (rather than folding the door into the
+    // windows list like a real window) matter for collision: each call's
+    // addObstacle only covers its own solid span, so the door's x-range stays
+    // a genuine walkable gap. A window-hole here would instead leave a single
+    // obstacle spanning leftX..rightX with no x-gap, blocking the doorway.
     extWallRunX(backZ, leftX, -0.35, WALL_LIGHT);
     extWallRunX(backZ, 0.35, rightX, WALL_LIGHT, [
         { c: 2.7, w: 1.1, h: 1.1, y: 1.55 },
     ]);
+    // Solid wall above the door frame (header top ~2.09) up to the ceiling —
+    // purely visual, no obstacle needed, since the door's x-range must stay
+    // free of collision at every height (2D collision, see extWallRunX above).
+    wall(0.7, WALL_H - 2.1, 0.15, WALL_LIGHT, 0, 2.1 + (WALL_H - 2.1) / 2, backZ);
     extWallRunX(frontZ, leftX, rightX, WALL_LIGHT, [
         { c: -2.7, w: 1.1, h: 1.3, y: 1.55 },
         { c: -0.05, w: 0.7, h: 0.9, y: 1.9 },
@@ -535,6 +571,8 @@
         if (zTo - zFrom <= 0.001) return;
         wall(0.1, WALL_H, zTo - zFrom, color, x, WALL_H / 2, (zFrom + zTo) / 2);
         addObstacle(0, x, (zFrom + zTo) / 2, 0.1, zTo - zFrom);
+        baseboardZ(x + 0.06, zFrom, zTo);
+        baseboardZ(x - 0.06, zFrom, zTo);
     }
     // Living room + kitchen openings (wide, doorless). The stair ramp occupies
     // z[STAIR_Z_START, STAIR_Z_END] = z[-3.5, -1.3], so both openings sit safely
@@ -558,14 +596,15 @@
     wall(TOILET_X_MAX - (TOILET_DOOR_HINGE + 0.7), WALL_H, 0.1, WALL_LIGHT, ((TOILET_DOOR_HINGE + 0.7) + TOILET_X_MAX) / 2, WALL_H / 2, 0.3); // south wall, east of door
     addObstacle(0, ((TOILET_DOOR_HINGE + 0.7) + TOILET_X_MAX) / 2, 0.3, TOILET_X_MAX - (TOILET_DOOR_HINGE + 0.7), 0.1);
     buildDoor({ axis: 'x', z: 0.3, hinge: TOILET_DOOR_HINGE, hingeSign: 1, width: 0.7, height: 2.0, openAngle: 0, wallDepth: 0.1, frameColor: 0x8a5a3a, doorColor: 0xdfeef2 });
+    baseboardZ(TOILET_X_MAX - 0.06, 0.3, 2.3);
+    baseboardX(2.3 - 0.06, CORR_X_MAX, TOILET_X_MAX);
+    baseboardX(0.3 + 0.06, CORR_X_MAX, TOILET_DOOR_HINGE);
+    baseboardX(0.3 + 0.06, TOILET_DOOR_HINGE + 0.7, TOILET_X_MAX);
 
     // ---------- Ground floor doors ----------
     buildDoor({ axis: 'x', z: backZ, hinge: -0.35, hingeSign: 1, width: 0.7, height: 2.0, openAngle: 0, wallDepth: 0.15, frameColor: 0x6b4429, doorColor: 0x5a3a24 });
 
-    // ---------- Baseboards (ground floor) ----------
-    const BASE_H = 0.09, BASE_COLOR = 0xf5f0e6;
-    function baseboardZ(x, zFrom, zTo) { if (zTo > zFrom) world.add(box(0.02, BASE_H, zTo - zFrom, BASE_COLOR, x, BASE_H / 2, (zFrom + zTo) / 2, { cast: false })); }
-    function baseboardX(z, xFrom, xTo) { if (xTo > xFrom) world.add(box(xTo - xFrom, BASE_H, 0.02, BASE_COLOR, (xFrom + xTo) / 2, BASE_H / 2, z, { cast: false })); }
+    // ---------- Baseboards (ground floor exterior) ----------
     baseboardZ(leftX + 0.085, backZ + 0.08, frontZ - 0.08);
     baseboardZ(rightX - 0.085, backZ + 0.08, frontZ - 0.08);
     baseboardX(backZ + 0.085, leftX + 0.08, rightX - 0.08);
@@ -688,20 +727,28 @@
     stove.add(box(0.62, 0.85, 0.62, 0x2b2b2b, 0, 0.425, 0));
     stove.add(box(0.58, 0.02, 0.58, 0x181818, 0, 0.87, 0));
     [[-0.15, -0.15], [0.15, -0.15], [-0.15, 0.15], [0.15, 0.15]].forEach(([bx, bz]) => stove.add(cyl(0.08, 0.08, 0.01, 0x3a3a3a, bx, 0.885, bz, { seg: 16 })));
+    // Control knobs on the front panel (the +Z face, toward the room).
+    [-0.2, -0.07, 0.07, 0.2].forEach((kx) => {
+        stove.add(cyl(0.024, 0.024, 0.02, 0xd6d6d6, kx, 0.58, 0.315, { seg: 12, rotX: Math.PI / 2, metalness: 0.5, roughness: 0.3 }));
+        stove.add(cyl(0.006, 0.006, 0.022, 0xffffff, kx, 0.58, 0.317, { seg: 8, rotX: Math.PI / 2, cast: false }));
+    });
     stove.position.set(2.85, 0, backZ + 0.35);
     world.add(stove);
     addObstacle(0, 2.85, backZ + 0.35, 0.65, 0.65);
 
+    // Every part centered on local (0,y,0) so the whole assembly stacks
+    // exactly above the stove regardless of viewing angle — no part is offset
+    // sideways or front/back relative to the group's own origin.
     function createRangeHood(color = 0xd6d6d6) {
         const g = new THREE.Group();
         g.add(box(0.5, 0.02, 0.42, 0x2b2b2b, 0, -0.02, 0, { cast: false }));                     // dark vent grille, underside
         g.add(box(0.6, 0.04, 0.5, color, 0, 0.02, 0, { metalness: 0.4, roughness: 0.3 }));       // bottom flange
-        g.add(box(0.4, 0.3, 0.32, color, 0, 0.19, -0.06, { metalness: 0.4, roughness: 0.3 }));   // tapered body
-        g.add(box(0.18, 0.56, 0.16, color, 0, 0.62, -0.1, { metalness: 0.3, roughness: 0.35 })); // duct up to the ceiling
+        g.add(box(0.4, 0.3, 0.32, color, 0, 0.19, 0, { metalness: 0.4, roughness: 0.3 }));       // tapered body
+        g.add(box(0.18, 0.56, 0.16, color, 0, 0.62, 0, { metalness: 0.3, roughness: 0.35 }));    // duct up to the ceiling
         return g;
     }
     const rangeHood = createRangeHood();
-    rangeHood.position.set(2.85, 1.7, backZ + 0.32); // directly above the stove
+    rangeHood.position.set(2.85, 1.7, backZ + 0.35); // directly above the stove, exact same x/z
     world.add(rangeHood);
 
     const sinkUnit = new THREE.Group();
@@ -748,7 +795,11 @@
     const bench = box(0.9, 0.42, 0.32, 0x7a5230, 0, 0.21, 3.6);
     world.add(bench);
     addObstacle(0, 0, 3.6, 0.9, 0.32);
-    world.add(lampPendant(0, WALL_H, -2.5));
+    // The first one sits in the foyer between the front door and the foot of
+    // the stairs — not directly over the stairs themselves, which are an open
+    // shaft with no ceiling at this height for a pendant to hang from.
+    world.add(lampPendant(0, WALL_H, -3.8));
+    world.add(lampPendant(0.7, WALL_H, -2.5));
     world.add(lampPendant(0, WALL_H, 2.8));
     world.add(lampWallSpot(CORR_X_MIN, 2.0, -2.5, 'x', 1));
     world.add(lampWallSpot(CORR_X_MAX, 2.0, 1.5, 'x', -1));
@@ -764,10 +815,19 @@
         // half pokes through, or sits exactly coplanar with, the landing floor
         // plane at the same height, both of which cause z-fighting.
         const y = t * FLOOR2_Y - 0.025;
-        world.add(box((CORR_X_MAX - CORR_X_MIN) - 0.06, 0.04, (STAIR_Z_END - STAIR_Z_START) / STAIR_STEPS + 0.02, 0x9c6b3f, 0, y, z, { cast: false }));
+        world.add(box((STAIR_X_MAX - STAIR_X_MIN) - 0.06, 0.04, (STAIR_Z_END - STAIR_Z_START) / STAIR_STEPS + 0.02, 0x9c6b3f, (STAIR_X_MIN + STAIR_X_MAX) / 2, y, z, { cast: false }));
     }
-    world.add(box(0.06, FLOOR2_Y + 0.1, STAIR_Z_END - STAIR_Z_START, 0x6b4429, CORR_X_MIN + 0.03, FLOOR2_Y / 2, (STAIR_Z_START + STAIR_Z_END) / 2, { cast: false }));
-    world.add(box(0.06, FLOOR2_Y + 0.1, STAIR_Z_END - STAIR_Z_START, 0x6b4429, CORR_X_MAX - 0.03, FLOOR2_Y / 2, (STAIR_Z_START + STAIR_Z_END) / 2, { cast: false }));
+    // Guard rails double as real barriers (both floors) between the stairs and
+    // the walkway beside them — without collision here, a player could step
+    // sideways from the flat walkway straight into the stairs' mid-height ramp
+    // and drop/pop several steps in a single frame instead of climbing normally.
+    const stairMidZ = (STAIR_Z_START + STAIR_Z_END) / 2;
+    world.add(box(0.06, FLOOR2_Y + 0.1, STAIR_Z_END - STAIR_Z_START, 0x6b4429, STAIR_X_MIN + 0.03, FLOOR2_Y / 2, stairMidZ, { cast: false }));
+    world.add(box(0.06, FLOOR2_Y + 0.1, STAIR_Z_END - STAIR_Z_START, 0x6b4429, STAIR_X_MAX - 0.03, FLOOR2_Y / 2, stairMidZ, { cast: false }));
+    addObstacle(0, STAIR_X_MIN + 0.03, stairMidZ, 0.06, STAIR_Z_END - STAIR_Z_START);
+    addObstacle(0, STAIR_X_MAX - 0.03, stairMidZ, 0.06, STAIR_Z_END - STAIR_Z_START);
+    addObstacle(1, STAIR_X_MIN + 0.03, stairMidZ, 0.06, STAIR_Z_END - STAIR_Z_START);
+    addObstacle(1, STAIR_X_MAX - 0.03, stairMidZ, 0.06, STAIR_Z_END - STAIR_Z_START);
 
     // ================= Upper floor structure =================
     const UPPER_H = FLOOR2_Y + KNEE_H;
@@ -824,16 +884,46 @@
     addObstacle(1, leftX, 0, 0.15, spanZ);
     addObstacle(1, rightX, 0, 0.15, spanZ);
 
-    // Interior partition walls upstairs (knee-wall height only, roof slope covers the rest)
+    // Ceiling height at a given z under the sloped roof (0 at the eaves height
+    // KNEE_H, rising to RIDGE_H at z=0). Used both for upstairs pendant lamps
+    // and — critically — for the interior partition walls below: a partition
+    // wall stops at KNEE_H only at the eaves; anywhere closer to the ridge the
+    // real roof is far higher, and a flat KNEE_H-tall wall there leaves a
+    // gap of up to a meter or more between the wall top and the actual
+    // sloped ceiling, reading as "the wall just stops" with open space above it.
+    function upperCeilingY(z) {
+        const t = Math.abs(z) / 4;
+        return FLOOR2_Y + RIDGE_H - t * (RIDGE_H - KNEE_H);
+    }
+
+    // Interior partition walls upstairs, built tall enough to reach the real
+    // sloped ceiling at every point along their length, not just KNEE_H.
     function upperPartitionZ(x, zFrom, zTo, color) {
         if (zTo - zFrom <= 0.001) return;
-        upperWall(0.1, zTo - zFrom, color, x, (zFrom + zTo) / 2);
+        // Runs along Z, so required height varies along its own length (the
+        // roof rises toward z=0) — approximate the slope with short segments.
+        const STEP = 0.4;
+        const n = Math.max(1, Math.ceil((zTo - zFrom) / STEP));
+        const segLen = (zTo - zFrom) / n;
+        for (let i = 0; i < n; i++) {
+            const segFrom = zFrom + i * segLen, segTo = segFrom + segLen;
+            const midZ = (segFrom + segTo) / 2;
+            const h = upperCeilingY(midZ) - FLOOR2_Y;
+            wall(0.1, h, segLen + 0.01, color, x, FLOOR2_Y + h / 2, midZ);
+        }
         addObstacle(1, x, (zFrom + zTo) / 2, 0.1, zTo - zFrom);
+        baseboardZ(x + 0.06, zFrom, zTo, FLOOR2_Y);
+        baseboardZ(x - 0.06, zFrom, zTo, FLOOR2_Y);
     }
     function upperPartitionX(z, xFrom, xTo, color) {
         if (xTo - xFrom <= 0.001) return;
-        wall(xTo - xFrom, KNEE_H, 0.1, color, (xFrom + xTo) / 2, FLOOR2_Y + KNEE_H / 2, z);
+        // Runs along X at a single fixed z, so the roof height (which only
+        // depends on z) is constant along its whole length — one flat height.
+        const h = upperCeilingY(z) - FLOOR2_Y;
+        wall(xTo - xFrom, h, 0.1, color, (xFrom + xTo) / 2, FLOOR2_Y + h / 2, z);
         addObstacle(1, (xFrom + xTo) / 2, z, xTo - xFrom, 0.1);
+        baseboardX(z + 0.06, xFrom, xTo, FLOOR2_Y);
+        baseboardX(z - 0.06, xFrom, xTo, FLOOR2_Y);
     }
     // The stairs sit at one end of the corridor (z < STAIR_Z_END = -1.3); the
     // upper landing is a single continuous piece from there to the front wall.
@@ -904,19 +994,11 @@
     addSkylight(2.5, -2.8, -1);    // Bad
     addSkylight(2.7, 2.2, 1);      // Kinderzimmer 2
 
-    // Ceiling height at a given z under the sloped roof (0 at the eaves height
-    // KNEE_H, rising to RIDGE_H at z=0) — same formula as addSkylight above,
-    // reused so upstairs pendant lamps hang from the real ceiling, not a flat one.
-    function upperCeilingY(z) {
-        const t = Math.abs(z) / 4;
-        return FLOOR2_Y + RIDGE_H - t * (RIDGE_H - KNEE_H);
-    }
-
     // ---------- Baseboards + windows (upper floor) ----------
-    baseboardZ(leftX + 0.085, backZ + 0.08, frontZ - 0.08);
-    baseboardZ(rightX - 0.085, backZ + 0.08, frontZ - 0.08);
-    baseboardX(backZ + 0.085, leftX + 0.08, rightX - 0.08);
-    baseboardX(frontZ - 0.085, leftX + 0.08, rightX - 0.08);
+    baseboardZ(leftX + 0.085, backZ + 0.08, frontZ - 0.08, FLOOR2_Y);
+    baseboardZ(rightX - 0.085, backZ + 0.08, frontZ - 0.08, FLOOR2_Y);
+    baseboardX(backZ + 0.085, leftX + 0.08, rightX - 0.08, FLOOR2_Y);
+    baseboardX(frontZ - 0.085, leftX + 0.08, rightX - 0.08, FLOOR2_Y);
 
     makeWindow(leftX - 0.01, FLOOR2_Y + 0.75, -2.3, 0.9, 1.0, 'x');
     makeWindow(leftX - 0.01, FLOOR2_Y + 0.75, 2.3, 0.9, 1.0, 'x');
@@ -1371,17 +1453,19 @@
     const WINDUP_DUR = 0.15;
     const LAND_DUR = 0.25;
 
+    // Spawn inside Kinderzimmer 2 (open floor between the rocking horse and
+    // the race track, facing the window wall) instead of downstairs.
     const state = {
-        x: -0.0, z: 3.0, y: 0, vy: 0,
-        yaw: Math.PI,
+        x: 2.2, z: 1.6, y: 0, vy: 0,
+        yaw: 0,
         grounded: true,
         moveSpeed: 0,
         walkPhase: 0,
         jumpState: JUMP_STATE.NONE,
         jumpTimer: 0,
         jumpBuffered: false,
-        floor: 0,
-        baseY: 0,
+        floor: 1,
+        baseY: FLOOR2_Y,
         wasInStair: false,
     };
 
@@ -1397,7 +1481,7 @@
     function lerp(a, b, t) { return a + (b - a) * t; }
 
     function inStairwell(x, z) {
-        return x > CORR_X_MIN && x < CORR_X_MAX && z > STAIR_Z_START && z < STAIR_Z_END;
+        return x > STAIR_X_MIN && x < STAIR_X_MAX && z > STAIR_Z_START && z < STAIR_Z_END;
     }
 
     // ---------- Input ----------
@@ -1479,7 +1563,12 @@
             catState.walkPhase += dt * catState.speed * 14;
         }
         cat.group.position.set(catState.x, 0, catState.z);
-        cat.group.rotation.y = catState.yaw;
+        // The cat model's own face/legs point along local +X (see createCat:
+        // head/ears/front-legs all offset toward +x), but catState.yaw follows
+        // the same fwd=(sin,cos) convention as the player, whose forward is
+        // +Z at yaw=0 — a straight yaw assignment therefore left the model
+        // facing 90° off from its actual walking direction.
+        cat.group.rotation.y = catState.yaw - Math.PI / 2;
         const sw = catState.speed > 0.02 ? Math.sin(catState.walkPhase) * 0.5 : 0;
         cat.legs[0].rotation.x = sw; cat.legs[3].rotation.x = sw;
         cat.legs[1].rotation.x = -sw; cat.legs[2].rotation.x = -sw;
