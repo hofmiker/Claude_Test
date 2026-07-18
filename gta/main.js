@@ -206,15 +206,24 @@ function triggerCrash(pos, impactSpeed, involvesPlayer) {
 // each accident makes a car permanently 10% slower and adds a visible dent
 function applyCarDamage(car) {
   car.damageCount += 1;
-  car.maxSpeed = car.baseMaxSpeed * Math.pow(0.9, car.damageCount);
+  // gentle, floored speed penalty -- a wreck should still be drivable
+  car.maxSpeed = car.baseMaxSpeed * Math.max(0.6, Math.pow(0.97, car.damageCount));
   addDentToCar(car);
+  const bodyMesh = car.mesh.userData.bodyMesh;
+  if (bodyMesh) {
+    const dirtFactor = clamp(car.damageCount / 8, 0, 0.7);
+    bodyMesh.material.color.copy(new THREE.Color(car.bodyColorHex)).lerp(new THREE.Color(0x171310), dirtFactor);
+  }
 }
 function addDentToCar(car) {
   const dents = car.mesh.userData.dents || (car.mesh.userData.dents = []);
-  if (dents.length >= 8) return;
+  if (dents.length >= 16) return;
+  // later dents are bigger and darker, so a heavily-crashed car reads as
+  // progressively more wrecked rather than just "a bit scuffed"
+  const growth = 1 + Math.min(car.damageCount, 12) * 0.09;
   const dent = new THREE.Mesh(
-    new THREE.BoxGeometry(rand(0.22, 0.4), rand(0.14, 0.24), rand(0.22, 0.4)),
-    flatMat(0x201d1b)
+    new THREE.BoxGeometry(rand(0.26, 0.48) * growth, rand(0.16, 0.28) * growth, rand(0.26, 0.48) * growth),
+    flatMat(0x0f0c0a)
   );
   const side = pick([-1, 1]);
   dent.position.set(side * car.halfWidth * 0.85, rand(0.35, 0.85), pick([-1, 1]) * rand(0.3, car.halfLength * 0.85));
@@ -423,6 +432,7 @@ function createCarMesh(color, isPolice, type) {
     body.position.y = 1.05;
     body.castShadow = true;
     group.add(body);
+    group.userData.bodyMesh = body;
     const windowBand = new THREE.Mesh(new THREE.BoxGeometry(w * 0.96, 0.6, l * 0.88), flatMat(0x1d2a33));
     windowBand.position.set(0, 1.75, 0);
     windowBand.castShadow = true;
@@ -446,6 +456,7 @@ function createCarMesh(color, isPolice, type) {
     cab.position.set(0, 1.0, spec.halfL - cabLen / 2);
     cab.castShadow = true;
     group.add(cab);
+    group.userData.bodyMesh = cab;
     const cargo = new THREE.Mesh(new THREE.BoxGeometry(w, 1.9, cargoLen), flatMat(0xd8d8d8));
     cargo.position.set(0, 1.15, spec.halfL - cabLen - 0.25 - cargoLen / 2);
     cargo.castShadow = true;
@@ -469,6 +480,7 @@ function createCarMesh(color, isPolice, type) {
     cabin.position.set(0, 1.16, -0.2);
     cabin.castShadow = true;
     group.add(body, cabin);
+    group.userData.bodyMesh = body;
     for (const side of [-1, 1]) {
       addAxle(group, frontWheels, side, 1.05, spec.wheelR, -1.35, spec.wheelR, false);
       addAxle(group, frontWheels, side, 1.05, spec.wheelR, 1.35, spec.wheelR, true);
@@ -516,6 +528,7 @@ class Car {
     this.crashCooldown = 0;
     this.wheelSteer = 0;
     this.damageCount = 0;
+    this.bodyColorHex = color;
     const baseMax = isPolice ? 27 : (isPlayer ? 30 : 15);
     const baseAccel = isPolice ? 16 : (isPlayer ? 20 : 8);
     this.baseMaxSpeed = baseMax * spec.maxSpeedMul;
@@ -1601,18 +1614,20 @@ function drawMinimap() {
     let x = (targetPos.x - focus.x) * scale;
     let y = (targetPos.z - focus.z) * scale;
     // clamp to the rim so far-away missions still show up as a radar blip
-    const edge = w / 2 - 10;
+    const edge = w / 2 - 16;
     const d = Math.hypot(x, y);
     if (d > edge) {
       x = (x / d) * edge;
       y = (y / d) * edge;
     }
+    // big, pulsing marker -- this is the one thing on the map you must not miss
+    const pulse = 1 + Math.sin(elapsed * 4) * 0.15;
     mmCtx.fillStyle = mission.stage === 'pickup' ? '#ffd23f' : '#36c7ff';
     mmCtx.beginPath();
-    mmCtx.arc(x, y, 5.5, 0, Math.PI * 2);
+    mmCtx.arc(x, y, 9.5 * pulse, 0, Math.PI * 2);
     mmCtx.fill();
     mmCtx.strokeStyle = '#ffffff';
-    mmCtx.lineWidth = 1.5;
+    mmCtx.lineWidth = 2.5;
     mmCtx.stroke();
   }
 
