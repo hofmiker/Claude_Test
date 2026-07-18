@@ -273,16 +273,31 @@
       white-space: nowrap;
     }
 
-    /* drag mode: steer/throttle by swiping the screen instead of the d-pad */
-    body.drag-mode #btnLeft,
-    body.drag-mode #btnRight,
-    body.drag-mode #btnGas,
-    body.drag-mode #btnBrake {
+    /* buttons hidden: swipe the screen directly instead (always live either way) */
+    body.buttons-hidden #btnLeft,
+    body.buttons-hidden #btnRight,
+    body.buttons-hidden #btnGas,
+    body.buttons-hidden #btnBrake {
       display: none;
     }
   }
   @media (max-width: 700px) {
     #btnControlMode { top: 172px; }
+  }
+
+  #btnCamera {
+    position: absolute;
+    bottom: 22px;
+    left: 22px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #fff;
+    font-size: 13px;
+    pointer-events: auto;
+    cursor: pointer;
+    white-space: nowrap;
   }
 </style>
 </head>
@@ -313,8 +328,9 @@
     </div>
     <div id="minimapWrap"><canvas id="minimap"></canvas></div>
     <div id="controlsHint">
-      <b>W/↑</b> Gas &nbsp; <b>S/↓</b> Bremse/Rückwärts &nbsp; <b>A/D ←/→</b> Lenken/Drehen &nbsp; <b>Space</b> Handbremse/Springen &nbsp; <b>F</b> Ein-/Aussteigen
+      <b>W/↑</b> Gas &nbsp; <b>S/↓</b> Bremse/Rückwärts &nbsp; <b>A/D ←/→</b> Lenken/Drehen &nbsp; <b>Space</b> Handbremse/Springen &nbsp; <b>F</b> Ein-/Aussteigen &nbsp; <b>C</b> Kamera
     </div>
+    <div id="btnCamera">🎥 Oben</div>
   </div>
 
   <div id="mobileControls">
