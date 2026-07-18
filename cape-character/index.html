@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cape Character — 2D Charakter mit Gelenken</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: linear-gradient(180deg, #1b2735 0%, #3a4a63 55%, #4a5a72 100%);
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    overflow: hidden;
+  }
+  #stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    background: transparent;
+    display: block;
+    touch-action: none;
+  }
+  #hud {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #eef2f7;
+    font-size: 13px;
+    text-align: center;
+    opacity: 0.85;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    line-height: 1.5;
+    pointer-events: none;
+  }
+  #hud b { color: #ffd97a; }
+  #touch-controls {
+    position: absolute;
+    bottom: 22px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 24px;
+    pointer-events: none;
+  }
+  .touch-btn {
+    pointer-events: auto;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .touch-btn:active { background: rgba(255,255,255,0.3); }
+  #left-pad { display: flex; gap: 10px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="hud"><b>&larr; A / D &rarr;</b> laufen &nbsp;&nbsp; <b>Leertaste / W / &uarr;</b> springen</div>
+  <canvas id="c" width="960" height="540"></canvas>
+  <div id="touch-controls">
+    <div id="left-pad">
+      <div class="touch-btn" id="btn-left">&larr;</div>
+      <div class="touch-btn" id="btn-right">&rarr;</div>
+    </div>
+    <div class="touch-btn" id="btn-jump">&uarr;</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+
+  // ---------- responsive canvas ----------
+  const VIEW_W = 960, VIEW_H = 540;
+  function resize() {
+    const scale = Math.min(window.innerWidth / VIEW_W, window.innerHeight / VIEW_H, 1.4);
+    canvas.style.width = (VIEW_W * scale) + "px";
+    canvas.style.height = (VIEW_H * scale) + "px";
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  const GROUND_Y = 430;
+
+  // ---------- input ----------
+  const keys = Object.create(null);
+  const KEY_LEFT = ["ArrowLeft", "KeyA"];
+  const KEY_RIGHT = ["ArrowRight", "KeyD"];
+  const KEY_JUMP = ["Space", "ArrowUp", "KeyW"];
+
+  window.addEventListener("keydown", (e) => { keys[e.code] = true; if (KEY_JUMP.includes(e.code)) e.preventDefault(); });
+  window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+  function bindTouch(id, code) {
+    const el = document.getElementById(id);
+    const set = (v) => (e) => { e.preventDefault(); keys[code] = v; };
+    el.addEventListener("touchstart", set(true), { passive: false });
+    el.addEventListener("touchend", set(false), { passive: false });
+    el.addEventListener("mousedown", set(true));
+    el.addEventListener("mouseup", set(false));
+    el.addEventListener("mouseleave", set(false));
+  }
+  bindTouch("btn-left", "ArrowLeft");
+  bindTouch("btn-right", "ArrowRight");
+  bindTouch("btn-jump", "Space");
+
+  function pressed(list) { return list.some((k) => keys[k]); }
+
+  // ---------- two-bone IK ----------
+  // Solve for the middle joint position given base, target and two segment
+  // lengths. `bend` flips which side the joint bows out to (knee/elbow).
+  function solveIK(baseX, baseY, targetX, targetY, l1, l2, bend) {
+    let dx = targetX - baseX;
+    let dy = targetY - baseY;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+    const maxReach = l1 + l2 - 0.01;
+    const minReach = Math.abs(l1 - l2) + 0.01;
+    dist = Math.max(minReach, Math.min(maxReach, dist));
+    const baseAngle = Math.atan2(dy, dx);
+    const cosA = (l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist);
+    const a = Math.acos(Math.max(-1, Math.min(1, cosA)));
+    const jointAngle = baseAngle - bend * a;
+    const jx = baseX + Math.cos(jointAngle) * l1;
+    const jy = baseY + Math.sin(jointAngle) * l1;
+    const endX = baseX + Math.cos(baseAngle) * dist;
+    const endY = baseY + Math.sin(baseAngle) * dist;
+    return { jx, jy, endX, endY };
+  }
+
+  // ---------- character ----------
+  const character = {
+    x: VIEW_W / 2,
+    y: 0,          // vertical offset above ground (jump height), 0 = grounded
+    vx: 0,
+    vy: 0,
+    facing: 1,
+    onGround: true,
+    phase: 0,
+    airTime: 0,
+    squash: 1,
+  };
+
+  const PHYS = {
+    accel: 2600,
+    maxSpeed: 260,
+    friction: 2200,
+    gravity: 2200,
+    jumpVel: 720,
+    strideFreq: 0.017, // phase advance per (px moved)
+  };
+
+  // Skeleton proportions (local space, facing = +x to the right)
+  const SK = {
+    hipY: -78,        // hip position relative to ground contact
+    torso: 46,
+    neck: 8,
+    headR: 17,
+    shoulderDrop: 4,
+    upperLeg: 34,
+    lowerLeg: 32,
+    footLen: 15,
+    upperArm: 26,
+    lowerArm: 25,
+    hipW: 20,
+    shoulderW: 24,
+  };
+
+  // ---------- cape (verlet cloth: a few hanging chains filled in between) ----------
+  const CAPE_SEGMENTS = 6;
+  const CAPE_SEG_LEN = 16;
+  const CAPE_STRANDS = 3; // front edge, middle, back edge
+  const CAPE_LATERAL_REST = 9; // constant spacing between adjacent anchors (local space)
+  // anchor offsets relative to the shoulder point, front-to-back along the local x axis
+  const CAPE_ANCHOR_OFFSET_X = [-3, -3 - CAPE_LATERAL_REST, -3 - CAPE_LATERAL_REST * 2];
+  const CAPE_ANCHOR_OFFSET_Y = [-2, 0, 2];
+  let capeStrands = []; // each: array of {x,y,ox,oy,pin}
+
+  function initCape() {
+    capeStrands = [];
+    const originY = GROUND_Y + SK.hipY - SK.torso + SK.shoulderDrop;
+    for (let s = 0; s < CAPE_STRANDS; s++) {
+      const pts = [];
+      const startX = character.x + CAPE_ANCHOR_OFFSET_X[s];
+      const startY = originY + CAPE_ANCHOR_OFFSET_Y[s];
+      for (let i = 0; i <= CAPE_SEGMENTS; i++) {
+        const x = startX;
+        const y = startY + i * CAPE_SEG_LEN;
+        pts.push({ x, y, ox: x, oy: y, pin: i === 0 });
+      }
+      capeStrands.push(pts);
+    }
+  }
+  initCape();
+
+  function updateCape(dt, anchors, windX) {
+    const gravity = 900;
+    const maxStep = 6; // clamp per-step displacement so a stray large correction can't explode
+    for (let s = 0; s < CAPE_STRANDS; s++) {
+      const pts = capeStrands[s];
+      const anchor = anchors[s];
+      // pin the root to its shoulder/hood anchor
+      pts[0].x = anchor.x;
+      pts[0].y = anchor.y;
+      pts[0].ox = anchor.x;
+      pts[0].oy = anchor.y;
+
+      for (let i = 1; i < pts.length; i++) {
+        const p = pts[i];
+        let vx = (p.x - p.ox) * 0.98;
+        let vy = (p.y - p.oy) * 0.98;
+        const speed = Math.sqrt(vx * vx + vy * vy);
+        if (speed > maxStep) { const k = maxStep / speed; vx *= k; vy *= k; }
+        const nx = p.x + vx + windX * dt * dt;
+        const ny = p.y + vy + gravity * dt * dt;
+        p.ox = p.x;
+        p.oy = p.y;
+        p.x = nx;
+        p.y = ny;
+      }
+
+      // structural constraints along the strand
+      for (let iter = 0; iter < 4; iter++) {
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = pts[i], b = pts[i + 1];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+          const diff = (d - CAPE_SEG_LEN) / d;
+          const ax = dx * 0.5 * diff, ay = dy * 0.5 * diff;
+          if (!a.pin) { a.x += ax; a.y += ay; }
+          if (!b.pin) { b.x -= ax; b.y -= ay; }
+        }
+      }
+    }
+    // gentle lateral constraints, applied fractionally over several passes so
+    // they never inject a large single-frame correction
+    for (let iter = 0; iter < 2; iter++) {
+      for (let i = 0; i <= CAPE_SEGMENTS; i++) {
+        for (let s = 0; s < CAPE_STRANDS - 1; s++) {
+          const a = capeStrands[s][i], b = capeStrands[s + 1][i];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+          const diff = (d - CAPE_LATERAL_REST) / d * 0.15;
+          if (!a.pin) { a.x += dx * diff * 0.5; a.y += dy * diff * 0.5; }
+          if (!b.pin) { b.x -= dx * diff * 0.5; b.y -= dy * diff * 0.5; }
+        }
+      }
+    }
+  }
+
+  // ---------- update ----------
+  let lastT = performance.now();
+  function update(dt) {
+    dt = Math.min(dt, 1 / 30);
+    const left = pressed(KEY_LEFT);
+    const right = pressed(KEY_RIGHT);
+    const jump = pressed(KEY_JUMP);
+
+    let input = 0;
+    if (left) input -= 1;
+    if (right) input += 1;
+
+    if (input !== 0) {
+      character.vx += input * PHYS.accel * dt;
+      character.facing = input > 0 ? 1 : -1;
+    } else {
+      const sign = Math.sign(character.vx);
+      character.vx -= sign * PHYS.friction * dt;
+      if (Math.sign(character.vx) !== sign) character.vx = 0;
+    }
+    character.vx = Math.max(-PHYS.maxSpeed, Math.min(PHYS.maxSpeed, character.vx));
+
+    character.x += character.vx * dt;
+    character.x = Math.max(60, Math.min(VIEW_W - 60, character.x));
+
+    if (jump && character.onGround) {
+      character.vy = -PHYS.jumpVel;
+      character.onGround = false;
+    }
+
+    if (!character.onGround) {
+      character.vy += PHYS.gravity * dt;
+      character.y += character.vy * dt;
+      character.airTime += dt;
+      if (character.y >= 0) {
+        character.y = 0;
+        character.vy = 0;
+        character.onGround = true;
+        character.squash = 1.22; // landing squash, eased back in draw
+        character.airTime = 0;
+      }
+    }
+
+    // walk-cycle phase advances with distance travelled (not just time) so
+    // footsteps stay glued to the ground regardless of speed
+    if (character.onGround) {
+      character.phase += Math.abs(character.vx) * dt * PHYS.strideFreq * 60;
+    }
+
+    character.squash += (1 - character.squash) * Math.min(1, dt * 10);
+  }
+
+  // ---------- pose (returns all joint world-space points, local coords with +x = facing) ----------
+  function computePose() {
+    const speedRatio = Math.min(1, Math.abs(character.vx) / PHYS.maxSpeed);
+    const moving = speedRatio > 0.03 && character.onGround;
+    const jumping = !character.onGround;
+
+    const hipY = SK.hipY - character.y - (jumping ? Math.max(-14, Math.min(14, -character.vy * 0.01)) : 0);
+    const hipX = 0;
+
+    // torso lean slightly into movement / jump
+    const lean = character.vx / PHYS.maxSpeed * 6 + (jumping ? -character.vy / PHYS.jumpVel * 6 : 0);
+    const shoulderX = hipX + lean;
+    const shoulderY = hipY - SK.torso;
+
+    const stride = 21 * (moving ? speedRatio : 0);
+    const lift = 15 * (moving ? speedRatio : 0);
+
+    // Foot targets, local coords relative to the GROUND_Y baseline (0 = touching ground, negative = lifted)
+    function footWorld(sign) {
+      if (jumping) {
+        const tuck = Math.min(1, character.airTime * 4);
+        const dir = character.vy < 0 ? -1 : 1; // rising vs falling
+        return {
+          x: hipX + sign * 5 * dir,
+          y: -(SK.upperLeg + SK.lowerLeg) * (0.55 + 0.25 * tuck),
+        };
+      }
+      const t = character.phase + (sign > 0 ? 0 : Math.PI);
+      const stanceSpread = 7; // keeps the two feet visually apart even standing still
+      const x = hipX + sign * stanceSpread + Math.sin(t) * stride;
+      const liftAmt = Math.max(0, Math.cos(t)) * lift;
+      const y = -liftAmt; // relative to ground contact (0 = touching ground)
+      return { x, y };
+    }
+
+    function handWorld(sign) {
+      const hang = (SK.upperArm + SK.lowerArm) * 0.86; // relaxed arm length hanging at the side
+      if (jumping) {
+        const t = Math.max(-1, Math.min(1, -character.vy / PHYS.jumpVel));
+        return { x: shoulderX + sign * (SK.shoulderW * 0.6), y: shoulderY - 6 - t * 12 };
+      }
+      // arms counter-swing opposite the same-side leg for a natural gait
+      const t = character.phase + (sign > 0 ? Math.PI : 0);
+      const swing = Math.sin(t) * (stride * 0.7);
+      return { x: shoulderX + sign * (SK.shoulderW * 0.65) + swing * 0.6, y: shoulderY + hang + Math.abs(Math.cos(t)) * 3 };
+    }
+
+    // Back leg (drawn first, sign -1 relative phase) and front leg (+1)
+    const backFoot = footWorld(-1);
+    const frontFoot = footWorld(1);
+    const backHand = handWorld(-1);
+    const frontHand = handWorld(1);
+
+    const hip = { x: hipX, y: hipY };
+    const shoulder = { x: shoulderX, y: shoulderY };
+
+    return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean };
+  }
+
+  // ---------- draw ----------
+  function draw() {
+    ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+    drawBackground();
+
+    const facing = character.facing;
+    ctx.save();
+    ctx.translate(character.x, GROUND_Y);
+    ctx.scale(facing, 1);
+
+    const pose = computePose();
+    const hip = pose.hip;       // local, y relative to GROUND_Y (negative = up)
+    const shoulder = pose.shoulder;
+
+    // Foot & hand targets, local coords relative to GROUND_Y baseline (0,0 at translate origin)
+    const backFootTarget = { x: pose.backFoot.x, y: pose.backFoot.y };
+    const frontFootTarget = { x: pose.frontFoot.x, y: pose.frontFoot.y };
+    const backHandTarget = { x: pose.backHand.x, y: pose.backHand.y };
+    const frontHandTarget = { x: pose.frontHand.x, y: pose.frontHand.y };
+
+    const backLegIK = solveIK(hip.x, hip.y, backFootTarget.x, backFootTarget.y, SK.upperLeg, SK.lowerLeg, 1);
+    const frontLegIK = solveIK(hip.x, hip.y, frontFootTarget.x, frontFootTarget.y, SK.upperLeg, SK.lowerLeg, 1);
+    const backArmIK = solveIK(shoulder.x, shoulder.y, backHandTarget.x, backHandTarget.y, SK.upperArm, SK.lowerArm, -1);
+    const frontArmIK = solveIK(shoulder.x, shoulder.y, frontHandTarget.x, frontHandTarget.y, SK.upperArm, SK.lowerArm, -1);
+
+    // head / neck / hood anchor points (world/local space, updated before cape sim)
+    const neckPt = { x: shoulder.x, y: shoulder.y - SK.neck };
+    const headCenter = { x: neckPt.x + pose.lean * 0.3, y: neckPt.y - SK.headR - 2 };
+
+    // ---- cape anchors: spread front-to-back along the shoulders/hood rim ----
+    const capeAnchorsLocal = CAPE_ANCHOR_OFFSET_X.map((ox, s) => ({
+      x: shoulder.x + ox,
+      y: shoulder.y + SK.shoulderDrop + CAPE_ANCHOR_OFFSET_Y[s],
+    }));
+    // convert to world space for the verlet sim (sim runs in world coords)
+    const worldAnchors = capeAnchorsLocal.map((a) => ({
+      x: character.x + a.x * facing,
+      y: GROUND_Y + a.y,
+    }));
+    const windX = -character.vx * 1.4; // trails behind motion, in world space
+    updateCape(dtGlobal, worldAnchors, windX);
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // ===== draw order: cape (back), back limbs, torso, front limbs, head, hood =====
+    drawCape(facing);
+    drawLimb(hip, backLegIK, "#3a3f52", 11, true);
+    drawLimb(shoulder, backArmIK, "#3a3f52", 8, false);
+
+    drawTorso(hip, shoulder);
+
+    drawLimb(hip, frontLegIK, "#4d5570", 12, true);
+    drawLimb(shoulder, frontArmIK, "#4d5570", 9, false);
+
+    drawHood(headCenter, shoulder, facing);
+
+    ctx.restore();
+  }
+
+  function drawBackground() {
+    const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+    g.addColorStop(0, "#1b2735");
+    g.addColorStop(1, "#4a5a72");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+    // ground
+    ctx.fillStyle = "#232a36";
+    ctx.fillRect(0, GROUND_Y + 2, VIEW_W, VIEW_H - GROUND_Y - 2);
+    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y + 2);
+    ctx.lineTo(VIEW_W, GROUND_Y + 2);
+    ctx.stroke();
+
+    // soft shadow under character
+    const squashW = 34 / Math.max(0.6, character.squash);
+    ctx.save();
+    ctx.globalAlpha = 0.35 * Math.max(0, 1 - Math.abs(character.y) / 140);
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.ellipse(character.x, GROUND_Y + 6, squashW, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // pivot marker: a contrasting ring so knee/elbow/ankle/wrist joints read
+  // clearly as articulated points rather than blending into the limb color
+  function drawJoint(x, y, r) {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = "#20232d";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.55, 0, Math.PI * 2);
+    ctx.fillStyle = "#9aa3bd";
+    ctx.fill();
+  }
+
+  function drawLimb(base, ik, color, width, isLeg) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(base.x, base.y);
+    ctx.lineTo(ik.jx, ik.jy);
+    ctx.lineTo(ik.endX, ik.endY);
+    ctx.stroke();
+
+    drawJoint(ik.jx, ik.jy, width * 0.46); // knee / elbow
+
+    if (isLeg) {
+      // foot: short segment extending forward from the ankle
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width * 0.85;
+      ctx.beginPath();
+      ctx.moveTo(ik.endX, ik.endY);
+      ctx.lineTo(ik.endX + SK.footLen, ik.endY + 2);
+      ctx.stroke();
+      drawJoint(ik.endX, ik.endY, width * 0.4); // ankle
+    } else {
+      drawJoint(ik.endX, ik.endY, width * 0.36); // wrist
+    }
+  }
+
+  function drawTorso(hip, shoulder) {
+    ctx.fillStyle = "#565f7d";
+    ctx.beginPath();
+    ctx.moveTo(hip.x - SK.hipW * 0.5, hip.y);
+    ctx.quadraticCurveTo(hip.x - SK.shoulderW * 0.3, (hip.y + shoulder.y) / 2, shoulder.x - SK.shoulderW * 0.5, shoulder.y);
+    ctx.lineTo(shoulder.x + SK.shoulderW * 0.5, shoulder.y);
+    ctx.quadraticCurveTo(hip.x + SK.shoulderW * 0.3, (hip.y + shoulder.y) / 2, hip.x + SK.hipW * 0.5, hip.y);
+    ctx.closePath();
+    ctx.fill();
+
+    drawJoint(hip.x, hip.y, 6);
+    drawJoint(shoulder.x, shoulder.y, 5.5);
+  }
+
+  function drawHead(c) {
+    ctx.fillStyle = "#e7b98f";
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, SK.headR, 0, Math.PI * 2);
+    ctx.fill();
+    // simple face hint
+    ctx.fillStyle = "#2b2f3a";
+    ctx.beginPath();
+    ctx.arc(c.x + SK.headR * 0.45, c.y - 2, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawHood(headC, shoulder, facing) {
+    // hood: a rounded cowl covering the back/top of the head, open at the front so the face shows
+    const r = SK.headR;
+    ctx.fillStyle = "#4a2f52";
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x - SK.shoulderW * 0.55, shoulder.y + 3);
+    ctx.quadraticCurveTo(headC.x - r * 1.25, headC.y + r * 0.3, headC.x - r * 0.95, headC.y - r * 0.55);
+    ctx.quadraticCurveTo(headC.x - r * 0.55, headC.y - r * 1.35, headC.x + r * 0.1, headC.y - r * 1.4);
+    ctx.quadraticCurveTo(headC.x + r * 0.85, headC.y - r * 1.3, headC.x + r * 0.95, headC.y - r * 0.3);
+    ctx.quadraticCurveTo(headC.x + r * 1.0, headC.y + r * 0.5, headC.x + r * 0.35, headC.y + r * 0.95);
+    ctx.quadraticCurveTo(headC.x - r * 0.1, headC.y + r * 0.65, headC.x - r * 0.5, headC.y + r * 0.7);
+    ctx.quadraticCurveTo(shoulder.x - SK.shoulderW * 0.1, shoulder.y - 4, shoulder.x - SK.shoulderW * 0.55, shoulder.y + 3);
+    ctx.closePath();
+    ctx.fill();
+
+    // inner shadow ring around the face opening
+    ctx.fillStyle = "#2b1a30";
+    ctx.beginPath();
+    ctx.arc(headC.x + r * 0.05, headC.y + r * 0.05, r * 1.05, Math.PI * 0.15, Math.PI * 0.95);
+    ctx.arc(headC.x, headC.y, r * 0.7, Math.PI * 0.95, Math.PI * 0.15, true);
+    ctx.closePath();
+    ctx.fill();
+
+    drawHead(headC);
+  }
+
+  function drawCape(facing) {
+    ctx.save();
+    ctx.scale(1 / facing, 1); // cape sim runs in world space; undo the mirror for this draw
+    ctx.translate(-character.x, -GROUND_Y);
+
+    // filled ribbon across all strands, top row to bottom row
+    for (let s = 0; s < CAPE_STRANDS - 1; s++) {
+      const a = capeStrands[s];
+      const b = capeStrands[s + 1];
+      const grad = ctx.createLinearGradient(0, a[0].y, 0, a[a.length - 1].y);
+      grad.addColorStop(0, "#5a2d63");
+      grad.addColorStop(1, "#2b1730");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(a[0].x, a[0].y);
+      for (let i = 1; i < a.length; i++) ctx.lineTo(a[i].x, a[i].y);
+      for (let i = b.length - 1; i >= 0; i--) ctx.lineTo(b[i].x, b[i].y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // subtle fold lines
+    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.lineWidth = 1.2;
+    for (let s = 1; s < CAPE_STRANDS - 1; s++) {
+      const strand = capeStrands[s];
+      ctx.beginPath();
+      ctx.moveTo(strand[0].x, strand[0].y);
+      for (let i = 1; i < strand.length; i++) ctx.lineTo(strand[i].x, strand[i].y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---------- main loop ----------
+  let dtGlobal = 1 / 60;
+  function frame(now) {
+    const dt = Math.min(0.033, (now - lastT) / 1000 || 1 / 60);
+    lastT = now;
+    dtGlobal = dt;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
