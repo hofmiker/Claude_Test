@@ -68,8 +68,8 @@ let cameraMode = localStorage.getItem('viceGridCameraMode') || 'top';
 
 // ---------- Lighting ----------------------------------------------------
 const isNight = DISTRICT.timeOfDay === 'night';
-scene.add(new THREE.HemisphereLight(isNight ? 0x2a3a5e : 0xbfd4ff, isNight ? 0x0c0e14 : 0x2b2116, isNight ? 0.35 : 0.65));
-const sun = new THREE.DirectionalLight(isNight ? 0x6c85c2 : 0xfff2d6, isNight ? 0.4 : 1.15);
+scene.add(new THREE.HemisphereLight(isNight ? 0x3d5389 : 0xbfd4ff, isNight ? 0x11141c : 0x2b2116, isNight ? 0.85 : 0.65));
+const sun = new THREE.DirectionalLight(isNight ? 0x7d97d6 : 0xfff2d6, isNight ? 0.8 : 1.15);
 sun.position.set(-60, 110, 40);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -88,6 +88,11 @@ sun.target = sunTarget;
 // ---------- Helpers -----------------------------------------------------
 function flatMat(color) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.92, metalness: 0.02, flatShading: true });
+}
+// self-lit material for lamps/headlights/beacons so they read as glowing at
+// night even without a real light source nearby
+function glowMat(color, emissiveIntensity = 1.4) {
+  return new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity, roughness: 0.6, flatShading: true });
 }
 function rand(min, max) { return min + Math.random() * (max - min); }
 function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
@@ -187,6 +192,40 @@ function updateDebris(dt) {
   }
 }
 
+const sparks = [];
+function spawnSparkBurst(pos, count) {
+  for (let i = 0; i < count; i++) {
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(rand(0.05, 0.1), 4, 3),
+      new THREE.MeshBasicMaterial({ color: pick([0xfff2b0, 0xffcf5c, 0xffffff]) })
+    );
+    mesh.position.set(pos.x, pos.y ?? 0.5, pos.z);
+    scene.add(mesh);
+    const angle = rand(0, Math.PI * 2);
+    const speed = rand(5, 13);
+    sparks.push({
+      mesh,
+      vel: new THREE.Vector3(Math.cos(angle) * speed, rand(2, 7), Math.sin(angle) * speed),
+      life: rand(0.15, 0.3),
+      age: 0,
+    });
+  }
+}
+function updateSparks(dt) {
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const s = sparks[i];
+    s.age += dt;
+    s.vel.y -= 14 * dt;
+    s.mesh.position.addScaledVector(s.vel, dt);
+    const t = s.age / s.life;
+    s.mesh.scale.setScalar(Math.max(0.001, 1 - t));
+    if (s.age >= s.life) {
+      scene.remove(s.mesh);
+      sparks.splice(i, 1);
+    }
+  }
+}
+
 let shakeTime = 0;
 let shakeMag = 0;
 function addShake(intensity) {
@@ -197,6 +236,7 @@ function addShake(intensity) {
 function triggerCrash(pos, impactSpeed, involvesPlayer) {
   const intensity = clamp(impactSpeed / 25, 0.15, 1);
   spawnDebris(pos, Math.round(4 + intensity * 6));
+  spawnSparkBurst(pos, Math.round(5 + intensity * 9));
   const focus = player.inCar ? player.inCar.pos : player.pos;
   const distToPlayer = pos.distanceTo(focus);
   const distFactor = clamp(1 - distToPlayer / 50, 0, 1);
@@ -364,11 +404,44 @@ function buildBlock(i, j) {
   sidewalkCells.push({ x, z, half: footprint / 2 });
 }
 
+function createStreetLampMesh() {
+  const group = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 5.6, 6), flatMat(0x2b2b2b));
+  pole.position.y = 2.8;
+  pole.castShadow = true;
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.09, 0.09), flatMat(0x2b2b2b));
+  arm.position.set(0.45, 5.5, 0);
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), glowMat(0xffdf9b, 1.8));
+  bulb.position.set(0.85, 5.32, 0);
+  group.add(pole, arm, bulb);
+  return group;
+}
+
+// sparse subset of intersections so lamp count (and its real point lights)
+// stays cheap - dense enough to break up the dark, not one on every corner
+function addStreetLamps() {
+  if (!isNight) return;
+  const stride = 2;
+  for (let i = 0; i < roadLines.x.length; i += stride) {
+    for (let j = 0; j < roadLines.z.length; j += stride) {
+      const x = roadLines.x[i] + ROAD_WIDTH * 0.32;
+      const z = roadLines.z[j] + ROAD_WIDTH * 0.32;
+      const lamp = createStreetLampMesh();
+      lamp.position.set(x, 0, z);
+      cityRoot.add(lamp);
+      const light = new THREE.PointLight(0xffdf9b, 26, 19, 2);
+      light.position.set(x + 0.85, 5.3, z);
+      cityRoot.add(light);
+    }
+  }
+}
+
 function buildCity() {
   buildGround();
   for (let i = 0; i < GRID_COUNT; i++) {
     for (let j = 0; j < GRID_COUNT; j++) buildBlock(i, j);
   }
+  addStreetLamps();
 }
 buildCity();
 
@@ -420,9 +493,9 @@ function pushClearOfBuildings(pos, clearance) {
 // shape (so cars only "hit" when they actually touch); wheelR/frontZ/rearZ
 // drive mesh construction.
 const VEHICLE_SPECS = {
-  car: { halfW: 1.075, halfL: 2.15, wheelR: 0.42, maxSpeedMul: 1.0, accelMul: 1.0 },
-  bus: { halfW: 1.25, halfL: 4.6, wheelR: 0.5, maxSpeedMul: 0.6, accelMul: 0.45 },
-  truck: { halfW: 1.2, halfL: 3.7, wheelR: 0.48, maxSpeedMul: 0.68, accelMul: 0.5 },
+  car: { halfW: 1.075, halfL: 2.15, wheelR: 0.42, maxSpeedMul: 1.0, accelMul: 1.0, mass: 1 },
+  bus: { halfW: 1.25, halfL: 4.6, wheelR: 0.5, maxSpeedMul: 0.6, accelMul: 0.45, mass: 2.4 },
+  truck: { halfW: 1.2, halfL: 3.7, wheelR: 0.48, maxSpeedMul: 0.68, accelMul: 0.5, mass: 1.9 },
 };
 
 function addAxle(group, frontWheels, side, x, y, z, wheelR, isFront) {
@@ -469,10 +542,10 @@ function createCarMesh(color, isPolice, type) {
       addAxle(group, frontWheels, side, w / 2 - 0.05, spec.wheelR, 0, spec.wheelR, false);
       addAxle(group, frontWheels, side, w / 2 - 0.05, spec.wheelR, rearZ, spec.wheelR, false);
     }
-    const headlight = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, 0.22, 0.08), flatMat(0xfff2b0));
+    const headlight = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, 0.22, 0.08), glowMat(0xfff2b0));
     headlight.position.set(0, 0.55, spec.halfL + 0.02);
     group.add(headlight);
-    const taillight = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, 0.22, 0.08), flatMat(0xaa2020));
+    const taillight = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, 0.22, 0.08), glowMat(0xaa2020, 0.8));
     taillight.position.set(0, 0.55, -spec.halfL - 0.02);
     group.add(taillight);
   } else if (type === 'truck') {
@@ -493,10 +566,10 @@ function createCarMesh(color, isPolice, type) {
       addAxle(group, frontWheels, side, w / 2 - 0.02, spec.wheelR, frontZ, spec.wheelR, true);
       addAxle(group, frontWheels, side, w / 2 - 0.02, spec.wheelR, rearZ, spec.wheelR, false);
     }
-    const headlight = new THREE.Mesh(new THREE.BoxGeometry(w * 0.8, 0.2, 0.08), flatMat(0xfff2b0));
+    const headlight = new THREE.Mesh(new THREE.BoxGeometry(w * 0.8, 0.2, 0.08), glowMat(0xfff2b0));
     headlight.position.set(0, 0.5, spec.halfL + 0.02);
     group.add(headlight);
-    const taillight = new THREE.Mesh(new THREE.BoxGeometry(w * 0.8, 0.2, 0.08), flatMat(0xaa2020));
+    const taillight = new THREE.Mesh(new THREE.BoxGeometry(w * 0.8, 0.2, 0.08), glowMat(0xaa2020, 0.8));
     taillight.position.set(0, 0.65, -spec.halfL - 0.02);
     group.add(taillight);
   } else {
@@ -513,10 +586,10 @@ function createCarMesh(color, isPolice, type) {
       addAxle(group, frontWheels, side, 1.05, spec.wheelR, -1.35, spec.wheelR, false);
       addAxle(group, frontWheels, side, 1.05, spec.wheelR, 1.35, spec.wheelR, true);
     }
-    const headlight = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.2, 0.08), flatMat(0xfff2b0));
+    const headlight = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.2, 0.08), glowMat(0xfff2b0));
     headlight.position.set(0, 0.65, 2.16);
     group.add(headlight);
-    const taillight = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.2, 0.08), flatMat(0xaa2020));
+    const taillight = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.2, 0.08), glowMat(0xaa2020, 0.8));
     taillight.position.set(0, 0.65, -2.16);
     group.add(taillight);
 
@@ -524,12 +597,18 @@ function createCarMesh(color, isPolice, type) {
       const bar = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.22, 0.5), flatMat(0x222222));
       bar.position.set(0, 1.55, -0.2);
       group.add(bar);
-      const redLight = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.16, 0.42), flatMat(0xff2020));
+      const redLight = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.16, 0.42), glowMat(0xff2020, 0.5));
       redLight.position.set(-0.35, 1.62, -0.2);
-      const blueLight = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.16, 0.42), flatMat(0x2050ff));
+      const blueLight = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.16, 0.42), glowMat(0x2050ff, 0.5));
       blueLight.position.set(0.35, 1.62, -0.2);
       group.add(redLight, blueLight);
       group.userData.lights = [redLight, blueLight];
+      // real flashing point light so the beacon actually lights up the
+      // street at night, not just the beacon mesh itself
+      const beaconLight = new THREE.PointLight(0xff2020, 22, 16, 2);
+      beaconLight.position.set(0, 1.6, -0.2);
+      group.add(beaconLight);
+      group.userData.beaconLight = beaconLight;
     }
   }
 
@@ -552,6 +631,8 @@ class Car {
     this.halfWidth = spec.halfW;
     this.halfLength = spec.halfL;
     this.radius = spec.halfL;
+    this.mass = spec.mass;
+    this.shove = new THREE.Vector3();
     this.wheelBase = 2.6;
     this.crashCooldown = 0;
     this.wheelSteer = 0;
@@ -606,6 +687,10 @@ class Car {
 
     const dir = new THREE.Vector3(Math.sin(this.heading), 0, Math.cos(this.heading));
     this.pos.addScaledVector(dir, this.speed * dt);
+    // decaying knockback offset from collisions, lets cars slide/get shoved
+    // sideways even though their own drive motion is heading-locked
+    this.pos.addScaledVector(this.shove, dt);
+    this.shove.multiplyScalar(Math.max(0, 1 - dt * 3.2));
     const preImpactSpeed = this.speed;
     const hitWall = collideWithBuildings(this.pos, this.radius);
     if (hitWall && Math.abs(preImpactSpeed) > 4) {
@@ -661,15 +746,38 @@ function resolveCarCollision(a, b) {
 
   let nx = minAx, nz = minAz;
   if (dx * nx + dz * nz < 0) { nx = -nx; nz = -nz; }
+  // push apart along the normal only, so cars slide/separate instead of
+  // grinding along whichever axis they happen to be driving
   a.pos.x -= nx * minOverlap * 0.5;
   a.pos.z -= nz * minOverlap * 0.5;
   b.pos.x += nx * minOverlap * 0.5;
   b.pos.z += nz * minOverlap * 0.5;
 
+  // world-space velocities from each car's own heading-locked scalar speed
+  const vax = Math.sin(a.heading) * a.speed, vaz = Math.cos(a.heading) * a.speed;
+  const vbx = Math.sin(b.heading) * b.speed, vbz = Math.cos(b.heading) * b.speed;
   const impactSpeed = Math.abs(a.speed) + Math.abs(b.speed);
-  const merged = (a.speed + b.speed) * 0.5 * 0.35;
-  a.speed = merged;
-  b.speed = merged;
+  const relVelN = (vax - vbx) * nx + (vaz - vbz) * nz;
+
+  if (relVelN > 0) {
+    // mass-weighted impulse along the normal only (tangential motion is left
+    // untouched, which is what lets the cars slide past each other)
+    const restitution = 0.3;
+    const invMassSum = 1 / a.mass + 1 / b.mass;
+    const impulse = ((1 + restitution) * relVelN) / invMassSum;
+    const ix = impulse * nx, iz = impulse * nz;
+    a.shove.x -= ix / a.mass;
+    a.shove.z -= iz / a.mass;
+    b.shove.x += ix / b.mass;
+    b.shove.z += iz / b.mass;
+
+    // a broadside hit barely slows the struck car's own forward drive (it
+    // gets shoved sideways instead); a head-on hit bleeds real speed off
+    const aAlign = Math.abs(Math.sin(a.heading) * nx + Math.cos(a.heading) * nz);
+    const bAlign = Math.abs(Math.sin(b.heading) * nx + Math.cos(b.heading) * nz);
+    a.speed *= 1 - 0.55 * aAlign;
+    b.speed *= 1 - 0.55 * bAlign;
+  }
   a.syncMesh();
   b.syncMesh();
 
@@ -846,8 +954,8 @@ function charBone(parent, px, py, pz, rT, rB, h, color) {
   return j;
 }
 
-function createPlayerMesh() {
-  const PC = { skin: 0xF0BC94, shirt: 0x1E88E5, pants: 0x37474F, shoes: 0x1A1A1A, hair: 0x3E2723 };
+function createPlayerMesh(palette) {
+  const PC = { skin: 0xF0BC94, shirt: 0x1E88E5, pants: 0x37474F, shoes: 0x1A1A1A, hair: 0x3E2723, ...palette };
   const charRoot = new THREE.Group();
 
   const torso = new THREE.Group();
@@ -1085,6 +1193,17 @@ player.inCar = playerCar;
 playerCar.occupied = true;
 player.mesh.visible = false;
 
+// real forward-facing headlight beam, only on the player's own car (kept to
+// one instance for performance; other cars just glow via their headlight mesh)
+if (isNight) {
+  const headSpot = new THREE.SpotLight(0xfff2b0, 35, 32, Math.PI / 7, 0.55, 1.3);
+  headSpot.position.set(0, 0.65, 2.2);
+  const headSpotTarget = new THREE.Object3D();
+  headSpotTarget.position.set(0, 0, 12);
+  playerCar.mesh.add(headSpot, headSpotTarget);
+  headSpot.target = headSpotTarget;
+}
+
 // ---------- Ambient police: pure background flavor, patrol forever --------
 // (the actual manhunt is a separate system below, driven by mission.js/POLICE)
 const POLICE_PATROL_COUNT = 5;
@@ -1172,8 +1291,13 @@ function updatePoliceChase(dt) {
     car.siren += dt * 6;
     if (car.mesh.userData.lights) {
       const on = Math.sin(car.siren) > 0;
-      car.mesh.userData.lights[0].material.emissive = new THREE.Color(on ? 0x330000 : 0);
-      car.mesh.userData.lights[1].material.emissive = new THREE.Color(!on ? 0x000033 : 0);
+      car.mesh.userData.lights[0].material.emissiveIntensity = on ? 2.4 : 0.15;
+      car.mesh.userData.lights[1].material.emissiveIntensity = !on ? 2.4 : 0.15;
+      const beacon = car.mesh.userData.beaconLight;
+      if (beacon) {
+        beacon.color.set(on ? 0xff2020 : 0x2050ff);
+        beacon.intensity = 24;
+      }
     }
 
     if (POLICE.bust.onCollision && dist < 3.2 && !missionState.gameOver) {
@@ -1296,10 +1420,21 @@ const missionState = {
   gameOver: false,
 };
 
+// people the story mentions are actually standing where the story happens -
+// keyed by step id since mission.js's own shape stays untouched
+const NPC_BY_STEP = {
+  FIND_CONTACT: { palette: { shirt: 0xb0405f, pants: 0x2b2116, hair: 0x241a14 }, offset: [1.7, -0.4] },
+  GRAB_ITEM: { palette: { shirt: 0x3a3a3a, pants: 0x1c1c1c, hair: 0x100c0a }, offset: [-1.3, -0.9] },
+};
+
 function clearMissionMarker() {
   if (missionState.markerMesh) {
     scene.remove(missionState.markerMesh);
     missionState.markerMesh = null;
+  }
+  if (missionState.npcMesh) {
+    scene.remove(missionState.npcMesh);
+    missionState.npcMesh = null;
   }
 }
 
@@ -1324,6 +1459,16 @@ function activateStep(index) {
     mesh.position.copy(pos);
     scene.add(mesh);
     missionState.markerMesh = mesh;
+
+    const npcCfg = NPC_BY_STEP[step.id];
+    if (npcCfg) {
+      const npc = createPlayerMesh(npcCfg.palette);
+      const [ox, oz] = npcCfg.offset;
+      npc.position.set(pos.x + ox, 0, pos.z + oz);
+      npc.rotation.y = Math.atan2(-ox, -oz);
+      scene.add(npc);
+      missionState.npcMesh = npc;
+    }
   } else {
     missionState.targetPos = null;
     missionState.targetLabel = null;
@@ -1411,11 +1556,17 @@ function updateMission(dt) {
   missionState.distance = Math.sqrt(distSq);
   missionState.inRange = distSq < missionState.triggerRadius * missionState.triggerRadius;
 
-  // "talk" style steps (waypoint + dialog, no pickup) start the conversation
-  // the moment you walk up, no button press needed
-  if (missionState.inRange && step.dialog && step.waypoint && !missionState.autoTriggered) {
+  // reaching any mission target auto-resolves the step - no button press
+  // needed. Pickups get a little spark burst as pickup confirmation.
+  if (missionState.inRange && !missionState.autoTriggered) {
     missionState.autoTriggered = true;
-    startDialog(step.dialog, () => runStepOnComplete(step));
+    if (step.pickup) {
+      spawnSparkBurst(missionState.targetPos, 16);
+      clearMissionMarker();
+      missionState.targetPos = null;
+    }
+    if (step.dialog) startDialog(step.dialog, () => runStepOnComplete(step));
+    else runStepOnComplete(step);
   }
 }
 
@@ -1500,9 +1651,14 @@ document.addEventListener('click', (e) => {
   settingsMenu.classList.remove('show');
 });
 
-const dragState = { up: false, down: false, left: false, right: false };
+// drag steering is analog (proportional to swipe distance) rather than a
+// hard boolean flip at a tiny deadzone - a boolean flip meant any stray
+// finger drift instantly demanded full-lock steering, which felt far too
+// twitchy compared to tapping a discrete on-screen button
+const dragState = { up: false, down: false, steerAxis: 0 };
 let dragOrigin = null;
 const DRAG_DEADZONE = 14;
+const DRAG_STEER_RANGE = 110;
 const appEl = document.getElementById('app');
 appEl.addEventListener('touchstart', (e) => {
   if (e.target.closest('.mbtn, #btnSettings, #settingsMenu, #dialogBox, #endOverlay')) return;
@@ -1515,26 +1671,33 @@ appEl.addEventListener('touchmove', (e) => {
   const dx = t.clientX - dragOrigin.x, dy = t.clientY - dragOrigin.y;
   dragState.up = dy < -DRAG_DEADZONE;
   dragState.down = dy > DRAG_DEADZONE;
-  dragState.left = dx < -DRAG_DEADZONE;
-  dragState.right = dx > DRAG_DEADZONE;
+  let steerAxis = 0;
+  if (Math.abs(dx) > DRAG_DEADZONE) {
+    const past = dx - Math.sign(dx) * DRAG_DEADZONE;
+    steerAxis = clamp(-past / DRAG_STEER_RANGE, -1, 1);
+  }
+  dragState.steerAxis = steerAxis;
   e.preventDefault();
 }, { passive: false });
 appEl.addEventListener('touchend', () => {
   dragOrigin = null;
-  dragState.up = dragState.down = dragState.left = dragState.right = false;
+  dragState.up = dragState.down = false;
+  dragState.steerAxis = 0;
 });
 
 function readInput() {
   const up = keys.has('KeyW') || keys.has('ArrowUp') || mobileState.gas || dragState.up;
   const down = keys.has('KeyS') || keys.has('ArrowDown') || mobileState.brake || dragState.down;
-  const left = keys.has('KeyA') || keys.has('ArrowLeft') || mobileState.left || dragState.left;
-  const right = keys.has('KeyD') || keys.has('ArrowRight') || mobileState.right || dragState.right;
+  const leftKey = keys.has('KeyA') || keys.has('ArrowLeft') || mobileState.left;
+  const rightKey = keys.has('KeyD') || keys.has('ArrowRight') || mobileState.right;
+  const keySteer = (leftKey ? 1 : 0) - (rightKey ? 1 : 0);
+  const steer = keySteer !== 0 ? keySteer : dragState.steerAxis;
   const handbrake = keys.has('Space');
   return {
     throttle: up ? 1 : (down ? -1 : 0),
-    steer: (left ? 1 : 0) - (right ? 1 : 0),
+    steer,
     handbrake,
-    up, down, left, right,
+    up, down, left: steer > 0.08, right: steer < -0.08,
   };
 }
 
@@ -1759,14 +1922,14 @@ function drawMinimap() {
       y = (y / d) * edge;
     }
     // big, pulsing marker -- this is the one thing on the map you must not miss
-    const pulse = 1 + Math.sin(elapsed * 4) * 0.15;
+    const pulse = 1 + Math.sin(elapsed * 4) * 0.18;
     const step = missionState.step;
     mmCtx.fillStyle = step?.waypoint ? step.waypoint.color : '#ffcc00';
     mmCtx.beginPath();
-    mmCtx.arc(x, y, 9.5 * pulse, 0, Math.PI * 2);
+    mmCtx.arc(x, y, 14 * pulse, 0, Math.PI * 2);
     mmCtx.fill();
     mmCtx.strokeStyle = '#ffffff';
-    mmCtx.lineWidth = 2.5;
+    mmCtx.lineWidth = 3;
     mmCtx.stroke();
   }
 
@@ -1967,6 +2130,7 @@ function animate() {
   updatePickups(dt, elapsed);
   updateMission(dt);
   updateDebris(dt);
+  updateSparks(dt);
   checkPedestrianHits();
   updateHud(dt);
   updateCamera(dt);

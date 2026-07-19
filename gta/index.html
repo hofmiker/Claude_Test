@@ -40,12 +40,12 @@
     text-shadow: 0 1px 3px rgba(0,0,0,0.9);
   }
 
-  /* ---- top-left: objective + distance ---- */
+  /* ---- top-left: objective + distance + dialog (grouped together) ---- */
   #objectivePanel {
     position: absolute;
     top: 14px;
     left: 16px;
-    max-width: 50vw;
+    max-width: 46vw;
   }
   #objectiveText {
     font-size: 15px;
@@ -59,7 +59,28 @@
     letter-spacing: 0.5px;
   }
 
-  /* ---- top-right: money + minimap ---- */
+  /* ---- top-right: speed + money + minimap ---- */
+  #speedWrap {
+    position: absolute;
+    top: 12px;
+    right: 156px;
+    text-align: right;
+  }
+  #speed {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  #speedUnit {
+    font-size: 10px;
+    opacity: 0.75;
+    letter-spacing: 2px;
+  }
+  #gear {
+    font-size: 11px;
+    opacity: 0.8;
+    margin-top: 2px;
+  }
   #moneyDisplay {
     position: absolute;
     top: 14px;
@@ -124,40 +145,18 @@
   }
   #subMsg.show { opacity: 1; }
 
-  /* ---- bottom-left: speed + settings gear ---- */
-  #speedWrap {
-    position: absolute;
-    bottom: 64px;
-    left: 16px;
-    text-align: left;
-  }
-  #speed {
-    font-size: 32px;
-    font-weight: 800;
-    line-height: 1;
-  }
-  #speedUnit {
-    font-size: 11px;
-    opacity: 0.75;
-    letter-spacing: 2px;
-  }
-  #gear {
-    font-size: 12px;
-    opacity: 0.8;
-    margin-top: 2px;
-  }
-
+  /* ---- bottom-left: small settings gear (tucked beside steering) ---- */
   #btnSettings {
     position: absolute;
-    bottom: 14px;
-    left: 16px;
-    width: 38px;
-    height: 38px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    left: calc(14px + env(safe-area-inset-left));
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     background: rgba(0,0,0,0.5);
     border: 1px solid rgba(255,255,255,0.35);
     color: #fff;
-    font-size: 17px;
+    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -166,8 +165,8 @@
   }
   #settingsMenu {
     position: absolute;
-    bottom: 60px;
-    left: 16px;
+    bottom: calc(50px + env(safe-area-inset-bottom));
+    left: calc(14px + env(safe-area-inset-left));
     background: rgba(10,10,14,0.92);
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: 10px;
@@ -193,47 +192,51 @@
     text-align: left;
   }
 
-  /* ---- dialog box ---- */
+  /* ---- dialog box: grouped with the objective panel, top-left ---- */
   #dialogBox {
     position: absolute;
-    left: 50%;
-    bottom: 24px;
-    transform: translateX(-50%);
-    width: min(540px, 86vw);
+    left: 16px;
+    top: 66px;
+    width: min(320px, 60vw);
     background: rgba(8,10,14,0.94);
     border: 1px solid rgba(255,204,0,0.25);
     border-radius: 10px;
-    padding: 14px 18px;
+    padding: 10px 14px;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.25s ease;
   }
   #dialogBox.show { opacity: 1; pointer-events: auto; }
   #dialogSpeaker {
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 1.5px;
     color: #ffcc00;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     font-weight: 700;
-    min-height: 13px;
+    min-height: 12px;
   }
   #dialogText {
-    font-size: 15px;
-    line-height: 1.45;
-    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    margin-bottom: 8px;
   }
   #dialogNextBtn {
     display: block;
     margin-left: auto;
-    padding: 6px 18px;
+    padding: 4px 12px;
     background: rgba(255,255,255,0.12);
     border: 1px solid rgba(255,255,255,0.35);
     border-radius: 6px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 11px;
     color: #fff;
     pointer-events: auto;
+    animation: nextPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes nextPulse {
+    0%, 100% { transform: scale(1); opacity: 0.88; }
+    50% { transform: scale(1.06); opacity: 1; }
   }
 
   /* ---- win / fail overlay ---- */
@@ -331,9 +334,6 @@
     #controlsHint {
       display: none;
     }
-    #speedWrap {
-      bottom: 250px;
-    }
     #mobileControls {
       display: block;
       position: absolute;
@@ -343,24 +343,36 @@
     .mbtn {
       position: absolute;
       pointer-events: auto;
-      width: 64px;
-      height: 64px;
+      width: 58px;
+      height: 58px;
       border-radius: 50%;
       background: rgba(255,255,255,0.12);
       border: 2px solid rgba(255,255,255,0.4);
       color: #fff;
-      font-size: 22px;
+      font-size: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    /* all driving buttons clustered bottom-right, away from center */
-    #btnLeft { right: 244px; bottom: 96px; }
-    #btnRight { right: 168px; bottom: 96px; }
-    #btnGas { right: 92px; bottom: 168px; background: rgba(80,220,100,0.25); }
-    #btnBrake { right: 92px; bottom: 96px; background: rgba(220,80,80,0.25); }
-    #btnJump { right: 16px; bottom: 168px; background: rgba(255,210,0,0.25); font-size: 13px; }
-    #btnAction { right: 16px; bottom: 96px; font-size: 12px; }
+    /* steering hugs the very bottom-left, even in landscape */
+    #btnLeft { left: calc(14px + env(safe-area-inset-left)); bottom: calc(14px + env(safe-area-inset-bottom)); }
+    #btnRight { left: calc(80px + env(safe-area-inset-left)); bottom: calc(14px + env(safe-area-inset-bottom)); }
+
+    /* gas/brake/jump/action clustered bottom-right, hugging the edge */
+    #btnGas { right: calc(80px + env(safe-area-inset-right)); bottom: calc(80px + env(safe-area-inset-bottom)); background: rgba(80,220,100,0.25); }
+    #btnJump { right: calc(14px + env(safe-area-inset-right)); bottom: calc(80px + env(safe-area-inset-bottom)); background: rgba(255,210,0,0.25); }
+    #btnBrake { right: calc(80px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); background: rgba(220,80,80,0.25); }
+    #btnAction { right: calc(14px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); font-size: 13px; }
+
+    /* small settings gear, tucked right above the steering pair */
+    #btnSettings {
+      bottom: calc(80px + env(safe-area-inset-bottom));
+      left: calc(14px + env(safe-area-inset-left));
+    }
+    #settingsMenu {
+      bottom: calc(116px + env(safe-area-inset-bottom));
+      left: calc(14px + env(safe-area-inset-left));
+    }
 
     /* buttons hidden: swipe the screen directly instead (always live either way) */
     body.buttons-hidden #btnLeft,
@@ -425,7 +437,7 @@
     <div class="mbtn" id="btnGas">▲</div>
     <div class="mbtn" id="btnBrake">▼</div>
     <div class="mbtn" id="btnAction">F</div>
-    <div class="mbtn" id="btnJump">⬆</div>
+    <div class="mbtn" id="btnJump">▲</div>
   </div>
 </div>
 
