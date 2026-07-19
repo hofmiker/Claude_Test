@@ -422,10 +422,13 @@ function createStreetLampMesh() {
 function addStreetLamps() {
   if (!isNight) return;
   const stride = 2;
+  // offset past the road edge (ROAD_WIDTH/2) and into the sidewalk margin,
+  // not out on the road itself and not far enough to reach the building footprint
+  const sidewalkOffset = ROAD_WIDTH / 2 + 1.4;
   for (let i = 0; i < roadLines.x.length; i += stride) {
     for (let j = 0; j < roadLines.z.length; j += stride) {
-      const x = roadLines.x[i] + ROAD_WIDTH * 0.32;
-      const z = roadLines.z[j] + ROAD_WIDTH * 0.32;
+      const x = roadLines.x[i] + sidewalkOffset;
+      const z = roadLines.z[j] + sidewalkOffset;
       const lamp = createStreetLampMesh();
       lamp.position.set(x, 0, z);
       cityRoot.add(lamp);
@@ -519,7 +522,7 @@ function addAxle(group, frontWheels, side, x, y, z, wheelR, isFront) {
   }
 }
 
-function createCarMesh(color, isPolice, type) {
+function createCarMesh(color, isPolice, type, isPlayer) {
   const spec = VEHICLE_SPECS[type];
   const group = new THREE.Group();
   const frontWheels = [];
@@ -586,9 +589,23 @@ function createCarMesh(color, isPolice, type) {
       addAxle(group, frontWheels, side, 1.05, spec.wheelR, -1.35, spec.wheelR, false);
       addAxle(group, frontWheels, side, 1.05, spec.wheelR, 1.35, spec.wheelR, true);
     }
-    const headlight = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.2, 0.08), glowMat(0xfff2b0));
-    headlight.position.set(0, 0.65, 2.16);
-    group.add(headlight);
+    if (isPlayer) {
+      // the player's own car gets two distinct headlights
+      for (const side of [-1, 1]) {
+        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.22, 0.08), glowMat(0xfff2b0));
+        hl.position.set(side * 0.62, 0.65, 2.16);
+        group.add(hl);
+      }
+    } else {
+      // every other car gets a single headlight, with a bit of per-car
+      // variance in size/offset/tint so the traffic doesn't look identical
+      const hlWidth = 0.85 + rand(-0.15, 0.18);
+      const hlOffset = rand(-0.14, 0.14);
+      const hlTint = pick([0xfff2b0, 0xffe9a0, 0xfff6cc]);
+      const headlight = new THREE.Mesh(new THREE.BoxGeometry(hlWidth, 0.2, 0.08), glowMat(hlTint));
+      headlight.position.set(hlOffset, 0.65, 2.16);
+      group.add(headlight);
+    }
     const taillight = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.2, 0.08), glowMat(0xaa2020, 0.8));
     taillight.position.set(0, 0.65, -2.16);
     group.add(taillight);
@@ -619,7 +636,7 @@ function createCarMesh(color, isPolice, type) {
 class Car {
   constructor({ color = pick(CAR_PALETTE), isPolice = false, isPlayer = false, type = 'car' } = {}) {
     this.type = type;
-    this.mesh = createCarMesh(color, isPolice, type);
+    this.mesh = createCarMesh(color, isPolice, type, isPlayer);
     this.isPolice = isPolice;
     this.isPlayer = isPlayer;
     this.pos = new THREE.Vector3();
@@ -905,10 +922,39 @@ function spawnTraffic() {
 }
 spawnTraffic();
 
+// how much a lane car should brake for another car sitting ahead of it in
+// its own path - returns 1 (full speed) down to 0 (stopped), so ambient
+// traffic queues/waits at its own initiative instead of ramming into itself
+function laneBrakeFactor(car, other, dir, lookAhead) {
+  const dx = other.pos.x - car.pos.x, dz = other.pos.z - car.pos.z;
+  const dist = Math.hypot(dx, dz);
+  if (dist > lookAhead) return 1;
+  const fwd = dx * dir.x + dz * dir.z;
+  if (fwd <= 0.1) return 1; // not ahead of us
+  const lateral = Math.abs(dx * dir.z - dz * dir.x);
+  if (lateral > car.halfWidth + other.halfWidth + 1.1) return 1; // not in our path
+  const clearance = fwd - (car.halfLength + other.halfLength + 1.6);
+  return clamp(clearance / lookAhead, 0, 1);
+}
+
 // straight-line lane driving shared by ambient traffic and patrolling police
 function stepLaneCar(car, dt) {
   const dir = new THREE.Vector3(Math.sin(car.heading), 0, Math.cos(car.heading));
-  car.pos.addScaledVector(dir, car.speed * dt);
+
+  let brake = 1;
+  const lookAhead = 10 + car.halfLength;
+  for (const other of trafficCars) {
+    if (other !== car) brake = Math.min(brake, laneBrakeFactor(car, other, dir, lookAhead));
+  }
+  for (const other of policeCars) {
+    if (other !== car) brake = Math.min(brake, laneBrakeFactor(car, other, dir, lookAhead));
+  }
+
+  car.pos.addScaledVector(dir, car.speed * brake * dt);
+  // decaying knockback from collisions (rammed from the side, etc.) - without
+  // this, a shove computed on impact just gets silently discarded here
+  car.pos.addScaledVector(car.shove, dt);
+  car.shove.multiplyScalar(Math.max(0, 1 - dt * 3.2));
   if (car.horizontal) {
     if (car.pos.x > CITY_HALF + ROAD_WIDTH) car.pos.x = -CITY_HALF - ROAD_WIDTH;
     if (car.pos.x < -CITY_HALF - ROAD_WIDTH) car.pos.x = CITY_HALF + ROAD_WIDTH;
@@ -1193,15 +1239,17 @@ player.inCar = playerCar;
 playerCar.occupied = true;
 player.mesh.visible = false;
 
-// real forward-facing headlight beam, only on the player's own car (kept to
-// one instance for performance; other cars just glow via their headlight mesh)
+// real forward-facing headlight beams, only on the player's own car (kept to
+// two instances for performance; other cars just glow via their headlight mesh)
 if (isNight) {
-  const headSpot = new THREE.SpotLight(0xfff2b0, 35, 32, Math.PI / 7, 0.55, 1.3);
-  headSpot.position.set(0, 0.65, 2.2);
-  const headSpotTarget = new THREE.Object3D();
-  headSpotTarget.position.set(0, 0, 12);
-  playerCar.mesh.add(headSpot, headSpotTarget);
-  headSpot.target = headSpotTarget;
+  for (const side of [-1, 1]) {
+    const headSpot = new THREE.SpotLight(0xfff2b0, 22, 32, Math.PI / 8, 0.55, 1.3);
+    headSpot.position.set(side * 0.62, 0.65, 2.2);
+    const headSpotTarget = new THREE.Object3D();
+    headSpotTarget.position.set(side * 0.62, 0, 12);
+    playerCar.mesh.add(headSpot, headSpotTarget);
+    headSpot.target = headSpotTarget;
+  }
 }
 
 // ---------- Ambient police: pure background flavor, patrol forever --------
@@ -1236,7 +1284,7 @@ function updatePolice(dt) {
 
 // ---------- Manhunt: dedicated chase units driven by mission.js POLICE -----
 const chaseCops = [];
-const policeState = { active: false, safeTimer: 0, lastRampTime: 0 };
+const policeState = { active: false, safeTimer: 0, lastRampTime: 0, surroundTimer: 0 };
 
 function spawnChaseCop() {
   if (chaseCops.length >= POLICE.units.max) return;
@@ -1255,12 +1303,14 @@ function spawnChaseCop() {
 function startPolice() {
   policeState.active = true;
   policeState.safeTimer = 0;
+  policeState.surroundTimer = 0;
   policeState.lastRampTime = elapsed;
   for (let i = 0; i < POLICE.units.initial; i++) spawnChaseCop();
 }
 
 function stopPolice() {
   policeState.active = false;
+  policeState.surroundTimer = 0;
   for (const car of chaseCops) scene.remove(car.mesh);
   chaseCops.length = 0;
 }
@@ -1276,10 +1326,13 @@ function updatePoliceChase(dt) {
   }
 
   let anyInSight = false;
+  const SURROUND_RADIUS = 11;
+  const nearAngles = [];
   for (const car of chaseCops) {
     const toPlayer = new THREE.Vector3().subVectors(focus, car.pos);
     const dist = toPlayer.length();
     if (dist < POLICE.ai.sightRadius) anyInSight = true;
+    if (dist < SURROUND_RADIUS) nearAngles.push(Math.atan2(-toPlayer.x, -toPlayer.z));
 
     car.maxSpeed = playerMax * POLICE.ai.speed;
     const desiredHeading = Math.atan2(toPlayer.x, toPlayer.z);
@@ -1304,6 +1357,31 @@ function updatePoliceChase(dt) {
       failMission();
       return;
     }
+  }
+
+  // encircled: cops spread across most of the compass around the player,
+  // all close by, held continuously for POLICE.bust.surroundSeconds
+  if (POLICE.bust.surroundSeconds && nearAngles.length >= 2) {
+    nearAngles.sort((a, b) => a - b);
+    let maxGap = 0;
+    for (let i = 0; i < nearAngles.length; i++) {
+      const next = nearAngles[(i + 1) % nearAngles.length];
+      let gap = next - nearAngles[i];
+      if (gap < 0) gap += Math.PI * 2;
+      if (gap > maxGap) maxGap = gap;
+    }
+    const surrounded = maxGap < Math.PI * 1.15;
+    if (surrounded) {
+      policeState.surroundTimer += dt;
+      if (policeState.surroundTimer >= POLICE.bust.surroundSeconds && !missionState.gameOver) {
+        failMission();
+        return;
+      }
+    } else {
+      policeState.surroundTimer = 0;
+    }
+  } else {
+    policeState.surroundTimer = 0;
   }
 
   if (anyInSight) {
