@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flappy Klon</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #4ec0ca;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Georgia, "Times New Roman", serif;
+    overflow: hidden;
+  }
+  #wrap {
+    position: relative;
+  }
+  canvas {
+    background: linear-gradient(#4ec0ca, #a4e4eb);
+    display: block;
+    border: 4px solid #2b2b2b;
+    border-radius: 4px;
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    text-shadow: 2px 2px 0 #000;
+    font-size: 1.5rem;
+    text-align: center;
+    background: rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+  #overlay small {
+    font-size: 1rem;
+    margin-top: 0.5rem;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="360" height="540"></canvas>
+  <div id="overlay">
+    <div id="msg">Klicken oder Leertaste zum Start</div>
+    <small>Klicken / Leertaste = Flügelschlag</small>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const msg = document.getElementById('msg');
+
+const W = canvas.width, H = canvas.height;
+const GRAVITY = 0.45;
+const FLAP = -8;
+const PIPE_GAP = 140;
+const PIPE_WIDTH = 60;
+const PIPE_SPEED = 2.5;
+const PIPE_INTERVAL = 90;
+
+let bird, pipes, frame, score, best, state;
+best = Number(localStorage.getItem('flappyBest') || 0);
+
+function reset() {
+  bird = { x: 80, y: H / 2, vy: 0, r: 14 };
+  pipes = [];
+  frame = 0;
+  score = 0;
+  state = 'ready';
+  msg.textContent = 'Klicken oder Leertaste zum Start';
+  overlay.style.display = 'flex';
+}
+
+function flap() {
+  if (state === 'ready') {
+    state = 'playing';
+    overlay.style.display = 'none';
+  }
+  if (state === 'playing') {
+    bird.vy = FLAP;
+  }
+  if (state === 'over') {
+    reset();
+  }
+}
+
+function spawnPipe() {
+  const margin = 50;
+  const top = margin + Math.random() * (H - PIPE_GAP - margin * 2);
+  pipes.push({ x: W, top, passed: false });
+}
+
+function update() {
+  if (state !== 'playing') return;
+  frame++;
+  bird.vy += GRAVITY;
+  bird.y += bird.vy;
+
+  if (frame % PIPE_INTERVAL === 0) spawnPipe();
+
+  for (const p of pipes) {
+    p.x -= PIPE_SPEED;
+    if (!p.passed && p.x + PIPE_WIDTH < bird.x) {
+      p.passed = true;
+      score++;
+    }
+  }
+  pipes = pipes.filter(p => p.x > -PIPE_WIDTH);
+
+  if (bird.y + bird.r > H || bird.y - bird.r < 0) {
+    gameOver();
+    return;
+  }
+
+  for (const p of pipes) {
+    const inX = bird.x + bird.r > p.x && bird.x - bird.r < p.x + PIPE_WIDTH;
+    const inGap = bird.y - bird.r > p.top && bird.y + bird.r < p.top + PIPE_GAP;
+    if (inX && !inGap) {
+      gameOver();
+      return;
+    }
+  }
+}
+
+function gameOver() {
+  state = 'over';
+  if (score > best) {
+    best = score;
+    localStorage.setItem('flappyBest', best);
+  }
+  msg.textContent = `Game Over – Punkte: ${score} (Best: ${best})`;
+  overlay.style.display = 'flex';
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.fillStyle = '#5cb85c';
+  for (const p of pipes) {
+    ctx.fillRect(p.x, 0, PIPE_WIDTH, p.top);
+    ctx.fillRect(p.x, p.top + PIPE_GAP, PIPE_WIDTH, H - p.top - PIPE_GAP);
+    ctx.strokeStyle = '#2b6e2b';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(p.x, 0, PIPE_WIDTH, p.top);
+    ctx.strokeRect(p.x, p.top + PIPE_GAP, PIPE_WIDTH, H - p.top - PIPE_GAP);
+  }
+
+  ctx.save();
+  ctx.translate(bird.x, bird.y);
+  ctx.rotate(Math.max(-0.5, Math.min(0.9, bird.vy / 10)));
+  ctx.fillStyle = '#f7d51d';
+  ctx.beginPath();
+  ctx.arc(0, 0, bird.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#b8960a';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(5, -4, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 3;
+  ctx.font = 'bold 28px Georgia';
+  ctx.textAlign = 'center';
+  ctx.strokeText(score, W / 2, 50);
+  ctx.fillText(score, W / 2, 50);
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); flap(); }
+});
+canvas.addEventListener('mousedown', flap);
+overlay.addEventListener('mousedown', flap);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); flap(); }, { passive: false });
+
+reset();
+loop();
+</script>
+</body>
+</html>

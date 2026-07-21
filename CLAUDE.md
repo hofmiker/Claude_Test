@@ -16,6 +16,8 @@
 | `btc/` | Bitcoin On-Chain Dashboard — Live-Kurs & Netzwerk-Metriken | `.../btc/` |
 | `gta/` | Vice Grid — 3D-Top-Down-Fahrspiel im GTA-Stil | `.../gta/` |
 | `cape-character/` | Cape Character — 2D-IK-Charakter mit Umhang & Kapuze | `.../cape-character/` |
+| `flappy/` | Flappy Klon — Flappy-Bird-artiges Arcade-Spiel | `.../flappy/` |
+| `arkanoid/` | Arkanoid Klon — Breakout-artiges Arcade-Spiel | `.../arkanoid/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
 **Base-URL:** https://hofmiker.github.io/Claude_Test/

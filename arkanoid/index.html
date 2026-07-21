@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arkanoid Klon</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #101018;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Georgia, "Times New Roman", serif;
+    overflow: hidden;
+  }
+  #wrap {
+    position: relative;
+  }
+  canvas {
+    background: #0b0b12;
+    display: block;
+    border: 4px solid #444;
+    border-radius: 4px;
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    text-shadow: 2px 2px 0 #000;
+    font-size: 1.4rem;
+    text-align: center;
+    background: rgba(0,0,0,0.5);
+    cursor: pointer;
+  }
+  #overlay small {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    color: #ccc;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="480" height="600"></canvas>
+  <div id="overlay">
+    <div id="msg">Klicken oder Leertaste zum Start</div>
+    <small>Maus bewegen oder ←/→ = Schläger, Leertaste = Ball starten</small>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const overlay = document.getElementById('overlay');
+const msg = document.getElementById('msg');
+
+const W = canvas.width, H = canvas.height;
+const PADDLE_W = 90, PADDLE_H = 12;
+const BALL_R = 7;
+const ROWS = 6, COLS = 8;
+const BRICK_W = W / COLS, BRICK_H = 24, BRICK_TOP = 50;
+const COLORS = ['#e63946', '#f4a261', '#e9c46a', '#2a9d8f', '#457b9d', '#a663cc'];
+
+let paddle, ball, bricks, lives, score, state, best;
+best = Number(localStorage.getItem('arkanoidBest') || 0);
+
+function initBricks() {
+  const arr = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      arr.push({ x: c * BRICK_W, y: BRICK_TOP + r * BRICK_H, w: BRICK_W - 2, h: BRICK_H - 2, alive: true, color: COLORS[r % COLORS.length] });
+    }
+  }
+  return arr;
+}
+
+function resetBall() {
+  ball = { x: W / 2, y: H - 60, vx: 0, vy: 0, r: BALL_R, stuck: true };
+}
+
+function reset() {
+  paddle = { x: W / 2 - PADDLE_W / 2, w: PADDLE_W, h: PADDLE_H, y: H - 30 };
+  bricks = initBricks();
+  lives = 3;
+  score = 0;
+  resetBall();
+  state = 'ready';
+  msg.textContent = 'Klicken oder Leertaste zum Start';
+  overlay.style.display = 'flex';
+}
+
+function launchBall() {
+  ball.stuck = false;
+  ball.vx = (Math.random() * 2 - 1) * 3;
+  ball.vy = -4.5;
+}
+
+function startOrLaunch() {
+  if (state === 'ready') {
+    state = 'playing';
+    overlay.style.display = 'none';
+  }
+  if (state === 'playing' && ball.stuck) {
+    launchBall();
+  }
+  if (state === 'over') {
+    reset();
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); startOrLaunch(); }
+  if (e.code === 'ArrowLeft') keys.left = true;
+  if (e.code === 'ArrowRight') keys.right = true;
+});
+document.addEventListener('keyup', e => {
+  if (e.code === 'ArrowLeft') keys.left = false;
+  if (e.code === 'ArrowRight') keys.right = false;
+});
+const keys = { left: false, right: false };
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (W / rect.width);
+  paddle.x = Math.max(0, Math.min(W - paddle.w, mx - paddle.w / 2));
+});
+canvas.addEventListener('mousedown', startOrLaunch);
+overlay.addEventListener('mousedown', startOrLaunch);
+
+function update() {
+  if (state !== 'playing') return;
+
+  if (keys.left) paddle.x -= 6;
+  if (keys.right) paddle.x += 6;
+  paddle.x = Math.max(0, Math.min(W - paddle.w, paddle.x));
+
+  if (ball.stuck) {
+    ball.x = paddle.x + paddle.w / 2;
+    ball.y = paddle.y - ball.r - 1;
+    return;
+  }
+
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+
+  if (ball.x - ball.r < 0) { ball.x = ball.r; ball.vx *= -1; }
+  if (ball.x + ball.r > W) { ball.x = W - ball.r; ball.vx *= -1; }
+  if (ball.y - ball.r < 0) { ball.y = ball.r; ball.vy *= -1; }
+
+  if (ball.y + ball.r > paddle.y && ball.y + ball.r < paddle.y + paddle.h &&
+      ball.x > paddle.x && ball.x < paddle.x + paddle.w && ball.vy > 0) {
+    const hitPos = (ball.x - (paddle.x + paddle.w / 2)) / (paddle.w / 2);
+    ball.vx = hitPos * 5;
+    ball.vy = -Math.abs(ball.vy);
+    ball.y = paddle.y - ball.r;
+  }
+
+  if (ball.y - ball.r > H) {
+    lives--;
+    if (lives <= 0) {
+      gameOver();
+      return;
+    }
+    resetBall();
+    return;
+  }
+
+  for (const b of bricks) {
+    if (!b.alive) continue;
+    if (ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w &&
+        ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h) {
+      b.alive = false;
+      score += 10;
+
+      const overlapLeft = (ball.x + ball.r) - b.x;
+      const overlapRight = (b.x + b.w) - (ball.x - ball.r);
+      const overlapTop = (ball.y + ball.r) - b.y;
+      const overlapBottom = (b.y + b.h) - (ball.y - ball.r);
+      const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+      if (minOverlap === overlapLeft || minOverlap === overlapRight) {
+        ball.vx *= -1;
+      } else {
+        ball.vy *= -1;
+      }
+      break;
+    }
+  }
+
+  if (bricks.every(b => !b.alive)) {
+    win();
+  }
+}
+
+function gameOver() {
+  state = 'over';
+  if (score > best) { best = score; localStorage.setItem('arkanoidBest', best); }
+  msg.textContent = `Game Over – Punkte: ${score} (Best: ${best})`;
+  overlay.style.display = 'flex';
+}
+
+function win() {
+  state = 'over';
+  if (score > best) { best = score; localStorage.setItem('arkanoidBest', best); }
+  msg.textContent = `Gewonnen! Punkte: ${score} (Best: ${best})`;
+  overlay.style.display = 'flex';
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  for (const b of bricks) {
+    if (!b.alive) continue;
+    ctx.fillStyle = b.color;
+    ctx.fillRect(b.x + 1, b.y + 1, b.w, b.h);
+  }
+
+  ctx.fillStyle = '#eee';
+  ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 18px Georgia';
+  ctx.textAlign = 'left';
+  ctx.fillText(`Punkte: ${score}`, 10, 25);
+  ctx.textAlign = 'right';
+  ctx.fillText(`Leben: ${lives}`, W - 10, 25);
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+reset();
+loop();
+</script>
+</body>
+</html>
