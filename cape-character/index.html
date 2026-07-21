@@ -62,6 +62,7 @@
   }
   .touch-btn:active { background: rgba(255,255,255,0.3); }
   #left-pad { display: flex; gap: 10px; }
+  #right-pad { display: flex; flex-direction: column; gap: 10px; }
   #btn-light {
     position: absolute;
     top: 14px;
@@ -86,7 +87,7 @@
 </head>
 <body>
 <div id="stage">
-  <div id="hud"><b>&larr; A / D &rarr;</b> laufen &nbsp;&nbsp; <b>Leertaste / W / &uarr;</b> springen</div>
+  <div id="hud"><b>&larr; A / D &rarr;</b> laufen &nbsp;&nbsp; <b>Leertaste / W / &uarr;</b> springen/klettern &nbsp;&nbsp; <b>S / &darr;</b> hocken</div>
   <button id="btn-light">💡 Charakter beleuchten</button>
   <canvas id="c"></canvas>
   <div id="touch-controls">
@@ -94,7 +95,10 @@
       <div class="touch-btn" id="btn-left">&larr;</div>
       <div class="touch-btn" id="btn-right">&rarr;</div>
     </div>
-    <div class="touch-btn" id="btn-jump">&uarr;</div>
+    <div id="right-pad">
+      <div class="touch-btn" id="btn-jump">&uarr;</div>
+      <div class="touch-btn" id="btn-crouch">&darr;</div>
+    </div>
   </div>
 </div>
 
@@ -139,6 +143,7 @@
   const KEY_LEFT = ["ArrowLeft", "KeyA"];
   const KEY_RIGHT = ["ArrowRight", "KeyD"];
   const KEY_JUMP = ["Space", "ArrowUp", "KeyW"];
+  const KEY_DOWN = ["ArrowDown", "KeyS"];
 
   window.addEventListener("keydown", (e) => { keys[e.code] = true; if (KEY_JUMP.includes(e.code)) e.preventDefault(); });
   window.addEventListener("keyup", (e) => { keys[e.code] = false; });
@@ -159,6 +164,7 @@
   bindTouch("btn-left", "ArrowLeft");
   bindTouch("btn-right", "ArrowRight");
   bindTouch("btn-jump", "Space");
+  bindTouch("btn-crouch", "ArrowDown");
 
   // ---------- character spotlight toggle ----------
   let characterLit = false;
@@ -173,7 +179,7 @@
   const isTouchDevice = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
   if (isTouchDevice) {
     document.getElementById("hud").innerHTML =
-      '<b>&larr; &rarr;</b> laufen &nbsp;&nbsp; <b>&uarr;</b> springen';
+      '<b>&larr; &rarr;</b> laufen &nbsp;&nbsp; <b>&uarr;</b> springen/klettern &nbsp;&nbsp; <b>&darr;</b> hocken';
   }
 
   function pressed(list) { return list.some((k) => keys[k]); }
@@ -212,14 +218,17 @@
   };
 
   // Skeleton proportions (local space, facing = +x to the right, 0 = feet)
+  // hipY vs. upperLeg+lowerLeg must leave the two-bone IK enough reach to
+  // actually touch y=0 while standing — a mismatch here is what made the
+  // character hover above the ground with a maxed-out, clamped IK stretch
   const SK = {
-    hipY: -78,
+    hipY: -72,
     torso: 46,
     neck: 8,
     headR: 9,
     shoulderDrop: 4,
-    upperLeg: 34,
-    lowerLeg: 32,
+    upperLeg: 38,
+    lowerLeg: 38,
     footLen: 12,
     upperArm: 26,
     lowerArm: 25,
@@ -271,7 +280,13 @@
     { x: 1900, w: 220, h: 40 },
     { x: 2250, w: 90, h: 100 },
     { x: 2550, w: 90, h: 70 },
+    { x: 2900, w: 110, h: 175 }, // too tall to jump onto directly — grab the ledge and climb up instead
   ];
+
+  // max height reachable by a normal jump (v^2 / 2g); anything taller can
+  // only be reached by grabbing the ledge and climbing
+  const MAX_JUMP_HEIGHT = (PHYS.jumpVel * PHYS.jumpVel) / (2 * PHYS.gravity);
+  const GRABBABLE_MIN_HEIGHT = MAX_JUMP_HEIGHT + 10;
 
   function getSurfaceY(worldX) {
     let top = GROUND_LEVEL_Y;
@@ -306,7 +321,7 @@
     vx: 0,
     vy: 0,
     facing: 1,
-    state: "stand", // "stand" | "crouch" | "air"
+    state: "stand", // "stand" | "crouch" | "air" | "hang" | "climb"
     crouchT: 0,
     jumpHeld: false,
     phase: 0,
@@ -315,6 +330,15 @@
     accelerating: false,
     hipBob: 0,
     idleTime: 0,
+    ducking: false,
+    duckAmt: 0,
+    hangBox: -1,
+    hangDir: 1,
+    climbT: 0,
+    climbFromX: 0,
+    climbFromY: 0,
+    climbToX: 0,
+    climbToY: 0,
   };
   window.addEventListener("resize", resizeCanvas);
 
@@ -328,7 +352,7 @@
   const CAPE_SEGMENTS = 6;
   const CAPE_SEG_LEN = 16;
   const CAPE_STRANDS = 3; // front edge, middle, back edge
-  const CAPE_LATERAL_REST = 9; // constant spacing between adjacent anchors (local space)
+  const CAPE_LATERAL_REST = 15; // constant spacing between adjacent anchors (local space)
   const CAPE_ANCHOR_OFFSET_X = [-3, -3 - CAPE_LATERAL_REST, -3 - CAPE_LATERAL_REST * 2];
   const CAPE_ANCHOR_OFFSET_Y = [-2, 0, 2];
   let capeStrands = []; // each: array of {x,y,ox,oy,pin}
@@ -407,14 +431,56 @@
     dt = Math.min(dt, 1 / 30);
     const left = pressed(KEY_LEFT);
     const right = pressed(KEY_RIGHT);
+    const down = pressed(KEY_DOWN);
     const jump = pressed(KEY_JUMP);
     const jumpEdge = jump && !character.jumpHeld;
     character.jumpHeld = jump;
+
+    // hanging from a grabbed ledge: frozen in place until the player either
+    // climbs up (jump key) or lets go and drops (down key)
+    if (character.state === "hang") {
+      if (jumpEdge) {
+        const b = boxes[character.hangBox];
+        const boxTop = GROUND_LEVEL_Y - b.h;
+        character.state = "climb";
+        character.climbT = 0;
+        character.climbFromX = character.worldX;
+        character.climbFromY = character.footWorldY;
+        character.climbToX = character.hangDir > 0 ? b.x + 18 : b.x + b.w - 18;
+        character.climbToY = boxTop;
+      } else if (down) {
+        character.state = "air";
+      }
+      return;
+    }
+
+    // climbing: a short scripted animation pulling the character up onto the
+    // ledge it was hanging from, ignoring normal input until it completes
+    if (character.state === "climb") {
+      character.climbT += dt;
+      const p = Math.min(1, character.climbT / 0.45);
+      const ease = p * p * (3 - 2 * p);
+      character.worldX = character.climbFromX + (character.climbToX - character.climbFromX) * ease;
+      character.footWorldY = character.climbFromY + (character.climbToY - character.climbFromY) * ease;
+      if (p >= 1) {
+        character.state = "stand";
+        character.baseGroundY = character.climbToY;
+      }
+      return;
+    }
+
+    // voluntary duck/crouch (held), separate from the pre-jump anticipation
+    // crouch — only while grounded, and it blocks jumping while held
+    character.ducking = character.state === "stand" && down;
+    const duckTarget = character.ducking ? 1 : 0;
+    character.duckAmt += (duckTarget - character.duckAmt) * Math.min(1, dt * 10);
 
     let input = 0;
     if (left) input -= 1;
     if (right) input += 1;
     character.accelerating = input !== 0;
+
+    const speedCap = character.ducking ? PHYS.maxSpeed * 0.4 : PHYS.maxSpeed;
 
     if (input !== 0) {
       character.vx += input * PHYS.accel * dt;
@@ -424,55 +490,86 @@
       character.vx -= sign * PHYS.friction * dt;
       if (Math.sign(character.vx) !== sign) character.vx = 0;
     }
-    character.vx = Math.max(-PHYS.maxSpeed, Math.min(PHYS.maxSpeed, character.vx));
+    character.vx = Math.max(-speedCap, Math.min(speedCap, character.vx));
 
     const prevX = character.worldX;
     let nextX = prevX + character.vx * dt;
     nextX = Math.max(40, Math.min(WORLD_W - 40, nextX));
-    const footYRef = character.state === "air" ? character.footWorldY : character.baseGroundY;
-    const resolvedX = resolveHorizontal(prevX, nextX, footYRef);
-    if (resolvedX !== nextX) character.vx = 0;
-    character.worldX = resolvedX;
 
-    const surfaceY = getSurfaceY(character.worldX);
-
-    if (character.state === "stand") {
-      if (surfaceY > character.baseGroundY + 0.5) {
-        // walked off a ledge
-        character.state = "air";
-        character.footWorldY = character.baseGroundY;
-        character.vy = 0;
-      } else {
-        character.baseGroundY = surfaceY;
-        if (jumpEdge) {
-          character.state = "crouch";
-          character.crouchT = 0;
-        } else {
-          character.phase += Math.abs(character.vx) * dt * PHYS.strideRate;
+    // ledge grab: while airborne, jumping into the side of a crate too tall
+    // to land on top of lets you grab and hang from its top edge instead of
+    // just bumping into the wall
+    let grabbed = false;
+    if (character.state === "air") {
+      for (let i = 0; i < boxes.length; i++) {
+        const b = boxes[i];
+        if (b.h < GRABBABLE_MIN_HEIGHT) continue;
+        const boxTop = GROUND_LEVEL_Y - b.h;
+        const crossesLeft = prevX <= b.x && nextX > b.x;
+        const crossesRight = prevX >= b.x + b.w && nextX < b.x + b.w;
+        if (!crossesLeft && !crossesRight) continue;
+        const rel = character.footWorldY - boxTop;
+        if (rel > 8 && rel < 70) {
+          character.state = "hang";
+          character.hangBox = i;
+          character.hangDir = crossesLeft ? 1 : -1;
+          character.worldX = crossesLeft ? b.x - 6 : b.x + b.w + 6;
+          character.footWorldY = boxTop + 58;
+          character.facing = character.hangDir;
+          character.vx = 0;
+          character.vy = 0;
+          grabbed = true;
+          break;
         }
       }
-    } else if (character.state === "crouch") {
-      character.crouchT += dt;
-      if (character.crouchT >= PHYS.crouchTime) {
-        character.vy = -PHYS.jumpVel;
-        character.state = "air";
-        character.airTime = 0;
-        character.footWorldY = character.baseGroundY;
+    }
+
+    if (!grabbed) {
+      const footYRef = character.state === "air" ? character.footWorldY : character.baseGroundY;
+      const resolvedX = resolveHorizontal(prevX, nextX, footYRef);
+      if (resolvedX !== nextX) character.vx = 0;
+      character.worldX = resolvedX;
+
+      const surfaceY = getSurfaceY(character.worldX);
+
+      if (character.state === "stand") {
+        if (surfaceY > character.baseGroundY + 0.5) {
+          // walked off a ledge
+          character.state = "air";
+          character.footWorldY = character.baseGroundY;
+          character.vy = 0;
+        } else {
+          character.baseGroundY = surfaceY;
+          if (jumpEdge && !character.ducking) {
+            character.state = "crouch";
+            character.crouchT = 0;
+          } else {
+            character.phase += Math.abs(character.vx) * dt * PHYS.strideRate;
+          }
+        }
+      } else if (character.state === "crouch") {
+        character.crouchT += dt;
+        if (character.crouchT >= PHYS.crouchTime) {
+          character.vy = -PHYS.jumpVel;
+          character.state = "air";
+          character.airTime = 0;
+          character.footWorldY = character.baseGroundY;
+        }
+      } else if (character.state === "air") {
+        character.vy += PHYS.gravity * dt;
+        const prevFootY = character.footWorldY;
+        const nextFootY = prevFootY + character.vy * dt;
+        if (character.vy >= 0 && prevFootY <= surfaceY + 0.5 && nextFootY >= surfaceY) {
+          character.footWorldY = surfaceY;
+          character.vy = 0;
+          character.state = "stand";
+          character.baseGroundY = surfaceY;
+          character.squash = 1.22;
+        } else {
+          character.footWorldY = nextFootY;
+        }
+        character.airTime += dt;
       }
-    } else if (character.state === "air") {
-      character.vy += PHYS.gravity * dt;
-      const prevFootY = character.footWorldY;
-      const nextFootY = prevFootY + character.vy * dt;
-      if (character.vy >= 0 && prevFootY <= surfaceY + 0.5 && nextFootY >= surfaceY) {
-        character.footWorldY = surfaceY;
-        character.vy = 0;
-        character.state = "stand";
-        character.baseGroundY = surfaceY;
-        character.squash = 1.22;
-      } else {
-        character.footWorldY = nextFootY;
-      }
-      character.airTime += dt;
     }
 
     // hip bob: rises only while BOTH feet are actually off the ground (a real
@@ -498,6 +595,30 @@
 
   // ---------- pose ----------
   function computePose() {
+    // hanging from a ledge: fixed pose with arms stretched up to the grip
+    // and legs relaxed and dangling (translate origin = footWorldY, which
+    // was placed 58px below the grabbed ledge, so the ledge is at y=-58)
+    if (character.state === "hang") {
+      const hip = { x: 4, y: 30 };
+      const shoulder = { x: 4, y: 30 - SK.torso };
+      const backHand = { x: 8, y: -54 };
+      const frontHand = { x: 14, y: -58 };
+      const backFoot = { x: -2, y: hip.y + 48 };
+      const frontFoot = { x: 6, y: hip.y + 55 };
+      return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean: 0, scratchEnvelope: 0 };
+    }
+    // climbing: a fixed "pulling up and over the ledge" pose while the
+    // scripted climb animation carries footWorldY up onto the box top
+    if (character.state === "climb") {
+      const hip = { x: 6, y: -10 };
+      const shoulder = { x: 8, y: -10 - SK.torso * 0.9 };
+      const backHand = { x: 14, y: -46 };
+      const frontHand = { x: 20, y: -50 };
+      const backFoot = { x: -4, y: 10 };
+      const frontFoot = { x: 10, y: 4 };
+      return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean: 0, scratchEnvelope: 0 };
+    }
+
     const speedRatio = Math.min(1, Math.abs(character.vx) / PHYS.maxSpeed);
     const crouching = character.state === "crouch";
     const airborne = character.state === "air";
@@ -511,6 +632,9 @@
     if (crouching) {
       const p = Math.min(1, character.crouchT / PHYS.crouchTime);
       crouchAmt = Math.sin(p * Math.PI * 0.5) * SK.crouchDepth;
+    } else if (character.duckAmt > 0) {
+      // voluntary held duck/crouch, distinct from the pre-jump squat above
+      crouchAmt = character.duckAmt * SK.crouchDepth * 0.85;
     }
 
     // running crouch: a small constant knee bend baked into the hip height
@@ -909,6 +1033,12 @@
     ctx.quadraticCurveTo(hip.x + SK.shoulderW * 0.3, (hip.y + shoulder.y) / 2, hip.x + SK.hipW * 0.5, hip.y);
     ctx.closePath();
     ctx.fill();
+
+    // glute bulge: a rounded protrusion on the trailing (back) side of the
+    // hip so the silhouette doesn't read as flat-backed
+    ctx.beginPath();
+    ctx.ellipse(hip.x - SK.hipW * 0.4, hip.y - 5, SK.hipW * 0.5, 13, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // face: kept small and mostly shadowed by the hood, but with enough
@@ -943,23 +1073,24 @@
   }
 
   function drawHood(headC, shoulder, facing) {
-    // a cowl that fully wraps the head — only a small, recessed face
-    // opening breaks through, kept deliberately more hidden than the head
+    // a cowl that wraps the head closely — only a small, recessed face
+    // opening breaks through, kept deliberately more hidden than the head,
+    // but sized close to the actual head rather than ballooning past it
     const r = SK.headR;
-    const g = ctx.createLinearGradient(0, headC.y - r * 1.8, 0, headC.y + r * 1.8);
+    const g = ctx.createLinearGradient(0, headC.y - r * 1.4, 0, headC.y + r * 1.4);
     g.addColorStop(0, PAL.hood);
     g.addColorStop(1, PAL.hoodShade);
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.ellipse(headC.x, headC.y - r * 0.1, r * 1.65, r * 1.8, 0, 0, Math.PI * 2);
+    ctx.ellipse(headC.x, headC.y - r * 0.1, r * 1.28, r * 1.38, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // drape connecting the cowl down onto the shoulders/collar
     ctx.beginPath();
     ctx.moveTo(shoulder.x - SK.shoulderW * 0.6, shoulder.y + 4);
-    ctx.quadraticCurveTo(headC.x - r * 1.6, headC.y + r * 0.9, headC.x - r * 1.2, headC.y + r * 0.35);
-    ctx.lineTo(headC.x + r * 1.2, headC.y + r * 0.35);
-    ctx.quadraticCurveTo(headC.x + r * 1.6, headC.y + r * 0.9, shoulder.x + SK.shoulderW * 0.6, shoulder.y + 4);
+    ctx.quadraticCurveTo(headC.x - r * 1.25, headC.y + r * 0.7, headC.x - r * 0.95, headC.y + r * 0.3);
+    ctx.lineTo(headC.x + r * 0.95, headC.y + r * 0.3);
+    ctx.quadraticCurveTo(headC.x + r * 1.25, headC.y + r * 0.7, shoulder.x + SK.shoulderW * 0.6, shoulder.y + 4);
     ctx.closePath();
     ctx.fill();
 
@@ -968,7 +1099,7 @@
     const faceC = { x: headC.x + r * 0.05, y: headC.y + r * 0.28 };
     ctx.fillStyle = PAL.hoodShade;
     ctx.beginPath();
-    ctx.ellipse(faceC.x, faceC.y, r * 1.0, r * 1.1, 0, 0, Math.PI * 2);
+    ctx.ellipse(faceC.x, faceC.y, r * 0.85, r * 0.92, 0, 0, Math.PI * 2);
     ctx.fill();
 
     drawHead(faceC, 0.8);
