@@ -13,7 +13,7 @@ https://hofmiker.github.io/Claude_Test/arkanoid/
 - Punktezähler, Highscore in `localStorage`, Sieg-Screen bei restlosem Abräumen aller Steine
 
 ## Steuerung
-Maus bewegen oder ←/→ zum Steuern des Schlägers, Leertaste/Klick zum Starten bzw. Ball loslassen.
+Maus bewegen, Finger ziehen oder ←/→ zum Steuern des Schlägers, Leertaste/Klick/Tippen zum Starten bzw. Ball loslassen. Canvas skaliert responsiv (`max-width`/`max-height` + `touch-action: none`) für mobile Bildschirme.
 
 ## Tech-Stack
 - Reines Canvas 2D + Vanilla JS, kein Build-Schritt, keine Abhängigkeiten
