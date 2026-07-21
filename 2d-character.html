@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>2D Charakter mit Gelenken</title>
 <style>
   html, body {
@@ -37,12 +37,12 @@
   #hud b { color: #ffd97a; }
   #touch-controls {
     position: absolute;
-    bottom: 22px;
+    bottom: calc(22px + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
     display: flex;
     justify-content: space-between;
-    padding: 0 24px;
+    padding: 0 calc(24px + env(safe-area-inset-right)) 0 calc(24px + env(safe-area-inset-left));
     pointer-events: none;
   }
   .touch-btn {
@@ -116,6 +116,10 @@
     const set = (v) => (e) => { e.preventDefault(); keys[code] = v; };
     el.addEventListener("touchstart", set(true), { passive: false });
     el.addEventListener("touchend", set(false), { passive: false });
+    // touchcancel fires when the OS interrupts the touch (finger slides off,
+    // a notification/gesture takes over) — without this the key would stay
+    // stuck "down" forever since touchend never fires in that case
+    el.addEventListener("touchcancel", set(false), { passive: false });
     el.addEventListener("mousedown", set(true));
     el.addEventListener("mouseup", set(false));
     el.addEventListener("mouseleave", set(false));
@@ -123,6 +127,14 @@
   bindTouch("btn-left", "ArrowLeft");
   bindTouch("btn-right", "ArrowRight");
   bindTouch("btn-jump", "Space");
+
+  // touch devices don't have a keyboard, so show the on-screen control hint
+  // instead of key names
+  const isTouchDevice = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+  if (isTouchDevice) {
+    document.getElementById("hud").innerHTML =
+      '<b>&larr; &rarr;</b> laufen &nbsp;&nbsp; <b>&uarr;</b> springen';
+  }
 
   function pressed(list) { return list.some((k) => keys[k]); }
 
