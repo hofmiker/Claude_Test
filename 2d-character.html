@@ -62,11 +62,32 @@
   }
   .touch-btn:active { background: rgba(255,255,255,0.3); }
   #left-pad { display: flex; gap: 10px; }
+  #btn-light {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    pointer-events: auto;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #btn-light.active {
+    background: rgba(255,210,120,0.4);
+    border-color: rgba(255,210,120,0.8);
+  }
 </style>
 </head>
 <body>
 <div id="stage">
   <div id="hud"><b>&larr; A / D &rarr;</b> laufen &nbsp;&nbsp; <b>Leertaste / W / &uarr;</b> springen</div>
+  <button id="btn-light">💡 Charakter beleuchten</button>
   <canvas id="c"></canvas>
   <div id="touch-controls">
     <div id="left-pad">
@@ -139,6 +160,14 @@
   bindTouch("btn-right", "ArrowRight");
   bindTouch("btn-jump", "Space");
 
+  // ---------- character spotlight toggle ----------
+  let characterLit = false;
+  const lightBtn = document.getElementById("btn-light");
+  lightBtn.addEventListener("click", () => {
+    characterLit = !characterLit;
+    lightBtn.classList.toggle("active", characterLit);
+  });
+
   // touch devices don't have a keyboard, so show the on-screen control hint
   // instead of key names
   const isTouchDevice = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
@@ -172,7 +201,7 @@
 
   // ---------- physics constants ----------
   const PHYS = {
-    accel: 2800,
+    accel: 1450,
     maxSpeed: 300,
     friction: 2300,
     gravity: 2300,
@@ -213,6 +242,24 @@
     headShade: "#0a0a0c",
     headHilite: "#2e3038",
   };
+
+  // Warm, lit palette swapped in while the "Charakter beleuchten" spotlight
+  // is toggled on — multiplying the near-black base colors by a brightness
+  // filter barely shows, so a dedicated lit palette is used instead
+  const COL_LIT = {
+    limbBack: "#5a4d3e",
+    limbFront: "#6e6050",
+    torsoTop: "#6b5c48",
+    torsoBottom: "#453a2c",
+    capeTop: "#5a4d3e",
+    capeBottom: "#2c2419",
+    hood: "#5a4d3e",
+    hoodShade: "#2c2419",
+    headBase: "#d9ac74",
+    headShade: "#9a7748",
+    headHilite: "#f2dcae",
+  };
+  let PAL = COL;
 
   // ---------- boxes to jump on ----------
   const boxes = [
@@ -595,6 +642,7 @@
     ctx.scale(ZOOM, ZOOM);
 
     drawBackground();
+    drawCeilingLights();
     drawParallax();
     drawBoxes();
     drawShadow();
@@ -636,14 +684,28 @@
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
+    // swap in the warm lit palette and draw a soft halo behind the figure
+    // while the "Charakter beleuchten" spotlight is toggled on
+    PAL = characterLit ? COL_LIT : COL;
+    if (characterLit) {
+      const glowY = (hip.y + shoulder.y) / 2;
+      const glow = ctx.createRadialGradient(0, glowY, 8, 0, glowY, 110);
+      glow.addColorStop(0, "rgba(255,232,180,0.55)");
+      glow.addColorStop(1, "rgba(255,232,180,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, glowY, 110, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     drawCape(facing);
-    drawLimb(hip, backLegIK, COL.limbBack, 9, true);
-    drawLimb(shoulder, backArmIK, COL.limbBack, 6, false);
+    drawLimb(hip, backLegIK, PAL.limbBack, 9, true);
+    drawLimb(shoulder, backArmIK, PAL.limbBack, 6, false);
 
     drawTorso(hip, shoulder);
 
-    drawLimb(hip, frontLegIK, COL.limbFront, 10, true);
-    drawLimb(shoulder, frontArmIK, COL.limbFront, 7, false);
+    drawLimb(hip, frontLegIK, PAL.limbFront, 10, true);
+    drawLimb(shoulder, frontArmIK, PAL.limbFront, 7, false);
 
     drawHood(headCenter, shoulder, facing);
 
@@ -654,22 +716,73 @@
   }
 
   function drawBackground() {
-    // dim, half-lit warehouse interior rather than an open sky
+    // half-lit warehouse interior, brightened by the ceiling lights below
     const g = ctx.createLinearGradient(0, 0, 0, LVIEW_H);
-    g.addColorStop(0, "#0c0e13");
-    g.addColorStop(0.6, "#171a22");
-    g.addColorStop(1, "#2b2f38");
+    g.addColorStop(0, "#242835");
+    g.addColorStop(0.6, "#363c4c");
+    g.addColorStop(1, "#565f76");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, LVIEW_W, LVIEW_H);
 
-    ctx.fillStyle = "#1b1d22";
+    ctx.fillStyle = "#33363f";
     ctx.fillRect(0, GROUND_LEVEL_Y + 2, LVIEW_W, LVIEW_H - GROUND_LEVEL_Y - 2);
-    ctx.strokeStyle = "rgba(255,255,255,0.10)";
+    ctx.strokeStyle = "rgba(255,255,255,0.14)";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(0, GROUND_LEVEL_Y + 2);
     ctx.lineTo(LVIEW_W, GROUND_LEVEL_Y + 2);
     ctx.stroke();
+  }
+
+  // ---------- ceiling lights ----------
+  // hanging lamp fixtures with a warm glow and a soft light cone/pool on the
+  // floor, spaced along the world so the hall reads as lit rather than dark
+  const LAMP_SPACING = 520;
+  function drawCeilingLights() {
+    const startI = Math.floor(cameraX / LAMP_SPACING) - 1;
+    const endI = Math.floor((cameraX + LVIEW_W) / LAMP_SPACING) + 1;
+    for (let i = startI; i <= endI; i++) {
+      const wx = i * LAMP_SPACING + LAMP_SPACING / 2;
+      const sx = wx - cameraX;
+      if (sx < -120 || sx > LVIEW_W + 120) continue;
+      const lampY = 20;
+
+      const cone = ctx.createLinearGradient(0, lampY, 0, GROUND_LEVEL_Y);
+      cone.addColorStop(0, "rgba(255,244,210,0.22)");
+      cone.addColorStop(1, "rgba(255,244,210,0)");
+      ctx.fillStyle = cone;
+      ctx.beginPath();
+      ctx.moveTo(sx, lampY);
+      ctx.lineTo(sx - 95, GROUND_LEVEL_Y);
+      ctx.lineTo(sx + 95, GROUND_LEVEL_Y);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255,244,210,0.14)";
+      ctx.beginPath();
+      ctx.ellipse(sx, GROUND_LEVEL_Y, 85, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(0,0,0,0.5)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(sx, 0);
+      ctx.lineTo(sx, lampY);
+      ctx.stroke();
+
+      ctx.fillStyle = "#3a3a34";
+      ctx.beginPath();
+      ctx.ellipse(sx, lampY, 16, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const bulbGlow = ctx.createRadialGradient(sx, lampY + 4, 2, sx, lampY + 4, 30);
+      bulbGlow.addColorStop(0, "rgba(255,247,220,0.95)");
+      bulbGlow.addColorStop(1, "rgba(255,247,220,0)");
+      ctx.fillStyle = bulbGlow;
+      ctx.beginPath();
+      ctx.arc(sx, lampY + 4, 30, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   // deterministic pseudo-random 0..1 from an integer index (no Math.random so
@@ -698,10 +811,10 @@
   }
 
   function drawParallax() {
-    // two dim, slow-scrolling layers of crates (and the odd support pillar)
+    // two slow-scrolling layers of crates (and the odd support pillar)
     // stacked in the warehouse behind the interactive foreground boxes
-    drawParallaxLayer(0.15, 170, 70, 150, "#14161c", 0.03, 4);
-    drawParallaxLayer(0.4, 120, 45, 100, "#1b1e26", 0.05, 0);
+    drawParallaxLayer(0.15, 170, 70, 150, "#282c36", 0.05, 4);
+    drawParallaxLayer(0.4, 120, 45, 100, "#333847", 0.07, 0);
   }
 
   function drawBoxes() {
@@ -748,9 +861,9 @@
     const cx = (character.worldX - cameraX) * ZOOM;
     const cy = character.footWorldY * ZOOM - VIEW_H * 0.15;
     const r = Math.max(VIEW_W, VIEW_H) * 0.75;
-    const g = ctx.createRadialGradient(cx, cy, r * 0.25, cx, cy, r);
+    const g = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r);
     g.addColorStop(0, "rgba(0,0,0,0)");
-    g.addColorStop(1, "rgba(0,0,0,0.4)");
+    g.addColorStop(1, characterLit ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.22)");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
   }
@@ -786,8 +899,8 @@
 
   function drawTorso(hip, shoulder) {
     const g = ctx.createLinearGradient(0, shoulder.y, 0, hip.y);
-    g.addColorStop(0, COL.torsoTop);
-    g.addColorStop(1, COL.torsoBottom);
+    g.addColorStop(0, PAL.torsoTop);
+    g.addColorStop(1, PAL.torsoBottom);
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.moveTo(hip.x - SK.hipW * 0.5, hip.y);
@@ -803,7 +916,7 @@
   function drawHead(c, scale) {
     scale = scale || 1;
     const rx = SK.headR * scale, ry = SK.headR * 1.15 * scale;
-    ctx.fillStyle = COL.headBase;
+    ctx.fillStyle = PAL.headBase;
     ctx.beginPath();
     ctx.ellipse(c.x, c.y, rx, ry, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -814,13 +927,13 @@
     ctx.fill();
 
     // brow/eye-socket shadow
-    ctx.fillStyle = COL.headShade;
+    ctx.fillStyle = PAL.headShade;
     ctx.beginPath();
     ctx.ellipse(c.x + rx * 0.35, c.y - ry * 0.08, rx * 0.3, ry * 0.2, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // nose
-    ctx.fillStyle = COL.headHilite;
+    ctx.fillStyle = PAL.headHilite;
     ctx.beginPath();
     ctx.moveTo(c.x + rx * 0.82, c.y - ry * 0.05);
     ctx.lineTo(c.x + rx * 1.22, c.y + ry * 0.15);
@@ -834,8 +947,8 @@
     // opening breaks through, kept deliberately more hidden than the head
     const r = SK.headR;
     const g = ctx.createLinearGradient(0, headC.y - r * 1.8, 0, headC.y + r * 1.8);
-    g.addColorStop(0, COL.hood);
-    g.addColorStop(1, COL.hoodShade);
+    g.addColorStop(0, PAL.hood);
+    g.addColorStop(1, PAL.hoodShade);
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.ellipse(headC.x, headC.y - r * 0.1, r * 1.65, r * 1.8, 0, 0, Math.PI * 2);
@@ -853,7 +966,7 @@
     // recessed shadow ring framing the face, then the (smaller, tucked-in)
     // face itself on top
     const faceC = { x: headC.x + r * 0.05, y: headC.y + r * 0.28 };
-    ctx.fillStyle = COL.hoodShade;
+    ctx.fillStyle = PAL.hoodShade;
     ctx.beginPath();
     ctx.ellipse(faceC.x, faceC.y, r * 1.0, r * 1.1, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -870,8 +983,8 @@
       const a = capeStrands[s];
       const b = capeStrands[s + 1];
       const grad = ctx.createLinearGradient(0, a[0].y, 0, a[a.length - 1].y);
-      grad.addColorStop(0, COL.capeTop);
-      grad.addColorStop(1, COL.capeBottom);
+      grad.addColorStop(0, PAL.capeTop);
+      grad.addColorStop(1, PAL.capeBottom);
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.moveTo(a[0].x, a[0].y);
