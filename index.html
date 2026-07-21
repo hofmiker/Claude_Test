@@ -7,17 +7,38 @@
     <style>
         body {
             margin: 0;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             background-color: white;
             font-family: Georgia, "Times New Roman", serif;
+        }
+        p {
             font-size: 3rem;
+            margin: 0 0 1.5rem;
+        }
+        nav a {
+            display: inline-block;
+            margin: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            font-size: 1.2rem;
+            text-decoration: none;
+            color: #fff;
+            background: #333;
+            border-radius: 6px;
+        }
+        nav a:hover {
+            background: #555;
         }
     </style>
 </head>
 <body>
     <p>Hallo</p>
+    <nav>
+        <a href="flappy.html">Flappy Klon</a>
+        <a href="arkanoid.html">Arkanoid Klon</a>
+    </nav>
 </body>
 </html>
