@@ -18,6 +18,7 @@
 | `cape-character/` | Cape Character — 2D-IK-Charakter mit Umhang & Kapuze | `.../cape-character/` |
 | `flappy/` | Flappy Klon — Flappy-Bird-artiges Arcade-Spiel | `.../flappy/` |
 | `arkanoid/` | Arkanoid Klon — Breakout-artiges Arcade-Spiel | `.../arkanoid/` |
+| `toy-box-rescue/` | Toy Box Rescue — 2D-Fangspiel im Kinderzimmer | `.../toy-box-rescue/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
 **Base-URL:** https://hofmiker.github.io/Claude_Test/
