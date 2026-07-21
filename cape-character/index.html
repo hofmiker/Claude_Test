@@ -86,15 +86,26 @@
 
   const WORLD_W = 3600;
 
-  // ---------- fullscreen canvas ----------
-  let VIEW_W, VIEW_H, GROUND_LEVEL_Y;
+  // ---------- fullscreen canvas + device-aware zoom ----------
+  // Tablets (touch + a short side wide enough to not be a phone) get a
+  // closer camera: the same VIEW_W screen pixels show fewer world units.
+  let VIEW_W, VIEW_H, LVIEW_W, LVIEW_H, GROUND_LEVEL_Y, ZOOM;
+  function computeZoom() {
+    const isTouch = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+    const shortSide = Math.min(window.innerWidth, window.innerHeight);
+    const isTablet = isTouch && shortSide >= 560;
+    return isTablet ? 1.5 : 1;
+  }
   function resizeCanvas() {
     const prevGL = GROUND_LEVEL_Y;
     VIEW_W = window.innerWidth;
     VIEW_H = window.innerHeight;
     canvas.width = VIEW_W;
     canvas.height = VIEW_H;
-    GROUND_LEVEL_Y = VIEW_H - 90;
+    ZOOM = computeZoom();
+    LVIEW_W = VIEW_W / ZOOM;
+    LVIEW_H = VIEW_H / ZOOM;
+    GROUND_LEVEL_Y = LVIEW_H - 90;
     if (prevGL !== undefined && typeof character !== "undefined") {
       const delta = GROUND_LEVEL_Y - prevGL;
       character.baseGroundY += delta;
@@ -180,12 +191,27 @@
     shoulderDrop: 4,
     upperLeg: 34,
     lowerLeg: 32,
-    footLen: 15,
+    footLen: 12,
     upperArm: 26,
     lowerArm: 25,
     hipW: 20,
     shoulderW: 24,
     crouchDepth: 26,
+  };
+
+  // Monochrome "black with shading" palette
+  const COL = {
+    limbBack: "#0a0a0d",
+    limbFront: "#1d1e22",
+    torsoTop: "#1a1b20",
+    torsoBottom: "#08090b",
+    capeTop: "#0c0c10",
+    capeBottom: "#020203",
+    hood: "#111116",
+    hoodShade: "#050506",
+    headBase: "#1c1d22",
+    headShade: "#0a0a0c",
+    headHilite: "#2e3038",
   };
 
   // ---------- boxes to jump on ----------
@@ -241,13 +267,14 @@
     squash: 1,
     accelerating: false,
     hipBob: 0,
+    idleTime: 0,
   };
   window.addEventListener("resize", resizeCanvas);
 
   let cameraX = 0;
   function updateCamera() {
-    cameraX = character.worldX - VIEW_W / 2;
-    cameraX = Math.max(0, Math.min(Math.max(0, WORLD_W - VIEW_W), cameraX));
+    cameraX = character.worldX - LVIEW_W / 2;
+    cameraX = Math.max(0, Math.min(Math.max(0, WORLD_W - LVIEW_W), cameraX));
   }
 
   // ---------- cape (verlet cloth: a few hanging chains filled in between) ----------
@@ -415,14 +442,23 @@
     character.hipBob += (bobTarget - character.hipBob) * Math.min(1, dt * 18);
 
     character.squash += (1 - character.squash) * Math.min(1, dt * 10);
+
+    // idle timer: only accumulates while genuinely standing still with no
+    // input, so we can trigger a little head-scratch fidget after a while
+    const isIdle = character.state === "stand" && Math.abs(character.vx) < 1 && !character.accelerating;
+    character.idleTime = isIdle ? character.idleTime + dt : 0;
   }
 
   // ---------- pose ----------
   function computePose() {
     const speedRatio = Math.min(1, Math.abs(character.vx) / PHYS.maxSpeed);
-    const running = speedRatio > 0.03 && character.state === "stand";
     const crouching = character.state === "crouch";
     const airborne = character.state === "air";
+
+    // smoothstep ramp so standing->running (stride, arm pump, running crouch)
+    // eases in gradually instead of snapping the moment the character moves
+    const runRamp = Math.min(1, speedRatio / 0.5);
+    const runEase = runRamp * runRamp * (3 - 2 * runRamp);
 
     let crouchAmt = 0;
     if (crouching) {
@@ -430,25 +466,39 @@
       crouchAmt = Math.sin(p * Math.PI * 0.5) * SK.crouchDepth;
     }
 
+    // running crouch: a small constant knee bend baked into the hip height
+    // whenever running, so the stance leg never straightens all the way out
+    // and reads as running rather than walking
+    const runCrouch = (!airborne && !crouching) ? 20 * runEase : 0;
+
     // hip bob is precomputed in update() from the actual stance/swing state of
     // both feet, so it rises only during a genuine both-feet-off flight phase
-    const hipY = SK.hipY + crouchAmt + character.hipBob;
+    const hipY = SK.hipY + crouchAmt + character.hipBob + runCrouch;
     const hipX = 0;
 
     // lean uses forward speed (vx * facing, not raw vx) so a left-facing run
     // leans the same way relative to travel as a right-facing run does.
-    // Accelerating from a stop leans harder than cruising at steady speed,
-    // and the jump lean is likewise stronger than the running lean.
+    // Accelerating from a stop leans harder than cruising at steady speed.
+    // The jump lean is asymmetric: strong forward lean while rising, but
+    // only a mild backward lean while falling so it doesn't look like it's
+    // toppling over right before landing.
     const forwardSpeed = character.vx * character.facing;
     const cruiseLean = (forwardSpeed / PHYS.maxSpeed) * 7;
     const accelLean = (character.accelerating && !airborne && !crouching) ? (1 - speedRatio) * 11 : 0;
-    const airLean = airborne ? -Math.max(-1, Math.min(1, character.vy / PHYS.jumpVel)) * 13 : 0;
+    const vyRatio = airborne ? Math.max(-1, Math.min(1, character.vy / PHYS.jumpVel)) : 0;
+    const airLean = airborne ? -vyRatio * (vyRatio < 0 ? 13 : 5) : 0;
     const lean = crouching ? 0 : cruiseLean + accelLean + airLean;
     const shoulderX = hipX + lean;
     const shoulderY = hipY - SK.torso + crouchAmt * 0.35;
 
-    const strideLen = running ? 30 * speedRatio : 0;   // half-stride reach
-    const heelLift = running ? 44 * speedRatio : 0;    // swing-leg heel-to-glute tuck height
+    const strideLen = 30 * runEase;  // half-stride reach
+    const heelLift = 44 * runEase;   // swing-leg heel-to-glute tuck height
+
+    // idle fidget: after standing still for a while, scratch the head for a
+    // couple of seconds, then settle back down (repeats periodically)
+    const idleCycle = character.idleTime % 14;
+    const scratchWindow = idleCycle > 10 && idleCycle < 12.4;
+    const scratchEnvelope = scratchWindow ? Math.sin(((idleCycle - 10) / 2.4) * Math.PI) : 0;
 
     function footTarget(sign) {
       if (airborne) {
@@ -498,16 +548,31 @@
       if (crouching) {
         return { x: shoulderX + sign * (SK.shoulderW * 0.5) - 4, y: shoulderY + bentHang * 0.8 };
       }
-      if (!running) {
-        return { x: shoulderX + sign * (SK.shoulderW * 0.6), y: shoulderY + (SK.upperArm + SK.lowerArm) * 0.86 };
-      }
-      // running: bent-elbow arm pump, swinging opposite the same-side leg
+
+      const idleX = shoulderX + sign * (SK.shoulderW * 0.6);
+      const idleY = shoulderY + (SK.upperArm + SK.lowerArm) * 0.86;
+
+      // running: a toned-down bent-elbow arm pump, swinging opposite the
+      // same-side leg (kept subtle per feedback that it moved too much)
       const t = character.phase + (sign > 0 ? Math.PI : 0);
-      const swing = Math.sin(t) * (strideLen * 1.1);
-      return {
-        x: shoulderX + sign * (SK.shoulderW * 0.35) + swing,
-        y: shoulderY + bentHang - Math.max(0, -Math.cos(t)) * 12,
-      };
+      const swing = Math.sin(t) * (strideLen * 0.55);
+      const runX = shoulderX + sign * (SK.shoulderW * 0.35) + swing;
+      const runY = shoulderY + bentHang - Math.max(0, -Math.cos(t)) * 8;
+
+      let x = idleX + (runX - idleX) * runEase;
+      let y = idleY + (runY - idleY) * runEase;
+
+      // idle head-scratch: only the front arm reaches up, blended on top of
+      // whatever the idle/run pose already is
+      if (sign > 0 && scratchEnvelope > 0) {
+        const wiggle = Math.sin(character.idleTime * 14) * 3 * scratchEnvelope;
+        const scratchX = shoulderX + SK.shoulderW * 0.1 + wiggle;
+        const scratchY = shoulderY - SK.torso * 0.85;
+        x += (scratchX - x) * scratchEnvelope;
+        y += (scratchY - y) * scratchEnvelope;
+      }
+
+      return { x, y };
     }
 
     const backFoot = footTarget(-1);
@@ -518,14 +583,19 @@
     const hip = { x: hipX, y: hipY };
     const shoulder = { x: shoulderX, y: shoulderY };
 
-    return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean };
+    return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean, scratchEnvelope };
   }
 
   // ---------- draw ----------
   function draw() {
     ctx.clearRect(0, 0, VIEW_W, VIEW_H);
     updateCamera();
+
+    ctx.save();
+    ctx.scale(ZOOM, ZOOM);
+
     drawBackground();
+    drawParallax();
     drawBoxes();
     drawShadow();
 
@@ -550,7 +620,7 @@
     const frontArmIK = solveIK(shoulder.x, shoulder.y, frontHandTarget.x, frontHandTarget.y, SK.upperArm, SK.lowerArm, -1);
 
     const neckPt = { x: shoulder.x, y: shoulder.y - SK.neck };
-    const headCenter = { x: neckPt.x + pose.lean * 0.3, y: neckPt.y - SK.headR - 2 };
+    const headCenter = { x: neckPt.x + pose.lean * 0.3, y: neckPt.y - SK.headR - 2 + pose.scratchEnvelope * 1.5 };
 
     const capeAnchorsLocal = CAPE_ANCHOR_OFFSET_X.map((ox, s) => ({
       x: shoulder.x + ox,
@@ -567,52 +637,89 @@
     ctx.lineJoin = "round";
 
     drawCape(facing);
-    drawLimb(hip, backLegIK, "#3a3f52", 11, true);
-    drawLimb(shoulder, backArmIK, "#3a3f52", 8, false);
+    drawLimb(hip, backLegIK, COL.limbBack, 9, true);
+    drawLimb(shoulder, backArmIK, COL.limbBack, 6, false);
 
     drawTorso(hip, shoulder);
 
-    drawLimb(hip, frontLegIK, "#4d5570", 12, true);
-    drawLimb(shoulder, frontArmIK, "#4d5570", 9, false);
+    drawLimb(hip, frontLegIK, COL.limbFront, 10, true);
+    drawLimb(shoulder, frontArmIK, COL.limbFront, 7, false);
 
     drawHood(headCenter, shoulder, facing);
 
     ctx.restore();
+    ctx.restore();
+
+    drawVignette();
   }
 
   function drawBackground() {
-    const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
-    g.addColorStop(0, "#1b2735");
-    g.addColorStop(1, "#4a5a72");
+    // dim, half-lit warehouse interior rather than an open sky
+    const g = ctx.createLinearGradient(0, 0, 0, LVIEW_H);
+    g.addColorStop(0, "#0c0e13");
+    g.addColorStop(0.6, "#171a22");
+    g.addColorStop(1, "#2b2f38");
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    ctx.fillRect(0, 0, LVIEW_W, LVIEW_H);
 
-    ctx.fillStyle = "#232a36";
-    ctx.fillRect(0, GROUND_LEVEL_Y + 2, VIEW_W, VIEW_H - GROUND_LEVEL_Y - 2);
-    ctx.strokeStyle = "rgba(255,255,255,0.15)";
+    ctx.fillStyle = "#1b1d22";
+    ctx.fillRect(0, GROUND_LEVEL_Y + 2, LVIEW_W, LVIEW_H - GROUND_LEVEL_Y - 2);
+    ctx.strokeStyle = "rgba(255,255,255,0.10)";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(0, GROUND_LEVEL_Y + 2);
-    ctx.lineTo(VIEW_W, GROUND_LEVEL_Y + 2);
+    ctx.lineTo(LVIEW_W, GROUND_LEVEL_Y + 2);
     ctx.stroke();
+  }
+
+  // deterministic pseudo-random 0..1 from an integer index (no Math.random so
+  // the layout doesn't jitter frame to frame)
+  function hashTile(i) {
+    const v = Math.sin(i * 12.9898) * 43758.5453;
+    return v - Math.floor(v);
+  }
+
+  function drawParallaxLayer(depth, tileW, minH, maxH, color, topAlpha, pillarEvery) {
+    const scroll = cameraX * depth;
+    const startTile = Math.floor(scroll / tileW) - 1;
+    const endTile = Math.floor((scroll + LVIEW_W) / tileW) + 1;
+    for (let i = startTile; i <= endTile; i++) {
+      const isPillar = pillarEvery > 0 && ((i % pillarEvery) + pillarEvery) % pillarEvery === 0;
+      const seed = hashTile(i);
+      const w = isPillar ? tileW * 0.18 : tileW * 0.6 * (0.7 + seed * 0.3);
+      const h = isPillar ? maxH * 1.5 : minH + seed * (maxH - minH);
+      const x = i * tileW - scroll + (tileW - w) / 2;
+      const y = GROUND_LEVEL_Y - h;
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = `rgba(255,255,255,${topAlpha})`;
+      ctx.fillRect(x, y, w, 3);
+    }
+  }
+
+  function drawParallax() {
+    // two dim, slow-scrolling layers of crates (and the odd support pillar)
+    // stacked in the warehouse behind the interactive foreground boxes
+    drawParallaxLayer(0.15, 170, 70, 150, "#14161c", 0.03, 4);
+    drawParallaxLayer(0.4, 120, 45, 100, "#1b1e26", 0.05, 0);
   }
 
   function drawBoxes() {
     for (let i = 0; i < boxes.length; i++) {
       const b = boxes[i];
       const sx = b.x - cameraX;
-      if (sx + b.w < 0 || sx > VIEW_W) continue;
+      if (sx + b.w < 0 || sx > LVIEW_W) continue;
       const topY = GROUND_LEVEL_Y - b.h;
       const grad = ctx.createLinearGradient(0, topY, 0, GROUND_LEVEL_Y + 4);
-      grad.addColorStop(0, "#8a6a4a");
-      grad.addColorStop(1, "#4d3826");
+      grad.addColorStop(0, "#7a5d40");
+      grad.addColorStop(1, "#40301f");
       ctx.fillStyle = grad;
       ctx.fillRect(sx, topY, b.w, GROUND_LEVEL_Y + 4 - topY);
 
-      ctx.fillStyle = "rgba(255,255,255,0.14)";
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
       ctx.fillRect(sx, topY, b.w, 5);
 
-      ctx.strokeStyle = "rgba(0,0,0,0.28)";
+      ctx.strokeStyle = "rgba(0,0,0,0.32)";
       ctx.lineWidth = 2;
       ctx.strokeRect(sx + 3, topY + 3, b.w - 6, GROUND_LEVEL_Y - topY - 6);
       ctx.beginPath();
@@ -629,12 +736,23 @@
     const heightAbove = Math.max(0, groundBelow - character.footWorldY);
     const shadowScreenX = character.worldX - cameraX;
     ctx.save();
-    ctx.globalAlpha = 0.35 * Math.max(0, 1 - heightAbove / 140);
+    ctx.globalAlpha = 0.4 * Math.max(0, 1 - heightAbove / 140);
     ctx.fillStyle = "#000";
     ctx.beginPath();
     ctx.ellipse(shadowScreenX, groundBelow + 6, 34 / Math.max(0.6, character.squash), 8, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+  }
+
+  function drawVignette() {
+    const cx = (character.worldX - cameraX) * ZOOM;
+    const cy = character.footWorldY * ZOOM - VIEW_H * 0.15;
+    const r = Math.max(VIEW_W, VIEW_H) * 0.75;
+    const g = ctx.createRadialGradient(cx, cy, r * 0.25, cx, cy, r);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, "rgba(0,0,0,0.4)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
   }
 
   function drawLimb(base, ik, color, width, isLeg) {
@@ -647,17 +765,30 @@
     ctx.stroke();
 
     if (isLeg) {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width * 0.85;
-      ctx.beginPath();
-      ctx.moveTo(ik.endX, ik.endY);
-      ctx.lineTo(ik.endX + SK.footLen, ik.endY + 2);
-      ctx.stroke();
+      drawFoot({ x: ik.endX, y: ik.endY }, color);
     }
   }
 
+  // a small angled shoe silhouette (heel, sole, toe kicked slightly up)
+  // instead of a thick straight stub
+  function drawFoot(ankle, color) {
+    const L = SK.footLen;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(ankle.x - 2, ankle.y - 4);
+    ctx.lineTo(ankle.x - 4, ankle.y + 3);
+    ctx.lineTo(ankle.x + L * 0.68, ankle.y + 4);
+    ctx.lineTo(ankle.x + L, ankle.y + 0.5);
+    ctx.lineTo(ankle.x + L * 0.7, ankle.y - 2.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   function drawTorso(hip, shoulder) {
-    ctx.fillStyle = "#565f7d";
+    const g = ctx.createLinearGradient(0, shoulder.y, 0, hip.y);
+    g.addColorStop(0, COL.torsoTop);
+    g.addColorStop(1, COL.torsoBottom);
+    ctx.fillStyle = g;
     ctx.beginPath();
     ctx.moveTo(hip.x - SK.hipW * 0.5, hip.y);
     ctx.quadraticCurveTo(hip.x - SK.shoulderW * 0.3, (hip.y + shoulder.y) / 2, shoulder.x - SK.shoulderW * 0.5, shoulder.y);
@@ -667,22 +798,45 @@
     ctx.fill();
   }
 
-  function drawHead(c) {
-    ctx.fillStyle = "#e7b98f";
+  // face: kept small and mostly shadowed by the hood, but with enough
+  // structure (brow shadow, nose, chin) to read as a face in silhouette
+  function drawHead(c, scale) {
+    scale = scale || 1;
+    const rx = SK.headR * scale, ry = SK.headR * 1.15 * scale;
+    ctx.fillStyle = COL.headBase;
     ctx.beginPath();
-    ctx.ellipse(c.x, c.y, SK.headR, SK.headR * 1.15, 0, 0, Math.PI * 2);
+    ctx.ellipse(c.x, c.y, rx, ry, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#2b2f3a";
+
+    // chin
     ctx.beginPath();
-    ctx.arc(c.x + SK.headR * 0.5, c.y - 1, 1.4, 0, Math.PI * 2);
+    ctx.ellipse(c.x + rx * 0.3, c.y + ry * 0.78, rx * 0.4, ry * 0.28, 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    // brow/eye-socket shadow
+    ctx.fillStyle = COL.headShade;
+    ctx.beginPath();
+    ctx.ellipse(c.x + rx * 0.35, c.y - ry * 0.08, rx * 0.3, ry * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // nose
+    ctx.fillStyle = COL.headHilite;
+    ctx.beginPath();
+    ctx.moveTo(c.x + rx * 0.82, c.y - ry * 0.05);
+    ctx.lineTo(c.x + rx * 1.22, c.y + ry * 0.15);
+    ctx.lineTo(c.x + rx * 0.8, c.y + ry * 0.3);
+    ctx.closePath();
     ctx.fill();
   }
 
   function drawHood(headC, shoulder, facing) {
-    // a cowl that fully wraps the head — only a face opening (drawn on top,
-    // shifted slightly toward the front) breaks through the fabric
+    // a cowl that fully wraps the head — only a small, recessed face
+    // opening breaks through, kept deliberately more hidden than the head
     const r = SK.headR;
-    ctx.fillStyle = "#4a2f52";
+    const g = ctx.createLinearGradient(0, headC.y - r * 1.8, 0, headC.y + r * 1.8);
+    g.addColorStop(0, COL.hood);
+    g.addColorStop(1, COL.hoodShade);
+    ctx.fillStyle = g;
     ctx.beginPath();
     ctx.ellipse(headC.x, headC.y - r * 0.1, r * 1.65, r * 1.8, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -696,14 +850,15 @@
     ctx.closePath();
     ctx.fill();
 
-    // recessed shadow ring framing the face, then the face itself on top
-    const faceC = { x: headC.x + r * 0.2, y: headC.y + r * 0.18 };
-    ctx.fillStyle = "#2b1a30";
+    // recessed shadow ring framing the face, then the (smaller, tucked-in)
+    // face itself on top
+    const faceC = { x: headC.x + r * 0.05, y: headC.y + r * 0.28 };
+    ctx.fillStyle = COL.hoodShade;
     ctx.beginPath();
-    ctx.ellipse(faceC.x, faceC.y, r * 1.05, r * 1.15, 0, 0, Math.PI * 2);
+    ctx.ellipse(faceC.x, faceC.y, r * 1.0, r * 1.1, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    drawHead(faceC);
+    drawHead(faceC, 0.8);
   }
 
   function drawCape(facing) {
@@ -715,8 +870,8 @@
       const a = capeStrands[s];
       const b = capeStrands[s + 1];
       const grad = ctx.createLinearGradient(0, a[0].y, 0, a[a.length - 1].y);
-      grad.addColorStop(0, "#5a2d63");
-      grad.addColorStop(1, "#2b1730");
+      grad.addColorStop(0, COL.capeTop);
+      grad.addColorStop(1, COL.capeBottom);
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.moveTo(a[0].x, a[0].y);
@@ -725,7 +880,7 @@
       ctx.closePath();
       ctx.fill();
     }
-    ctx.strokeStyle = "rgba(0,0,0,0.25)";
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
     ctx.lineWidth = 1.2;
     for (let s = 1; s < CAPE_STRANDS - 1; s++) {
       const strand = capeStrands[s];
