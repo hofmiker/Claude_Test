@@ -8,8 +8,10 @@ https://hofmiker.github.io/Claude_Test/flappy/
 
 ## Features
 - Vogel mit Schwerkraft- und Sprungphysik, Rotation je nach Fallgeschwindigkeit
-- Zufällig generierte Röhren mit fester Lücke, Geschwindigkeit konstant
-- Kollisionsabfrage gegen Röhren und Bildschirmränder
+- Zufällig generierte Röhren mit fester Lücke, gedrosseltes Tempo für Einsteiger
+- Röhren sind keine Todesfalle: der Vogel klemmt an Ober-/Unterkante fest und
+  rutscht daran entlang, statt beim Berühren zu sterben. Nur Boden und Decke
+  beenden das Spiel.
 - Punktezähler pro passierter Röhre, Highscore in `localStorage`
 - Start-, Spiel- und Game-Over-Zustand über ein halbtransparentes Overlay
 
