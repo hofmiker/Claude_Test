@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Toy Story — Grundriss (Dev-Tool)</title>
+<style>
+  body { margin: 0; padding: 24px; background: #1b1b1f; color: #eee; font-family: system-ui, sans-serif; }
+  h1 { font-size: 16px; font-weight: 600; opacity: 0.8; margin: 0 0 16px; }
+  #floorplan-root { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+  .panel { background: #26262c; border-radius: 8px; padding: 16px; }
+  .panel h2 { font-size: 14px; margin: 0 0 8px; opacity: 0.85; }
+  svg { background: #1f1f24; border-radius: 4px; }
+  .room { stroke: none; }
+  .room-label { fill: #ddd; font-size: 12px; pointer-events: none; }
+  .wall { stroke: #f0e6d2; stroke-linecap: square; }
+  .arch { stroke: #f0e6d2; stroke-width: 2; stroke-dasharray: 4 3; }
+  .window { stroke: #7fc7f5; stroke-width: 3; }
+  .door-leaf { stroke: #d99a4e; stroke-width: 2; }
+  .door-arc { stroke: #d99a4e; stroke-width: 1; fill: none; stroke-dasharray: 2 2; }
+  .stairs { fill: #3a3a42; stroke: #6b6b76; stroke-width: 1; }
+  .stairs-hatch { stroke: #55555f; stroke-width: 1; }
+</style>
+</head>
+<body>
+<h1>Toy Story — Grundriss (nur Ansicht, generiert aus data/house-plan.js)</h1>
+<div id="floorplan-root"></div>
+<script type="module" src="floorplan.js"></script>
+</body>
+</html>
