@@ -117,9 +117,13 @@
   let VIEW_W, VIEW_H, LVIEW_W, LVIEW_H, GROUND_LEVEL_Y, ZOOM;
   function computeZoom() {
     const isTouch = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
-    const shortSide = Math.min(window.innerWidth, window.innerHeight);
-    const isTablet = isTouch && shortSide >= 560;
-    return isTablet ? 1.5 : 1;
+    if (!isTouch) return 1;
+    const w = window.innerWidth, h = window.innerHeight;
+    const shortSide = Math.min(w, h);
+    if (shortSide >= 560) return 1.5; // tablet, any orientation
+    if (w > h) return 1.3; // phone in landscape — pull the camera in a bit so
+                            // the character isn't tiny in the wide, short view
+    return 1; // phone portrait
   }
   function resizeCanvas() {
     const prevGL = GROUND_LEVEL_Y;
@@ -287,6 +291,13 @@
   // only be reached by grabbing the ledge and climbing
   const MAX_JUMP_HEIGHT = (PHYS.jumpVel * PHYS.jumpVel) / (2 * PHYS.gravity);
   const GRABBABLE_MIN_HEIGHT = MAX_JUMP_HEIGHT + 10;
+  const GRAB_SETTLE_TIME = 0.16; // eases into the hang pose instead of snapping
+  const CLIMB_DURATION = 0.95;   // full mantle-up animation length
+
+  function smooth(t) {
+    t = Math.max(0, Math.min(1, t));
+    return t * t * (3 - 2 * t);
+  }
 
   function getSurfaceY(worldX) {
     let top = GROUND_LEVEL_Y;
@@ -334,6 +345,11 @@
     duckAmt: 0,
     hangBox: -1,
     hangDir: 1,
+    grabT: 1,
+    grabFromX: 0,
+    grabFromY: 0,
+    hangX: 0,
+    hangY: 0,
     climbT: 0,
     climbFromX: 0,
     climbFromY: 0,
@@ -436,9 +452,16 @@
     const jumpEdge = jump && !character.jumpHeld;
     character.jumpHeld = jump;
 
-    // hanging from a grabbed ledge: frozen in place until the player either
-    // climbs up (jump key) or lets go and drops (down key)
+    // hanging from a grabbed ledge: eases smoothly into the hang position
+    // (rather than snapping straight there, which read as a jerk/stutter),
+    // then holds until the player either climbs up (jump key) or drops (down)
     if (character.state === "hang") {
+      if (character.grabT < 1) {
+        character.grabT = Math.min(1, character.grabT + dt / GRAB_SETTLE_TIME);
+        const e = character.grabT * character.grabT * (3 - 2 * character.grabT);
+        character.worldX = character.grabFromX + (character.hangX - character.grabFromX) * e;
+        character.footWorldY = character.grabFromY + (character.hangY - character.grabFromY) * e;
+      }
       if (jumpEdge) {
         const b = boxes[character.hangBox];
         const boxTop = GROUND_LEVEL_Y - b.h;
@@ -454,14 +477,45 @@
       return;
     }
 
-    // climbing: a short scripted animation pulling the character up onto the
-    // ledge it was hanging from, ignoring normal input until it completes
+    // climbing: a scripted multi-phase mantle animation — pull up, press
+    // down with the arms, swing the legs over one at a time, then rise from
+    // a crouch to standing. The body stays outside the box's silhouette
+    // (worldX pinned at the hang position) while it rises above the ledge
+    // height, and only slides over the top once it's high enough to clear
+    // it, so the character never visibly clips through the crate.
     if (character.state === "climb") {
       character.climbT += dt;
-      const p = Math.min(1, character.climbT / 0.45);
-      const ease = p * p * (3 - 2 * p);
-      character.worldX = character.climbFromX + (character.climbToX - character.climbFromX) * ease;
-      character.footWorldY = character.climbFromY + (character.climbToY - character.climbFromY) * ease;
+      const p = Math.min(1, character.climbT / CLIMB_DURATION);
+
+      // vertical: rise from the hang height, past the ledge, down to
+      // standing height on top — in two eased segments
+      const RISE_SPLIT = 0.55;
+      const liftedY = character.climbToY - 22; // torso above the ledge, arms locked
+      let footY;
+      if (p < RISE_SPLIT) {
+        const e = smooth(p / RISE_SPLIT);
+        footY = character.climbFromY + (liftedY - character.climbFromY) * e;
+      } else {
+        const e = smooth((p - RISE_SPLIT) / (1 - RISE_SPLIT));
+        footY = liftedY + (character.climbToY - liftedY) * e;
+      }
+
+      // horizontal: stays at the hang spot (outside the box) until the body
+      // has risen above the ledge, then slides over onto the top
+      const SHIFT_START = 0.5, SHIFT_END = 0.9;
+      let worldX;
+      if (p < SHIFT_START) {
+        worldX = character.climbFromX;
+      } else if (p < SHIFT_END) {
+        const e = smooth((p - SHIFT_START) / (SHIFT_END - SHIFT_START));
+        worldX = character.climbFromX + (character.climbToX - character.climbFromX) * e;
+      } else {
+        worldX = character.climbToX;
+      }
+
+      character.worldX = worldX;
+      character.footWorldY = footY;
+
       if (p >= 1) {
         character.state = "stand";
         character.baseGroundY = character.climbToY;
@@ -513,8 +567,11 @@
           character.state = "hang";
           character.hangBox = i;
           character.hangDir = crossesLeft ? 1 : -1;
-          character.worldX = crossesLeft ? b.x - 6 : b.x + b.w + 6;
-          character.footWorldY = boxTop + 58;
+          character.grabT = 0;
+          character.grabFromX = character.worldX;
+          character.grabFromY = character.footWorldY;
+          character.hangX = crossesLeft ? b.x - 6 : b.x + b.w + 6;
+          character.hangY = boxTop + 58;
           character.facing = character.hangDir;
           character.vx = 0;
           character.vy = 0;
@@ -607,15 +664,34 @@
       const frontFoot = { x: 6, y: hip.y + 55 };
       return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean: 0, scratchEnvelope: 0 };
     }
-    // climbing: a fixed "pulling up and over the ledge" pose while the
-    // scripted climb animation carries footWorldY up onto the box top
+    // climbing: a flowing multi-phase mantle — pull up, press down on the
+    // ledge with the arms, swing one leg up and over, then the other, settle
+    // into a crouch on top, then rise to standing. Keyframes are defined in
+    // the local space of the moving origin (see update()'s "climb" handling
+    // for how that origin travels) and blended by climbT.
     if (character.state === "climb") {
-      const hip = { x: 6, y: -10 };
-      const shoulder = { x: 8, y: -10 - SK.torso * 0.9 };
-      const backHand = { x: 14, y: -46 };
-      const frontHand = { x: 20, y: -50 };
-      const backFoot = { x: -4, y: 10 };
-      const frontFoot = { x: 10, y: 4 };
+      const p = Math.min(1, character.climbT / CLIMB_DURATION);
+      const CLIMB_KF = [
+        { t: 0.00, hip: [4, 30], sh: [4, -16], bh: [8, -54], fh: [14, -58], bf: [-2, 78], ff: [6, 85] },     // hang
+        { t: 0.22, hip: [2, -6], sh: [2, -52], bh: [6, -58], fh: [12, -62], bf: [-4, 30], ff: [2, 36] },     // pulling up
+        { t: 0.42, hip: [4, -18], sh: [8, -64], bh: [4, -60], fh: [24, -70], bf: [-4, 4], ff: [18, -18] },   // arms pressing down, first knee hooks up
+        { t: 0.62, hip: [6, -24], sh: [10, -68], bh: [2, -58], fh: [10, -62], bf: [-6, -12], ff: [12, -30] },// first leg planted on ledge, second following
+        { t: 0.82, hip: [6, -26], sh: [10, -70], bh: [2, -56], fh: [8, -58], bf: [-6, -14], ff: [8, -14] },  // both legs up, crouched on the ledge
+        { t: 1.00, hip: [0, -72], sh: [0, -118], bh: [-14, -74], fh: [14, -74], bf: [-7, 0], ff: [7, 0] },   // rising to standing
+      ];
+      let a = CLIMB_KF[0], b = CLIMB_KF[CLIMB_KF.length - 1];
+      for (let i = 0; i < CLIMB_KF.length - 1; i++) {
+        if (p >= CLIMB_KF[i].t && p <= CLIMB_KF[i + 1].t) { a = CLIMB_KF[i]; b = CLIMB_KF[i + 1]; break; }
+      }
+      const span = Math.max(0.0001, b.t - a.t);
+      const e = smooth((p - a.t) / span);
+      const mix = (pa, pb) => ({ x: pa[0] + (pb[0] - pa[0]) * e, y: pa[1] + (pb[1] - pa[1]) * e });
+      const hip = mix(a.hip, b.hip);
+      const shoulder = mix(a.sh, b.sh);
+      const backHand = mix(a.bh, b.bh);
+      const frontHand = mix(a.fh, b.fh);
+      const backFoot = mix(a.bf, b.bf);
+      const frontFoot = mix(a.ff, b.ff);
       return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean: 0, scratchEnvelope: 0 };
     }
 
@@ -823,13 +899,13 @@
     }
 
     drawCape(facing);
-    drawLimb(hip, backLegIK, PAL.limbBack, 9, true);
-    drawLimb(shoulder, backArmIK, PAL.limbBack, 6, false);
+    drawLimb(hip, backLegIK, PAL.limbBack, 12, true);
+    drawLimb(shoulder, backArmIK, PAL.limbBack, 8, false);
 
     drawTorso(hip, shoulder);
 
-    drawLimb(hip, frontLegIK, PAL.limbFront, 10, true);
-    drawLimb(shoulder, frontArmIK, PAL.limbFront, 7, false);
+    drawLimb(hip, frontLegIK, PAL.limbFront, 13, true);
+    drawLimb(shoulder, frontArmIK, PAL.limbFront, 9, false);
 
     drawHood(headCenter, shoulder, facing);
 
@@ -1034,10 +1110,11 @@
     ctx.closePath();
     ctx.fill();
 
-    // glute bulge: a rounded protrusion on the trailing (back) side of the
-    // hip so the silhouette doesn't read as flat-backed
+    // glute bulge: a subtle rounded protrusion on the trailing (back) side
+    // of the hip so the silhouette doesn't read as flat-backed — kept small
+    // so it reads as a curve, not a separate lump
     ctx.beginPath();
-    ctx.ellipse(hip.x - SK.hipW * 0.4, hip.y - 5, SK.hipW * 0.5, 13, 0, 0, Math.PI * 2);
+    ctx.ellipse(hip.x - SK.hipW * 0.32, hip.y - 4, SK.hipW * 0.28, 8, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
