@@ -1,0 +1,253 @@
+import * as THREE from '../vendor/three.module.min.js';
+import { box, cyl, ball3 } from '../build/primitives.js';
+import { resolveObstacles, obstaclesByFloor } from '../build/collision.js';
+import { BOUNDS, STAIR_X_MIN, STAIR_X_MAX, STAIR_Z_START, STAIR_Z_END, FLOOR2_Y } from '../data/house-plan.js';
+import { PLAYER_RADIUS } from './player-constants.js';
+
+const JUMP_STATE = { NONE: 0, WINDUP: 1, AIR: 2, LAND: 3 };
+const WINDUP_DUR = 0.15;
+const LAND_DUR = 0.25;
+
+const SPEED_MAX = 0.75;
+const ACCEL_RATE = 2.25;
+const DECEL_RATE = 3.0;
+const TURN_RATE = 1.1;
+const GRAVITY = -14;
+const JUMP_VEL = 2.57;
+const WALK_ANIM_RATE = 11;
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function inStairwell(x, z) {
+    return x > STAIR_X_MIN && x < STAIR_X_MAX && z > STAIR_Z_START && z < STAIR_Z_END;
+}
+
+// Spielfigur: 10cm kleines Spielzeug-Model (Hüfte+Knie-Gelenkkette Beine,
+// Torso, Arme, Kopf+Barett) + State + Input (Tastatur/Touch) + Bewegung/
+// Sprung-Zustandsautomat/Kollision + Lauf-/Sprunganimation.
+export function createPlayer(world, canvas) {
+    const player = new THREE.Group();
+    const skin = 0xffcf9e;
+    const tunic = 0x3f6fd1;
+    const trim = 0xffd166;
+
+    const HIP_Y = 0.036, THIGH_LEN = 0.020, SHIN_LEN = 0.016;
+    function legChain(x) {
+        const hip = new THREE.Group();
+        hip.position.set(x, HIP_Y, 0);
+        player.add(hip);
+        hip.add(cyl(0.0075, 0.008, THIGH_LEN, 0x274a8f, 0, -THIGH_LEN / 2, 0, { seg: 10 }));
+        const knee = new THREE.Group();
+        knee.position.set(0, -THIGH_LEN, 0);
+        hip.add(knee);
+        knee.add(cyl(0.006, 0.0075, SHIN_LEN, 0x274a8f, 0, -SHIN_LEN / 2, 0, { seg: 10 }));
+        return { hip, knee };
+    }
+    const legL = legChain(-0.010);
+    const legR = legChain(0.010);
+
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.018, 0.030, 4, 10), new THREE.MeshStandardMaterial({ color: tunic, roughness: 0.6 }));
+    torso.position.set(0, 0.053, 0);
+    torso.castShadow = true;
+    player.add(torso);
+    player.add(box(0.040, 0.006, 0.019, trim, 0, 0.040, 0));
+
+    const armL = cyl(0.005, 0.006, 0.027, tunic, -0.023, 0.052, 0, { seg: 8 });
+    const armR = cyl(0.005, 0.006, 0.027, tunic, 0.023, 0.052, 0, { seg: 8 });
+    player.add(armL, armR);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.016, 20, 16), new THREE.MeshStandardMaterial({ color: skin, roughness: 0.6 }));
+    head.position.set(0, 0.082, 0);
+    head.castShadow = true;
+    player.add(head);
+
+    const beretColor = 0xd6413f;
+    const beretCap = new THREE.Mesh(
+        new THREE.SphereGeometry(0.0135, 16, 10, 0, Math.PI * 2, 0, Math.PI / 1.8),
+        new THREE.MeshStandardMaterial({ color: beretColor, roughness: 0.6 })
+    );
+    beretCap.position.set(0, 0.092, 0);
+    beretCap.castShadow = true;
+    player.add(beretCap);
+    player.add(cyl(0.0145, 0.0145, 0.004, beretColor, 0, 0.085, 0, { seg: 16 }));
+    player.add(ball3(0.002, 0x222222, -0.006, 0.083, 0.014, { seg: 8 }));
+    player.add(ball3(0.002, 0x222222, 0.006, 0.083, 0.014, { seg: 8 }));
+
+    const bodyTilt = new THREE.Group();
+    bodyTilt.add(player);
+    world.add(bodyTilt);
+
+    // Spawnt im Kinderzimmer 2 (offener Boden zwischen Schaukelpferd und
+    // Rennbahn, Richtung Fensterwand) statt unten im Flur.
+    const state = {
+        x: 2.2, z: 1.6, y: 0, vy: 0,
+        yaw: 0,
+        grounded: true,
+        moveSpeed: 0,
+        walkPhase: 0,
+        jumpState: JUMP_STATE.NONE,
+        jumpTimer: 0,
+        jumpBuffered: false,
+        floor: 1,
+        baseY: FLOOR2_Y,
+        wasInStair: false,
+    };
+
+    // ---------- Input ----------
+    const keys = new Set();
+    window.addEventListener('keydown', (e) => {
+        keys.add(e.code);
+        if (e.code === 'Space') { state.jumpBuffered = true; e.preventDefault(); }
+    });
+    window.addEventListener('keyup', (e) => keys.delete(e.code));
+
+    const touch = { forward: false, back: false, left: false, right: false };
+    const TOUCH_THRESHOLD = 18;
+    let touchOrigin = null, touchMoved = false, touchStartTime = 0;
+    function resetTouch() { touch.forward = touch.back = touch.left = touch.right = false; }
+    canvas.addEventListener('touchstart', (e) => {
+        const t = e.touches[0];
+        touchOrigin = { x: t.clientX, y: t.clientY };
+        touchMoved = false;
+        touchStartTime = performance.now();
+        resetTouch();
+    }, { passive: true });
+    canvas.addEventListener('touchmove', (e) => {
+        if (!touchOrigin) return;
+        const t = e.touches[0];
+        const dx = t.clientX - touchOrigin.x, dy = t.clientY - touchOrigin.y;
+        if (Math.abs(dx) > TOUCH_THRESHOLD || Math.abs(dy) > TOUCH_THRESHOLD) touchMoved = true;
+        touch.forward = dy < -TOUCH_THRESHOLD;
+        touch.back = dy > TOUCH_THRESHOLD;
+        touch.left = dx < -TOUCH_THRESHOLD;
+        touch.right = dx > TOUCH_THRESHOLD;
+        e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => {
+        if (!touchMoved && performance.now() - touchStartTime < 300) state.jumpBuffered = true;
+        resetTouch();
+        touchOrigin = null;
+    }, { passive: true });
+    canvas.addEventListener('touchcancel', () => { resetTouch(); touchOrigin = null; }, { passive: true });
+
+    function update(dt) {
+        dt = Math.min(dt, 0.05);
+
+        if (keys.has('KeyA') || keys.has('ArrowLeft') || touch.left) state.yaw += TURN_RATE * dt;
+        if (keys.has('KeyD') || keys.has('ArrowRight') || touch.right) state.yaw -= TURN_RATE * dt;
+
+        const fwdX = Math.sin(state.yaw), fwdZ = Math.cos(state.yaw);
+        const wantForward = keys.has('KeyW') || keys.has('ArrowUp') || touch.forward;
+        const wantBack = keys.has('KeyS') || keys.has('ArrowDown') || touch.back;
+        const wantMove = wantForward || wantBack;
+
+        if (wantMove) state.moveSpeed = Math.min(state.moveSpeed + ACCEL_RATE * dt, SPEED_MAX);
+        else state.moveSpeed = Math.max(state.moveSpeed - DECEL_RATE * dt, 0);
+
+        if (wantForward) { state.x += fwdX * state.moveSpeed * dt; state.z += fwdZ * state.moveSpeed * dt; }
+        if (wantBack) { state.x -= fwdX * state.moveSpeed * dt; state.z -= fwdZ * state.moveSpeed * dt; }
+        if (wantMove) state.walkPhase += dt * WALK_ANIM_RATE;
+
+        state.x = Math.max(BOUNDS.minX + PLAYER_RADIUS, Math.min(BOUNDS.maxX - PLAYER_RADIUS, state.x));
+        state.z = Math.max(BOUNDS.minZ + PLAYER_RADIUS, Math.min(BOUNDS.maxZ - PLAYER_RADIUS, state.z));
+
+        const nowInStair = inStairwell(state.x, state.z);
+        if (nowInStair) {
+            const t = (state.z - STAIR_Z_START) / (STAIR_Z_END - STAIR_Z_START);
+            state.baseY = t * FLOOR2_Y;
+        } else {
+            if (state.wasInStair) state.floor = state.z >= STAIR_Z_END ? 1 : 0;
+            state.baseY = state.floor * FLOOR2_Y;
+        }
+        state.wasInStair = nowInStair;
+
+        [state.x, state.z] = resolveObstacles(state.x, state.z, PLAYER_RADIUS, obstaclesByFloor[state.floor]);
+
+        if (state.jumpBuffered && state.grounded && state.jumpState !== JUMP_STATE.WINDUP && state.jumpState !== JUMP_STATE.AIR) {
+            state.jumpState = JUMP_STATE.WINDUP;
+            state.jumpTimer = 0;
+            state.jumpBuffered = false;
+        }
+        if (state.jumpState === JUMP_STATE.WINDUP) {
+            state.jumpTimer += dt;
+            if (state.jumpTimer >= WINDUP_DUR) {
+                state.vy = JUMP_VEL;
+                state.grounded = false;
+                state.jumpState = JUMP_STATE.AIR;
+                state.jumpTimer = 0;
+            }
+        }
+        if (state.jumpState === JUMP_STATE.LAND) {
+            state.jumpTimer += dt;
+            if (state.jumpTimer >= LAND_DUR) state.jumpState = JUMP_STATE.NONE;
+        }
+
+        state.vy += GRAVITY * dt;
+        state.y += state.vy * dt;
+        if (state.y <= 0) {
+            if (state.vy < -0.4 && state.jumpState === JUMP_STATE.AIR) {
+                state.jumpState = JUMP_STATE.LAND;
+                state.jumpTimer = 0;
+            } else if (state.jumpState === JUMP_STATE.AIR) {
+                state.jumpState = JUMP_STATE.NONE;
+            }
+            state.y = 0;
+            state.vy = 0;
+            state.grounded = true;
+        } else {
+            state.grounded = false;
+        }
+
+        const moving = state.moveSpeed > 0.02;
+
+        bodyTilt.position.set(state.x, state.baseY + state.y, state.z);
+        bodyTilt.rotation.y = state.yaw;
+
+        const TORSO_Y = 0.053;
+        if (state.jumpState === JUMP_STATE.WINDUP) {
+            const t = Math.min(state.jumpTimer / WINDUP_DUR, 1);
+            const sq = Math.sin(t * Math.PI * 0.5);
+            legL.hip.rotation.x = lerp(legL.hip.rotation.x, 0.52 * sq, 0.32);
+            legR.hip.rotation.x = lerp(legR.hip.rotation.x, 0.52 * sq, 0.32);
+            legL.knee.rotation.x = lerp(legL.knee.rotation.x, 0.78 * sq, 0.32);
+            legR.knee.rotation.x = lerp(legR.knee.rotation.x, 0.78 * sq, 0.32);
+            armL.rotation.x = lerp(armL.rotation.x, -0.6 * sq, 0.3);
+            armR.rotation.x = lerp(armR.rotation.x, -0.6 * sq, 0.3);
+            torso.position.y = lerp(torso.position.y, TORSO_Y - 0.011 * sq, 0.4);
+            torso.rotation.x = lerp(torso.rotation.x, -0.25 * sq, 0.3);
+        } else if (state.jumpState === JUMP_STATE.AIR) {
+            legL.hip.rotation.x = lerp(legL.hip.rotation.x, -0.70, 0.17);
+            legR.hip.rotation.x = lerp(legR.hip.rotation.x, -0.70, 0.17);
+            legL.knee.rotation.x = lerp(legL.knee.rotation.x, 1.45, 0.17);
+            legR.knee.rotation.x = lerp(legR.knee.rotation.x, 1.45, 0.17);
+            armL.rotation.x = lerp(armL.rotation.x, -0.9, 0.2);
+            armR.rotation.x = lerp(armR.rotation.x, -0.9, 0.2);
+            torso.position.y = lerp(torso.position.y, TORSO_Y + 0.005, 0.2);
+            torso.rotation.x = lerp(torso.rotation.x, 0.08, 0.15);
+        } else if (state.jumpState === JUMP_STATE.LAND) {
+            const t = Math.min(state.jumpTimer / LAND_DUR, 1);
+            const sq = 1 - t;
+            legL.hip.rotation.x = lerp(legL.hip.rotation.x, 0.72 * sq, 0.32);
+            legR.hip.rotation.x = lerp(legR.hip.rotation.x, 0.72 * sq, 0.32);
+            legL.knee.rotation.x = lerp(legL.knee.rotation.x, 1.10 * sq, 0.32);
+            legR.knee.rotation.x = lerp(legR.knee.rotation.x, 1.10 * sq, 0.32);
+            armL.rotation.x = lerp(armL.rotation.x, -0.5 * sq, 0.3);
+            armR.rotation.x = lerp(armR.rotation.x, -0.5 * sq, 0.3);
+            torso.position.y = lerp(torso.position.y, TORSO_Y - 0.015 * sq, 0.4);
+            torso.rotation.x = lerp(torso.rotation.x, 0, 0.3);
+        } else {
+            const s = moving ? Math.sin(state.walkPhase) : 0;
+            const lLeg = s * 0.68, rLeg = -s * 0.68;
+            legL.hip.rotation.x = lerp(legL.hip.rotation.x, lLeg * 0.88, 0.35);
+            legR.hip.rotation.x = lerp(legR.hip.rotation.x, rLeg * 0.88, 0.35);
+            legL.knee.rotation.x = lerp(legL.knee.rotation.x, Math.max(0, lLeg) * 1.0 + Math.max(0, -lLeg) * 0.7, 0.35);
+            legR.knee.rotation.x = lerp(legR.knee.rotation.x, Math.max(0, rLeg) * 1.0 + Math.max(0, -rLeg) * 0.7, 0.35);
+            const swing = s * 0.55;
+            armL.rotation.x = lerp(armL.rotation.x, -swing, 0.3);
+            armR.rotation.x = lerp(armR.rotation.x, swing, 0.3);
+            torso.position.y = lerp(torso.position.y, TORSO_Y + (moving ? Math.abs(s) * 0.002 : 0), 0.3);
+            torso.rotation.x = lerp(torso.rotation.x, 0, 0.3);
+        }
+    }
+
+    return { state, bodyTilt, update };
+}
