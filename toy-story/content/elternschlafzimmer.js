@@ -23,4 +23,5 @@ export function placeElternschlafzimmer(world) {
     addObstacle(1, -1.5, backZ + 0.4, 0.25, 0.25);
     world.add(lampPendant(-3.0, upperCeilingY(-1.7), -1.7));
     world.add(picture(0.4, 0.5, leftX + 0.01, FLOOR2_Y + 1.5, -2.5, Math.PI / 2, 0x7a5230, 0xdfe4f2));
+    world.add(picture(0.36, 0.46, leftX + 0.01, FLOOR2_Y + 1.4, 0.5, Math.PI / 2, 0x7a5230, 0xb8c9a8));
 }

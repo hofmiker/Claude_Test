@@ -1,7 +1,7 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { box, cyl, ball3, createTileTexture, createCloudTexture, lampTable, lampPendant, lampWallSpot, picture, createCarToy } from '../build/primitives.js';
 import { addObstacle, resolveObstacles, obstaclesByFloor } from '../build/collision.js';
-import { X_MAX, rightX, FLOOR2_Y, BOUNDS, upperCeilingY } from '../data/house-plan.js';
+import { X_MAX, rightX, CORR_X_MAX, FLOOR2_Y, BOUNDS, upperCeilingY } from '../data/house-plan.js';
 import { PLAYER_RADIUS } from '../gameplay/player-constants.js';
 
 // Kinderzimmer 2 (Junge, Spielsachen + Rennautos): Möbel-Platzierung PLUS
@@ -99,6 +99,7 @@ export function placeKinderzimmer2(world) {
     kidRug.position.set(2.55, FLOOR2_Y + 0.004, 0.3);
     world.add(kidRug);
     world.add(picture(0.4, 0.4, rightX - 0.01, FLOOR2_Y + 1.5, 1.6, -Math.PI / 2, 0xd98f4a, 0xffd166));
+    world.add(picture(0.3, 0.3, CORR_X_MAX + 0.01, FLOOR2_Y + 1.4, 0.5, Math.PI / 2, 0xd98f4a, 0x9ec9a3));
 
     function createRockingHorse() {
         const g = new THREE.Group();

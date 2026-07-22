@@ -21,7 +21,7 @@ Kommentar am Kopf jeder Datei für Details. Kein Build-Schritt: ES-Module,
 - `build/house-builder.js` — liest `data/house-plan.js`, baut daraus die
   komplette Gebäudestruktur (Wände/Böden/Türen/Fenster/Treppe/Dach)
 - `content/*.js` — Möblierung je Zimmer (ground-floor, elternschlafzimmer,
-  kinderzimmer1, bad, kinderzimmer2, exterior)
+  kinderzimmer1, bad, kinderzimmer2, exterior) + `coins.js` (10 Sammel-Münzen)
 - `gameplay/player.js` — Spielfigur-Modell + State + Input + Bewegung/Sprung/
   Kollision + Animation
 - `gameplay/camera.js` — Verfolgungskamera + Wandkollisions-Raycast
@@ -51,8 +51,15 @@ Kühlschrank, Ober-/Unterschränke), Toilette. Fußbodenleisten,
 Holzdielenboden als prozedurale Canvas-Textur (kein externes Asset).
 
 **Treppe**: sichtbare Stufen über einer durchgehenden Rampe (für die
-Kollision), sodass die Höhe beim Rauf-/Runterlaufen stufenlos
-mitwächst statt zu springen.
+Kollision), sodass die Höhe beim Rauf-/Runterlaufen stufenlos mitwächst
+statt zu springen. Der Einstieg vom Erdgeschoss aus erfordert allerdings
+einen Sprung (wie eine echte erste Stufenkante) — einfaches Reinlaufen
+wird an der Fußpunkt-Kante blockiert; einmal auf der Rampe oder beim
+Runterlaufen von oben gilt das nicht.
+
+**Sammel-Münzen**: 10 schwebende, rotierende Münzen über beide Etagen
+verteilt (siehe `content/coins.js`), HUD-Counter oben links. Reine
+Bonus-Mechanik ohne Einfluss auf Bewegung/Kollision.
 
 **Dachgeschoss** (Dachschrägen ab Kniestockhöhe, jedes Zimmer mit
 Dachfenster): Elternschlafzimmer mit Kleiderschrank, Kinderzimmer 1
@@ -73,21 +80,25 @@ Türen (Zwischentüren + Haustür + Bad/Zimmertüren) haben Rahmen,
 Scharniere und Klinke und pivotieren um eine echte Scharnierachse.
 
 ## Steuerung & Kamera
-Mechanik an `dhl-city/character.html` angelehnt, Touch-Buttons an
+Mechanik an `dhl-city/character.html` angelehnt, Touch-Steuerung an
 `cape-character/index.html` angelehnt:
 - Panzer-Lenkung: W/↑ vorwärts, S/↓ rückwärts, A/D bzw. ←/→ drehen
-- Touch: eigene Buttons statt Wischgeste — D-Pad unten links (vor/zurück/
-  drehen), runder Sprung-Button unten rechts. Jeder Button ist ein
-  eigenes DOM-Element mit eigenen touchstart/touchend-Listenern (wie im
-  Vorbild), dadurch sind Vorwärts-Halten + Sprung-Tippen gleichzeitig
-  möglich — bei einer Wischgeste auf nur einem Touchpunkt geht das nicht
+- Touch: virtueller 360°-Joystick unten links (ein Kreis-Pad, der Knüppel
+  folgt Finger/Maus in jede Richtung — analoge Beträge statt nur 4 diskreter
+  Tasten) + runder Sprung-Button unten rechts, eigenes DOM-Element mit
+  eigenem touchstart/touchend-Listener. Dadurch sind Vorwärts-Halten +
+  Sprung-Tippen gleichzeitig möglich — bei einer Wischgeste auf nur einem
+  Touchpunkt geht das nicht
 - Leertaste/Sprung-Button hüpft — Sprung als Zustandsautomat (Ausholen →
   Luft → Landung), Ausholen mit deutlich sichtbarem Kauern (Knie-/
   Hüftbeugung + Rumpf-Senkung) vor dem Absprung
 - Impulserhaltung beim Sprung: Tempo/Richtung werden im Moment des
   Absprungs (nicht erst beim Abheben) festgehalten und tragen durch die
   ganze Flugbahn — ein Sprung geht auch dann sichtbar nach vorne, wenn
-  Vorwärts nicht die ganze Flugzeit über gehalten wird
+  Vorwärts nicht die ganze Flugzeit über gehalten wird. Prallt beim Treffen
+  eines Objekts während des Flugs seitlich ab (Geschwindigkeitskomponente
+  in die Wand wird herausgerechnet), statt jeden Frame erneut stumpf
+  dagegenzulaufen
 - Absichtlich langsamer/länger hängender Sprungbogen als real (~1s Flugzeit,
   ~0.5m Höhe) statt eines schnellen, kurzen Hüpfers — dadurch lässt sich
   gezielt auf die Oberseite der meisten Möbelstücke springen (Sofas, Sessel,
@@ -96,10 +107,13 @@ Mechanik an `dhl-city/character.html` angelehnt, Touch-Buttons an
   Kühlschrank, Regal, Pflanzen, Schaukelpferd, Teddy, Zelt) bleiben normale
   Wände
 - Sanfte Beschleunigung/Bremsung statt sofortiger Geschwindigkeit
+  (SPEED_MAX 0.9, entspricht +20% ggü. dem ursprünglichen Tempo)
 - Beine als Hüfte+Knie-Gelenkkette, mit denselben Lauf-/Sprung-Formeln
-  wie im Original animiert (kein Bodenplatten-Sockel mehr unter der Figur)
+  wie im Original animiert, Gangtempo (WALK_ANIM_RATE) +40% ggü. dem
+  ursprünglichen Wert (kein Bodenplatten-Sockel mehr unter der Figur)
 - Soundeffekte (prozedural, `gameplay/audio.js`): Schritt bei jedem
-  Fußkontakt im Laufzyklus, Ton beim Absprung, Thump bei der Landung
+  Fußkontakt im Laufzyklus, Ton beim Absprung, Thump bei der Landung,
+  Chime beim Münze-Einsammeln
 - Feste Verfolgungskamera hinter dem Charakter (kein Maus-Orbit), zieht
   beim Stehen näher heran; zusätzlich Wandkollisions-Raycast, damit die
   Kamera nie durch Wände/Möbel clippt (Ergänzung ggü. dem Original, da

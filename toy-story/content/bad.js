@@ -23,6 +23,7 @@ export function placeBad(world) {
     world.add(badRug);
     world.add(lampWallSpot(rightX, FLOOR2_Y + 1.0, -3.0, 'x', -1));
     world.add(picture(0.32, 0.32, rightX - 0.01, FLOOR2_Y + 1.5, -2.0, -Math.PI / 2, 0xdcecef, 0xbfe0ea));
+    world.add(picture(0.3, 0.3, rightX - 0.01, FLOOR2_Y + 1.4, -0.6, -Math.PI / 2, 0xdcecef, 0xffe6a8));
 
     return { badRug };
 }

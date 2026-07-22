@@ -9,9 +9,10 @@ const JUMP_STATE = { NONE: 0, WINDUP: 1, AIR: 2, LAND: 3 };
 const WINDUP_DUR = 0.2;
 const LAND_DUR = 0.25;
 
-const SPEED_MAX = 0.75;
-const ACCEL_RATE = 2.25;
-const DECEL_RATE = 3.0;
+// +20% Lauftempo ggü. dem Original (0.75/2.25/3.0).
+const SPEED_MAX = 0.9;
+const ACCEL_RATE = 2.7;
+const DECEL_RATE = 3.6;
 const TURN_RATE = 1.1;
 // Floatier, longer-hanging jump arc than a strict real-world fall — reaches
 // roughly sofa/chair/nightstand height (~0.55m) and hangs in the air for
@@ -22,7 +23,14 @@ const JUMP_VEL = 2.15;
 // (see launchVX/launchVZ) — deliberately small so the jump reads as a
 // committed arc rather than a mid-air dash.
 const AIR_SPEED_MULT = 0.4;
-const WALK_ANIM_RATE = 11;
+// +40% Beinanimations-Tempo ggü. dem Original (11) — Beine bewegen sich
+// schneller als die reine Lauftempo-Erhöhung, für einen flotteren Gang.
+const WALK_ANIM_RATE = 15.4;
+
+// Minimum jump height (above the ground floor) needed to mount the stairs —
+// low enough that even a short hop clears it well before reaching the stairs
+// horizontally, but high enough that just walking (y stays ~0) never does.
+const STAIR_ENTRY_MIN_Y = 0.12;
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 function inStairwell(x, z) {
@@ -111,11 +119,10 @@ export function createPlayer(world) {
     });
     window.addEventListener('keyup', (e) => keys.delete(e.code));
 
-    // Dedicated on-screen buttons (D-pad + jump), not a single-finger swipe —
-    // separate DOM elements each get their own touch listeners, so holding
-    // forward and tapping jump at the same time actually works on mobile
-    // (a swipe gesture and a tap can't both be tracked off one touch point).
-    const touch = { forward: false, back: false, left: false, right: false };
+    // Dedicated jump button — its own DOM element/touch listener, so holding
+    // the joystick and tapping jump at the same time actually works on
+    // mobile (a swipe gesture and a tap can't both be tracked off one touch
+    // point, which a single virtual stick + separate button avoids).
     function bindTouch(id, onChange) {
         const el = document.getElementById(id);
         if (!el) return;
@@ -130,29 +137,79 @@ export function createPlayer(world) {
         el.addEventListener('mouseup', set(false));
         el.addEventListener('mouseleave', set(false));
     }
-    bindTouch('btn-fwd', (v) => { touch.forward = v; });
-    bindTouch('btn-back', (v) => { touch.back = v; });
-    bindTouch('btn-left', (v) => { touch.left = v; });
-    bindTouch('btn-right', (v) => { touch.right = v; });
     bindTouch('btn-jump', (v) => { if (v) state.jumpBuffered = true; });
+
+    // Virtueller 360°-Joystick: ein Kreis-Pad, der Knüppel folgt dem Finger/
+    // der Maus in jede Richtung (nicht nur 4 diskrete Tasten) und liefert
+    // analoge 0..1-Beträge statt reiner Booleans.
+    const touch = { forward: 0, back: 0, left: 0, right: 0 };
+    const joystickEl = document.getElementById('joystick');
+    const knobEl = document.getElementById('joystick-knob');
+    if (joystickEl && knobEl) {
+        const JOY_RADIUS = 50;
+        let activeTouchId = null;
+        const setFromPoint = (clientX, clientY) => {
+            const rect = joystickEl.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+            let dx = clientX - cx, dy = clientY - cy;
+            const dist = Math.hypot(dx, dy);
+            if (dist > JOY_RADIUS) { dx = (dx / dist) * JOY_RADIUS; dy = (dy / dist) * JOY_RADIUS; }
+            knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+            touch.left = Math.max(0, -dx / JOY_RADIUS);
+            touch.right = Math.max(0, dx / JOY_RADIUS);
+            touch.forward = Math.max(0, -dy / JOY_RADIUS);
+            touch.back = Math.max(0, dy / JOY_RADIUS);
+        };
+        const resetJoystick = () => {
+            knobEl.style.transform = '';
+            touch.forward = touch.back = touch.left = touch.right = 0;
+            activeTouchId = null;
+        };
+        joystickEl.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const t = e.changedTouches[0];
+            activeTouchId = t.identifier;
+            setFromPoint(t.clientX, t.clientY);
+        }, { passive: false });
+        joystickEl.addEventListener('touchmove', (e) => {
+            if (activeTouchId === null) return;
+            for (const t of e.changedTouches) {
+                if (t.identifier === activeTouchId) { setFromPoint(t.clientX, t.clientY); e.preventDefault(); break; }
+            }
+        }, { passive: false });
+        const endTouch = (e) => {
+            for (const t of e.changedTouches) if (t.identifier === activeTouchId) resetJoystick();
+        };
+        joystickEl.addEventListener('touchend', endTouch, { passive: false });
+        joystickEl.addEventListener('touchcancel', endTouch, { passive: false });
+        // Mouse fallback (desktop testing/trackpad use).
+        let mouseDown = false;
+        joystickEl.addEventListener('mousedown', (e) => { mouseDown = true; setFromPoint(e.clientX, e.clientY); });
+        window.addEventListener('mousemove', (e) => { if (mouseDown) setFromPoint(e.clientX, e.clientY); });
+        window.addEventListener('mouseup', () => { if (mouseDown) { mouseDown = false; resetJoystick(); } });
+    }
 
     function update(dt) {
         dt = Math.min(dt, 0.05);
 
-        if (keys.has('KeyA') || keys.has('ArrowLeft') || touch.left) state.yaw += TURN_RATE * dt;
-        if (keys.has('KeyD') || keys.has('ArrowRight') || touch.right) state.yaw -= TURN_RATE * dt;
+        const turnLeft = Math.max(keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0, touch.left);
+        const turnRight = Math.max(keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0, touch.right);
+        state.yaw += TURN_RATE * dt * turnLeft;
+        state.yaw -= TURN_RATE * dt * turnRight;
 
         const fwdX = Math.sin(state.yaw), fwdZ = Math.cos(state.yaw);
-        const wantForward = keys.has('KeyW') || keys.has('ArrowUp') || touch.forward;
-        const wantBack = keys.has('KeyS') || keys.has('ArrowDown') || touch.back;
+        const fwdAmt = Math.max(keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0, touch.forward);
+        const backAmt = Math.max(keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0, touch.back);
+        const wantForward = fwdAmt > 0.05;
+        const wantBack = backAmt > 0.05;
         const wantMove = wantForward || wantBack;
 
         if (wantMove) state.moveSpeed = Math.min(state.moveSpeed + ACCEL_RATE * dt, SPEED_MAX);
         else state.moveSpeed = Math.max(state.moveSpeed - DECEL_RATE * dt, 0);
 
         const moveMult = state.jumpState === JUMP_STATE.AIR ? AIR_SPEED_MULT : 1;
-        if (wantForward) { state.x += fwdX * state.moveSpeed * moveMult * dt; state.z += fwdZ * state.moveSpeed * moveMult * dt; }
-        if (wantBack) { state.x -= fwdX * state.moveSpeed * moveMult * dt; state.z -= fwdZ * state.moveSpeed * moveMult * dt; }
+        if (wantForward) { state.x += fwdX * state.moveSpeed * moveMult * fwdAmt * dt; state.z += fwdZ * state.moveSpeed * moveMult * fwdAmt * dt; }
+        if (wantBack) { state.x -= fwdX * state.moveSpeed * moveMult * backAmt * dt; state.z -= fwdZ * state.moveSpeed * moveMult * backAmt * dt; }
         // Momentum captured at takeoff (see WINDUP→AIR below) carries the
         // jump forward along its arc even if the player isn't still holding
         // the direction button mid-air — otherwise a jump only goes straight
@@ -169,6 +226,16 @@ export function createPlayer(world) {
         state.x = Math.max(BOUNDS.minX + PLAYER_RADIUS, Math.min(BOUNDS.maxX - PLAYER_RADIUS, state.x));
         state.z = Math.max(BOUNDS.minZ + PLAYER_RADIUS, Math.min(BOUNDS.maxZ - PLAYER_RADIUS, state.z));
 
+        // Mounting the stairs from the ground floor needs a hop, like a real
+        // first stair riser — walking straight into the foot of the ramp at
+        // floor height doesn't work. Only gates the initial approach: once
+        // already climbing (wasInStair) this doesn't re-trigger, and coming
+        // down from upstairs is untouched (floor is still 1 while riding the
+        // ramp down, so the floor===0 condition doesn't apply).
+        if (state.floor === 0 && !state.wasInStair && state.y < STAIR_ENTRY_MIN_Y && inStairwell(state.x, state.z)) {
+            state.z = STAIR_Z_START - PLAYER_RADIUS - 0.01;
+        }
+
         const nowInStair = inStairwell(state.x, state.z);
         if (nowInStair) {
             const t = (state.z - STAIR_Z_START) / (STAIR_Z_END - STAIR_Z_START);
@@ -179,7 +246,24 @@ export function createPlayer(world) {
         }
         state.wasInStair = nowInStair;
 
+        const preResolveX = state.x, preResolveZ = state.z;
         [state.x, state.z] = resolveObstacles(state.x, state.z, state.y, PLAYER_RADIUS, obstaclesByFloor[state.floor]);
+        if (state.jumpState === JUMP_STATE.AIR) {
+            // Deflect the momentum carried from takeoff sideways off whatever
+            // it grazed, instead of continuing to drive straight into the
+            // same spot every subsequent frame (which read as just sticking
+            // to the object instead of bouncing off it).
+            const corrX = state.x - preResolveX, corrZ = state.z - preResolveZ;
+            const corrLen = Math.hypot(corrX, corrZ);
+            if (corrLen > 0.0001) {
+                const nx = corrX / corrLen, nz = corrZ / corrLen;
+                const into = state.launchVX * nx + state.launchVZ * nz;
+                if (into < 0) {
+                    state.launchVX -= into * nx;
+                    state.launchVZ -= into * nz;
+                }
+            }
+        }
 
         if (state.jumpBuffered && state.grounded && state.jumpState !== JUMP_STATE.WINDUP && state.jumpState !== JUMP_STATE.AIR) {
             state.jumpState = JUMP_STATE.WINDUP;

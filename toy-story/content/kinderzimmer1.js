@@ -24,6 +24,7 @@ export function placeKinderzimmer1(world) {
     sisterRug.position.set(-2.6, FLOOR2_Y + 0.004, 2.6);
     world.add(sisterRug);
     world.add(picture(0.32, 0.32, leftX + 0.01, FLOOR2_Y + 1.5, 1.2, Math.PI / 2, 0xe8b6cf, 0xffe27a));
+    world.add(picture(0.3, 0.3, leftX + 0.01, FLOOR2_Y + 1.4, 3.2, Math.PI / 2, 0xe8b6cf, 0xbfe0ea));
     world.add(lampPendant(-3.0, upperCeilingY(2.8), 2.8));
 
     return { sisterRug };

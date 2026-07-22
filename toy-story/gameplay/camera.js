@@ -6,7 +6,7 @@ import * as THREE from '../vendor/three.module.min.js';
 export function createCameraRig(camera, cameraBlockers) {
     const CAM_DIST_MOVE = 0.85;
     const CAM_DIST_IDLE = 0.60;
-    const CAM_HEIGHT = 0.24;
+    const CAM_HEIGHT = 0.18;
     const CAM_LOOK_HEIGHT = 0.08;
     let camDist = CAM_DIST_IDLE;
 

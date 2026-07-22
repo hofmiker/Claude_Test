@@ -10,23 +10,24 @@
     <canvas id="game"></canvas>
 
     <div id="hud">
-        <div id="hint">
+        <div id="hint" class="hidden">
             <strong>Steuerung</strong><br>
             W / ↑ — vorwärts<br>
             S / ↓ — rückwärts<br>
             A/D / ←/→ — drehen<br>
             Leertaste — Hüpfen<br>
-            <em>Touch: Buttons unten links = laufen/drehen, Button unten rechts = hüpfen</em>
+            <em>Touch: Knüppel unten links = laufen/drehen, Button unten rechts = hüpfen</em>
         </div>
         <button id="hint-toggle">?</button>
     </div>
 
+    <div id="toy-quest-splash">Toy Quest</div>
+
+    <div id="coin-counter">🪙 <span id="coin-count">0</span> / 10</div>
+
     <div id="touch-controls">
-        <div id="dpad">
-            <div class="touch-btn" id="btn-fwd">&uarr;</div>
-            <div class="touch-btn" id="btn-left">&larr;</div>
-            <div class="touch-btn" id="btn-right">&rarr;</div>
-            <div class="touch-btn" id="btn-back">&darr;</div>
+        <div id="joystick">
+            <div id="joystick-knob"></div>
         </div>
         <div class="touch-btn" id="btn-jump">&uarr;</div>
     </div>

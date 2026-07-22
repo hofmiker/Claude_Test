@@ -192,6 +192,10 @@ export function lampWallSpot(x, y, z, wallAxis, sign, opts = {}) {
         g.add(shade);
         const light = new THREE.SpotLight(opts.lightColor ?? 0xfff0d0, opts.intensity ?? 0.7, opts.range ?? 4, opts.angle ?? Math.PI / 5, 0.4, 1.5);
         light.castShadow = false;
+        // Must originate at the visible shade, not the group's origin (the
+        // wall centerline) — otherwise the light cone appears to come from
+        // inside the wall instead of from the lamp fixture itself.
+        light.position.copy(shade.position);
         const target = new THREE.Object3D();
         target.position.set(wallAxis === 'x' ? sign * 1.5 : 0, -0.3, wallAxis === 'z' ? sign * 1.5 : 0);
         g.add(light);

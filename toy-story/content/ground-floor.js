@@ -93,6 +93,7 @@ export function placeGroundFloor(world) {
     addObstacle(0, -4.35, 3.55, 0.35, 0.35);
     world.add(picture(0.42, 0.55, leftX + 0.01, 1.55, -3.3, Math.PI / 2, 0x5a3d22, 0x7fa8c9));
     world.add(picture(0.36, 0.36, leftX + 0.01, 1.5, 1.6, Math.PI / 2, 0x5a3d22, 0xe8b04a));
+    world.add(picture(0.34, 0.44, leftX + 0.01, 1.5, 2.8, Math.PI / 2, 0x8a5a3a, 0x9ec9a3));
     world.add(lampPendant(-3.4, WALL_H, -0.5));
 
     // ================= Küche =================
@@ -151,6 +152,7 @@ export function placeGroundFloor(world) {
     const upperCabinets = box(1.4, 0.7, 0.32, 0xdedad2, 1.95, 1.75, backZ + 0.16);
     world.add(upperCabinets);
     world.add(picture(0.34, 0.34, rightX - 0.01, 1.6, 1.2, -Math.PI / 2, 0xd98f4a, 0xffd166));
+    world.add(picture(0.32, 0.32, CORR_X_MAX + 0.01, 1.6, -1.6, Math.PI / 2, 0xd98f4a, 0x7fa8c9));
     world.add(lampPendant(3.4, WALL_H, -1.8));
     world.add(lampWallSpot(rightX, 2.0, -0.6, 'x', -1));
 
@@ -179,6 +181,7 @@ export function placeGroundFloor(world) {
     world.add(lampWallSpot(CORR_X_MIN, 2.0, -2.5, 'x', 1));
     world.add(lampWallSpot(CORR_X_MAX, 2.0, 1.5, 'x', -1));
     world.add(picture(0.3, 0.4, CORR_X_MIN + 0.01, 1.6, 2.0, Math.PI / 2, 0x8a5a3a, 0xffe6a8));
+    world.add(picture(0.3, 0.36, CORR_X_MAX - 0.01, 1.55, -2.0, -Math.PI / 2, 0x8a5a3a, 0xf0d9a8));
 
     return { livingRug };
 }

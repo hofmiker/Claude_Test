@@ -66,6 +66,23 @@ export function playJump() {
     osc.stop(t + 0.22);
 }
 
+export function playCoin() {
+    if (!ctx) return;
+    const c = ctx, t = c.currentTime;
+    [880, 1320].forEach((freq, i) => {
+        const osc = c.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t + i * 0.05);
+        const gain = c.createGain();
+        gain.gain.setValueAtTime(0.001, t + i * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.16, t + i * 0.05 + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.05 + 0.22);
+        osc.connect(gain).connect(c.destination);
+        osc.start(t + i * 0.05);
+        osc.stop(t + i * 0.05 + 0.24);
+    });
+}
+
 export function playLand() {
     if (!ctx) return;
     const c = ctx, t = c.currentTime;

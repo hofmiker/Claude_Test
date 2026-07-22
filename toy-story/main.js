@@ -17,6 +17,7 @@ import { placeKinderzimmer1 } from './content/kinderzimmer1.js';
 import { placeBad } from './content/bad.js';
 import { placeKinderzimmer2 } from './content/kinderzimmer2.js';
 import { placeExterior } from './content/exterior.js';
+import { placeCoins } from './content/coins.js';
 import { createCat } from './gameplay/cat.js';
 import { createPlayer } from './gameplay/player.js';
 import { createCameraRig } from './gameplay/camera.js';
@@ -66,6 +67,7 @@ const { sisterRug } = placeKinderzimmer1(world);
 const { badRug } = placeBad(world);
 const { kidRug, balls, update: updateKz2 } = placeKinderzimmer2(world);
 placeExterior(exterior);
+const { coins, update: updateCoins } = placeCoins(world);
 
 // ---------- Gameplay ----------
 const cat = createCat(world);
@@ -73,7 +75,7 @@ const player = createPlayer(world);
 
 // Kamera-Blocker: alle world.children außer Böden/Teppichen/Spielfigur/Katze/
 // Bällen (Raycast soll an Wänden/Möbeln stoppen, nicht an flachen Bodenflächen).
-const excludedFromCamera = new Set([...groundFloors, ...upperFloors, livingRug, kidRug, sisterRug, badRug, player.bodyTilt, cat.group, ...balls.map((b) => b.mesh)]);
+const excludedFromCamera = new Set([...groundFloors, ...upperFloors, livingRug, kidRug, sisterRug, badRug, player.bodyTilt, cat.group, ...balls.map((b) => b.mesh), ...coins.map((c) => c.group)]);
 const cameraBlockers = world.children.filter((c) => !excludedFromCamera.has(c));
 const cameraRig = createCameraRig(camera, cameraBlockers);
 
@@ -92,6 +94,7 @@ function loop() {
     const dt = Math.min(clock.getDelta(), 0.05);
     player.update(dt);
     updateKz2(dt, player.state, clock.elapsedTime);
+    updateCoins(dt, clock.elapsedTime, player.state);
     cat.update(dt, clock.elapsedTime);
     cameraRig.update(dt, player.state);
     renderer.render(scene, camera);
@@ -101,5 +104,5 @@ loop();
 
 const hint = document.getElementById('hint');
 document.getElementById('hint-toggle').addEventListener('click', () => {
-    hint.style.display = hint.style.display === 'none' ? 'block' : 'none';
+    hint.classList.toggle('hidden');
 });
