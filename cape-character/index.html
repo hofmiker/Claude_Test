@@ -109,7 +109,7 @@
   const canvas = document.getElementById("c");
   const ctx = canvas.getContext("2d");
 
-  const WORLD_W = 3600;
+  const WORLD_W = 4300;
 
   // ---------- fullscreen canvas + device-aware zoom ----------
   // Tablets (touch + a short side wide enough to not be a phone) get a
@@ -285,12 +285,18 @@
     { x: 2250, w: 90, h: 100 },
     { x: 2550, w: 90, h: 70 },
     { x: 2900, w: 110, h: 175 }, // too tall to jump onto directly — grab the ledge and climb up instead
+    // staircase up to a new elevated level — each step is a normal jumpable
+    // height above the one before it (well under max jump height), so once
+    // you've climbed the tall crate above, you can chain jumps the rest of
+    // the way up without needing to grab again
+    { x: 3050, w: 100, h: 270 },
+    { x: 3200, w: 100, h: 360 },
+    { x: 3350, w: 700, h: 450 }, // the new upper level — a long platform to run on
   ];
 
   // max height reachable by a normal jump (v^2 / 2g); anything taller can
   // only be reached by grabbing the ledge and climbing
   const MAX_JUMP_HEIGHT = (PHYS.jumpVel * PHYS.jumpVel) / (2 * PHYS.gravity);
-  const GRABBABLE_MIN_HEIGHT = MAX_JUMP_HEIGHT + 10;
   const GRAB_SETTLE_TIME = 0.16; // eases into the hang pose instead of snapping
   const CLIMB_DURATION = 0.95;   // full mantle-up animation length
 
@@ -343,6 +349,7 @@
     idleTime: 0,
     ducking: false,
     duckAmt: 0,
+    jumpOriginY: GROUND_LEVEL_Y,
     hangBox: -1,
     hangDir: 1,
     grabT: 1,
@@ -359,9 +366,15 @@
   window.addEventListener("resize", resizeCanvas);
 
   let cameraX = 0;
+  let cameraY = 0;
   function updateCamera() {
     cameraX = character.worldX - LVIEW_W / 2;
     cameraX = Math.max(0, Math.min(Math.max(0, WORLD_W - LVIEW_W), cameraX));
+
+    // vertical: stays ground-anchored (0) until the character climbs high
+    // enough that the upper part of the screen would be violated, then
+    // scrolls up to follow them so elevated platforms stay in view
+    cameraY = Math.min(0, character.footWorldY - LVIEW_H * 0.65);
   }
 
   // ---------- cape (verlet cloth: a few hanging chains filled in between) ----------
@@ -551,14 +564,19 @@
     nextX = Math.max(40, Math.min(WORLD_W - 40, nextX));
 
     // ledge grab: while airborne, jumping into the side of a crate too tall
-    // to land on top of lets you grab and hang from its top edge instead of
-    // just bumping into the wall
+    // to reach from wherever this jump was launched lets you grab and hang
+    // from its top edge instead of just bumping into the wall. Eligibility
+    // is relative to the jump's own launch height (jumpOriginY), not a
+    // fixed world height — that's what lets a staircase of individually
+    // jumpable platforms be climbed with normal jumps once you're already
+    // partway up, while a single oversized crate still requires a grab.
     let grabbed = false;
     if (character.state === "air") {
+      const reachableCeiling = character.jumpOriginY - MAX_JUMP_HEIGHT - 10;
       for (let i = 0; i < boxes.length; i++) {
         const b = boxes[i];
-        if (b.h < GRABBABLE_MIN_HEIGHT) continue;
         const boxTop = GROUND_LEVEL_Y - b.h;
+        if (boxTop >= reachableCeiling) continue; // reachable via a normal jump
         const crossesLeft = prevX <= b.x && nextX > b.x;
         const crossesRight = prevX >= b.x + b.w && nextX < b.x + b.w;
         if (!crossesLeft && !crossesRight) continue;
@@ -570,7 +588,7 @@
           character.grabT = 0;
           character.grabFromX = character.worldX;
           character.grabFromY = character.footWorldY;
-          character.hangX = crossesLeft ? b.x - 6 : b.x + b.w + 6;
+          character.hangX = crossesLeft ? b.x - 18 : b.x + b.w + 18;
           character.hangY = boxTop + 58;
           character.facing = character.hangDir;
           character.vx = 0;
@@ -611,6 +629,7 @@
           character.state = "air";
           character.airTime = 0;
           character.footWorldY = character.baseGroundY;
+          character.jumpOriginY = character.baseGroundY;
         }
       } else if (character.state === "air") {
         character.vy += PHYS.gravity * dt;
@@ -716,7 +735,7 @@
     // running crouch: a small constant knee bend baked into the hip height
     // whenever running, so the stance leg never straightens all the way out
     // and reads as running rather than walking
-    const runCrouch = (!airborne && !crouching) ? 20 * runEase : 0;
+    const runCrouch = (!airborne && !crouching) ? 12 * runEase : 0;
 
     // hip bob is precomputed in update() from the actual stance/swing state of
     // both feet, so it rises only during a genuine both-feet-off flight phase
@@ -850,7 +869,7 @@
     const facing = character.facing;
     const screenX = character.worldX - cameraX;
     ctx.save();
-    ctx.translate(screenX, character.footWorldY);
+    ctx.translate(screenX, character.footWorldY - cameraY);
     ctx.scale(facing, 1);
 
     const pose = computePose();
@@ -924,14 +943,17 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, LVIEW_W, LVIEW_H);
 
-    ctx.fillStyle = "#33363f";
-    ctx.fillRect(0, GROUND_LEVEL_Y + 2, LVIEW_W, LVIEW_H - GROUND_LEVEL_Y - 2);
-    ctx.strokeStyle = "rgba(255,255,255,0.14)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_LEVEL_Y + 2);
-    ctx.lineTo(LVIEW_W, GROUND_LEVEL_Y + 2);
-    ctx.stroke();
+    const floorY = GROUND_LEVEL_Y - cameraY;
+    if (floorY < LVIEW_H) {
+      ctx.fillStyle = "#33363f";
+      ctx.fillRect(0, floorY + 2, LVIEW_W, LVIEW_H - floorY - 2);
+      ctx.strokeStyle = "rgba(255,255,255,0.14)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, floorY + 2);
+      ctx.lineTo(LVIEW_W, floorY + 2);
+      ctx.stroke();
+    }
   }
 
   // ---------- ceiling lights ----------
@@ -941,32 +963,33 @@
   function drawCeilingLights() {
     const startI = Math.floor(cameraX / LAMP_SPACING) - 1;
     const endI = Math.floor((cameraX + LVIEW_W) / LAMP_SPACING) + 1;
+    const lampY = 20 - cameraY;
+    const floorY = GROUND_LEVEL_Y - cameraY;
     for (let i = startI; i <= endI; i++) {
       const wx = i * LAMP_SPACING + LAMP_SPACING / 2;
       const sx = wx - cameraX;
       if (sx < -120 || sx > LVIEW_W + 120) continue;
-      const lampY = 20;
 
-      const cone = ctx.createLinearGradient(0, lampY, 0, GROUND_LEVEL_Y);
+      const cone = ctx.createLinearGradient(0, lampY, 0, floorY);
       cone.addColorStop(0, "rgba(255,244,210,0.22)");
       cone.addColorStop(1, "rgba(255,244,210,0)");
       ctx.fillStyle = cone;
       ctx.beginPath();
       ctx.moveTo(sx, lampY);
-      ctx.lineTo(sx - 95, GROUND_LEVEL_Y);
-      ctx.lineTo(sx + 95, GROUND_LEVEL_Y);
+      ctx.lineTo(sx - 95, floorY);
+      ctx.lineTo(sx + 95, floorY);
       ctx.closePath();
       ctx.fill();
 
       ctx.fillStyle = "rgba(255,244,210,0.14)";
       ctx.beginPath();
-      ctx.ellipse(sx, GROUND_LEVEL_Y, 85, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(sx, floorY, 85, 9, 0, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.strokeStyle = "rgba(0,0,0,0.5)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(sx, 0);
+      ctx.moveTo(sx, -cameraY);
       ctx.lineTo(sx, lampY);
       ctx.stroke();
 
@@ -996,13 +1019,14 @@
     const scroll = cameraX * depth;
     const startTile = Math.floor(scroll / tileW) - 1;
     const endTile = Math.floor((scroll + LVIEW_W) / tileW) + 1;
+    const floorY = GROUND_LEVEL_Y - cameraY * depth;
     for (let i = startTile; i <= endTile; i++) {
       const isPillar = pillarEvery > 0 && ((i % pillarEvery) + pillarEvery) % pillarEvery === 0;
       const seed = hashTile(i);
       const w = isPillar ? tileW * 0.18 : tileW * 0.6 * (0.7 + seed * 0.3);
       const h = isPillar ? maxH * 1.5 : minH + seed * (maxH - minH);
       const x = i * tileW - scroll + (tileW - w) / 2;
-      const y = GROUND_LEVEL_Y - h;
+      const y = floorY - h;
       ctx.fillStyle = color;
       ctx.fillRect(x, y, w, h);
       ctx.fillStyle = `rgba(255,255,255,${topAlpha})`;
@@ -1018,28 +1042,30 @@
   }
 
   function drawBoxes() {
+    const floorY = GROUND_LEVEL_Y - cameraY;
     for (let i = 0; i < boxes.length; i++) {
       const b = boxes[i];
       const sx = b.x - cameraX;
       if (sx + b.w < 0 || sx > LVIEW_W) continue;
-      const topY = GROUND_LEVEL_Y - b.h;
-      const grad = ctx.createLinearGradient(0, topY, 0, GROUND_LEVEL_Y + 4);
+      const topY = floorY - b.h;
+      if (topY > LVIEW_H) continue; // fully below the visible area
+      const grad = ctx.createLinearGradient(0, topY, 0, floorY + 4);
       grad.addColorStop(0, "#7a5d40");
       grad.addColorStop(1, "#40301f");
       ctx.fillStyle = grad;
-      ctx.fillRect(sx, topY, b.w, GROUND_LEVEL_Y + 4 - topY);
+      ctx.fillRect(sx, topY, b.w, floorY + 4 - topY);
 
       ctx.fillStyle = "rgba(255,255,255,0.12)";
       ctx.fillRect(sx, topY, b.w, 5);
 
       ctx.strokeStyle = "rgba(0,0,0,0.32)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(sx + 3, topY + 3, b.w - 6, GROUND_LEVEL_Y - topY - 6);
+      ctx.strokeRect(sx + 3, topY + 3, b.w - 6, floorY - topY - 6);
       ctx.beginPath();
       ctx.moveTo(sx + 3, topY + 3);
-      ctx.lineTo(sx + b.w - 3, GROUND_LEVEL_Y - 3);
+      ctx.lineTo(sx + b.w - 3, floorY - 3);
       ctx.moveTo(sx + b.w - 3, topY + 3);
-      ctx.lineTo(sx + 3, GROUND_LEVEL_Y - 3);
+      ctx.lineTo(sx + 3, floorY - 3);
       ctx.stroke();
     }
   }
@@ -1052,14 +1078,14 @@
     ctx.globalAlpha = 0.4 * Math.max(0, 1 - heightAbove / 140);
     ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.ellipse(shadowScreenX, groundBelow + 6, 34 / Math.max(0.6, character.squash), 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(shadowScreenX, groundBelow - cameraY + 6, 34 / Math.max(0.6, character.squash), 8, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
 
   function drawVignette() {
     const cx = (character.worldX - cameraX) * ZOOM;
-    const cy = character.footWorldY * ZOOM - VIEW_H * 0.15;
+    const cy = (character.footWorldY - cameraY) * ZOOM - VIEW_H * 0.15;
     const r = Math.max(VIEW_W, VIEW_H) * 0.75;
     const g = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r);
     g.addColorStop(0, "rgba(0,0,0,0)");
