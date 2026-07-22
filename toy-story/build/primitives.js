@@ -184,7 +184,11 @@ export function lampWallSpot(x, y, z, wallAxis, sign, opts = {}) {
         const shade = cyl(0.02, 0.06, 0.12, opts.shadeColor ?? 0xfff3d0, 0, 0, 0, { roughness: 0.4, seg: 14, cast: false });
         shade.rotation.z = wallAxis === 'x' ? sign * Math.PI / 2 : 0;
         shade.rotation.x = wallAxis === 'z' ? sign * Math.PI / 2 : 0;
-        shade.position.set(wallAxis === 'x' ? sign * 0.09 : 0, 0, wallAxis === 'z' ? sign * 0.09 : 0);
+        // Offset large enough that the shade clears even the thickest wall
+        // (0.15m ext walls, half=0.075) plus its own half-length (0.06) —
+        // otherwise part of the shade sits embedded in the wall instead of
+        // reading as mounted on its surface.
+        shade.position.set(wallAxis === 'x' ? sign * 0.15 : 0, 0, wallAxis === 'z' ? sign * 0.15 : 0);
         g.add(shade);
         const light = new THREE.SpotLight(opts.lightColor ?? 0xfff0d0, opts.intensity ?? 0.7, opts.range ?? 4, opts.angle ?? Math.PI / 5, 0.4, 1.5);
         light.castShadow = false;

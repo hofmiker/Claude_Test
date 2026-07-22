@@ -3,6 +3,7 @@ import { box, cyl, ball3 } from '../build/primitives.js';
 import { resolveObstacles, groundHeightAt, obstaclesByFloor } from '../build/collision.js';
 import { BOUNDS, STAIR_X_MIN, STAIR_X_MAX, STAIR_Z_START, STAIR_Z_END, FLOOR2_Y } from '../data/house-plan.js';
 import { PLAYER_RADIUS } from './player-constants.js';
+import { unlockAudioOnFirstInput, playFootstep, playJump, playLand } from './audio.js';
 
 const JUMP_STATE = { NONE: 0, WINDUP: 1, AIR: 2, LAND: 3 };
 const WINDUP_DUR = 0.2;
@@ -13,13 +14,14 @@ const ACCEL_RATE = 2.25;
 const DECEL_RATE = 3.0;
 const TURN_RATE = 1.1;
 // Floatier, longer-hanging jump arc than a strict real-world fall — reaches
-// roughly sofa/chair/nightstand height (~0.5m) and hangs in the air for
-// about 0.8s (vs. ~0.24m/0.37s before), so most furniture becomes jumpable.
-const GRAVITY = -6.5;
-const JUMP_VEL = 2.6;
-// Movement while airborne is deliberately slower/less snappy than on the
-// ground — the jump feels more deliberate instead of carrying full running speed.
-const AIR_SPEED_MULT = 0.55;
+// roughly sofa/chair/nightstand height (~0.55m) and hangs in the air for
+// about 1s (vs. ~0.24m/0.37s originally), so most furniture becomes jumpable.
+const GRAVITY = -4.2;
+const JUMP_VEL = 2.15;
+// Extra steering while airborne, on top of the momentum captured at takeoff
+// (see launchVX/launchVZ) — deliberately small so the jump reads as a
+// committed arc rather than a mid-air dash.
+const AIR_SPEED_MULT = 0.4;
 const WALK_ANIM_RATE = 11;
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -30,7 +32,7 @@ function inStairwell(x, z) {
 // Spielfigur: 10cm kleines Spielzeug-Model (Hüfte+Knie-Gelenkkette Beine,
 // Torso, Arme, Kopf+Barett) + State + Input (Tastatur/Touch) + Bewegung/
 // Sprung-Zustandsautomat/Kollision + Lauf-/Sprunganimation.
-export function createPlayer(world, canvas) {
+export function createPlayer(world) {
     const player = new THREE.Group();
     const skin = 0xffcf9e;
     const tunic = 0x3f6fd1;
@@ -96,7 +98,10 @@ export function createPlayer(world, canvas) {
         floor: 1,
         baseY: FLOOR2_Y,
         wasInStair: false,
+        launchVX: 0, launchVZ: 0,
     };
+
+    unlockAudioOnFirstInput();
 
     // ---------- Input ----------
     const keys = new Set();
@@ -106,34 +111,30 @@ export function createPlayer(world, canvas) {
     });
     window.addEventListener('keyup', (e) => keys.delete(e.code));
 
+    // Dedicated on-screen buttons (D-pad + jump), not a single-finger swipe —
+    // separate DOM elements each get their own touch listeners, so holding
+    // forward and tapping jump at the same time actually works on mobile
+    // (a swipe gesture and a tap can't both be tracked off one touch point).
     const touch = { forward: false, back: false, left: false, right: false };
-    const TOUCH_THRESHOLD = 18;
-    let touchOrigin = null, touchMoved = false, touchStartTime = 0;
-    function resetTouch() { touch.forward = touch.back = touch.left = touch.right = false; }
-    canvas.addEventListener('touchstart', (e) => {
-        const t = e.touches[0];
-        touchOrigin = { x: t.clientX, y: t.clientY };
-        touchMoved = false;
-        touchStartTime = performance.now();
-        resetTouch();
-    }, { passive: true });
-    canvas.addEventListener('touchmove', (e) => {
-        if (!touchOrigin) return;
-        const t = e.touches[0];
-        const dx = t.clientX - touchOrigin.x, dy = t.clientY - touchOrigin.y;
-        if (Math.abs(dx) > TOUCH_THRESHOLD || Math.abs(dy) > TOUCH_THRESHOLD) touchMoved = true;
-        touch.forward = dy < -TOUCH_THRESHOLD;
-        touch.back = dy > TOUCH_THRESHOLD;
-        touch.left = dx < -TOUCH_THRESHOLD;
-        touch.right = dx > TOUCH_THRESHOLD;
-        e.preventDefault();
-    }, { passive: false });
-    canvas.addEventListener('touchend', () => {
-        if (!touchMoved && performance.now() - touchStartTime < 300) state.jumpBuffered = true;
-        resetTouch();
-        touchOrigin = null;
-    }, { passive: true });
-    canvas.addEventListener('touchcancel', () => { resetTouch(); touchOrigin = null; }, { passive: true });
+    function bindTouch(id, onChange) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const set = (v) => (e) => { e.preventDefault(); onChange(v); };
+        el.addEventListener('touchstart', set(true), { passive: false });
+        el.addEventListener('touchend', set(false), { passive: false });
+        // touchcancel fires when the OS interrupts the touch (finger slides
+        // off, a system gesture takes over) — without this the button would
+        // stay stuck "down" forever since touchend never fires in that case.
+        el.addEventListener('touchcancel', set(false), { passive: false });
+        el.addEventListener('mousedown', set(true));
+        el.addEventListener('mouseup', set(false));
+        el.addEventListener('mouseleave', set(false));
+    }
+    bindTouch('btn-fwd', (v) => { touch.forward = v; });
+    bindTouch('btn-back', (v) => { touch.back = v; });
+    bindTouch('btn-left', (v) => { touch.left = v; });
+    bindTouch('btn-right', (v) => { touch.right = v; });
+    bindTouch('btn-jump', (v) => { if (v) state.jumpBuffered = true; });
 
     function update(dt) {
         dt = Math.min(dt, 0.05);
@@ -152,7 +153,18 @@ export function createPlayer(world, canvas) {
         const moveMult = state.jumpState === JUMP_STATE.AIR ? AIR_SPEED_MULT : 1;
         if (wantForward) { state.x += fwdX * state.moveSpeed * moveMult * dt; state.z += fwdZ * state.moveSpeed * moveMult * dt; }
         if (wantBack) { state.x -= fwdX * state.moveSpeed * moveMult * dt; state.z -= fwdZ * state.moveSpeed * moveMult * dt; }
-        if (wantMove) state.walkPhase += dt * WALK_ANIM_RATE;
+        // Momentum captured at takeoff (see WINDUP→AIR below) carries the
+        // jump forward along its arc even if the player isn't still holding
+        // the direction button mid-air — otherwise a jump only goes straight
+        // up unless forward happens to be held for the entire flight.
+        if (state.jumpState === JUMP_STATE.AIR) { state.x += state.launchVX * dt; state.z += state.launchVZ * dt; }
+        if (wantMove && state.jumpState === JUMP_STATE.NONE) {
+            const prevPhase = state.walkPhase;
+            state.walkPhase += dt * WALK_ANIM_RATE;
+            // Footstep on every half-cycle of the walk animation (each foot's
+            // contact with the ground), only while actually grounded/walking.
+            if (Math.floor(state.walkPhase / Math.PI) !== Math.floor(prevPhase / Math.PI)) playFootstep();
+        }
 
         state.x = Math.max(BOUNDS.minX + PLAYER_RADIUS, Math.min(BOUNDS.maxX - PLAYER_RADIUS, state.x));
         state.z = Math.max(BOUNDS.minZ + PLAYER_RADIUS, Math.min(BOUNDS.maxZ - PLAYER_RADIUS, state.z));
@@ -173,6 +185,12 @@ export function createPlayer(world, canvas) {
             state.jumpState = JUMP_STATE.WINDUP;
             state.jumpTimer = 0;
             state.jumpBuffered = false;
+            // Lock in the horizontal speed/direction at the moment the jump
+            // is triggered (not when it actually launches) — otherwise a
+            // quick "run then tap jump" loses most of its speed to normal
+            // deceleration during the windup pause before takeoff even happens.
+            state.launchVX = fwdX * state.moveSpeed;
+            state.launchVZ = fwdZ * state.moveSpeed;
         }
         if (state.jumpState === JUMP_STATE.WINDUP) {
             state.jumpTimer += dt;
@@ -181,6 +199,7 @@ export function createPlayer(world, canvas) {
                 state.grounded = false;
                 state.jumpState = JUMP_STATE.AIR;
                 state.jumpTimer = 0;
+                playJump();
             }
         }
         if (state.jumpState === JUMP_STATE.LAND) {
@@ -199,8 +218,13 @@ export function createPlayer(world, canvas) {
             if (state.vy < -0.4 && state.jumpState === JUMP_STATE.AIR) {
                 state.jumpState = JUMP_STATE.LAND;
                 state.jumpTimer = 0;
+                playLand();
+                state.launchVX = 0;
+                state.launchVZ = 0;
             } else if (state.jumpState === JUMP_STATE.AIR) {
                 state.jumpState = JUMP_STATE.NONE;
+                state.launchVX = 0;
+                state.launchVZ = 0;
             }
             state.y = groundY;
             state.vy = 0;

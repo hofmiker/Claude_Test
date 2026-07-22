@@ -59,6 +59,65 @@ html, body {
     box-shadow: 0 6px 18px rgba(0,0,0,0.35);
 }
 
+#touch-controls {
+    position: fixed;
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 calc(20px + env(safe-area-inset-right)) 0 calc(20px + env(safe-area-inset-left));
+    pointer-events: none;
+    z-index: 6;
+}
+
+#dpad {
+    pointer-events: none;
+    display: grid;
+    grid-template-columns: repeat(3, 54px);
+    grid-template-rows: repeat(3, 54px);
+    gap: 4px;
+}
+
+#btn-fwd { grid-column: 2; grid-row: 1; }
+#btn-left { grid-column: 1; grid-row: 2; }
+#btn-right { grid-column: 3; grid-row: 2; }
+#btn-back { grid-column: 2; grid-row: 3; }
+
+.touch-btn {
+    pointer-events: auto;
+    border-radius: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: rgba(20, 22, 35, 0.55);
+    color: #f4f1ff;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    backdrop-filter: blur(4px);
+}
+
+.touch-btn:active {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+#btn-jump {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 214, 102, 0.6);
+    background: rgba(255, 209, 102, 0.22);
+    color: #ffe6a8;
+    font-size: 26px;
+}
+
+#btn-jump:active {
+    background: rgba(255, 209, 102, 0.42);
+}
+
 #version-tag {
     position: fixed;
     left: 10px;

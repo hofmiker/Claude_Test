@@ -25,7 +25,9 @@ Kommentar am Kopf jeder Datei für Details. Kein Build-Schritt: ES-Module,
 - `gameplay/player.js` — Spielfigur-Modell + State + Input + Bewegung/Sprung/
   Kollision + Animation
 - `gameplay/camera.js` — Verfolgungskamera + Wandkollisions-Raycast
-- `gameplay/cat.js` — Katzen-Modell + Wander-KI
+- `gameplay/cat.js` — Katzen-Modell + Wander-KI (beide Etagen, nimmt die Treppe)
+- `gameplay/audio.js` — prozedural erzeugte Soundeffekte (Web Audio API,
+  keine externen Assets): Schritte, Absprung, Landung
 - `floorplan.html` / `floorplan.js` — Dev-Tool: SVG-Grundriss, generiert NUR
   aus `data/house-plan.js` (nicht vom Spiel verlinkt, nur zur Ansicht,
   kein Round-Trip-Import zurück in die Daten)
@@ -62,21 +64,42 @@ Rennautos + Rennbahn), Bad (Badewanne, Toilette, Waschbecken).
 und Bäume sichtbar (nicht begehbar — man kann das Haus nicht verlassen).
 
 **Katze**: läuft mit einfacher Wander-KI zwischen zufälligen Punkten im
-Erdgeschoss umher.
+ganzen Haus umher — bei einem Ziel auf der anderen Etage nimmt sie
+selbstständig die Treppe (gleiche Rampen-Logik wie die Spielfigur). Gibt
+ein Ziel nach einigen Sekunden ohne Fortschritt auf (Stuck-Erkennung),
+statt für immer gegen ein unerreichbares Möbelstück zu laufen.
 
 Türen (Zwischentüren + Haustür + Bad/Zimmertüren) haben Rahmen,
 Scharniere und Klinke und pivotieren um eine echte Scharnierachse.
 
 ## Steuerung & Kamera
-Mechanik an `dhl-city/character.html` angelehnt:
+Mechanik an `dhl-city/character.html` angelehnt, Touch-Buttons an
+`cape-character/index.html` angelehnt:
 - Panzer-Lenkung: W/↑ vorwärts, S/↓ rückwärts, A/D bzw. ←/→ drehen
-- Touch (ohne virtuelle Buttons): Wischen = laufen/drehen (wie im
-  Original), kurzes Tippen = hüpfen
-- Leertaste hüpft — Sprung als Zustandsautomat (Ausholen → Luft → Landung),
-  behält dabei Vor-/Rückwärtsschwung (Sprung nach vorne/hinten möglich)
+- Touch: eigene Buttons statt Wischgeste — D-Pad unten links (vor/zurück/
+  drehen), runder Sprung-Button unten rechts. Jeder Button ist ein
+  eigenes DOM-Element mit eigenen touchstart/touchend-Listenern (wie im
+  Vorbild), dadurch sind Vorwärts-Halten + Sprung-Tippen gleichzeitig
+  möglich — bei einer Wischgeste auf nur einem Touchpunkt geht das nicht
+- Leertaste/Sprung-Button hüpft — Sprung als Zustandsautomat (Ausholen →
+  Luft → Landung), Ausholen mit deutlich sichtbarem Kauern (Knie-/
+  Hüftbeugung + Rumpf-Senkung) vor dem Absprung
+- Impulserhaltung beim Sprung: Tempo/Richtung werden im Moment des
+  Absprungs (nicht erst beim Abheben) festgehalten und tragen durch die
+  ganze Flugbahn — ein Sprung geht auch dann sichtbar nach vorne, wenn
+  Vorwärts nicht die ganze Flugzeit über gehalten wird
+- Absichtlich langsamer/länger hängender Sprungbogen als real (~1s Flugzeit,
+  ~0.5m Höhe) statt eines schnellen, kurzen Hüpfers — dadurch lässt sich
+  gezielt auf die Oberseite der meisten Möbelstücke springen (Sofas, Sessel,
+  Tische, Betten, Nachttische, Bänke, Kommoden, Badewannenrand, Waschbecken,
+  Toiletten, Bauklötze, Sitzsack); zu hohe/unpassende Objekte (Schrank,
+  Kühlschrank, Regal, Pflanzen, Schaukelpferd, Teddy, Zelt) bleiben normale
+  Wände
 - Sanfte Beschleunigung/Bremsung statt sofortiger Geschwindigkeit
 - Beine als Hüfte+Knie-Gelenkkette, mit denselben Lauf-/Sprung-Formeln
   wie im Original animiert (kein Bodenplatten-Sockel mehr unter der Figur)
+- Soundeffekte (prozedural, `gameplay/audio.js`): Schritt bei jedem
+  Fußkontakt im Laufzyklus, Ton beim Absprung, Thump bei der Landung
 - Feste Verfolgungskamera hinter dem Charakter (kein Maus-Orbit), zieht
   beim Stehen näher heran; zusätzlich Wandkollisions-Raycast, damit die
   Kamera nie durch Wände/Möbel clippt (Ergänzung ggü. dem Original, da

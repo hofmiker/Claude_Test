@@ -69,7 +69,7 @@ placeExterior(exterior);
 
 // ---------- Gameplay ----------
 const cat = createCat(world);
-const player = createPlayer(world, canvas);
+const player = createPlayer(world);
 
 // Kamera-Blocker: alle world.children außer Böden/Teppichen/Spielfigur/Katze/
 // Bällen (Raycast soll an Wänden/Möbeln stoppen, nicht an flachen Bodenflächen).
