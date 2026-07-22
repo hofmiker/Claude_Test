@@ -16,6 +16,7 @@
 | `btc/` | Bitcoin On-Chain Dashboard — Live-Kurs & Netzwerk-Metriken | `.../btc/` |
 | `gta/` | Vice Grid — 3D-Top-Down-Fahrspiel im GTA-Stil | `.../gta/` |
 | `cape-character/` | Cape Character — 2D-IK-Charakter mit Umhang & Kapuze | `.../cape-character/` |
+| `rooftop-wanderer/` | Rooftop Wanderer — Atmosphären-Adventure | `.../rooftop-wanderer/` |
 | `flappy/` | Flappy Klon — Flappy-Bird-artiges Arcade-Spiel | `.../flappy/` |
 | `arkanoid/` | Arkanoid Klon — Breakout-artiges Arcade-Spiel | `.../arkanoid/` |
 | `toy-box-rescue/` | Toy Box Rescue — 2D-Fangspiel im Kinderzimmer | `.../toy-box-rescue/` |
