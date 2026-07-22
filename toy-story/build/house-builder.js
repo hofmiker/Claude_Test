@@ -2,7 +2,7 @@
 // Treppe/Dach/Sockelleisten. Enthält die "Wie baut man's"-Logik; die
 // Koordinaten/Maße selbst kommen aus der Datendatei.
 import * as THREE from '../vendor/three.module.min.js';
-import { box, cyl, createPlankTexture, createTileTexture } from './primitives.js';
+import { box, cyl, createPlankTexture, createTileTexture, lampPendant, lampWallSpot, picture } from './primitives.js';
 import { addObstacle } from './collision.js';
 import * as P from '../data/house-plan.js';
 
@@ -316,6 +316,11 @@ export function buildHouse(world) {
     baseboardZ(P.rightX - 0.085, P.backZ + 0.08, P.frontZ - 0.08, P.FLOOR2_Y);
     baseboardX(P.backZ + 0.085, P.leftX + 0.08, P.rightX - 0.08, P.FLOOR2_Y);
     baseboardX(P.frontZ - 0.085, P.leftX + 0.08, P.rightX - 0.08, P.FLOOR2_Y);
+
+    // ---------- Beleuchtung Treppenabsatz (gehört keinem einzelnen Zimmer) ----------
+    world.add(lampPendant(0, P.upperCeilingY(2.0), 2.0));
+    world.add(lampWallSpot(P.CORR_X_MAX, P.FLOOR2_Y + 1.0, 3.0, 'x', -1));
+    world.add(picture(0.3, 0.35, P.CORR_X_MAX - 0.01, P.FLOOR2_Y + 1.3, 3.2, -Math.PI / 2, 0x8a5a3a, 0xf0d9a8));
 
     return { groundFloors, upperFloors, landingMesh };
 }
