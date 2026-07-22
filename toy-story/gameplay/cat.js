@@ -56,7 +56,7 @@ export function createCat(world) {
             let nz = catState.z + fz * catState.speed * dt;
             nx = Math.max(BOUNDS.minX + 0.06, Math.min(BOUNDS.maxX - 0.06, nx));
             nz = Math.max(BOUNDS.minZ + 0.06, Math.min(BOUNDS.maxZ - 0.06, nz));
-            [nx, nz] = resolveObstacles(nx, nz, 0.06, obstaclesByFloor[0]);
+            [nx, nz] = resolveObstacles(nx, nz, 0, 0.06, obstaclesByFloor[0]);
             catState.x = nx; catState.z = nz;
             catState.walkPhase += dt * catState.speed * 14;
         }

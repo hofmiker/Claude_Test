@@ -10,15 +10,15 @@ export function placeKinderzimmer1(world) {
     sisterBed.add(box(0.9, 0.09, 0.45, 0xffd6ea, 0, 0.35, -0.55));
     sisterBed.position.set(-4.0, FLOOR2_Y, 2.0);
     world.add(sisterBed);
-    addObstacle(1, -4.0, 2.0, 1.1, 1.95);
+    addObstacle(1, -4.0, 2.0, 1.1, 1.95, 0.3);
     const sisterDesk = createDesk(0xe8b6cf);
     sisterDesk.position.set(-1.5, FLOOR2_Y, 1.5);
     world.add(sisterDesk);
-    addObstacle(1, -1.5, 1.5, 0.8, 0.55);
+    addObstacle(1, -1.5, 1.5, 0.8, 0.55, 0.57);
     const sisterChair = chair(-1.5, 1.85, Math.PI, 0xd6a0bf);
     sisterChair.position.y = FLOOR2_Y;
     world.add(sisterChair);
-    addObstacle(1, -1.5, 1.85, 0.42, 0.42);
+    addObstacle(1, -1.5, 1.85, 0.42, 0.42, 0.44);
     const sisterRug = new THREE.Mesh(new THREE.CircleGeometry(0.75, 32), new THREE.MeshStandardMaterial({ color: 0xf0a8c8, roughness: 1 }));
     sisterRug.rotation.x = -Math.PI / 2;
     sisterRug.position.set(-2.6, FLOOR2_Y + 0.004, 2.6);

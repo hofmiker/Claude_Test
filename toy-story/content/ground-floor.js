@@ -16,7 +16,7 @@ export function placeGroundFloor(world) {
     lSofaLong.position.set(-4.55, 0, -2.7);
     lSofaLong.rotation.y = Math.PI / 2;
     world.add(lSofaLong);
-    addObstacle(0, -4.55, -2.7, 0.85, 1.9);
+    addObstacle(0, -4.55, -2.7, 0.85, 1.9, 0.42);
 
     const lSofaShort = new THREE.Group();
     lSofaShort.add(box(1.3, 0.42, 0.85, seatColor, 0, 0.21, 0));
@@ -25,14 +25,14 @@ export function placeGroundFloor(world) {
     lSofaShort.add(box(0.18, 0.5, 0.85, backColor, 0.56, 0.34, 0));
     lSofaShort.position.set(-3.9, 0, -3.57);
     world.add(lSofaShort);
-    addObstacle(0, -3.9, -3.57, 1.3, 0.85);
+    addObstacle(0, -3.9, -3.57, 1.3, 0.85, 0.42);
 
     const coffeeTable = new THREE.Group();
     coffeeTable.add(box(1.0, 0.04, 0.55, 0x8a5a3a, 0, 0.42, 0));
     [[-0.44, -0.23], [0.44, -0.23], [-0.44, 0.23], [0.44, 0.23]].forEach(([lx, lz]) => coffeeTable.add(cyl(0.02, 0.02, 0.4, 0x6b4429, lx, 0.2, lz, { seg: 8 })));
     coffeeTable.position.set(-3.6, 0, -2.6);
     world.add(coffeeTable);
-    addObstacle(0, -3.6, -2.6, 1.05, 0.6);
+    addObstacle(0, -3.6, -2.6, 1.05, 0.6, 0.44);
 
     const livingRug = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 1.4), new THREE.MeshStandardMaterial({ color: 0x7a4a3a, roughness: 1 }));
     livingRug.rotation.x = -Math.PI / 2;
@@ -45,7 +45,7 @@ export function placeGroundFloor(world) {
     tvConsole.add(box(0.42, 0.04, 1.22, 0xffffff, 0, 0.45, 0));
     tvConsole.position.set(-1.55, 0, -2.5);
     world.add(tvConsole);
-    addObstacle(0, -1.55, -2.5, 0.4, 1.2);
+    addObstacle(0, -1.55, -2.5, 0.4, 1.2, 0.47);
     world.add(box(0.04, 0.58, 1.0, 0x111111, -1.32, 0.79, -2.5, { cast: false }));
     world.add(box(0.05, 0.06, 1.02, 0x2b2b2b, -1.3, 0.48, -2.5, { cast: false }));
 
@@ -73,7 +73,7 @@ export function placeGroundFloor(world) {
     readingChair.position.set(-4.5, 0, 0.3);
     readingChair.rotation.y = -Math.PI / 2;
     world.add(readingChair);
-    addObstacle(0, -4.5, 0.3, 0.65, 0.65);
+    addObstacle(0, -4.5, 0.3, 0.65, 0.65, 0.4);
     world.add(lampFloor(-4.9, 0, 0.75));
     addObstacle(0, -4.9, 0.75, 0.28, 0.28);
 
@@ -83,10 +83,10 @@ export function placeGroundFloor(world) {
     [[-0.36, -0.68], [0.36, -0.68], [-0.36, 0.68], [0.36, 0.68]].forEach(([lx, lz]) => diningTable.add(cyl(0.022, 0.022, 0.73, 0x7a5230, lx, 0.365, lz, { seg: 8 })));
     diningTable.position.set(-3.15, 0, 2.6);
     world.add(diningTable);
-    addObstacle(0, -3.15, 2.6, 0.9, 1.55);
+    addObstacle(0, -3.15, 2.6, 0.9, 1.55, 0.77);
     [[-3.15, 1.85, 0], [-3.15, 3.35, Math.PI], [-3.815, 2.2, Math.PI / 2], [-3.815, 3.0, Math.PI / 2], [-2.485, 2.2, -Math.PI / 2], [-2.485, 3.0, -Math.PI / 2]].forEach(([cx, cz, rot]) => {
         world.add(chair(cx, cz, rot));
-        addObstacle(0, cx, cz, 0.42, 0.42);
+        addObstacle(0, cx, cz, 0.42, 0.42, 0.44);
     });
 
     world.add(houseplant(-4.35, 0, 3.55, 1.15));
@@ -103,7 +103,7 @@ export function placeGroundFloor(world) {
         g.position.set(x, 0, z);
         g.rotation.y = rotY;
         world.add(g);
-        addObstacle(0, x, z, rotY ? d : w, rotY ? w : d);
+        addObstacle(0, x, z, rotY ? d : w, rotY ? w : d, 0.87);
     }
     kitchenCounter(1.95, backZ + 0.35, 1.2, 0.62, 0);
     kitchenCounter(rightX - 0.35, -2.6, 0.62, 1.6, Math.PI / 2);
@@ -118,7 +118,7 @@ export function placeGroundFloor(world) {
     });
     stove.position.set(2.85, 0, backZ + 0.35);
     world.add(stove);
-    addObstacle(0, 2.85, backZ + 0.35, 0.65, 0.65);
+    addObstacle(0, 2.85, backZ + 0.35, 0.65, 0.65, 0.87);
 
     function createRangeHood(color = 0xd6d6d6) {
         const g = new THREE.Group();
@@ -139,7 +139,7 @@ export function placeGroundFloor(world) {
     sinkUnit.position.set(rightX - 0.35, 0, -0.6);
     sinkUnit.rotation.y = Math.PI / 2;
     world.add(sinkUnit);
-    addObstacle(0, rightX - 0.35, -0.6, 0.62, 0.55);
+    addObstacle(0, rightX - 0.35, -0.6, 0.62, 0.55, 0.87);
 
     const fridge = new THREE.Group();
     fridge.add(box(0.65, 1.75, 0.65, 0xf3f3f3, 0, 0.875, 0));
@@ -159,11 +159,11 @@ export function placeGroundFloor(world) {
     wcGroup.position.set(2.85, 0, 2.05);
     wcGroup.rotation.y = Math.PI;
     world.add(wcGroup);
-    addObstacle(0, 2.85, 2.0, 0.3, 0.45);
+    addObstacle(0, 2.85, 2.0, 0.3, 0.45, 0.28);
     const wcSink = createSinkPedestal();
     wcSink.position.set(1.6, 0, 0.75);
     world.add(wcSink);
-    addObstacle(0, 1.6, 0.75, 0.3, 0.25);
+    addObstacle(0, 1.6, 0.75, 0.3, 0.25, 0.6);
     world.add(lampWallSpot(TOILET_X_MAX, 2.0, 1.3, 'x', -1));
     world.add(picture(0.3, 0.3, TOILET_X_MAX - 0.01, 1.5, 1.6, -Math.PI / 2, 0xdfeef2, 0x8fc7d8));
 
@@ -172,7 +172,7 @@ export function placeGroundFloor(world) {
     addObstacle(0, -0.9, -3.82, 0.18, 0.18);
     const bench = box(0.9, 0.42, 0.32, 0x7a5230, 0, 0.21, 3.6);
     world.add(bench);
-    addObstacle(0, 0, 3.6, 0.9, 0.32);
+    addObstacle(0, 0, 3.6, 0.9, 0.32, 0.42);
     world.add(lampPendant(0, WALL_H, -3.8));
     world.add(lampPendant(0.7, WALL_H, -2.5));
     world.add(lampPendant(0, WALL_H, 2.8));

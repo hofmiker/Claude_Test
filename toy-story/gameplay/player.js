@@ -1,19 +1,25 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { box, cyl, ball3 } from '../build/primitives.js';
-import { resolveObstacles, obstaclesByFloor } from '../build/collision.js';
+import { resolveObstacles, groundHeightAt, obstaclesByFloor } from '../build/collision.js';
 import { BOUNDS, STAIR_X_MIN, STAIR_X_MAX, STAIR_Z_START, STAIR_Z_END, FLOOR2_Y } from '../data/house-plan.js';
 import { PLAYER_RADIUS } from './player-constants.js';
 
 const JUMP_STATE = { NONE: 0, WINDUP: 1, AIR: 2, LAND: 3 };
-const WINDUP_DUR = 0.15;
+const WINDUP_DUR = 0.2;
 const LAND_DUR = 0.25;
 
 const SPEED_MAX = 0.75;
 const ACCEL_RATE = 2.25;
 const DECEL_RATE = 3.0;
 const TURN_RATE = 1.1;
-const GRAVITY = -14;
-const JUMP_VEL = 2.57;
+// Floatier, longer-hanging jump arc than a strict real-world fall — reaches
+// roughly sofa/chair/nightstand height (~0.5m) and hangs in the air for
+// about 0.8s (vs. ~0.24m/0.37s before), so most furniture becomes jumpable.
+const GRAVITY = -6.5;
+const JUMP_VEL = 2.6;
+// Movement while airborne is deliberately slower/less snappy than on the
+// ground — the jump feels more deliberate instead of carrying full running speed.
+const AIR_SPEED_MULT = 0.55;
 const WALK_ANIM_RATE = 11;
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -143,8 +149,9 @@ export function createPlayer(world, canvas) {
         if (wantMove) state.moveSpeed = Math.min(state.moveSpeed + ACCEL_RATE * dt, SPEED_MAX);
         else state.moveSpeed = Math.max(state.moveSpeed - DECEL_RATE * dt, 0);
 
-        if (wantForward) { state.x += fwdX * state.moveSpeed * dt; state.z += fwdZ * state.moveSpeed * dt; }
-        if (wantBack) { state.x -= fwdX * state.moveSpeed * dt; state.z -= fwdZ * state.moveSpeed * dt; }
+        const moveMult = state.jumpState === JUMP_STATE.AIR ? AIR_SPEED_MULT : 1;
+        if (wantForward) { state.x += fwdX * state.moveSpeed * moveMult * dt; state.z += fwdZ * state.moveSpeed * moveMult * dt; }
+        if (wantBack) { state.x -= fwdX * state.moveSpeed * moveMult * dt; state.z -= fwdZ * state.moveSpeed * moveMult * dt; }
         if (wantMove) state.walkPhase += dt * WALK_ANIM_RATE;
 
         state.x = Math.max(BOUNDS.minX + PLAYER_RADIUS, Math.min(BOUNDS.maxX - PLAYER_RADIUS, state.x));
@@ -160,7 +167,7 @@ export function createPlayer(world, canvas) {
         }
         state.wasInStair = nowInStair;
 
-        [state.x, state.z] = resolveObstacles(state.x, state.z, PLAYER_RADIUS, obstaclesByFloor[state.floor]);
+        [state.x, state.z] = resolveObstacles(state.x, state.z, state.y, PLAYER_RADIUS, obstaclesByFloor[state.floor]);
 
         if (state.jumpBuffered && state.grounded && state.jumpState !== JUMP_STATE.WINDUP && state.jumpState !== JUMP_STATE.AIR) {
             state.jumpState = JUMP_STATE.WINDUP;
@@ -183,14 +190,19 @@ export function createPlayer(world, canvas) {
 
         state.vy += GRAVITY * dt;
         state.y += state.vy * dt;
-        if (state.y <= 0) {
+        // Ground can be the bare floor (0) or, if the player is over a
+        // steppable piece of furniture, that furniture's top surface —
+        // letting a well-timed jump land ON TOP of most objects instead of
+        // always falling through to the floor.
+        const groundY = nowInStair ? 0 : groundHeightAt(state.x, state.z, obstaclesByFloor[state.floor]);
+        if (state.y <= groundY) {
             if (state.vy < -0.4 && state.jumpState === JUMP_STATE.AIR) {
                 state.jumpState = JUMP_STATE.LAND;
                 state.jumpTimer = 0;
             } else if (state.jumpState === JUMP_STATE.AIR) {
                 state.jumpState = JUMP_STATE.NONE;
             }
-            state.y = 0;
+            state.y = groundY;
             state.vy = 0;
             state.grounded = true;
         } else {
@@ -206,14 +218,15 @@ export function createPlayer(world, canvas) {
         if (state.jumpState === JUMP_STATE.WINDUP) {
             const t = Math.min(state.jumpTimer / WINDUP_DUR, 1);
             const sq = Math.sin(t * Math.PI * 0.5);
-            legL.hip.rotation.x = lerp(legL.hip.rotation.x, 0.52 * sq, 0.32);
-            legR.hip.rotation.x = lerp(legR.hip.rotation.x, 0.52 * sq, 0.32);
-            legL.knee.rotation.x = lerp(legL.knee.rotation.x, 0.78 * sq, 0.32);
-            legR.knee.rotation.x = lerp(legR.knee.rotation.x, 0.78 * sq, 0.32);
+            legL.hip.rotation.x = lerp(legL.hip.rotation.x, 0.62 * sq, 0.32);
+            legR.hip.rotation.x = lerp(legR.hip.rotation.x, 0.62 * sq, 0.32);
+            legL.knee.rotation.x = lerp(legL.knee.rotation.x, 0.95 * sq, 0.32);
+            legR.knee.rotation.x = lerp(legR.knee.rotation.x, 0.95 * sq, 0.32);
             armL.rotation.x = lerp(armL.rotation.x, -0.6 * sq, 0.3);
             armR.rotation.x = lerp(armR.rotation.x, -0.6 * sq, 0.3);
-            torso.position.y = lerp(torso.position.y, TORSO_Y - 0.011 * sq, 0.4);
-            torso.rotation.x = lerp(torso.rotation.x, -0.25 * sq, 0.3);
+            // Deeper, clearly visible crouch dip before launch (was -0.011).
+            torso.position.y = lerp(torso.position.y, TORSO_Y - 0.024 * sq, 0.4);
+            torso.rotation.x = lerp(torso.rotation.x, -0.2 * sq, 0.3);
         } else if (state.jumpState === JUMP_STATE.AIR) {
             legL.hip.rotation.x = lerp(legL.hip.rotation.x, -0.70, 0.17);
             legR.hip.rotation.x = lerp(legR.hip.rotation.x, -0.70, 0.17);

@@ -26,10 +26,10 @@ export function placeKinderzimmer2(world) {
     boyBed.add(blanket);
     boyBed.position.set(4.3, FLOOR2_Y, 3.0);
     world.add(boyBed);
-    addObstacle(1, 4.3, 3.0, 1.1, 1.95);
+    addObstacle(1, 4.3, 3.0, 1.1, 1.95, 0.3);
     world.add(lampTable(4.3 + 0.75, FLOOR2_Y + 0.5, 3.0));
     world.add(box(0.3, 0.5, 0.3, 0x9c6b3f, 4.3 + 0.75, FLOOR2_Y + 0.25, 3.0));
-    addObstacle(1, 4.3 + 0.75, 3.0, 0.32, 0.32);
+    addObstacle(1, 4.3 + 0.75, 3.0, 0.32, 0.32, 0.5);
 
     const cloudMural = new THREE.Mesh(
         new THREE.PlaneGeometry(2.6, 1.1),
@@ -92,7 +92,7 @@ export function placeKinderzimmer2(world) {
     boyChest.add(box(0.65, 0.06, 0.43, 0x3e6bb0, 0, 0.41, 0));
     boyChest.position.set(2.05, FLOOR2_Y, 3.5);
     world.add(boyChest);
-    addObstacle(1, 2.05, 3.5, 0.7, 0.46);
+    addObstacle(1, 2.05, 3.5, 0.7, 0.46, 0.41);
 
     const kidRug = new THREE.Mesh(new THREE.CircleGeometry(0.95, 40), new THREE.MeshStandardMaterial({ color: 0x6fb3d8, roughness: 1 }));
     kidRug.rotation.x = -Math.PI / 2;
@@ -157,7 +157,7 @@ export function placeKinderzimmer2(world) {
     for (let i = 0; i < 3; i++) blocksGroup.add(box(0.09, 0.09, 0.09, blockColors[i], 0, 0.045 + i * 0.093, 0, { rotY: i * 0.35 }));
     blocksGroup.position.set(1.7, FLOOR2_Y, 3.6);
     world.add(blocksGroup);
-    addObstacle(1, 1.7, 3.6, 0.17, 0.17);
+    addObstacle(1, 1.7, 3.6, 0.17, 0.17, 0.33);
 
     function createTeddy() {
         const g = new THREE.Group();
@@ -194,7 +194,7 @@ export function placeKinderzimmer2(world) {
     const beanbag = ball3(0.22, 0x9c6bd9, 3.6, FLOOR2_Y + 0.121, 1.2, { seg: 16 });
     beanbag.scale.set(1, 0.55, 1);
     world.add(beanbag);
-    addObstacle(1, 3.6, 1.2, 0.44, 0.44);
+    addObstacle(1, 3.6, 1.2, 0.44, 0.44, 0.24);
 
     function createTeepee() {
         const g = new THREE.Group();
@@ -262,7 +262,7 @@ export function placeKinderzimmer2(world) {
             let bz = b.mesh.position.z + b.vz * dt;
             bx = Math.max(BOUNDS.minX + b.radius, Math.min(BOUNDS.maxX - b.radius, bx));
             bz = Math.max(BOUNDS.minZ + b.radius, Math.min(BOUNDS.maxZ - b.radius, bz));
-            [bx, bz] = resolveObstacles(bx, bz, b.radius, obstaclesByFloor[1]);
+            [bx, bz] = resolveObstacles(bx, bz, 0, b.radius, obstaclesByFloor[1]);
             b.mesh.position.x = bx;
             b.mesh.position.z = bz;
             const speed = Math.hypot(b.vx, b.vz);
