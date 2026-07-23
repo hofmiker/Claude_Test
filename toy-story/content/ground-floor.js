@@ -1,6 +1,6 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { box, cyl, picture, houseplant, lampFloor, lampPendant, lampWallSpot, chair, createToilet, createSinkPedestal } from '../build/primitives.js';
-import { addObstacle } from '../build/collision.js';
+import { addObstacle, addLeggedObstacle } from '../build/collision.js';
 import { backZ, frontZ, leftX, rightX, CORR_X_MIN, CORR_X_MAX, WALL_H, TOILET_X_MAX } from '../data/house-plan.js';
 
 // Wohnzimmer + Küche + Toilette + Flur/Hauseingang: reine Möbel-Platzierung.
@@ -86,7 +86,10 @@ export function placeGroundFloor(world) {
     addObstacle(0, -3.15, 2.6, 0.9, 1.55, 0.77);
     [[-3.15, 1.85, 0], [-3.15, 3.35, Math.PI], [-3.815, 2.2, Math.PI / 2], [-3.815, 3.0, Math.PI / 2], [-2.485, 2.2, -Math.PI / 2], [-2.485, 3.0, -Math.PI / 2]].forEach(([cx, cz, rot]) => {
         world.add(chair(cx, cz, rot));
-        addObstacle(0, cx, cz, 0.42, 0.42, 0.44);
+        // Kollision an den Beinen statt der vollen Sitzfläche — man kann
+        // zwischen den Stuhlbeinen durchlaufen, oben drauf springen geht
+        // weiterhin (nicht blockierende Plattform-Obstacle für die Sitzhöhe).
+        addLeggedObstacle(0, cx, cz, rot, [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]], 0.08, 0.44, 0.42, 0.42);
     });
 
     world.add(houseplant(-4.35, 0, 3.55, 1.15));

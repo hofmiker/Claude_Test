@@ -7,8 +7,22 @@ export const obstaclesByFloor = [[], []];
 // horizontally regardless of how high the player jumps. A finite topY makes
 // the obstacle steppable — once the player's feet are at/above it, it stops
 // blocking sideways and instead acts as ground to land/stand on.
-export function addObstacle(floor, cx, cz, w, d, topY = Infinity) {
-    obstaclesByFloor[floor].push({ minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2, topY });
+export function addObstacle(floor, cx, cz, w, d, topY = Infinity, opts = {}) {
+    obstaclesByFloor[floor].push({ minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2, topY, blocking: opts.blocking !== false });
+}
+
+// Legged furniture (chairs/desks): thin blocking obstacles at each actual
+// leg position — matching the leg coordinates the visual model (chair()/
+// createDesk() in primitives.js) already uses — so the player can walk
+// through the gaps between the legs instead of being stopped by the whole
+// footprint, plus one non-blocking "platform" obstacle spanning the full
+// seat/desktop so a well-timed jump can still land on top of it.
+export function addLeggedObstacle(floor, cx, cz, rotY, legOffsets, legSize, topY, platformW, platformD) {
+    const cos = Math.cos(rotY), sin = Math.sin(rotY);
+    for (const [lx, lz] of legOffsets) {
+        addObstacle(floor, cx + lx * cos + lz * sin, cz - lx * sin + lz * cos, legSize, legSize, topY);
+    }
+    addObstacle(floor, cx, cz, platformW, platformD, topY, { blocking: false });
 }
 
 // `y`: the mover's current height above the floor baseline. Obstacles whose
@@ -16,6 +30,7 @@ export function addObstacle(floor, cx, cz, w, d, topY = Infinity) {
 // the mover is standing on/above them, not walking into their side.
 export function resolveObstacles(x, z, y, radius, list) {
     for (const o of list) {
+        if (!o.blocking) continue;
         if (y >= o.topY - 0.02) continue;
         const cx = Math.max(o.minX, Math.min(x, o.maxX));
         const cz = Math.max(o.minZ, Math.min(z, o.maxZ));

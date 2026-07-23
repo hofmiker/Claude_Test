@@ -51,6 +51,12 @@ export const ROOMS_UPPER = [
     // Durchgang neben der (schmaleren) Treppe: eigene Bodenfläche, damit der
     // Streifen neben dem Treppenschacht nicht über einer Leere schwebt.
     { id: 'og-durchgang', label: '', xMin: STAIR_X_MAX, xMax: CORR_X_MAX, zMin: STAIR_Z_START, zMax: STAIR_Z_END, material: 'plank', hue: 0xb98a55, seed: 31 },
+    // Schmaler Streifen wandseitig neben der Treppe (Westseite) — Pendant zu
+    // og-durchgang auf der Ostseite, sonst fehlt hier die Bodenfläche.
+    { id: 'og-durchgang-west', label: '', xMin: CORR_X_MIN, xMax: STAIR_X_MIN, zMin: STAIR_Z_START, zMax: STAIR_Z_END, material: 'plank', hue: 0xb98a55, seed: 33 },
+    // Gang-Stück zwischen Rückwand und Treppenfuß — ohne diesen Eintrag fehlt
+    // hier die komplette OG-Bodenfläche (sichtbarer Spalt zur Rückwand hin).
+    { id: 'og-flur-hinten', label: '', xMin: CORR_X_MIN, xMax: CORR_X_MAX, zMin: Z_MIN, zMax: STAIR_Z_START, material: 'plank', hue: 0xb98a55, seed: 35 },
 ];
 // Treppenabsatz: ein durchgehendes Stück vom oberen Treppenende bis zur
 // Frontwand (der Treppenschacht darunter hat keine OG-Bodenfläche). Bleibt
