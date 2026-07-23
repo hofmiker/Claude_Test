@@ -57,6 +57,25 @@
     transition: opacity 2.5s ease;
   }
   #intro.faded { opacity: 0; }
+  #zone-caption {
+    position: absolute;
+    top: 13%;
+    left: 50%;
+    transform: translate(-50%, 0);
+    width: 84%;
+    max-width: 440px;
+    text-align: center;
+    color: #cfd3ea;
+    font-size: 14.5px;
+    font-style: italic;
+    letter-spacing: 0.3px;
+    line-height: 1.6;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+  }
+  #zone-caption.shown { opacity: 1; }
   #touch-controls {
     position: absolute;
     bottom: calc(22px + env(safe-area-inset-bottom));
@@ -138,6 +157,7 @@
 <body>
 <div id="stage">
   <div id="intro">Die Türme schlafen. Nur du bist wach —<br>und irgendwo am Ende der Dächer wartet ein Licht.</div>
+  <div id="zone-caption"></div>
   <div id="hud"><b>&larr; &rarr;</b> gehen &nbsp;&nbsp; <b>&uarr;</b> springen / klettern &nbsp;&nbsp; <b>&darr;</b> ducken</div>
   <button id="btn-light">🕯️ Laterne entzünden</button>
   <canvas id="c"></canvas>
@@ -252,6 +272,17 @@
   }
   setTimeout(fadeIntro, 6000);
 
+  // zone captions: a short line fades in the first time a new stretch of
+  // the city is entered, then fades back out on its own
+  const zoneCaptionEl = document.getElementById("zone-caption");
+  let zoneCaptionTimer = null;
+  function showZoneCaption(text) {
+    zoneCaptionEl.textContent = text;
+    zoneCaptionEl.classList.add("shown");
+    clearTimeout(zoneCaptionTimer);
+    zoneCaptionTimer = setTimeout(() => zoneCaptionEl.classList.remove("shown"), 4200);
+  }
+
   function pressed(list) { return list.some((k) => keys[k]); }
 
   // ---------- two-bone IK ----------
@@ -307,19 +338,20 @@
     crouchDepth: 26,
   };
 
-  // Monochrome "black with shading" palette
+  // Cool moonlit-silhouette palette — bright enough to read clearly against
+  // the dark sky/rooftops even before the "Laterne entzünden" toggle is on
   const COL = {
-    limbBack: "#0a0a0d",
-    limbFront: "#1d1e22",
-    torsoTop: "#1a1b20",
-    torsoBottom: "#08090b",
-    capeTop: "#0c0c10",
-    capeBottom: "#020203",
-    hood: "#111116",
-    hoodShade: "#050506",
-    headBase: "#1c1d22",
-    headShade: "#0a0a0c",
-    headHilite: "#2e3038",
+    limbBack: "#33323f",
+    limbFront: "#48485a",
+    torsoTop: "#40404f",
+    torsoBottom: "#24232e",
+    capeTop: "#312f3d",
+    capeBottom: "#17151e",
+    hood: "#3a394a",
+    hoodShade: "#1c1b26",
+    headBase: "#4a4a5c",
+    headShade: "#26252f",
+    headHilite: "#6a6c82",
   };
 
   // Warm, lit palette swapped in while the "Charakter beleuchten" spotlight
@@ -363,6 +395,23 @@
   // the signal at journey's end, resting on the high terrace
   const GOAL = { x: 3970, h: 450 };
   let endingShown = false;
+
+  // ---------- city zones ----------
+  // the route tells a small story in stages: a cramped back alley, a
+  // container yard, a row of sleeping houses, then the open rooftop
+  // terrace with the goal light — each with its own look and a caption
+  // that fades in the first time the wanderer crosses into it
+  const ZONES = [
+    { end: 1150, name: "gasse", caption: null },
+    { end: 2150, name: "container", caption: "Zwischen den Containern schläft die Fracht vergangener Nächte." },
+    { end: 3000, name: "haeuser", caption: "Hinter erleuchteten Fenstern flüstert die Stadt ihre Geschichten." },
+    { end: Infinity, name: "terrasse", caption: "Die Dächer öffnen sich – das Ziel ist nah." },
+  ];
+  function zoneOf(worldX) {
+    for (let i = 0; i < ZONES.length; i++) if (worldX < ZONES[i].end) return ZONES[i];
+    return ZONES[ZONES.length - 1];
+  }
+  let lastZoneName = zoneOf(220).name; // matches the character's start x, so the opening zone never triggers its own caption
 
   // max height reachable by a normal jump (v^2 / 2g); anything taller can
   // only be reached by grabbing the ledge and climbing
@@ -745,6 +794,14 @@
       endingShown = true;
       document.getElementById("ending").classList.add("shown");
     }
+
+    // crossing into a new stretch of the city — alley, container yard,
+    // house row, terrace — surfaces a one-line caption the first time
+    const currentZone = zoneOf(character.worldX);
+    if (currentZone.name !== lastZoneName) {
+      lastZoneName = currentZone.name;
+      if (currentZone.caption) showZoneCaption(currentZone.caption);
+    }
   }
 
   // ---------- pose ----------
@@ -1051,7 +1108,10 @@
     });
   }
   function drawMoonAndStars() {
-    const mx = LVIEW_W * 0.82, my = LVIEW_H * 0.16 + cameraY * 0.05, mr = Math.min(46, LVIEW_H * 0.09);
+    // fixed screen-space position, matching the stars exactly (no cameraY
+    // drift) so the moon reads as part of the same night-sky backdrop
+    // instead of visibly sliding away from the star field while climbing
+    const mx = LVIEW_W * 0.82, my = LVIEW_H * 0.16, mr = Math.min(46, LVIEW_H * 0.09);
     const glow = ctx.createRadialGradient(mx, my, 4, mx, my, mr * 2.6);
     glow.addColorStop(0, "rgba(225,222,255,0.30)");
     glow.addColorStop(1, "rgba(225,222,255,0)");
@@ -1118,9 +1178,23 @@
   }
 
   function drawParallax() {
-    // two slow-scrolling skyline layers behind the interactive rooftops
+    // the distant skyline is constant — the city always looms far away —
+    // while the closer layer changes with the zone the wanderer is
+    // currently passing through, so each stretch reads distinctly
     drawSkylineLayer(0.15, 190, 90, 220, "#171233", "rgba(255,210,120,0.30)", 11);
-    drawSkylineLayer(0.4, 130, 60, 150, "#0f0c22", "rgba(255,200,110,0.55)", 47);
+    const zone = zoneOf(character.worldX).name;
+    if (zone === "gasse") {
+      // narrow, tall buildings pressing in close on both sides
+      drawSkylineLayer(0.4, 95, 110, 210, "#181430", "rgba(255,205,140,0.35)", 29);
+    } else if (zone === "container") {
+      // low, flat dockyard silhouettes, unlit — industrial rather than lived-in
+      drawSkylineLayer(0.4, 70, 35, 65, "#15302e", "rgba(0,0,0,0)", 61);
+    } else if (zone === "haeuser") {
+      // a domestic row, wider gaps, warmer lit windows
+      drawSkylineLayer(0.4, 150, 70, 130, "#241c30", "rgba(255,214,150,0.5)", 83);
+    } else {
+      drawSkylineLayer(0.4, 130, 60, 150, "#0f0c22", "rgba(255,200,110,0.55)", 47);
+    }
   }
 
   function drawFog() {
@@ -1133,6 +1207,9 @@
     ctx.fillRect(0, top, LVIEW_W, floorY + 10 - top);
   }
 
+  // each obstacle is reskinned by which stretch of the city it sits in —
+  // same collision box underneath, but an alley crate, a shipping
+  // container, and a house rooftop should never look interchangeable
   function drawBoxes() {
     const floorY = GROUND_LEVEL_Y - cameraY;
     for (let i = 0; i < boxes.length; i++) {
@@ -1141,21 +1218,57 @@
       if (sx + b.w < 0 || sx > LVIEW_W) continue;
       const topY = floorY - b.h;
       if (topY > LVIEW_H) continue; // fully below the visible area
-      const grad = ctx.createLinearGradient(0, topY, 0, floorY + 4);
-      grad.addColorStop(0, "#2b2440");
-      grad.addColorStop(1, "#191527");
-      ctx.fillStyle = grad;
-      ctx.fillRect(sx, topY, b.w, floorY + 4 - topY);
+      drawZoneBox(zoneOf(b.x + b.w / 2).name, i, sx, topY, b.w, b.h, floorY);
+    }
+  }
 
-      // glowing rim along the rooftop edge
-      ctx.fillStyle = "rgba(150,130,230,0.55)";
-      ctx.fillRect(sx, topY, b.w, 3);
+  function drawZoneBox(zoneName, idx, sx, topY, w, h, floorY) {
+    let top, bottom, rim;
+    if (zoneName === "container") {
+      const rust = idx % 2 === 0;
+      top = rust ? "#5a3324" : "#1f4a48";
+      bottom = rust ? "#2e1a14" : "#102826";
+      rim = rust ? "rgba(255,190,120,0.5)" : "rgba(150,220,210,0.5)";
+    } else if (zoneName === "haeuser") {
+      top = "#3a2f42"; bottom = "#1e1826"; rim = "rgba(255,214,150,0.5)";
+    } else if (zoneName === "gasse") {
+      top = "#2a2534"; bottom = "#15121c"; rim = "rgba(140,170,180,0.4)";
+    } else {
+      top = "#2b2440"; bottom = "#191527"; rim = "rgba(150,130,230,0.55)";
+    }
 
-      // ledge detail dots (roof vents/pipes) on wider rooftops
-      if (b.w > 60) {
-        ctx.fillStyle = "rgba(255,255,255,0.06)";
-        for (let d = 20; d < b.w - 10; d += 46) ctx.fillRect(sx + d, topY + 8, 12, 4);
+    const grad = ctx.createLinearGradient(0, topY, 0, floorY + 4);
+    grad.addColorStop(0, top);
+    grad.addColorStop(1, bottom);
+    ctx.fillStyle = grad;
+    ctx.fillRect(sx, topY, w, floorY + 4 - topY);
+    ctx.fillStyle = rim;
+    ctx.fillRect(sx, topY, w, 3);
+
+    if (zoneName === "container") {
+      // corrugated ridges plus a hazard stripe near one edge
+      ctx.fillStyle = "rgba(0,0,0,0.18)";
+      for (let d = 6; d < w - 4; d += 10) ctx.fillRect(sx + d, topY + 4, 2, floorY - topY - 8);
+      ctx.fillStyle = "rgba(255,205,70,0.3)";
+      ctx.fillRect(sx + w - 14, topY, 6, floorY - topY);
+    } else if (zoneName === "haeuser") {
+      // a chimney and a scatter of lit dormer windows down the face
+      if (w > 40) {
+        ctx.fillStyle = "#171320";
+        ctx.fillRect(sx + w * 0.68, topY - 20, 12, 22);
       }
+      ctx.fillStyle = "rgba(255,214,150,0.55)";
+      for (let d = 14; d < w - 10 && topY + 14 < floorY - 10; d += 34) {
+        ctx.fillRect(sx + d, topY + 14, 10, 12);
+      }
+    } else if (zoneName === "gasse") {
+      // ribbed dumpster/crate lid lines
+      ctx.fillStyle = "rgba(255,255,255,0.05)";
+      for (let dy = 10; dy < floorY - topY - 6; dy += 12) ctx.fillRect(sx + 3, topY + dy, w - 6, 2);
+    } else if (w > 60) {
+      // terrace roof-vent detail dots
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      for (let d = 20; d < w - 10; d += 46) ctx.fillRect(sx + d, topY + 8, 12, 4);
     }
   }
 
