@@ -58,8 +58,12 @@ wird an der Fußpunkt-Kante blockiert; einmal auf der Rampe oder beim
 Runterlaufen von oben gilt das nicht.
 
 **Sammel-Münzen**: 10 schwebende, rotierende Münzen über beide Etagen
-verteilt (siehe `content/coins.js`), HUD-Counter oben links. Reine
-Bonus-Mechanik ohne Einfluss auf Bewegung/Kollision.
+verteilt (siehe `content/coins.js`), HUD-Counter oben links. Facettierte
+Form (Sechseck-Prisma statt runder Kanten) mit dezentem warmem Glow
+(eigenes Punktlicht je Münze); beim Einsammeln sprüht ein kurzer
+Funkenspray (14 kleine Splitter, fliegen nach außen/oben weg, fallen
+unter Schwerkraft und schrumpfen weg). Reine Bonus-Mechanik ohne
+Einfluss auf Bewegung/Kollision.
 
 **Dachgeschoss** (Dachschrägen ab Kniestockhöhe, jedes Zimmer mit
 Dachfenster): Elternschlafzimmer mit Kleiderschrank, Kinderzimmer 1
