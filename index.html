@@ -3,21 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hallo</title>
+    <title>Projects</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            margin: 0;
-            height: 100vh;
+            background: #05050f;
+            color: rgba(255,255,255,0.7);
+            font-family: -apple-system, Helvetica, sans-serif;
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            background-color: white;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 3rem;
+            justify-content: center;
+            padding: 40px 24px;
+        }
+        h1 {
+            font-size: 11px;
+            letter-spacing: 0.32em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.30);
+            margin-bottom: 8px;
+        }
+        .deploy-date {
+            font-size: 10px;
+            letter-spacing: 0.10em;
+            color: rgba(255,255,255,0.20);
+            margin-bottom: 48px;
+        }
+        .projects {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+            width: 100%;
+            max-width: 840px;
+        }
+        a {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            text-decoration: none;
+            overflow: hidden;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        a:hover, a:active {
+            border-color: rgba(255,255,255,0.22);
+            background: rgba(255,255,255,0.03);
+        }
+        .thumb {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            object-fit: cover;
+            background: #000;
+            display: block;
+        }
+        .label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 16px 20px;
+        }
+        .name {
+            font-size: 13px;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.80);
+        }
+        .desc {
+            font-size: 11px;
+            letter-spacing: 0.04em;
+            color: rgba(255,255,255,0.35);
         }
     </style>
 </head>
 <body>
-    <p>Hallo</p>
+    <h1>Projects</h1>
+    <div class="deploy-date">Deployed 22.07.2026</div>
+    <div class="projects">
+        <a href="hello/">
+            <img class="thumb" src="screenshots/hello.gif" alt="">
+            <span class="label">
+                <span class="name">Hello</span>
+                <span class="desc">Interaktive Partikel-Typografie</span>
+            </span>
+        </a>
+        <a href="solar-orbit/">
+            <img class="thumb" src="screenshots/solar-orbit.png" alt="">
+            <span class="label">
+                <span class="name">Solar Orbit</span>
+                <span class="desc">Interaktives 3D-Sonnensystem</span>
+            </span>
+        </a>
+        <a href="dhl-city/">
+            <img class="thumb" src="screenshots/dhl-city.png" alt="">
+            <span class="label">
+                <span class="name">DHL City Drive</span>
+                <span class="desc">3D-Fahrspiel mit Paketzustellung</span>
+            </span>
+        </a>
+        <a href="bitcoin-3d/">
+            <img class="thumb" src="screenshots/bitcoin-3d.png" alt="">
+            <span class="label">
+                <span class="name">Bitcoin 3D</span>
+                <span class="desc">3D Candlestick-Visualisierung</span>
+            </span>
+        </a>
+        <a href="spice-wars/">
+            <img class="thumb" src="screenshots/spice-wars.gif" alt="">
+            <span class="label">
+                <span class="name">Spice Wars</span>
+                <span class="desc">2D Sci-Fi Echtzeitstrategie im Dune-2-Stil</span>
+            </span>
+        </a>
+        <a href="dark-city/">
+            <img class="thumb" src="screenshots/dark-city.gif" alt="">
+            <span class="label">
+                <span class="name">Dark City</span>
+                <span class="desc">2D Nacht-Jump'n'Run über die Dächer der Stadt</span>
+            </span>
+        </a>
+        <a href="neon-rain-game/">
+            <img class="thumb" src="screenshots/neon-rain-game.gif" alt="">
+            <span class="label">
+                <span class="name">The Neon Rain</span>
+                <span class="desc">Noir-Detektiv-Adventure in einer Regennacht-Stadt</span>
+            </span>
+        </a>
+        <a href="toy-story/">
+            <img class="thumb" src="screenshots/toy-story.gif" alt="">
+            <span class="label">
+                <span class="name">Spielzeug-Abenteuer</span>
+                <span class="desc">3D-Lauf-/Hüpfspiel als 10cm-Spielfigur durch ein zweistöckiges Haus</span>
+            </span>
+        </a>
+        <a href="flower-vase/">
+            <img class="thumb" src="screenshots/flower-vase.png" alt="">
+            <span class="label">
+                <span class="name">Explosion-Szenen</span>
+                <span class="desc">3D-Explosionen (Blumenvase &amp; Spaceshuttle) mit Zeit-Regler</span>
+            </span>
+        </a>
+        <a href="snake/">
+            <img class="thumb" src="screenshots/snake.png" alt="">
+            <span class="label">
+                <span class="name">Snake</span>
+                <span class="desc">Der Nokia-Klassiker mit Touch- und Tastatursteuerung</span>
+            </span>
+        </a>
+        <a href="btc/">
+            <img class="thumb" src="screenshots/btc.png" alt="">
+            <span class="label">
+                <span class="name">Bitcoin On-Chain Dashboard</span>
+                <span class="desc">Live-Kurs, Mempool &amp; Netzwerk-Metriken</span>
+            </span>
+        </a>
+        <a href="gta/">
+            <img class="thumb" src="screenshots/gta.png" alt="">
+            <span class="label">
+                <span class="name">Vice Grid</span>
+                <span class="desc">3D-Top-Down-Fahrspiel mit Auftr&#228;gen im GTA-Stil</span>
+            </span>
+        </a>
+        <a href="cape-character/">
+            <img class="thumb" src="screenshots/cape-character.svg" alt="">
+            <span class="label">
+                <span class="name">Cape Character</span>
+                <span class="desc">2D-IK-Charakter mit Knie-, Fu&#223;- &amp; Ellenbogengelenken, Umhang &amp; Kapuze</span>
+            </span>
+        </a>
+        <a href="rooftop-wanderer/">
+            <img class="thumb" src="screenshots/rooftop-wanderer.svg" alt="">
+            <span class="label">
+                <span class="name">Rooftop Wanderer</span>
+                <span class="desc">Atmosphären-Adventure: Umhang-Charakter über einer nächtlichen Dach-Skyline</span>
+            </span>
+        </a>
+        <a href="flappy/">
+            <img class="thumb" src="screenshots/flappy.png" alt="">
+            <span class="label">
+                <span class="name">Flappy Klon</span>
+                <span class="desc">Flappy-Bird-artiges Arcade-Spiel mit Highscore</span>
+            </span>
+        </a>
+        <a href="arkanoid/">
+            <img class="thumb" src="screenshots/arkanoid.png" alt="">
+            <span class="label">
+                <span class="name">Arkanoid Klon</span>
+                <span class="desc">Breakout-artiges Arcade-Spiel mit Highscore</span>
+            </span>
+        </a>
+        <a href="toy-box-rescue/">
+            <img class="thumb" src="screenshots/toy-box-rescue.gif" alt="">
+            <span class="label">
+                <span class="name">Toy Box Rescue</span>
+                <span class="desc">2D-Fangspiel: Spielzeuge auffangen, Zurgs Robotern ausweichen</span>
+            </span>
+        </a>
+    </div>
 </body>
 </html>
