@@ -9,9 +9,9 @@
   #sky { position:fixed; inset:0; background:linear-gradient(#8ec9f0,#cfe9ff); transition:none; z-index:0; }
   canvas { display:block; position:relative; z-index:1; }
   #glow {
-    position:fixed; width:520px; height:520px; border-radius:50%;
+    position:fixed; width:640px; height:640px; border-radius:50%;
     pointer-events:none; transform:translate(-50%,-50%); opacity:0;
-    background:radial-gradient(circle, rgba(255,210,110,0.85) 0%, rgba(255,150,40,0.45) 30%, rgba(255,120,20,0) 70%);
+    background:radial-gradient(circle, rgba(255,225,140,0.9) 0%, rgba(255,150,40,0.5) 28%, rgba(255,90,10,0) 68%);
     mix-blend-mode:screen; filter:blur(2px); z-index:2;
   }
   #fade { position:fixed; inset:0; background:#000; opacity:1; pointer-events:none; z-index:4; }
@@ -53,7 +53,7 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 6000);
 
-const hemi = new THREE.HemisphereLight(0xbfe0ff, 0xd8c48a, 0.9);
+const hemi = new THREE.HemisphereLight(0xbfe0ff, 0x6fae5a, 0.9);
 scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xfff4e0, 1.15);
 sun.position.set(120, 220, 160);
@@ -80,25 +80,52 @@ const MAT = {
   red:       new THREE.MeshStandardMaterial({ color:0xe0362b, flatShading:true, roughness:0.55 }),
   pad:       new THREE.MeshStandardMaterial({ color:0x585c62, flatShading:true, roughness:0.95 }),
   trench:    new THREE.MeshStandardMaterial({ color:0x18181b, flatShading:true, roughness:1 }),
-  ground:    new THREE.MeshStandardMaterial({ color:0xd8c48a, flatShading:true, roughness:1 }),
-  hill:      new THREE.MeshStandardMaterial({ color:0xc7b378, flatShading:true, roughness:1 }),
-  scrub:     new THREE.MeshStandardMaterial({ color:0x7c8c4f, flatShading:true, roughness:1 }),
+  ground:    new THREE.MeshStandardMaterial({ color:0x4f9a48, flatShading:true, roughness:1 }),
+  groundDark:new THREE.MeshStandardMaterial({ color:0x3f8440, flatShading:true, roughness:1 }),
+  sea:       new THREE.MeshStandardMaterial({ color:0x1f7fae, flatShading:true, roughness:0.3, metalness:0.2 }),
+  scrub:     new THREE.MeshStandardMaterial({ color:0x3f8a3a, flatShading:true, roughness:1 }),
+  trunk:     new THREE.MeshStandardMaterial({ color:0x7a5738, flatShading:true, roughness:1 }),
+  frond:     new THREE.MeshStandardMaterial({ color:0x3f9c46, flatShading:true, roughness:1 }),
   tank:      new THREE.MeshStandardMaterial({ color:0xe7e9ec, flatShading:true, roughness:0.6 }),
   moonGround:new THREE.MeshStandardMaterial({ color:0x9a9a9a, flatShading:true, roughness:1 }),
-  moonDark:  new THREE.MeshStandardMaterial({ color:0x6d6d6d, flatShading:true, roughness:1 }),
   moonRock:  new THREE.MeshStandardMaterial({ color:0x828282, flatShading:true, roughness:1 }),
-  earth:     new THREE.MeshStandardMaterial({ color:0x2f6fb0, emissive:0x14335c, emissiveIntensity:0.7, flatShading:true, roughness:0.7 }),
-  earthCloud:new THREE.MeshStandardMaterial({ color:0xffffff, flatShading:true, transparent:true, opacity:0.55, roughness:1 }),
+  moonBase:  new THREE.MeshStandardMaterial({ color:0xd6d8db, flatShading:true, roughness:0.6, metalness:0.2 }),
+  moonBaseDark: new THREE.MeshStandardMaterial({ color:0x53565c, flatShading:true, roughness:0.6, metalness:0.2 }),
+  earth:     new THREE.MeshStandardMaterial({ color:0x2f7fe0, emissive:0x1f5fb0, emissiveIntensity:0.9, flatShading:true, roughness:0.6 }),
+  earthCloud:new THREE.MeshStandardMaterial({ color:0xffffff, flatShading:true, transparent:true, opacity:0.5, roughness:1 }),
 };
 
-/* ---------- rocket ---------- */
-function buildRocket(){
-  const g = new THREE.Group();
-  const boosterH = 80, boosterR = 8;
-  const shipH = 45, shipRb = 7.6, shipRt = 6.4;
-  const noseH = 15;
-  let y = 0;
+/* ---------- engine exhaust glow ---------- */
+function buildEngineGlow(scale){
+  const grp = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.ConeGeometry(3.2*scale,15*scale,10), new THREE.MeshBasicMaterial({ color:0xfff6d0, toneMapped:false }));
+  core.rotation.x = Math.PI; core.position.y = -6*scale;
+  const mid = new THREE.Mesh(new THREE.ConeGeometry(4.4*scale,10*scale,10), new THREE.MeshBasicMaterial({ color:0xffa93c, transparent:true, opacity:0.85, blending:THREE.AdditiveBlending, toneMapped:false }));
+  mid.rotation.x = Math.PI; mid.position.y = -3*scale;
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(9*scale,12,10), new THREE.MeshBasicMaterial({ color:0xff7a1a, transparent:true, opacity:0.5, blending:THREE.AdditiveBlending, toneMapped:false }));
+  halo.position.y = -1*scale;
+  const outer = new THREE.Mesh(new THREE.SphereGeometry(15*scale,12,10), new THREE.MeshBasicMaterial({ color:0xff5010, transparent:true, opacity:0.22, blending:THREE.AdditiveBlending, toneMapped:false }));
+  grp.add(outer, halo, mid, core);
+  grp.visible = false;
+  grp.userData = { core, mid, halo, outer };
+  return grp;
+}
+function pulseEngine(glow, tt, freq){
+  const u = glow.userData;
+  u.core.scale.setScalar(0.85+Math.sin(tt*freq)*0.15);
+  u.mid.scale.setScalar(0.9+Math.sin(tt*freq*0.8+1)*0.2);
+  u.mid.material.opacity = 0.75+Math.sin(tt*freq*1.3)*0.15;
+  u.halo.material.opacity = 0.42+Math.sin(tt*freq*0.9+2)*0.16;
+  u.outer.material.opacity = 0.18+Math.sin(tt*freq*0.6)*0.08;
+}
 
+/* ---------- rocket: booster + ship (separable stages) ---------- */
+const boosterR = 8, boosterH = 80;
+const shipRb = 7.6, shipRt = 6.4, shipH = 45, noseH = 15;
+
+function buildBoosterPart(){
+  const g = new THREE.Group();
+  let y = 0;
   const skirt = new THREE.Mesh(new THREE.CylinderGeometry(boosterR*1.02, boosterR*1.1, 6, 8), MAT.engineDark);
   skirt.position.y = y + 3; g.add(skirt); y += 6;
 
@@ -130,6 +157,18 @@ function buildRocket(){
 
   y += boosterH;
 
+  const engineGlow = buildEngineGlow(1.3);
+  engineGlow.position.y = 2;
+  g.add(engineGlow);
+
+  g.userData = { topY: y, engineGlow };
+  return g;
+}
+
+function buildShipPart(){
+  const g = new THREE.Group();
+  let y = 0;
+
   const interstage = new THREE.Mesh(new THREE.CylinderGeometry(boosterR*0.98, boosterR, 3, 8), MAT.metalDark);
   interstage.position.y = y + 1.5; g.add(interstage);
   y += 3;
@@ -154,20 +193,19 @@ function buildRocket(){
   nose.position.y = y + noseH/2; g.add(nose);
   y += noseH;
 
-  const engineGlow = new THREE.Group();
-  const core = new THREE.Mesh(new THREE.ConeGeometry(2.6,7,10), new THREE.MeshBasicMaterial({ color:0xfff2c0, toneMapped:false }));
-  core.rotation.x = Math.PI; core.position.y = -2.5;
-  const halo = new THREE.Mesh(new THREE.SphereGeometry(6,10,8), new THREE.MeshBasicMaterial({ color:0xff9a2e, transparent:true, opacity:0.55, blending:THREE.AdditiveBlending, toneMapped:false }));
-  halo.position.y = -1;
-  engineGlow.add(core, halo);
-  engineGlow.visible = false;
-  engineGlow.position.y = 2;
+  const engineGlow = buildEngineGlow(0.85);
+  engineGlow.position.y = 3;
   g.add(engineGlow);
 
-  g.userData = { totalHeight: y, engineGlow, core, halo };
+  g.userData = { topY: y, engineGlow };
   return g;
 }
-const rocket = buildRocket();
+
+const boosterPart = buildBoosterPart();
+const shipPart = buildShipPart();
+const SHIP_LOCAL_Y = boosterPart.userData.topY; // where the ship sits on top of the booster
+
+const rocketStack = new THREE.Group();
 
 /* ---------- launch pad, tower, ground ---------- */
 const launchScene = new THREE.Group();
@@ -175,22 +213,54 @@ scene.add(launchScene);
 
 const PAD_X = 0, PAD_TOP = 6;
 {
-  const ground = new THREE.Mesh(new THREE.CircleGeometry(900, 24), MAT.ground);
-  ground.rotation.x = -Math.PI/2;
-  launchScene.add(ground);
+  const land = new THREE.Mesh(new THREE.PlaneGeometry(2600, 1500), MAT.ground);
+  land.rotation.x = -Math.PI/2;
+  land.position.set(0, 0, 500);
+  launchScene.add(land);
 
-  for(let i=0;i<26;i++){
-    const a = rand(0,Math.PI*2), d = rand(220,850);
-    const h = rand(10,42);
-    const hill = new THREE.Mesh(new THREE.ConeGeometry(rand(30,70),h,6), MAT.hill);
-    hill.position.set(Math.cos(a)*d, h/2-4, Math.sin(a)*d);
-    launchScene.add(hill);
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(2600, 1100), MAT.sea);
+  sea.rotation.x = -Math.PI/2;
+  sea.position.set(0, -0.4, -670);
+  launchScene.add(sea);
+
+  function farEnough(x,z,minD){
+    if (Math.hypot(x-PAD_X, z) < minD) return false;
+    if (Math.hypot(x-TOWER_X_PREVIEW, z) < minD) return false;
+    if (Math.hypot(x-59, z-50) < 30) return false;
+    return true;
   }
-  for(let i=0;i<40;i++){
-    const a = rand(0,Math.PI*2), d = rand(60,260);
-    const s = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(1,2.6),0), MAT.scrub);
-    s.position.set(Math.cos(a)*d, 1, Math.sin(a)*d);
+  const TOWER_X_PREVIEW = -46;
+
+  for(let i=0;i<70;i++){
+    let x,z,ok=false,tries=0;
+    do { x = rand(-420,420); z = rand(20,340); ok = farEnough(x,z,55); tries++; } while(!ok && tries<15);
+    const s = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(1.2,3),0), MAT.scrub);
+    s.position.set(x, 1, z);
     launchScene.add(s);
+  }
+
+  function makePalm(x,z){
+    const grp = new THREE.Group();
+    const trunkH = rand(14,22);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1,1.6,trunkH,6), MAT.trunk);
+    trunk.position.y = trunkH/2;
+    trunk.rotation.z = rand(-0.12,0.12);
+    grp.add(trunk);
+    for(let i=0;i<6;i++){
+      const a = (i/6)*Math.PI*2;
+      const frond = new THREE.Mesh(new THREE.ConeGeometry(1.4,11,4), MAT.frond);
+      frond.position.set(Math.cos(a)*3, trunkH, Math.sin(a)*3);
+      frond.rotation.x = Math.PI/2.15;
+      frond.rotation.y = a;
+      grp.add(frond);
+    }
+    grp.position.set(x,0,z);
+    return grp;
+  }
+  for(let i=0;i<14;i++){
+    let x,z,ok=false,tries=0;
+    do { x = rand(-380,380); z = rand(30,330); ok = farEnough(x,z,65); tries++; } while(!ok && tries<15);
+    launchScene.add(makePalm(x,z));
   }
 
   const trench = new THREE.Mesh(new THREE.BoxGeometry(70,10,16), MAT.trench);
@@ -210,7 +280,7 @@ const PAD_X = 0, PAD_TOP = 6;
   const tanks = new THREE.Group();
   for(let i=0;i<5;i++){
     const t = new THREE.Mesh(new THREE.CylinderGeometry(4,4,14,8), MAT.tank);
-    t.position.set(48+ (i%3)*11, 7, -40 - Math.floor(i/3)*11);
+    t.position.set(48+ (i%3)*11, 7, 40 + Math.floor(i/3)*11);
     tanks.add(t);
   }
   launchScene.add(tanks);
@@ -260,30 +330,47 @@ const tower = new THREE.Group();
 }
 launchScene.add(tower);
 
-rocket.position.set(PAD_X, PAD_TOP, 0);
-launchScene.add(rocket);
+rocketStack.add(boosterPart);
+boosterPart.position.set(0,0,0);
+rocketStack.add(shipPart);
+shipPart.position.set(0, SHIP_LOCAL_Y, 0);
+rocketStack.position.set(PAD_X, PAD_TOP, 0);
+launchScene.add(rocketStack);
 
-/* ---------- cloud layers (punched through during ascent) ---------- */
-const cloudLayers = [];
-function makeCloudLayer(altitude, count, spread, size){
-  const grp = new THREE.Group();
-  grp.position.y = altitude;
-  const blobs = [];
-  for(let i=0;i<count;i++){
-    const a = rand(0,Math.PI*2), d = rand(0,spread);
-    const geo = new THREE.IcosahedronGeometry(rand(size*0.6,size),0);
-    const mat = new THREE.MeshStandardMaterial({ color:0xffffff, flatShading:true, transparent:true, opacity:rand(0.55,0.8), roughness:1 });
-    const blob = new THREE.Mesh(geo,mat);
-    blob.position.set(Math.cos(a)*d, rand(-6,6), Math.sin(a)*d);
-    blob.userData = { baseOpacity: mat.opacity, triggered:false, tStart:0 };
-    grp.add(blob); blobs.push(blob);
+/* ---------- fluffy cloud decks (permanent, wide, never disperse) ---------- */
+/* one InstancedMesh per layer: hundreds of overlapping spheres for one draw call */
+const cloudSphereGeo = new THREE.SphereGeometry(1, 10, 8);
+function makeCloudLayer(altitude, clusterCount, spreadRadius, opacity, sizeRange){
+  const transforms = [];
+  for(let c=0;c<clusterCount;c++){
+    const cx = rand(-spreadRadius, spreadRadius);
+    const cz = rand(-spreadRadius, spreadRadius);
+    const puffs = Math.floor(rand(4,7));
+    for(let i=0;i<puffs;i++){
+      const size = rand(sizeRange[0], sizeRange[1]);
+      transforms.push({
+        x: cx+rand(-size*0.7,size*0.7),
+        y: altitude+rand(-10,10),
+        z: cz+rand(-size*0.7,size*0.7),
+        s: size,
+      });
+    }
   }
-  launchScene.add(grp);
-  cloudLayers.push({ altitude, blobs });
+  const mat = new THREE.MeshStandardMaterial({ color:0xffffff, flatShading:false, transparent:true, opacity, roughness:1, depthWrite:false });
+  const mesh = new THREE.InstancedMesh(cloudSphereGeo, mat, transforms.length);
+  const dummy = new THREE.Object3D();
+  transforms.forEach((tr,i) => {
+    dummy.position.set(tr.x, tr.y, tr.z);
+    dummy.scale.setScalar(tr.s);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  launchScene.add(mesh);
 }
-makeCloudLayer(150, 22, 130, 26);
-makeCloudLayer(320, 26, 170, 34);
-makeCloudLayer(520, 26, 210, 42);
+makeCloudLayer(260, 30, 480, 0.88, [14,24]);
+makeCloudLayer(430, 26, 560, 0.55, [16,28]);
+makeCloudLayer(580, 20, 620, 0.32, [18,30]);
 
 /* ---------- stars ---------- */
 const starGeo = new THREE.BufferGeometry();
@@ -305,52 +392,101 @@ scene.add(stars);
 const moonScene = new THREE.Group();
 moonScene.visible = false;
 scene.add(moonScene);
-const MOON_PAD_Y = 0;
+const PLATFORM_H = 3;
 {
-  const surf = new THREE.Mesh(new THREE.CircleGeometry(700,24), MAT.moonGround);
-  surf.rotation.x = -Math.PI/2;
-  moonScene.add(surf);
-  for(let i=0;i<40;i++){
-    const a = rand(0,Math.PI*2), d = rand(15,600);
-    const r = rand(4,26);
-    const crater = new THREE.Mesh(new THREE.CylinderGeometry(r,r*1.05,1.4,10), MAT.moonDark);
-    crater.position.set(Math.cos(a)*d,0.2,Math.sin(a)*d);
-    moonScene.add(crater);
+  const moonSize = 1400, segs = 70;
+  const moonGeo = new THREE.PlaneGeometry(moonSize, moonSize, segs, segs);
+  moonGeo.rotateX(-Math.PI/2);
+  const craters = [];
+  for(let i=0;i<34;i++){
+    let cx,cz,r,ok=false,tries=0;
+    do { cx = rand(-600,600); cz = rand(-600,600); r = rand(20,68); ok = Math.hypot(cx,cz) > r+55; tries++; } while(!ok && tries<20);
+    if (ok) craters.push({ x:cx, z:cz, r, depth: rand(9,26) });
   }
-  for(let i=0;i<50;i++){
-    const a = rand(0,Math.PI*2), d = rand(20,500);
+  const pos = moonGeo.attributes.position;
+  for(let i=0;i<pos.count;i++){
+    const x = pos.getX(i), z = pos.getZ(i);
+    let y = 0;
+    for(const c of craters){
+      const d = Math.hypot(x-c.x, z-c.z);
+      if (d < c.r){
+        const tt = d/c.r;
+        const bowl = -c.depth*(1-tt*tt);
+        if (bowl < y) y = bowl;
+      }
+    }
+    pos.setY(i,y);
+  }
+  moonGeo.computeVertexNormals();
+  const surf = new THREE.Mesh(moonGeo, MAT.moonGround);
+  moonScene.add(surf);
+
+  for(let i=0;i<60;i++){
+    const a = rand(0,Math.PI*2), d = rand(60,600);
     const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(1,4.5),0), MAT.moonRock);
     rock.position.set(Math.cos(a)*d, rand(0.5,2), Math.sin(a)*d);
     rock.rotation.set(rand(0,6),rand(0,6),rand(0,6));
     moonScene.add(rock);
   }
-  const earth = new THREE.Mesh(new THREE.SphereGeometry(60,10,8), MAT.earth);
+
+  function buildLandingBase(){
+    const grp = new THREE.Group();
+    const plat = new THREE.Mesh(new THREE.CylinderGeometry(24,26,PLATFORM_H,8), MAT.moonBase);
+    plat.position.y = PLATFORM_H/2;
+    grp.add(plat);
+    for(let i=0;i<6;i++){
+      const a = (i/6)*Math.PI*2;
+      const strut = new THREE.Mesh(new THREE.BoxGeometry(2,PLATFORM_H+3,2), MAT.moonBaseDark);
+      strut.position.set(Math.cos(a)*20, -1, Math.sin(a)*20);
+      grp.add(strut);
+    }
+    const dish = new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.2,0.6,10), MAT.moonBaseDark);
+    dish.rotation.z = 0.5;
+    dish.position.set(-16, PLATFORM_H+3, 14);
+    grp.add(dish);
+    const dishPole = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,4,6), MAT.moonBaseDark);
+    dishPole.position.set(-16, PLATFORM_H+1.5, 14);
+    grp.add(dishPole);
+    const beaconPole = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,6,6), MAT.moonBaseDark);
+    beaconPole.position.set(15,PLATFORM_H+3,-15);
+    grp.add(beaconPole);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.9,8,8), new THREE.MeshBasicMaterial({ color:0xff3b30, toneMapped:false }));
+    beacon.position.set(15,PLATFORM_H+6.2,-15);
+    grp.add(beacon);
+    grp.userData = { beacon };
+    return grp;
+  }
+  const landingBase = buildLandingBase();
+  landingBase.position.set(PAD_X, 0, 0);
+  moonScene.add(landingBase);
+
+  const earth = new THREE.Mesh(new THREE.SphereGeometry(60,12,10), MAT.earth);
   earth.position.set(-420, 340, -900);
   moonScene.add(earth);
-  const earthClouds = new THREE.Mesh(new THREE.SphereGeometry(63,10,8), MAT.earthCloud);
+  const earthClouds = new THREE.Mesh(new THREE.SphereGeometry(63,12,10), MAT.earthCloud);
   earthClouds.position.copy(earth.position);
   moonScene.add(earthClouds);
 
   const moonSun = new THREE.DirectionalLight(0xffffff,1.3);
   moonSun.position.set(-150,200,120);
   moonScene.add(moonSun);
-  const moonAmb = new THREE.HemisphereLight(0x222233,0x111111,0.35);
+  const moonAmb = new THREE.HemisphereLight(0x2a2a3a,0x111111,0.35);
   moonScene.add(moonAmb);
 }
 
-/* ---------- particle puffs (smoke / dust) ---------- */
-const puffGeo = new THREE.IcosahedronGeometry(1,0);
+/* ---------- particle puffs (smoke / fire / dust) ---------- */
+const puffGeo = new THREE.SphereGeometry(1,8,6);
 const activePuffs = [];
-function spawnPuff(pos, opts){
+function spawnPuff(pos, opts, targetGroup){
+  const target = targetGroup || launchScene;
   const mat = new THREE.MeshStandardMaterial({
-    color: opts.color, flatShading:true, roughness:1, transparent:true,
+    color: opts.color, flatShading:false, roughness:1, transparent:true,
     opacity: opts.opacity ?? 0.85,
     emissive: opts.emissive ?? 0x000000,
     emissiveIntensity: opts.emissiveIntensity ?? 0,
   });
   const mesh = new THREE.Mesh(puffGeo, mat);
   mesh.position.copy(pos);
-  mesh.rotation.set(rand(0,6),rand(0,6),rand(0,6));
   const scale0 = opts.scale0 ?? 1.2;
   mesh.scale.setScalar(scale0);
   mesh.userData = {
@@ -359,8 +495,9 @@ function spawnPuff(pos, opts){
     life: 0, maxLife: opts.maxLife ?? 3.2,
     fadeFrom: opts.fadeFrom ?? 0.6,
     drag: opts.drag ?? 0.94,
+    maxScale: opts.maxScale ?? 40,
   };
-  launchScene.add(mesh);
+  target.add(mesh);
   activePuffs.push(mesh);
 }
 function updatePuffs(dt){
@@ -369,11 +506,12 @@ function updatePuffs(dt){
     d.life += dt;
     p.position.addScaledVector(d.vel, dt);
     d.vel.multiplyScalar(d.drag);
-    p.scale.addScalar(d.growth*dt);
+    const grown = p.scale.x + d.growth*dt;
+    p.scale.setScalar(Math.min(grown, d.maxScale));
     const lt = d.life/d.maxLife;
     p.material.opacity = lt < d.fadeFrom ? p.material.opacity : Math.max(0, p.material.opacity - dt*1.4);
     if (d.life > d.maxLife || p.material.opacity<=0.01){
-      launchScene.remove(p);
+      if (p.parent) p.parent.remove(p);
       p.material.dispose();
       activePuffs.splice(i,1);
     }
@@ -391,30 +529,47 @@ const T_MOON_TOUCHDOWN = 46.4;
 const T_HOLD_END = 50.4;
 const T_CYCLE_END = 51.6;
 const ASCENT_DIST = 700;
+const ASCENT_EXP = 2.6;
 const MOON_START_Y = 260;
+const LOW_ALT_THRESHOLD = 90;
+const SEPARATION_ALT = 150;
+const FALL_G = 14;
+
+function currentAltitude(tt){
+  if (tt < T_LIFTOFF) return 0;
+  const p = clamp((tt - T_LIFTOFF)/(T_ASCENT_END - T_LIFTOFF), 0, 1);
+  return ASCENT_DIST * Math.pow(p, ASCENT_EXP);
+}
+function altitudeVelocity(tt){
+  const h = 0.05;
+  return (currentAltitude(tt+h) - currentAltitude(tt-h)) / (2*h);
+}
 
 let t = 0;
 let state = null;
 function freshState(){
-  return { moonSwapped:false, ignited:false, layerHit:[false,false,false] };
+  return { moonSwapped:false, separated:false, sepTime:0, sepVelY:0, sepX0:0, sepY0:0, sepZ0:0 };
 }
 state = freshState();
+let smokeAccum = 0, trailAccum = 0, dustAccum = 0;
 
 function resetCycle(){
-  for (const p of activePuffs){ launchScene.remove(p); p.material.dispose(); }
+  for (const p of activePuffs){ if (p.parent) p.parent.remove(p); p.material.dispose(); }
   activePuffs.length = 0;
-  cloudLayers.forEach(layer => layer.blobs.forEach(b => {
-    b.userData.triggered = false;
-    b.visible = true;
-    b.scale.setScalar(1);
-    b.material.opacity = b.userData.baseOpacity;
-  }));
+  smokeAccum = 0; trailAccum = 0; dustAccum = 0;
+
   launchScene.visible = true;
   moonScene.visible = false;
-  rocket.position.set(PAD_X, PAD_TOP, 0);
-  rocket.rotation.set(0,0,0);
-  if (rocket.parent !== launchScene) launchScene.add(rocket);
-  rocket.userData.engineGlow.visible = false;
+
+  rocketStack.add(boosterPart);
+  boosterPart.position.set(0,0,0); boosterPart.rotation.set(0,0,0); boosterPart.visible = true;
+  rocketStack.add(shipPart);
+  shipPart.position.set(0, SHIP_LOCAL_Y, 0); shipPart.rotation.set(0,0,0); shipPart.visible = true;
+  if (rocketStack.parent !== launchScene) launchScene.add(rocketStack);
+  rocketStack.position.set(PAD_X, PAD_TOP, 0); rocketStack.rotation.set(0,0,0);
+
+  boosterPart.userData.engineGlow.visible = false;
+  shipPart.userData.engineGlow.visible = false;
   tower.userData.armPivot.rotation.z = 0;
   stars.material.opacity = 0;
   state = freshState();
@@ -427,14 +582,14 @@ const skyNightTop="#03040c", skyNightBot="#0c0e22";
 const skyEl = document.getElementById("sky");
 const fogColorDay = new THREE.Color(0xbfe0ff);
 const fogColorNight = new THREE.Color(0x03040c);
-scene.fog = new THREE.Fog(fogColorDay.getHex(), 400, 1600);
+scene.fog = new THREE.Fog(fogColorDay.getHex(), 500, 1900);
 
 function hexLerp(c1,c2,t){
   const a = new THREE.Color(c1), b = new THREE.Color(c2);
   return "#" + a.lerp(b,t).getHexString();
 }
 function updateSky(tt){
-  const p = clamp((tt - T_LIFTOFF)/(T_ASCENT_END - T_LIFTOFF), 0, 1);
+  const p = clamp(currentAltitude(tt)/ASCENT_DIST, 0, 1);
   let top, bot;
   if (p < 0.5){
     const q = p/0.5;
@@ -478,44 +633,62 @@ function updateGlow(worldPos, intensity){
   glowEl.style.opacity = intensity;
 }
 
-/* ---------- ignition / ascent smoke spawning ---------- */
-let spawnAccum = 0;
-function spawnLaunchSmoke(tt, dt, altitude){
-  if (tt < T_IGNITE || tt > T_LIFTOFF + 5.5) return;
-  spawnAccum += dt;
-  const rate = tt < T_LIFTOFF ? 55 : 30;
+/* ---------- ignition / liftoff smoke: huge, glowing core, becomes the low cloud deck ---------- */
+function spawnLaunchSmoke(dt, centerX){
+  smokeAccum += dt;
+  const rate = 20;
   const interval = 1/rate;
-  while (spawnAccum > interval){
-    spawnAccum -= interval;
-    const originX = PAD_X + rand(-16,24);
-    const originZ = rand(-14,14);
-    const fiery = Math.random() < 0.3;
+  while (smokeAccum > interval){
+    smokeAccum -= interval;
+    const ang = rand(0,Math.PI*2);
+    const dist = Math.pow(Math.random(),0.6)*46;
+    const originX = centerX + Math.cos(ang)*dist;
+    const originZ = Math.sin(ang)*dist;
+    const fiery = dist < 15 && Math.random() < 0.55;
     if (fiery){
-      spawnPuff(new THREE.Vector3(originX, rand(2,10) + altitude*0.05, originZ), {
-        color: 0xffb347, emissive: 0xff6a00, emissiveIntensity: 1.4,
-        opacity: 0.95, vel: new THREE.Vector3(rand(-6,6), rand(8,16), rand(-6,6)),
-        growth: rand(9,15), maxLife: rand(1.0,1.8), scale0: rand(1.5,2.6), fadeFrom:0.35,
+      spawnPuff(new THREE.Vector3(originX, rand(1,9), originZ), {
+        color:0xffb347, emissive:0xff5a10, emissiveIntensity:1.7,
+        opacity:0.95, vel:new THREE.Vector3((originX-centerX)*0.6+rand(-4,4), rand(9,18), (originZ)*0.6+rand(-4,4)),
+        growth:rand(9,14), maxLife:rand(0.8,1.4), scale0:rand(1.6,2.6), fadeFrom:0.3, drag:0.92, maxScale:6,
       });
     } else {
-      spawnPuff(new THREE.Vector3(originX, rand(1,6), originZ), {
-        color: 0xf3f0ea, opacity: rand(0.7,0.9),
-        vel: new THREE.Vector3(rand(-14,14), rand(3,9), rand(-14,14)),
-        growth: rand(5,9), maxLife: rand(3.2,5.5), scale0: rand(2,3.6), fadeFrom:0.55, drag:0.985,
+      spawnPuff(new THREE.Vector3(originX, rand(1,10), originZ), {
+        color:0xf6f4ef, opacity:rand(0.78,0.94),
+        vel:new THREE.Vector3((originX-centerX)*0.45+rand(-10,10), rand(5,11), originZ*0.45+rand(-10,10)),
+        growth:rand(5,8), maxLife:rand(16,24), scale0:rand(2.6,4), fadeFrom:0.88, drag:0.986, maxScale:17,
       });
     }
   }
 }
 
-function spawnMoonDust(tt, dt, rocketWorldPos, closeness){
-  spawnAccum += dt;
+function spawnEngineTrail(dt, worldPos, scale){
+  trailAccum += dt;
+  const rate = 22;
+  const interval = 1/rate;
+  while (trailAccum > interval){
+    trailAccum -= interval;
+    const fiery = Math.random() < 0.75;
+    spawnPuff(new THREE.Vector3(worldPos.x+rand(-1.5,1.5)*scale, worldPos.y+rand(-2,1)*scale, worldPos.z+rand(-1.5,1.5)*scale), {
+      color: fiery?0xffb347:0xffe4b8,
+      emissive: fiery?0xff5a10:0xffaa55,
+      emissiveIntensity: fiery?1.9:0.9,
+      opacity:0.92,
+      vel:new THREE.Vector3(rand(-4,4)*scale, rand(-16,-5)*scale, rand(-4,4)*scale),
+      growth:rand(4,7)*scale, maxLife:rand(0.35,0.65), scale0:rand(0.8,1.4)*scale, fadeFrom:0.2, drag:0.9, maxScale:6*scale,
+    });
+  }
+}
+
+function spawnMoonDust(dt, rocketWorldPos, closeness){
+  dustAccum += dt;
   const interval = 1/(18*closeness+2);
-  while (spawnAccum > interval){
-    spawnAccum -= interval;
+  while (dustAccum > interval){
+    dustAccum -= interval;
     spawnPuff(new THREE.Vector3(rocketWorldPos.x+rand(-4,4), 0.5, rocketWorldPos.z+rand(-4,4)), {
       color: 0xb9ad95, opacity: rand(0.5,0.75),
       vel: new THREE.Vector3(rand(-30,30), rand(2,6), rand(-30,30)),
-      growth: rand(3,6), maxLife: rand(1.6,2.6), scale0: rand(0.8,1.4), fadeFrom:0.4, drag:0.98,
-    });
+      growth: rand(3,6), maxLife: rand(1.6,2.6), scale0: rand(0.8,1.4), fadeFrom:0.4, drag:0.98, maxScale:8,
+    }, moonScene);
   }
 }
 
@@ -546,6 +719,7 @@ function updateCameraMoon(altitude){
 const fadeEl = document.getElementById("fade");
 let lastNow = performance.now();
 let missionStart = lastNow;
+const tmpV = new THREE.Vector3();
 
 function overlayOpacity(tt){
   if (tt < 1.2) return 1 - smoothstep(0,1.2,tt);
@@ -569,84 +743,99 @@ function animate(){
 
   if (!state.moonSwapped){
     updateSky(t);
-
-    let altitude = 0;
-    if (t >= T_LIFTOFF){
-      const p = clamp((t - T_LIFTOFF)/(T_ASCENT_END - T_LIFTOFF), 0, 1);
-      altitude = ASCENT_DIST * Math.pow(p, 1.6);
-    }
-    rocket.position.y = PAD_TOP + altitude;
+    const altitude = currentAltitude(t);
 
     const armProg = smoothstep(T_IGNITE-0.6, T_LIFTOFF-0.2, t);
     tower.userData.armPivot.rotation.z = -1.05*armProg;
 
-    if (t > T_IGNITE) rocket.userData.engineGlow.visible = true;
-    if (t > T_ASCENT_END - 1) rocket.userData.engineGlow.visible = altitude < ASCENT_DIST*0.55;
+    if (!state.separated){
+      rocketStack.position.y = PAD_TOP + altitude;
 
-    if (rocket.userData.engineGlow.visible){
-      const pulse = 0.85 + Math.sin(t*38)*0.15;
-      rocket.userData.core.scale.setScalar(pulse);
-      rocket.userData.halo.material.opacity = 0.4+Math.sin(t*30)*0.15;
+      const bg = boosterPart.userData.engineGlow;
+      if (t > T_IGNITE) bg.visible = true;
+      if (bg.visible){
+        pulseEngine(bg, t, 38);
+        bg.getWorldPosition(tmpV);
+        spawnEngineTrail(dt, tmpV, 1.15);
+      }
+
+      if (altitude < LOW_ALT_THRESHOLD){
+        spawnLaunchSmoke(dt, rocketStack.position.x);
+      }
+
+      if (altitude > SEPARATION_ALT){
+        state.separated = true;
+        state.sepTime = t;
+        state.sepVelY = altitudeVelocity(t);
+        boosterPart.getWorldPosition(tmpV);
+        state.sepX0 = tmpV.x; state.sepY0 = tmpV.y; state.sepZ0 = tmpV.z;
+        launchScene.add(boosterPart);
+        boosterPart.position.copy(tmpV);
+        shipPart.getWorldPosition(tmpV);
+        launchScene.add(shipPart);
+        shipPart.position.copy(tmpV);
+        bg.visible = false;
+        shipPart.userData.engineGlow.visible = true;
+      }
+    } else {
+      shipPart.position.y = PAD_TOP + altitude + SHIP_LOCAL_Y;
+
+      const sg = shipPart.userData.engineGlow;
+      if (t > T_ASCENT_END - 1) sg.visible = altitude < ASCENT_DIST*0.55;
+      if (sg.visible){
+        pulseEngine(sg, t, 38);
+        sg.getWorldPosition(tmpV);
+        spawnEngineTrail(dt, tmpV, 0.85);
+      }
+
+      const dtSep = t - state.sepTime;
+      boosterPart.position.y = state.sepY0 + state.sepVelY*dtSep - 0.5*FALL_G*dtSep*dtSep;
+      boosterPart.position.x = state.sepX0 + dtSep*18;
+      boosterPart.position.z = state.sepZ0 + dtSep*7;
+      boosterPart.rotation.x += dt*1.4;
+      boosterPart.rotation.z += dt*0.8;
+      if (boosterPart.position.y < -60) boosterPart.visible = false;
     }
-
-    spawnLaunchSmoke(t, dt, altitude);
-
-    cloudLayers.forEach((layer,i) => {
-      if (!state.layerHit[i] && altitude > layer.altitude - 10 && t >= T_LIFTOFF){
-        state.layerHit[i] = true;
-        layer.blobs.forEach(b => b.userData.triggered = true);
-      }
-    });
-    cloudLayers.forEach(layer => layer.blobs.forEach(b => {
-      if (b.userData.triggered && b.visible){
-        b.userData.tStart += dt;
-        const pr = clamp(b.userData.tStart/1.4, 0, 1);
-        b.scale.setScalar(1+pr*3);
-        b.material.opacity = b.userData.baseOpacity*(1-pr);
-        if (pr >= 1) b.visible = false;
-      }
-    }));
 
     updatePuffs(dt);
     updateCameraLaunch(altitude, t);
 
-    const engineWorld = new THREE.Vector3();
-    rocket.userData.engineGlow.getWorldPosition(engineWorld);
-    const glowStrength = rocket.userData.engineGlow.visible ? clamp(1 - altitude/260, 0.15, 1) : 0;
-    updateGlow(engineWorld, glowStrength*0.9);
+    const activeGlow = state.separated ? shipPart.userData.engineGlow : boosterPart.userData.engineGlow;
+    activeGlow.getWorldPosition(tmpV);
+    const glowStrength = activeGlow.visible ? clamp(1 - altitude/260, 0.2, 1) : 0;
+    updateGlow(tmpV, glowStrength*0.95);
 
     if (t >= T_BLACK && !state.moonSwapped){
       state.moonSwapped = true;
       launchScene.visible = false;
       moonScene.visible = false;
-      launchScene.remove(rocket);
-      moonScene.add(rocket);
-      rocket.position.set(PAD_X, MOON_START_Y, 0);
+      launchScene.remove(shipPart);
+      moonScene.add(shipPart);
+      shipPart.position.set(PAD_X, MOON_START_Y, 0);
+      shipPart.rotation.set(0,0,0);
       camState.y = 90 + MOON_START_Y*0.55 + 40;
     }
   } else {
     if (t >= T_MOON_IN && !moonScene.visible) moonScene.visible = true;
 
     const q = clamp((t - T_MOON_IN)/(T_MOON_TOUCHDOWN - T_MOON_IN), 0, 1);
-    const y = MOON_START_Y * (1-q)*(1-q);
-    rocket.position.y = y;
+    const y = MOON_START_Y * (1-q)*(1-q) + PLATFORM_H;
+    shipPart.position.y = y;
 
-    rocket.userData.engineGlow.visible = q > 0.02 && q < 1.0;
-    if (rocket.userData.engineGlow.visible){
-      const pulse = 0.8 + Math.sin(t*40)*0.2;
-      rocket.userData.core.scale.setScalar(pulse);
-      rocket.userData.halo.material.opacity = 0.35+Math.sin(t*32)*0.15;
+    const sg = shipPart.userData.engineGlow;
+    sg.visible = q > 0.02 && q < 1.0;
+    if (sg.visible){
+      pulseEngine(sg, t, 40);
     }
 
-    const closeness = clamp(1 - y/70, 0, 1);
-    if (closeness > 0) spawnMoonDust(t, dt, rocket.position, closeness);
+    const closeness = clamp(1 - (y-PLATFORM_H)/70, 0, 1);
+    if (closeness > 0) spawnMoonDust(dt, shipPart.position, closeness);
     updatePuffs(dt);
 
     updateCameraMoon(y);
 
-    const engineWorld = new THREE.Vector3();
-    rocket.userData.engineGlow.getWorldPosition(engineWorld);
-    updateGlow(engineWorld, rocket.userData.engineGlow.visible ? 0.85 : 0);
+    sg.getWorldPosition(tmpV);
+    updateGlow(tmpV, sg.visible ? 0.9 : 0);
 
     stars.material.opacity = 1;
     skyEl.style.background = "linear-gradient(#03040c,#0a0c1c)";
