@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>₿ Bitcoin On-Chain Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0e1a;
+            --card: #111827;
+            --border: #1f2937;
+            --btc: #f7931a;
+            --green: #10b981;
+            --red: #ef4444;
+            --text: #f9fafb;
+            --muted: #6b7280;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 2rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--card);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .btc-circle {
+            width: 34px;
+            height: 34px;
+            background: var(--btc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: 900;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.25; }
+        }
+
+        .btn {
+            background: var(--border);
+            border: 1px solid #374151;
+            color: var(--text);
+            padding: 0.35rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            transition: background 0.15s;
+        }
+        .btn:hover { background: var(--btc); border-color: var(--btc); }
+
+        /* ── Layout ── */
+        main {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 1.75rem 2rem 3rem;
+        }
+
+        /* ── Hero cards ── */
+        .hero {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+
+        .card.accent { border-left: 3px solid var(--btc); }
+
+        .card-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            margin-bottom: 0.45rem;
+        }
+
+        .card-value {
+            font-size: 1.55rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .card-sub {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 0.35rem;
+        }
+
+        /* ── Metric grid ── */
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .metric {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .metric-label {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
+            margin-bottom: 0.4rem;
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .metric-sub {
+            font-size: 0.73rem;
+            color: var(--muted);
+            margin-top: 0.2rem;
+        }
+
+        /* Halving progress */
+        .progress-bar {
+            width: 100%;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            margin-top: 0.6rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--btc), #ffb347);
+            border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+
+        /* Fee grid */
+        .fee-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.4rem;
+            margin-top: 0.6rem;
+        }
+
+        .fee-cell {
+            background: var(--bg);
+            border-radius: 6px;
+            padding: 0.35rem 0.3rem;
+            text-align: center;
+        }
+
+        .fee-cell-label { font-size: 0.62rem; color: var(--muted); }
+        .fee-cell-val   { font-size: 0.9rem; font-weight: 600; color: var(--btc); }
+
+        /* ── Chart ── */
+        .chart-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .chart-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .chart-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+
+        .tf-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 0.28rem 0.6rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            transition: all 0.15s;
+        }
+
+        .tf-btn:hover, .tf-btn.active {
+            background: var(--btc);
+            border-color: var(--btc);
+            color: #fff;
+        }
+
+        .divider { width: 1px; height: 20px; background: var(--border); margin: 0 0.15rem; }
+
+        .scale-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            padding: 0.28rem 0.6rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            transition: all 0.15s;
+        }
+
+        .scale-btn.active {
+            border-color: var(--btc);
+            color: var(--btc);
+        }
+
+        .chart-wrap {
+            position: relative;
+            height: 420px;
+        }
+
+        /* ── Color helpers ── */
+        .pos { color: var(--green); }
+        .neg { color: var(--red); }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding: 1.5rem 2rem;
+            color: var(--muted);
+            font-size: 0.76rem;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            header  { padding: 1rem; }
+            main    { padding: 1rem; }
+            .card-value { font-size: 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <div class="btc-circle">₿</div>
+        Bitcoin On-Chain Dashboard
+    </div>
+    <div class="header-right">
+        <div class="live-badge">
+            <span class="live-dot"></span>
+            <span id="update-time">Lädt…</span>
+        </div>
+        <button class="btn" onclick="loadAll()">⟳ Aktualisieren</button>
+    </div>
+</header>
+
+<main>
+
+    <!-- ── Hero ── -->
+    <div class="hero">
+        <div class="card accent">
+            <div class="card-label">BTC / USD</div>
+            <div class="card-value" id="price">–</div>
+            <div class="card-sub" id="price-change">–</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Marktkapitalisierung</div>
+            <div class="card-value" id="market-cap">–</div>
+            <div class="card-sub" id="vol-mcap">–</div>
+        </div>
+        <div class="card">
+            <div class="card-label">24h Handelsvolumen</div>
+            <div class="card-value" id="volume">–</div>
+            <div class="card-sub" id="vol-ratio">–</div>
+        </div>
+        <div class="card">
+            <div class="card-label">All-Time High</div>
+            <div class="card-value" id="ath">–</div>
+            <div class="card-sub" id="ath-change">–</div>
+        </div>
+    </div>
+
+    <!-- ── Metrics ── -->
+    <div class="metrics">
+
+        <div class="metric">
+            <div class="metric-label">Block Höhe</div>
+            <div class="metric-value" id="block-height">–</div>
+            <div class="metric-sub">Aktueller Block</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Nächste Halbierung</div>
+            <div class="metric-value" id="halving-days">–</div>
+            <div class="metric-sub" id="halving-blocks">–</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="halving-progress" style="width:0%"></div>
+            </div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Hashrate (7T Avg)</div>
+            <div class="metric-value" id="hashrate">–</div>
+            <div class="metric-sub">EH/s</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Difficulty</div>
+            <div class="metric-value" id="difficulty">–</div>
+            <div class="metric-sub" id="diff-adjust">–</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Mempool</div>
+            <div class="metric-value" id="mempool-count">–</div>
+            <div class="metric-sub" id="mempool-size">–</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Umlaufmenge</div>
+            <div class="metric-value" id="supply">–</div>
+            <div class="metric-sub" id="supply-pct">–</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Block-Belohnung</div>
+            <div class="metric-value" id="block-reward">3.125 BTC</div>
+            <div class="metric-sub" id="daily-btc">~450 BTC/Tag</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Gebühren (sat/vB)</div>
+            <div class="metric-value" id="fee-label">–</div>
+            <div class="fee-grid">
+                <div class="fee-cell">
+                    <div class="fee-cell-label">Schnell</div>
+                    <div class="fee-cell-val" id="fee-fast">–</div>
+                </div>
+                <div class="fee-cell">
+                    <div class="fee-cell-label">Mittel</div>
+                    <div class="fee-cell-val" id="fee-mid">–</div>
+                </div>
+                <div class="fee-cell">
+                    <div class="fee-cell-label">Günstig</div>
+                    <div class="fee-cell-val" id="fee-eco">–</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── Chart ── -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <div class="chart-title">Bitcoin Kursverlauf (USD)</div>
+            <div class="chart-controls">
+                <button class="tf-btn" data-days="7">7T</button>
+                <button class="tf-btn" data-days="30">1M</button>
+                <button class="tf-btn" data-days="90">3M</button>
+                <button class="tf-btn" data-days="180">6M</button>
+                <button class="tf-btn" data-days="365">1J</button>
+                <button class="tf-btn" data-days="730">2J</button>
+                <button class="tf-btn" data-days="1825">5J</button>
+                <button class="tf-btn active" data-days="3650">10J</button>
+                <button class="tf-btn" data-days="max">Max</button>
+                <div class="divider"></div>
+                <button class="scale-btn" id="scale-btn" onclick="toggleScale()">Log</button>
+            </div>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="priceChart"></canvas>
+        </div>
+    </div>
+
+</main>
+
+<footer>
+    Daten: CoinGecko &amp; Mempool.space &bull; Automatische Aktualisierung alle 60 s &bull; Keine Finanzberatung
+</footer>
+
+<script>
+    // ── State ──────────────────────────────────────────────────────────────────
+    let chart      = null;
+    let logScale   = false;
+    let activeDays = 3650;
+    const cache    = {};
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    const fmt = {
+        price : n => '$' + Math.round(n).toLocaleString('de-DE'),
+        large : n => {
+            if (n >= 1e12) return '$' + (n / 1e12).toFixed(2) + ' T';
+            if (n >= 1e9)  return '$' + (n / 1e9).toFixed(2)  + ' Mrd';
+            if (n >= 1e6)  return '$' + (n / 1e6).toFixed(2)  + ' Mio';
+            return '$' + Math.round(n).toLocaleString('de-DE');
+        },
+        num   : n => Math.round(n).toLocaleString('de-DE'),
+        pct   : (n, sign = true) => (sign && n >= 0 ? '+' : '') + n.toFixed(2) + '%',
+    };
+
+    function set(id, text, cls = null) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = text;
+        if (cls !== null) el.className = cls;
+    }
+
+    // ── Data fetching ──────────────────────────────────────────────────────────
+    async function fetchJSON(url) {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+    }
+
+    async function loadMarket() {
+        try {
+            const d  = await fetchJSON('https://api.coingecko.com/api/v3/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false');
+            const md = d.market_data;
+
+            const price    = md.current_price.usd;
+            const change   = md.price_change_percentage_24h;
+            const mcap     = md.market_cap.usd;
+            const vol      = md.total_volume.usd;
+            const supply   = md.circulating_supply;
+            const ath      = md.ath.usd;
+            const athChg   = md.ath_change_percentage.usd;
+
+            set('price',        fmt.price(price));
+            set('price-change', fmt.pct(change) + ' (24h)', 'card-sub ' + (change >= 0 ? 'pos' : 'neg'));
+            set('market-cap',   fmt.large(mcap));
+            set('vol-mcap',     'Vol: ' + fmt.large(vol));
+            set('volume',       fmt.large(vol));
+            set('vol-ratio',    ((vol / mcap) * 100).toFixed(2) + '% der Marktcap');
+            set('ath',          fmt.price(ath));
+            set('ath-change',   fmt.pct(athChg) + ' vom ATH', 'card-sub ' + (athChg >= 0 ? 'pos' : 'neg'));
+            set('supply',       (supply / 1e6).toFixed(3) + ' M');
+            set('supply-pct',   ((supply / 21e6) * 100).toFixed(2) + '% des Maximums');
+        } catch (e) {
+            console.error('CoinGecko:', e);
+            set('price', 'Fehler');
+        }
+    }
+
+    async function loadMempool() {
+        const base = 'https://mempool.space/api';
+
+        const results = await Promise.allSettled([
+            fetchJSON(base + '/blocks/tip/height'),
+            fetchJSON(base + '/v1/fees/recommended'),
+            fetchJSON(base + '/mempool'),
+            fetchJSON(base + '/v1/mining/hashrate/1w'),
+            fetchJSON(base + '/v1/difficulty-adjustment'),
+        ]);
+
+        // Block height + halving
+        if (results[0].status === 'fulfilled') {
+            const height = results[0].value;
+            const LAST_HALVING  = 840000;
+            const INTERVAL      = 210000;
+            const nextHalving   = LAST_HALVING + INTERVAL; // 1 050 000
+            const blocksLeft    = Math.max(0, nextHalving - height);
+            const daysLeft      = Math.round(blocksLeft * 10 / 60 / 24);
+            const progress      = Math.min(100, ((height - LAST_HALVING) / INTERVAL) * 100);
+
+            set('block-height',   fmt.num(height));
+            set('halving-days',   daysLeft > 0 ? fmt.num(daysLeft) + ' Tage' : 'Bald!');
+            set('halving-blocks', fmt.num(blocksLeft) + ' Blöcke noch (→ ' + fmt.num(nextHalving) + ')');
+            document.getElementById('halving-progress').style.width = progress.toFixed(1) + '%';
+        }
+
+        // Fees
+        if (results[1].status === 'fulfilled') {
+            const f = results[1].value;
+            set('fee-label',  f.fastestFee + ' sat/vB');
+            set('fee-fast',   f.fastestFee);
+            set('fee-mid',    f.hourFee);
+            set('fee-eco',    f.economyFee);
+        }
+
+        // Mempool
+        if (results[2].status === 'fulfilled') {
+            const m = results[2].value;
+            set('mempool-count', fmt.num(m.count) + ' TXs');
+            set('mempool-size',  (m.vsize / 1e6).toFixed(1) + ' MB unbestätigt');
+        }
+
+        // Hashrate
+        if (results[3].status === 'fulfilled') {
+            const hr = results[3].value;
+            const ehs = hr.currentHashrate / 1e18;
+            set('hashrate', ehs.toFixed(1) + ' EH/s');
+        }
+
+        // Difficulty adjustment
+        if (results[4].status === 'fulfilled') {
+            const da = results[4].value;
+            const chg = da.difficultyChange;
+            set('difficulty',  (da.currentDifficulty / 1e12).toFixed(2) + ' T');
+            set('diff-adjust', 'Nächste Anpassung: ' + fmt.pct(chg), 'metric-sub ' + (chg >= 0 ? 'pos' : 'neg'));
+        }
+    }
+
+    // ── Chart ──────────────────────────────────────────────────────────────────
+    async function loadChart(days) {
+        activeDays = days;
+
+        document.querySelectorAll('.tf-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.days == days);
+        });
+
+        if (cache[days]) { renderChart(cache[days]); return; }
+
+        try {
+            const url  = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}${days !== 'max' && days > 90 ? '&interval=daily' : ''}`;
+            const data = await fetchJSON(url);
+            cache[days] = data.prices;
+            renderChart(data.prices);
+        } catch (e) {
+            console.error('Chart:', e);
+        }
+    }
+
+    function renderChart(prices) {
+        const ctx    = document.getElementById('priceChart').getContext('2d');
+        const labels = prices.map(p => new Date(p[0]));
+        const values = prices.map(p => p[1]);
+
+        const grad = ctx.createLinearGradient(0, 0, 0, 420);
+        grad.addColorStop(0,   'rgba(247,147,26,0.25)');
+        grad.addColorStop(1,   'rgba(247,147,26,0.0)');
+
+        if (chart) chart.destroy();
+
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'BTC/USD',
+                    data: values,
+                    borderColor: '#f7931a',
+                    borderWidth: 1.5,
+                    backgroundColor: grad,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    tension: 0.05,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                animation: { duration: 300 },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1f2937',
+                        borderColor: '#374151',
+                        borderWidth: 1,
+                        titleColor: '#9ca3af',
+                        bodyColor: '#f9fafb',
+                        padding: 10,
+                        callbacks: {
+                            title: items => {
+                                const d = new Date(items[0].label);
+                                return d.toLocaleDateString('de-DE', { day: '2-digit', month: 'short', year: 'numeric' });
+                            },
+                            label: item => ' $' + Math.round(item.raw).toLocaleString('de-DE'),
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            displayFormats: {
+                                day:   'dd.MM.yy',
+                                week:  'dd.MM.yy',
+                                month: 'MMM yy',
+                                year:  'yyyy',
+                            }
+                        },
+                        grid:  { color: 'rgba(255,255,255,0.04)' },
+                        ticks: { color: '#6b7280', maxTicksLimit: 10 },
+                    },
+                    y: {
+                        type:     logScale ? 'logarithmic' : 'linear',
+                        position: 'right',
+                        grid:     { color: 'rgba(255,255,255,0.04)' },
+                        ticks: {
+                            color: '#6b7280',
+                            callback: v => v >= 1000 ? '$' + (v / 1000).toFixed(0) + 'k' : '$' + v,
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function toggleScale() {
+        logScale = !logScale;
+        const btn = document.getElementById('scale-btn');
+        btn.textContent = logScale ? 'Linear' : 'Log';
+        btn.classList.toggle('active', logScale);
+        if (cache[activeDays]) renderChart(cache[activeDays]);
+    }
+
+    document.querySelectorAll('.tf-btn').forEach(b => {
+        b.addEventListener('click', () => loadChart(b.dataset.days));
+    });
+
+    // ── Boot ───────────────────────────────────────────────────────────────────
+    async function loadAll() {
+        set('update-time', 'Aktualisiert…');
+        await Promise.all([loadMarket(), loadMempool()]);
+        set('update-time', 'Zuletzt: ' + new Date().toLocaleTimeString('de-DE'));
+    }
+
+    async function init() {
+        await loadAll();
+        await loadChart(activeDays);
+    }
+
+    init();
+    setInterval(loadAll, 60_000);
+</script>
+</body>
+</html>
