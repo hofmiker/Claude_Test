@@ -30,29 +30,47 @@
     -webkit-tap-highlight-color:transparent; backdrop-filter:blur(2px);
   }
   #skipBtn:active { background:rgba(255,255,255,.35); }
-  #dpad {
-    position:fixed; bottom:28px; left:28px; z-index:5; display:none;
-    grid-template-columns:52px 52px 52px; grid-template-rows:52px 52px; gap:5px;
-  }
-  .db {
-    background:rgba(255,255,255,.22); border:2px solid rgba(255,255,255,.55);
-    border-radius:12px; display:flex; align-items:center; justify-content:center;
-    font-size:22px; cursor:pointer; user-select:none; color:#fff;
+  #skipBtn svg { vertical-align:-1px; margin-left:2px; }
+  #joystick {
+    position:fixed; bottom:26px; left:26px; z-index:5; display:none;
+    width:118px; height:118px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.45); background:rgba(20,20,25,.35);
+    touch-action:none; user-select:none; -webkit-user-select:none;
     -webkit-tap-highlight-color:transparent;
   }
-  .db:active, .db.on { background:rgba(255,255,255,.5); }
-  #bU { grid-column:2; grid-row:1; }
-  #bL { grid-column:1; grid-row:2; }
-  #bD { grid-column:2; grid-row:2; }
-  #bR { grid-column:3; grid-row:2; }
+  #joystick-knob {
+    position:absolute; top:50%; left:50%; width:50px; height:50px;
+    margin:-25px 0 0 -25px; border-radius:50%;
+    background:rgba(255,255,255,.32); border:2px solid rgba(255,255,255,.62);
+    pointer-events:none;
+  }
   #jumpBtn {
     position:fixed; bottom:28px; right:28px; z-index:5; display:none;
     width:70px; height:70px; background:rgba(255,210,0,.25); border:2px solid rgba(255,210,0,.75);
     border-radius:50%; align-items:center; justify-content:center;
-    font-size:26px; cursor:pointer; user-select:none; color:#fff;
-    -webkit-tap-highlight-color:transparent;
+    cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
+    touch-action:none;
   }
   #jumpBtn.on { background:rgba(255,210,0,.55); }
+  #jumpBtn .ico {
+    width:0; height:0; margin-top:-3px;
+    border-left:10px solid transparent; border-right:10px solid transparent;
+    border-bottom:16px solid #fff;
+  }
+  #enterHint {
+    position:fixed; left:50%; bottom:112px; transform:translateX(-50%);
+    z-index:5; display:none; padding:7px 16px; border-radius:16px;
+    background:rgba(20,20,25,.5); border:1px solid rgba(255,255,255,.4);
+    color:#fff; font-family:Arial,sans-serif; font-size:13px; font-weight:600;
+    letter-spacing:.2px; pointer-events:none; text-align:center;
+  }
+  #minimap {
+    position:fixed; top:16px; right:16px; z-index:5; display:none;
+    width:128px; height:128px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.45);
+    background:rgba(10,12,20,.5);
+  }
+  @media (max-width:768px), (pointer:coarse) { #minimap { width:92px; height:92px; } }
 </style>
 </head>
 <body>
@@ -60,14 +78,11 @@
 <div id="glow"></div>
 <div id="countdown"></div>
 <div id="fade"></div>
-<div id="skipBtn">Überspringen ▶</div>
-<div id="dpad">
-  <div class="db" id="bU">▲</div>
-  <div class="db" id="bL">◀</div>
-  <div class="db" id="bD">▼</div>
-  <div class="db" id="bR">▶</div>
-</div>
-<div id="jumpBtn">⬆</div>
+<div id="skipBtn">Überspringen <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg></div>
+<canvas id="minimap" width="128" height="128"></canvas>
+<div id="enterHint">Sprung-Taste zum Einsteigen</div>
+<div id="joystick"><div id="joystick-knob"></div></div>
+<div id="jumpBtn"><span class="ico"></span></div>
 
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -564,6 +579,7 @@ const moonScene = new THREE.Group();
 moonScene.visible = false;
 scene.add(moonScene);
 const moonCraters = [];
+let rover;
 function moonCraterY(x,z){
   let y = 0;
   for(const c of moonCraters){
@@ -652,16 +668,22 @@ function getMoonSurfaceY(x,z){
       seat.position.set(i===0?-2:2, 7.3, -2.5);
       grp.add(seat);
     }
-    const wheelPositions = [[-4.4,3.2,4.2],[4.4,3.2,4.2],[-4.4,3.2,-4.2],[4.4,3.2,-4.2]];
-    wheelPositions.forEach(([x,y,z]) => {
+    // Front wheels (z>0, "front" in local +Z = forward direction) are steerable
+    // groups; rear wheels (z<0) are fixed directly on the chassis.
+    function wheelUnit(){
+      const w = new THREE.Group();
       const wheel = new THREE.Mesh(new THREE.CylinderGeometry(3,3,1.6,10), MAT.roverDark);
-      wheel.rotation.z = Math.PI/2;
-      wheel.position.set(x,y,z);
-      grp.add(wheel);
+      wheel.rotation.z = Math.PI/2; w.add(wheel);
       const hub = new THREE.Mesh(new THREE.CylinderGeometry(1,1,1.8,6), MAT.roverGold);
-      hub.rotation.z = Math.PI/2;
-      hub.position.set(x,y,z);
-      grp.add(hub);
+      hub.rotation.z = Math.PI/2; w.add(hub);
+      return w;
+    }
+    const frontWheels = [];
+    [[-4.4,3.2,4.2],[4.4,3.2,4.2]].forEach(([x,y,z]) => {
+      const w = wheelUnit(); w.position.set(x,y,z); grp.add(w); frontWheels.push(w);
+    });
+    [[-4.4,3.2,-4.2],[4.4,3.2,-4.2]].forEach(([x,y,z]) => {
+      const w = wheelUnit(); w.position.set(x,y,z); grp.add(w);
     });
     for(let i=0;i<4;i++){
       const s = i<2?-1:1, e = i%2===0?-1:1;
@@ -673,9 +695,10 @@ function getMoonSurfaceY(x,z){
     antennaPole.position.set(-3,9,-4); grp.add(antennaPole);
     const dish = new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,0.3,10), MAT.roverGold);
     dish.rotation.x = 0.6; dish.position.set(-3,11.8,-4); grp.add(dish);
+    grp.userData = { frontWheels };
     return grp;
   }
-  const rover = buildRover();
+  rover = buildRover();
   rover.position.set(46, 0, 20);
   rover.rotation.y = -0.6;
   moonScene.add(rover);
@@ -1096,7 +1119,7 @@ function updateCameraMoon(altitude){
   camera.lookAt(PAD_X, camState.y*0.6, 0);
 }
 
-/* ---------- input (keyboard + touch) ---------- */
+/* ---------- input (keyboard + virtual joystick, ported from toy-story/gameplay/player.js) ---------- */
 const keys = { up:false, down:false, left:false, right:false };
 let jumpBuf = false;
 document.addEventListener('keydown', e => {
@@ -1112,16 +1135,88 @@ document.addEventListener('keyup', e => {
   if (e.key==='ArrowLeft' ||e.key==='a'||e.key==='A') keys.left  = false;
   if (e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right = false;
 });
-['bU','bD','bL','bR'].forEach((id, i) => {
-  const k = ['up','down','left','right'][i], el = document.getElementById(id);
-  el.addEventListener('pointerdown',  e => { keys[k]=true;  el.classList.add('on');    e.preventDefault(); });
-  el.addEventListener('pointerup',    e => { keys[k]=false; el.classList.remove('on'); e.preventDefault(); });
-  el.addEventListener('pointerleave', () => { keys[k]=false; el.classList.remove('on'); });
+
+// Virtual 360° joystick: analog direction, blended with keyboard each frame via curInput.
+const touchMove = { forward:0, back:0, left:0, right:0 };
+const curInput  = { fwd:0, back:0, left:0, right:0 };
+function refreshInput(){
+  curInput.fwd   = Math.max(keys.up?1:0,    touchMove.forward);
+  curInput.back  = Math.max(keys.down?1:0,  touchMove.back);
+  curInput.left  = Math.max(keys.left?1:0,  touchMove.left);
+  curInput.right = Math.max(keys.right?1:0, touchMove.right);
+}
+const joyEl = document.getElementById('joystick');
+const knobEl = document.getElementById('joystick-knob');
+const JOY_RADIUS = 50;
+let joyPointerId = null;
+function setJoyFromPoint(clientX, clientY){
+  const rect = joyEl.getBoundingClientRect();
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  let dx = clientX-cx, dy = clientY-cy;
+  const dist = Math.hypot(dx,dy);
+  if (dist > JOY_RADIUS){ dx = dx/dist*JOY_RADIUS; dy = dy/dist*JOY_RADIUS; }
+  knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+  touchMove.left    = Math.max(0, -dx/JOY_RADIUS);
+  touchMove.right   = Math.max(0,  dx/JOY_RADIUS);
+  touchMove.forward = Math.max(0, -dy/JOY_RADIUS);
+  touchMove.back    = Math.max(0,  dy/JOY_RADIUS);
+}
+function resetJoy(){
+  knobEl.style.transform = '';
+  touchMove.forward = touchMove.back = touchMove.left = touchMove.right = 0;
+  joyPointerId = null;
+}
+joyEl.addEventListener('pointerdown', e => {
+  joyPointerId = e.pointerId;
+  joyEl.setPointerCapture(e.pointerId);
+  setJoyFromPoint(e.clientX, e.clientY);
+  e.preventDefault();
 });
+joyEl.addEventListener('pointermove', e => {
+  if (joyPointerId !== e.pointerId) return;
+  setJoyFromPoint(e.clientX, e.clientY);
+  e.preventDefault();
+});
+['pointerup','pointercancel','pointerleave'].forEach(evt => {
+  joyEl.addEventListener(evt, e => { if (joyPointerId === e.pointerId) resetJoy(); });
+});
+
 const jumpEl = document.getElementById('jumpBtn');
 jumpEl.addEventListener('pointerdown', e => { jumpBuf=true; jumpEl.classList.add('on'); e.preventDefault(); });
 jumpEl.addEventListener('pointerup',    () => jumpEl.classList.remove('on'));
 jumpEl.addEventListener('pointerleave', () => jumpEl.classList.remove('on'));
+
+const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 820;
+const MOBILE_CAM_MULT = 1.45;
+
+/* ---------- minimap (ported concept from dhl-city/index.html drawMM) ---------- */
+const mmCanvas = document.getElementById('minimap');
+const mmCtx = mmCanvas.getContext('2d');
+const STATION_MARK = { x:-95, z:-55 };
+function drawMinimap(px, pz, pAngle){
+  const w = mmCanvas.width, h = mmCanvas.height, cx = w/2, cy = h/2, sc = w/700;
+  mmCtx.clearRect(0,0,w,h);
+  mmCtx.save();
+  mmCtx.beginPath(); mmCtx.arc(cx,cy,cx-1,0,Math.PI*2); mmCtx.clip();
+  mmCtx.fillStyle = 'rgba(10,12,20,0.55)'; mmCtx.fillRect(0,0,w,h);
+  mmCtx.translate(cx,cy);
+  mmCtx.rotate(pAngle);
+  const mx = x => -(x-px)*sc, mz = z => -(z-pz)*sc;
+  mmCtx.fillStyle = '#8fd0ff';
+  mmCtx.beginPath(); mmCtx.arc(mx(PAD_X), mz(0), 5, 0, Math.PI*2); mmCtx.fill();
+  mmCtx.fillStyle = '#c9a6ff';
+  mmCtx.beginPath(); mmCtx.arc(mx(STATION_MARK.x), mz(STATION_MARK.z), 4, 0, Math.PI*2); mmCtx.fill();
+  if (!inVehicle){
+    mmCtx.fillStyle = '#ffcc55';
+    mmCtx.beginPath(); mmCtx.arc(mx(roverX), mz(roverZ), 4, 0, Math.PI*2); mmCtx.fill();
+  }
+  mmCtx.restore();
+  mmCtx.save();
+  mmCtx.translate(cx,cy);
+  mmCtx.fillStyle = inVehicle ? '#ffcc55' : '#ffffff';
+  mmCtx.beginPath(); mmCtx.moveTo(0,-7); mmCtx.lineTo(-5,6); mmCtx.lineTo(0,3); mmCtx.lineTo(5,6); mmCtx.closePath(); mmCtx.fill();
+  mmCtx.restore();
+}
 
 /* ---------- astronaut animation (ported from dhl-city/character.html) ---------- */
 let animT = 0, charYaw = 0;
@@ -1132,13 +1227,13 @@ let jumpState = JWALK.NONE, jumpTimer = 0;
 
 function animateAstronaut(dt){
   const A = astro;
-  const moving = (keys.up || keys.down) && jumpState === JWALK.NONE;
+  const moving = (curInput.fwd > 0.02 || curInput.back > 0.02) && jumpState === JWALK.NONE;
   if (moving) animT += dt * 9.5;
   const s = Math.sin(animT);
   const eff = moving ? 1.0 : 0.0;
   const lLeg =  s * 0.68, rLeg = -s * 0.68;
 
-  headYawTgt = keys.left ? 0.38 : (keys.right ? -0.38 : 0);
+  headYawTgt = (curInput.left - curInput.right) * 0.38;
   A.headJoint.rotation.y = lerp(A.headJoint.rotation.y, headYawTgt, 0.06);
 
   if (jumpState === JWALK.WINDUP){
@@ -1230,18 +1325,93 @@ let gameCamPos = new THREE.Vector3();
 let gameCamDist = 7.0;
 let gameMode = false;
 
+/* ---------- rover vehicle: driving physics (adapted from dhl-city/index.html) ---------- */
+const ROVER_MAX_SPD = 18, ROVER_ACCEL = 9, ROVER_BRAKE = 30, ROVER_FRICTION = 7, ROVER_STEER_RATE = 1.8;
+const VEHICLE_ENTER_RADIUS = 9;
+let roverX = 46, roverZ = 20, roverAngle = -0.6, roverSpd = 0, roverSteerAng = 0;
+let inVehicle = false;
+let vehicleCamPos = new THREE.Vector3();
+let vehicleCamDist = 13.0;
+const enterHintEl = document.getElementById('enterHint');
+
+function enterVehicle(){
+  inVehicle = true;
+  astro.charRoot.visible = false;
+  jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0;
+  enterHintEl.style.display = 'none';
+  vehicleCamPos.copy(camera.position);
+}
+function exitVehicle(){
+  inVehicle = false;
+  const A = astro;
+  A.charRoot.visible = true;
+  const sideX = Math.cos(roverAngle), sideZ = -Math.sin(roverAngle);
+  const ex = roverX + sideX*7, ez = roverZ + sideZ*7;
+  A.charRoot.position.set(ex, getMoonSurfaceY(ex,ez) + CHAR_BASE_Y, ez);
+  charYaw = roverAngle;
+  A.charRoot.rotation.y = charYaw;
+  moveSpeed = 0; velY = 0; onGround = true; jumpState = JWALK.NONE;
+  gameCamPos.copy(camera.position);
+}
+
+function updateRoverGameplay(dt){
+  refreshInput();
+
+  const gasIn = curInput.fwd, brakeIn = curInput.back;
+  if (gasIn > brakeIn)        roverSpd = Math.min(roverSpd + ROVER_ACCEL*dt, ROVER_MAX_SPD*gasIn);
+  else if (brakeIn > gasIn)   roverSpd = roverSpd > 0.05 ? Math.max(roverSpd - ROVER_BRAKE*dt, 0) : Math.max(roverSpd - ROVER_ACCEL*0.9*dt, -ROVER_MAX_SPD*0.5*brakeIn);
+  else { const f = ROVER_FRICTION*dt; roverSpd = Math.abs(roverSpd) < f ? 0 : roverSpd - Math.sign(roverSpd)*f; }
+
+  let steerTgt = 0;
+  if (Math.abs(roverSpd) > 0.05){
+    const turn = curInput.left - curInput.right;
+    const sdir = roverSpd >= 0 ? 1 : -1;
+    const sr = ROVER_STEER_RATE * (Math.abs(roverSpd)/ROVER_MAX_SPD);
+    roverAngle += sr*dt*turn*sdir;
+    steerTgt = turn*0.5*sdir;
+  }
+  roverSteerAng = lerp(roverSteerAng, steerTgt, 0.15);
+  if (rover.userData.frontWheels) rover.userData.frontWheels.forEach(w => w.rotation.y = roverSteerAng);
+
+  const fwdX = Math.sin(roverAngle), fwdZ = Math.cos(roverAngle);
+  roverX += fwdX*roverSpd*dt;
+  roverZ += fwdZ*roverSpd*dt;
+  const groundY = getMoonSurfaceY(roverX, roverZ);
+  rover.position.set(roverX, groundY, roverZ);
+  rover.rotation.y = roverAngle;
+
+  if (jumpBuf){ jumpBuf = false; exitVehicle(); return; }
+
+  const baseVDist = 13.0 * (isMobile ? MOBILE_CAM_MULT : 1);
+  vehicleCamDist = lerp(vehicleCamDist, baseVDist, dt*2.5);
+  const tCam = new THREE.Vector3(roverX - fwdX*vehicleCamDist, groundY + 5.5, roverZ - fwdZ*vehicleCamDist);
+  vehicleCamPos.lerp(tCam, 0.08);
+  camera.position.copy(vehicleCamPos);
+  camera.lookAt(roverX, groundY + 3, roverZ);
+}
+
 function updateAstronautGameplay(dt){
   const A = astro;
-  if (keys.left)  charYaw += TURN_RATE * dt;
-  if (keys.right) charYaw -= TURN_RATE * dt;
+  refreshInput();
+
+  charYaw += TURN_RATE * dt * (curInput.left - curInput.right);
   A.charRoot.rotation.y = charYaw;
 
   const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
-  const wantMove = keys.up || keys.down;
-  if (wantMove) moveSpeed = Math.min(moveSpeed + ACCEL_RATE*dt, SPEED_MAX);
-  else          moveSpeed = Math.max(moveSpeed - DECEL_RATE*dt, 0);
-  if (keys.up)   { A.charRoot.position.x += fwdX*moveSpeed*dt; A.charRoot.position.z += fwdZ*moveSpeed*dt; }
-  if (keys.down) { A.charRoot.position.x -= fwdX*moveSpeed*dt; A.charRoot.position.z -= fwdZ*moveSpeed*dt; }
+  const mag = Math.max(curInput.fwd, curInput.back);
+  if (mag > 0.02) moveSpeed = Math.min(moveSpeed + ACCEL_RATE*dt, SPEED_MAX*mag);
+  else            moveSpeed = Math.max(moveSpeed - DECEL_RATE*dt, 0);
+  if (curInput.fwd  > curInput.back) { A.charRoot.position.x += fwdX*moveSpeed*dt; A.charRoot.position.z += fwdZ*moveSpeed*dt; }
+  if (curInput.back > curInput.fwd)  { A.charRoot.position.x -= fwdX*moveSpeed*dt; A.charRoot.position.z -= fwdZ*moveSpeed*dt; }
+
+  const distToRover = Math.hypot(A.charRoot.position.x - roverX, A.charRoot.position.z - roverZ);
+  const nearRover = distToRover < VEHICLE_ENTER_RADIUS;
+  enterHintEl.style.display = (nearRover && onGround) ? 'block' : 'none';
+  if (jumpBuf && nearRover && onGround){
+    jumpBuf = false;
+    enterVehicle();
+    return;
+  }
 
   if (jumpBuf && onGround && jumpState !== JWALK.WINDUP && jumpState !== JWALK.AIR){
     jumpState = JWALK.WINDUP; jumpTimer = 0; jumpBuf = false;
@@ -1270,8 +1440,9 @@ function updateAstronautGameplay(dt){
 
   animateAstronaut(dt);
 
-  const moving = keys.up || keys.down;
-  gameCamDist = lerp(gameCamDist, moving ? 7.0 : 4.0, dt*2.5);
+  const moving = curInput.fwd > 0.02 || curInput.back > 0.02;
+  const baseDist = (moving ? 7.0 : 4.0) * (isMobile ? MOBILE_CAM_MULT : 1);
+  gameCamDist = lerp(gameCamDist, baseDist, dt*2.5);
   const tCam = new THREE.Vector3(
     A.charRoot.position.x - fwdX*gameCamDist,
     A.charRoot.position.y + 2.6,
@@ -1284,8 +1455,9 @@ function updateAstronautGameplay(dt){
 
 function enterGameMode(){
   gameMode = true;
-  document.getElementById('dpad').style.display = 'grid';
+  document.getElementById('joystick').style.display = 'block';
   document.getElementById('jumpBtn').style.display = 'flex';
+  document.getElementById('minimap').style.display = 'block';
   document.getElementById('skipBtn').style.display = 'none';
   gameCamPos.copy(camera.position);
 }
@@ -1448,7 +1620,12 @@ function animate(){
 
   if (gameMode){
     updatePuffs(dt);
-    updateAstronautGameplay(dt);
+    if (inVehicle) updateRoverGameplay(dt); else updateAstronautGameplay(dt);
+    drawMinimap(
+      inVehicle ? roverX : astro.charRoot.position.x,
+      inVehicle ? roverZ : astro.charRoot.position.z,
+      inVehicle ? roverAngle : charYaw
+    );
     renderer.render(scene, camera);
     return;
   }
