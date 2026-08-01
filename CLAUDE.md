@@ -6,6 +6,7 @@
 | `hello/` | Hello — Partikel-Typografie | `.../hello/` |
 | `solar-orbit/` | Solar Orbit — 3D-Sonnensystem | `.../solar-orbit/` |
 | `dhl-city/` | DHL City Drive — 3D-Fahrspiel | `.../dhl-city/` |
+| `3d-character-test/` | 3D Character Test — Low-Poly-Charakter-Studie | `.../3d-character-test/` |
 | `bitcoin-3d/` | Bitcoin 3D — Candlestick-Chart | `.../bitcoin-3d/` |
 | `spice-wars/` | Spice Wars — 2D Sci-Fi Strategie (Dune-2-Stil) | `.../spice-wars/` |
 | `dark-city/` | Dark City — 2D Nacht-Jump'n'Run | `.../dark-city/` |

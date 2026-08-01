@@ -2,12 +2,13 @@
 
 ## Live-URLs
 - Spiel: https://hofmiker.github.io/Claude_Test/dhl-city/
-- Charakter-Studie: https://hofmiker.github.io/Claude_Test/dhl-city/character.html
 
 ## Dateien
 - `index.html` — Hauptspiel (DHL City Drive)
-- `character.html` — 3D Low-Poly Charakter-Studie (Vorstudie für den Spielcharakter)
 - `RULES.md` — Spielregeln
+
+Die frühere Charakter-Studie (`character.html`) wurde als eigenständiges
+Projekt nach `3d-character-test/` verschoben.
 
 ## Tech-Stack
 - Three.js via CDN

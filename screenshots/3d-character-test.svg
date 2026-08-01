@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 300">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fd0ef"/>
+      <stop offset="1" stop-color="#c9ecfa"/>
+    </linearGradient>
+    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4c9c3c"/>
+      <stop offset="1" stop-color="#2f6e26"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="480" height="300" fill="url(#sky)"/>
+  <rect x="0" y="215" width="480" height="85" fill="url(#grass)"/>
+  <ellipse cx="240" cy="217" rx="230" ry="10" fill="#255a1e" opacity="0.4"/>
+
+  <!-- distant trees -->
+  <g>
+    <rect x="58" y="178" width="8" height="38" fill="#6d4c41"/>
+    <polygon points="62,120 90,180 34,180" fill="#2a6e25"/>
+    <polygon points="62,145 82,182 42,182" fill="#1e5219"/>
+  </g>
+  <g>
+    <rect x="404" y="182" width="7" height="34" fill="#6d4c41"/>
+    <polygon points="407,132 431,184 383,184" fill="#2a6e25"/>
+    <polygon points="407,155 425,186 389,186" fill="#1e5219"/>
+  </g>
+
+  <!-- crate -->
+  <g>
+    <rect x="330" y="188" width="46" height="30" fill="#8b6334" stroke="#5d4225" stroke-width="1.5"/>
+    <line x1="330" y1="188" x2="376" y2="218" stroke="#5d4225" stroke-width="1"/>
+    <line x1="376" y1="188" x2="330" y2="218" stroke="#5d4225" stroke-width="1"/>
+  </g>
+
+  <!-- ground shadow under character -->
+  <ellipse cx="205" cy="270" rx="34" ry="8" fill="#1c3d17" opacity="0.35"/>
+
+  <!-- LEGS -->
+  <rect x="188" y="228" width="16" height="42" rx="4" fill="#37474f"/>
+  <rect x="210" y="228" width="16" height="42" rx="4" fill="#37474f"/>
+  <rect x="184" y="262" width="24" height="11" rx="3" fill="#1a1a1a"/>
+  <rect x="206" y="262" width="24" height="11" rx="3" fill="#1a1a1a"/>
+
+  <!-- TORSO -->
+  <path d="M 182 172 Q 178 210 186 232 L 224 232 Q 232 210 228 172 Z" fill="#1e88e5"/>
+
+  <!-- ARMS -->
+  <path d="M 182 178 Q 168 195 166 220" stroke="#1e88e5" stroke-width="15" fill="none" stroke-linecap="round"/>
+  <circle cx="165" cy="224" r="8" fill="#f0bc94"/>
+  <path d="M 228 178 Q 244 197 247 222" stroke="#1e88e5" stroke-width="15" fill="none" stroke-linecap="round"/>
+  <circle cx="248" cy="226" r="8" fill="#f0bc94"/>
+
+  <!-- NECK -->
+  <rect x="197" y="160" width="16" height="14" fill="#f0bc94"/>
+
+  <!-- HEAD -->
+  <circle cx="205" cy="140" r="24" fill="#f0bc94"/>
+  <!-- ears -->
+  <ellipse cx="180" cy="141" rx="4" ry="7" fill="#f0bc94"/>
+  <ellipse cx="230" cy="141" rx="4" ry="7" fill="#f0bc94"/>
+  <!-- hair -->
+  <path d="M 179 132 Q 176 104 205 100 Q 234 104 231 132 Q 231 116 205 114 Q 179 116 179 132 Z" fill="#3e2723"/>
+  <path d="M 178 128 Q 174 148 182 160 L 189 152 Q 181 140 184 126 Z" fill="#3e2723"/>
+  <path d="M 232 128 Q 236 148 228 160 L 221 152 Q 229 140 226 126 Z" fill="#3e2723"/>
+  <!-- face -->
+  <circle cx="196" cy="140" r="2.6" fill="#1a0f08"/>
+  <circle cx="214" cy="140" r="2.6" fill="#1a0f08"/>
+  <rect x="191" y="130" width="9" height="2.4" rx="1" fill="#2c1810" transform="rotate(-6 195 131)"/>
+  <rect x="210" y="130" width="9" height="2.4" rx="1" fill="#2c1810" transform="rotate(6 215 131)"/>
+  <rect x="199" y="152" width="12" height="3" rx="1.5" fill="#7a2e1e"/>
+</svg>
