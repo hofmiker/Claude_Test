@@ -66,11 +66,11 @@
   }
   #minimap {
     position:fixed; top:16px; right:16px; z-index:5; display:none;
-    width:128px; height:128px; border-radius:50%;
+    width:168px; height:168px; border-radius:50%;
     border:2px solid rgba(255,255,255,.45);
     background:rgba(10,12,20,.5);
   }
-  @media (max-width:768px), (pointer:coarse) { #minimap { width:92px; height:92px; } }
+  @media (max-width:768px), (pointer:coarse) { #minimap { width:122px; height:122px; } }
 </style>
 </head>
 <body>
@@ -79,7 +79,7 @@
 <div id="countdown"></div>
 <div id="fade"></div>
 <div id="skipBtn">Überspringen <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg></div>
-<canvas id="minimap" width="128" height="128"></canvas>
+<canvas id="minimap" width="168" height="168"></canvas>
 <div id="enterHint">Sprung-Taste zum Einsteigen</div>
 <div id="joystick"><div id="joystick-knob"></div></div>
 <div id="jumpBtn"><span class="ico"></span></div>
@@ -165,6 +165,7 @@ const MAT = {
 
 const PAD_X = 0, PAD_TOP = 6;
 const PLATFORM_H = 3;
+const ROVER_SCALE = 0.3;
 
 /* ---------- engine exhaust glow: one flame assembly per nozzle ---------- */
 function buildFlame(scale){
@@ -579,6 +580,8 @@ const moonScene = new THREE.Group();
 moonScene.visible = false;
 scene.add(moonScene);
 const moonCraters = [];
+const moonRocksData = [];
+const moonCollidables = [];
 let rover;
 function moonCraterY(x,z){
   let y = 0;
@@ -592,9 +595,46 @@ function moonCraterY(x,z){
   }
   return y;
 }
+function rockBumpY(x,z){
+  let y = 0;
+  for(const rk of moonRocksData){
+    const d = Math.hypot(x-rk.x, z-rk.z);
+    if (d < rk.r){
+      const tt = d/rk.r;
+      const bump = rk.h*(1-tt*tt);
+      if (bump > y) y = bump;
+    }
+  }
+  return y;
+}
 function getMoonSurfaceY(x,z){
   if (Math.hypot(x-PAD_X,z) < 27) return PLATFORM_H;
-  return moonCraterY(x,z);
+  return Math.max(moonCraterY(x,z), rockBumpY(x,z));
+}
+// Approximates a long object (station module, tube) as a chain of overlapping
+// circles along its local X axis, for cheap push-out collision.
+function registerCapsuleCollider(obj, r, len, segments){
+  const n = segments || Math.max(2, Math.round(len/6));
+  const p = new THREE.Vector3();
+  for (let i=0;i<n;i++){
+    const tt = n===1 ? 0 : (i/(n-1) - 0.5);
+    p.set(tt*len, 0, 0);
+    obj.localToWorld(p);
+    moonCollidables.push({ x:p.x, z:p.z, r });
+  }
+}
+function resolvePush(x, z, radius, list){
+  let rx = x, rz = z;
+  for (const c of list){
+    const dx = rx - c.x, dz = rz - c.z;
+    const minD = radius + c.r;
+    const d = Math.hypot(dx,dz);
+    if (d < minD){
+      if (d < 0.0001){ rx += minD; }
+      else { const push = (minD-d)/d; rx += dx*push; rz += dz*push; }
+    }
+  }
+  return { x:rx, z:rz };
 }
 {
   const moonSize = 1400, segs = 70;
@@ -620,10 +660,17 @@ function getMoonSurfaceY(x,z){
 
   for(let i=0;i<60;i++){
     const a = rand(0,Math.PI*2), d = rand(60,600);
-    const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(1,4.5),0), MAT.moonRock);
-    rock.position.set(Math.cos(a)*d, rand(0.5,2), Math.sin(a)*d);
+    const R = rand(1,4.5);
+    const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(R,0), MAT.moonRock);
+    const rx = Math.cos(a)*d, rz = Math.sin(a)*d;
+    const embed = R*0.3;
+    rock.position.set(rx, embed, rz);
     rock.rotation.set(rand(0,6),rand(0,6),rand(0,6));
     moonScene.add(rock);
+    // Rocks are climbable, not solid-blocking: getMoonSurfaceY treats them as
+    // a smooth raised bump (same math as crater bowls, inverted), so walking
+    // toward one ramps you up onto it instead of colliding with a wall.
+    moonRocksData.push({ x:rx, z:rz, r:R*1.05, h: embed + R*0.8 });
   }
 
   function buildLandingBase(){
@@ -699,11 +746,14 @@ function getMoonSurfaceY(x,z){
     return grp;
   }
   rover = buildRover();
-  rover.position.set(46, 0, 20);
+  rover.scale.setScalar(ROVER_SCALE);
+  rover.position.set(46, getMoonSurfaceY(46,20), 20);
   rover.rotation.y = -0.6;
   moonScene.add(rover);
 
-  function buildStationModule(hasDome, r, len, hoverY){
+  // Modules rest directly on the ground: local origin at the cylinder's own
+  // axis, so placing a module's group at world y = r sits its underside on y=0.
+  function buildStationModule(hasDome, r, len){
     const grp = new THREE.Group();
     const body = new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,10), MAT.stationWall);
     body.rotation.z = Math.PI/2;
@@ -730,13 +780,6 @@ function getMoonSurfaceY(x,z){
       ring.position.x = len/2+0.2;
       grp.add(ring);
     }
-    const legLen = Math.max(hoverY - r, 1);
-    for(let i=0;i<2;i++){
-      const s = i===0?-1:1;
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.5,legLen,0.5), MAT.stationDark);
-      leg.position.set(s*len*0.3, -(r+legLen/2), 0);
-      grp.add(leg);
-    }
     return grp;
   }
   function buildConnector(from,to,r){
@@ -748,25 +791,37 @@ function getMoonSurfaceY(x,z){
     return tube;
   }
   const stationGroup = new THREE.Group();
-  const modA = buildStationModule(true, 6, 20, 20);
-  modA.position.set(-16,20,0);
-  stationGroup.add(modA);
-  const modB = buildStationModule(false, 5, 16, 20);
-  modB.position.set(16,20,14);
-  modB.rotation.y = 0.7;
-  stationGroup.add(modB);
-  const modC = buildStationModule(true, 4.5, 14, 20);
-  modC.position.set(4,20,-20);
-  modC.rotation.y = -1.1;
-  stationGroup.add(modC);
-  stationGroup.add(buildConnector([-16,20,0],[16,20,14],2.2));
-  stationGroup.add(buildConnector([-16,20,0],[4,20,-20],2.0));
+  const modDefs = [
+    { hasDome:true,  r:9,   len:32, x:0,   z:0,   rot:0 },
+    { hasDome:false, r:7.5, len:26, x:38,  z:12,  rot:0.55 },
+    { hasDome:true,  r:7,   len:22, x:-34, z:-12, rot:-0.6 },
+    { hasDome:false, r:6.5, len:20, x:64,  z:-8,  rot:0.25 },
+    { hasDome:true,  r:6,   len:18, x:-58, z:16,  rot:0.9 },
+    { hasDome:false, r:5.5, len:16, x:8,   z:-38, rot:-0.3 },
+  ];
+  const stationMods = modDefs.map(d => {
+    const m = buildStationModule(d.hasDome, d.r, d.len);
+    m.position.set(d.x, d.r, d.z);
+    m.rotation.y = d.rot;
+    stationGroup.add(m);
+    return m;
+  });
+  function modPos(i){ return [stationMods[i].position.x, stationMods[i].position.y, stationMods[i].position.z]; }
+  stationGroup.add(buildConnector(modPos(0), modPos(1), 2.6));
+  stationGroup.add(buildConnector(modPos(0), modPos(2), 2.5));
+  stationGroup.add(buildConnector(modPos(2), modPos(3), 2.2));
+  stationGroup.add(buildConnector(modPos(0), modPos(4), 2.2));
+  stationGroup.add(buildConnector(modPos(0), modPos(5), 2.0));
   stationGroup.position.set(-95, 0, -55);
   stationGroup.rotation.y = 0.4;
   moonScene.add(stationGroup);
+  stationGroup.updateMatrixWorld(true);
+  stationMods.forEach((m,i) => registerCapsuleCollider(m, modDefs[i].r, modDefs[i].len));
 
   const earth = new THREE.Mesh(new THREE.SphereGeometry(60,12,10), MAT.earth);
-  earth.position.set(-420, 340, -900);
+  // Low Y so the flat moon ground plane occludes the lower hemisphere in the
+  // depth buffer -- reads as Earth "rising", cut off by the horizon.
+  earth.position.set(-420, 16, -900);
   moonScene.add(earth);
   const earthClouds = new THREE.Mesh(new THREE.SphereGeometry(63,12,10), MAT.earthCloud);
   earthClouds.position.copy(earth.position);
@@ -915,6 +970,97 @@ function updatePuffs(dt){
       activePuffs.splice(i,1);
     }
   }
+}
+
+let groundDustAccum = 0;
+function spawnGroundDust(dt, x, z, groundY, strength, big){
+  if (strength <= 0.02){ groundDustAccum = 0; return; }
+  groundDustAccum += dt;
+  const rate = big ? 10 : 5;
+  const interval = 1/(rate*strength + 0.5);
+  while (groundDustAccum > interval){
+    groundDustAccum -= interval;
+    const spread = big ? 1.2 : 0.35;
+    spawnPuff(new THREE.Vector3(x+rand(-spread,spread), groundY+0.1, z+rand(-spread,spread)), {
+      color: 0xb9ad95, opacity: rand(0.3,0.5) * (big?1.1:1),
+      vel: new THREE.Vector3(rand(-1,1)*(big?3:1), rand(0.6,1.6)*(big?1.6:1), rand(-1,1)*(big?3:1)),
+      growth: rand(1,1.8)*(big?1.8:1), maxLife: rand(0.5,0.9), scale0: rand(0.2,0.4)*(big?2:1),
+      fadeFrom: 0.3, drag: 0.9, maxScale: big ? 3.4 : 1.4,
+    }, moonScene);
+  }
+}
+
+/* ---------- audio: procedural sound effects (Web Audio API, no external assets) ---------- */
+let audioCtx = null;
+function ensureAudio(){
+  if (!audioCtx){
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    audioCtx = new Ctx();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq, dur, type, gainPeak, when){
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t0 = ctx.currentTime + (when||0);
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.linearRampToValueAtTime(gainPeak, t0+0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(t0); osc.stop(t0+dur+0.02);
+}
+function playNoiseBurst(dur, gainPeak, filterFreq){
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const n = Math.max(1, Math.floor(ctx.sampleRate*dur));
+  const buffer = ctx.createBuffer(1, n, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i=0;i<n;i++) data[i] = (Math.random()*2-1) * (1 - i/n);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = filterFreq || 1200;
+  const gain = ctx.createGain();
+  gain.gain.value = gainPeak;
+  src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+  src.start();
+}
+function playStep(){ playNoiseBurst(0.07, 0.14, 850); }
+function playJump(){ playTone(340, 0.16, 'triangle', 0.20); playTone(560, 0.10, 'triangle', 0.10, 0.02); }
+function playLand(){ playNoiseBurst(0.11, 0.20, 480); }
+
+let engineOsc = null, engineGain = null, engineFilter = null;
+function startEngineSound(){
+  const ctx = ensureAudio();
+  if (!ctx || engineOsc) return;
+  engineOsc = ctx.createOscillator();
+  engineOsc.type = 'sawtooth';
+  engineOsc.frequency.value = 55;
+  engineFilter = ctx.createBiquadFilter();
+  engineFilter.type = 'lowpass'; engineFilter.frequency.value = 350;
+  engineGain = ctx.createGain();
+  engineGain.gain.value = 0.001;
+  engineOsc.connect(engineFilter); engineFilter.connect(engineGain); engineGain.connect(ctx.destination);
+  engineOsc.start();
+}
+function stopEngineSound(){
+  if (!engineOsc) return;
+  const ctx = ensureAudio();
+  engineGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.15);
+  engineOsc.stop(ctx.currentTime+0.2);
+  engineOsc = null; engineGain = null; engineFilter = null;
+}
+function updateEngineSound(speedRatio){
+  if (!engineOsc) return;
+  const r = Math.abs(speedRatio);
+  engineOsc.frequency.value = 55 + r*90;
+  engineGain.gain.value = 0.05 + r*0.09;
+  engineFilter.frequency.value = 300 + r*500;
 }
 
 /* ---------- timeline / state ---------- */
@@ -1123,6 +1269,7 @@ function updateCameraMoon(altitude){
 const keys = { up:false, down:false, left:false, right:false };
 let jumpBuf = false;
 document.addEventListener('keydown', e => {
+  ensureAudio();
   if (e.key==='ArrowUp'   ||e.key==='w'||e.key==='W') keys.up    = true;
   if (e.key==='ArrowDown' ||e.key==='s'||e.key==='S') keys.down  = true;
   if (e.key==='ArrowLeft' ||e.key==='a'||e.key==='A') keys.left  = true;
@@ -1167,6 +1314,7 @@ function resetJoy(){
   joyPointerId = null;
 }
 joyEl.addEventListener('pointerdown', e => {
+  ensureAudio();
   joyPointerId = e.pointerId;
   joyEl.setPointerCapture(e.pointerId);
   setJoyFromPoint(e.clientX, e.clientY);
@@ -1182,7 +1330,7 @@ joyEl.addEventListener('pointermove', e => {
 });
 
 const jumpEl = document.getElementById('jumpBtn');
-jumpEl.addEventListener('pointerdown', e => { jumpBuf=true; jumpEl.classList.add('on'); e.preventDefault(); });
+jumpEl.addEventListener('pointerdown', e => { ensureAudio(); jumpBuf=true; jumpEl.classList.add('on'); e.preventDefault(); });
 jumpEl.addEventListener('pointerup',    () => jumpEl.classList.remove('on'));
 jumpEl.addEventListener('pointerleave', () => jumpEl.classList.remove('on'));
 
@@ -1224,6 +1372,7 @@ let headYawTgt = 0;
 const JWALK = { NONE:0, WINDUP:1, AIR:2, LAND:3 };
 const WINDUP_DUR = 0.17, LAND_DUR = 0.28;
 let jumpState = JWALK.NONE, jumpTimer = 0;
+let stepSign = 0;
 
 function animateAstronaut(dt){
   const A = astro;
@@ -1232,6 +1381,14 @@ function animateAstronaut(dt){
   const s = Math.sin(animT);
   const eff = moving ? 1.0 : 0.0;
   const lLeg =  s * 0.68, rLeg = -s * 0.68;
+
+  if (moving && onGround){
+    const sign = s > 0.02 ? 1 : (s < -0.02 ? -1 : 0);
+    if (sign !== 0 && stepSign !== 0 && sign !== stepSign) playStep();
+    if (sign !== 0) stepSign = sign;
+  } else {
+    stepSign = 0;
+  }
 
   headYawTgt = (curInput.left - curInput.right) * 0.38;
   A.headJoint.rotation.y = lerp(A.headJoint.rotation.y, headYawTgt, 0.06);
@@ -1326,32 +1483,50 @@ let gameCamDist = 7.0;
 let gameMode = false;
 
 /* ---------- rover vehicle: driving physics (adapted from dhl-city/index.html) ---------- */
-const ROVER_MAX_SPD = 18, ROVER_ACCEL = 9, ROVER_BRAKE = 30, ROVER_FRICTION = 7, ROVER_STEER_RATE = 1.8;
-const VEHICLE_ENTER_RADIUS = 9;
+const ROVER_MAX_SPD = 12, ROVER_ACCEL = 7, ROVER_BRAKE = 22, ROVER_FRICTION = 5, ROVER_STEER_RATE = 2.0;
+const VEHICLE_ENTER_RADIUS = 4.2;
+const ROVER_COLLIDE_R = 4 * ROVER_SCALE + 0.3; // chassis half-width (4) scaled, plus a small buffer
+const CHAR_RADIUS = 0.55;
+const SEAT_LOCAL = new THREE.Vector3(-2, 7.3, -2.5); // local to unscaled rover geometry
+const SEAT_SIT_DROP = 0.45; // charRoot sits below the seat surface so the body doesn't float above it
 let roverX = 46, roverZ = 20, roverAngle = -0.6, roverSpd = 0, roverSteerAng = 0;
 let inVehicle = false;
 let vehicleCamPos = new THREE.Vector3();
-let vehicleCamDist = 13.0;
+let vehicleCamDist = 7.0;
 const enterHintEl = document.getElementById('enterHint');
+const tmpSeat = new THREE.Vector3();
+
+function poseAstronautSeated(){
+  const A = astro;
+  A.lHip.rotation.x = -1.35; A.rHip.rotation.x = -1.35;
+  A.lKnee.rotation.x = 1.6;  A.rKnee.rotation.x = 1.6;
+  A.lAnkle.rotation.x = 0.35; A.rAnkle.rotation.x = 0.35;
+  A.lShoulder.rotation.set(-0.35, 0, 0.06); A.rShoulder.rotation.set(-0.35, 0, -0.06);
+  A.lElbow.rotation.x = -1.05; A.rElbow.rotation.x = -1.05;
+  A.torso.rotation.set(0.05, 0, 0);
+  A.torso.position.y = 1.26;
+  A.headJoint.rotation.set(0, 0, 0);
+}
 
 function enterVehicle(){
   inVehicle = true;
-  astro.charRoot.visible = false;
   jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0;
   enterHintEl.style.display = 'none';
   vehicleCamPos.copy(camera.position);
+  startEngineSound();
 }
 function exitVehicle(){
   inVehicle = false;
   const A = astro;
-  A.charRoot.visible = true;
   const sideX = Math.cos(roverAngle), sideZ = -Math.sin(roverAngle);
-  const ex = roverX + sideX*7, ez = roverZ + sideZ*7;
+  const exitDist = 3.2;
+  const ex = roverX + sideX*exitDist, ez = roverZ + sideZ*exitDist;
   A.charRoot.position.set(ex, getMoonSurfaceY(ex,ez) + CHAR_BASE_Y, ez);
   charYaw = roverAngle;
   A.charRoot.rotation.y = charYaw;
   moveSpeed = 0; velY = 0; onGround = true; jumpState = JWALK.NONE;
   gameCamPos.copy(camera.position);
+  stopEngineSound();
 }
 
 function updateRoverGameplay(dt){
@@ -1374,20 +1549,32 @@ function updateRoverGameplay(dt){
   if (rover.userData.frontWheels) rover.userData.frontWheels.forEach(w => w.rotation.y = roverSteerAng);
 
   const fwdX = Math.sin(roverAngle), fwdZ = Math.cos(roverAngle);
-  roverX += fwdX*roverSpd*dt;
-  roverZ += fwdZ*roverSpd*dt;
+  const nx = roverX + fwdX*roverSpd*dt, nz = roverZ + fwdZ*roverSpd*dt;
+  const resolved = resolvePush(nx, nz, ROVER_COLLIDE_R, moonCollidables);
+  if (Math.hypot(resolved.x-nx, resolved.z-nz) > 0.01) roverSpd *= 0.4;
+  roverX = resolved.x; roverZ = resolved.z;
   const groundY = getMoonSurfaceY(roverX, roverZ);
   rover.position.set(roverX, groundY, roverZ);
   rover.rotation.y = roverAngle;
+  rover.updateMatrixWorld(true);
+
+  spawnGroundDust(dt, roverX - fwdX*2, roverZ - fwdZ*2, groundY, Math.min(1, Math.abs(roverSpd)/ROVER_MAX_SPD), true);
+  updateEngineSound(roverSpd/ROVER_MAX_SPD);
+
+  tmpSeat.copy(SEAT_LOCAL);
+  rover.localToWorld(tmpSeat);
+  astro.charRoot.position.set(tmpSeat.x, tmpSeat.y - SEAT_SIT_DROP, tmpSeat.z);
+  astro.charRoot.rotation.y = roverAngle;
+  poseAstronautSeated();
 
   if (jumpBuf){ jumpBuf = false; exitVehicle(); return; }
 
-  const baseVDist = 13.0 * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseVDist = 7.0 * (isMobile ? MOBILE_CAM_MULT : 1);
   vehicleCamDist = lerp(vehicleCamDist, baseVDist, dt*2.5);
-  const tCam = new THREE.Vector3(roverX - fwdX*vehicleCamDist, groundY + 5.5, roverZ - fwdZ*vehicleCamDist);
+  const tCam = new THREE.Vector3(roverX - fwdX*vehicleCamDist, groundY + 2.4, roverZ - fwdZ*vehicleCamDist);
   vehicleCamPos.lerp(tCam, 0.08);
   camera.position.copy(vehicleCamPos);
-  camera.lookAt(roverX, groundY + 3, roverZ);
+  camera.lookAt(roverX, groundY + 1.6, roverZ);
 }
 
 function updateAstronautGameplay(dt){
@@ -1401,8 +1588,13 @@ function updateAstronautGameplay(dt){
   const mag = Math.max(curInput.fwd, curInput.back);
   if (mag > 0.02) moveSpeed = Math.min(moveSpeed + ACCEL_RATE*dt, SPEED_MAX*mag);
   else            moveSpeed = Math.max(moveSpeed - DECEL_RATE*dt, 0);
-  if (curInput.fwd  > curInput.back) { A.charRoot.position.x += fwdX*moveSpeed*dt; A.charRoot.position.z += fwdZ*moveSpeed*dt; }
-  if (curInput.back > curInput.fwd)  { A.charRoot.position.x -= fwdX*moveSpeed*dt; A.charRoot.position.z -= fwdZ*moveSpeed*dt; }
+  let nx = A.charRoot.position.x, nz = A.charRoot.position.z;
+  if (curInput.fwd  > curInput.back) { nx += fwdX*moveSpeed*dt; nz += fwdZ*moveSpeed*dt; }
+  if (curInput.back > curInput.fwd)  { nx -= fwdX*moveSpeed*dt; nz -= fwdZ*moveSpeed*dt; }
+  let resolvedPos = resolvePush(nx, nz, CHAR_RADIUS, moonCollidables);
+  resolvedPos = resolvePush(resolvedPos.x, resolvedPos.z, CHAR_RADIUS, [{ x:roverX, z:roverZ, r:ROVER_COLLIDE_R }]);
+  A.charRoot.position.x = resolvedPos.x;
+  A.charRoot.position.z = resolvedPos.z;
 
   const distToRover = Math.hypot(A.charRoot.position.x - roverX, A.charRoot.position.z - roverZ);
   const nearRover = distToRover < VEHICLE_ENTER_RADIUS;
@@ -1418,7 +1610,7 @@ function updateAstronautGameplay(dt){
   }
   if (jumpState === JWALK.WINDUP){
     jumpTimer += dt;
-    if (jumpTimer >= WINDUP_DUR){ velY = JUMP_VEL; onGround = false; jumpState = JWALK.AIR; jumpTimer = 0; }
+    if (jumpTimer >= WINDUP_DUR){ velY = JUMP_VEL; onGround = false; jumpState = JWALK.AIR; jumpTimer = 0; playJump(); }
   }
   if (jumpState === JWALK.LAND){
     jumpTimer += dt;
@@ -1429,7 +1621,7 @@ function updateAstronautGameplay(dt){
   A.charRoot.position.y += velY * dt;
   const surfY = getMoonSurfaceY(A.charRoot.position.x, A.charRoot.position.z) + CHAR_BASE_Y;
   if (A.charRoot.position.y <= surfY){
-    if (velY < -1.5 && jumpState === JWALK.AIR){ jumpState = JWALK.LAND; jumpTimer = 0; }
+    if (velY < -1.5 && jumpState === JWALK.AIR){ jumpState = JWALK.LAND; jumpTimer = 0; playLand(); }
     else if (jumpState === JWALK.AIR){ jumpState = JWALK.NONE; }
     A.charRoot.position.y = surfY;
     velY = 0; onGround = true;
@@ -1441,6 +1633,7 @@ function updateAstronautGameplay(dt){
   animateAstronaut(dt);
 
   const moving = curInput.fwd > 0.02 || curInput.back > 0.02;
+  if (onGround && moving) spawnGroundDust(dt, A.charRoot.position.x, A.charRoot.position.z, surfY, 1, false);
   const baseDist = (moving ? 7.0 : 4.0) * (isMobile ? MOBILE_CAM_MULT : 1);
   gameCamDist = lerp(gameCamDist, baseDist, dt*2.5);
   const tCam = new THREE.Vector3(
@@ -1595,7 +1788,7 @@ function skipToAstronaut(){
 
   enterGameMode();
 }
-document.getElementById('skipBtn').addEventListener('click', skipToAstronaut);
+document.getElementById('skipBtn').addEventListener('click', () => { ensureAudio(); skipToAstronaut(); });
 
 /* ---------- main loop ---------- */
 const fadeEl = document.getElementById("fade");
