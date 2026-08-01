@@ -22,6 +22,37 @@
     text-shadow: 0 0 30px rgba(255,150,30,0.6), 0 4px 10px rgba(0,0,0,0.35);
     letter-spacing:2px; opacity:0; user-select:none; z-index:3;
   }
+  #skipBtn {
+    position:fixed; right:20px; bottom:20px; z-index:5;
+    padding:10px 18px; border-radius:24px; border:2px solid rgba(255,255,255,.6);
+    background:rgba(20,20,25,.45); color:#fff; font-family:Arial,sans-serif; font-size:14px;
+    font-weight:600; letter-spacing:.3px; cursor:pointer; user-select:none;
+    -webkit-tap-highlight-color:transparent; backdrop-filter:blur(2px);
+  }
+  #skipBtn:active { background:rgba(255,255,255,.35); }
+  #dpad {
+    position:fixed; bottom:28px; left:28px; z-index:5; display:none;
+    grid-template-columns:52px 52px 52px; grid-template-rows:52px 52px; gap:5px;
+  }
+  .db {
+    background:rgba(255,255,255,.22); border:2px solid rgba(255,255,255,.55);
+    border-radius:12px; display:flex; align-items:center; justify-content:center;
+    font-size:22px; cursor:pointer; user-select:none; color:#fff;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .db:active, .db.on { background:rgba(255,255,255,.5); }
+  #bU { grid-column:2; grid-row:1; }
+  #bL { grid-column:1; grid-row:2; }
+  #bD { grid-column:2; grid-row:2; }
+  #bR { grid-column:3; grid-row:2; }
+  #jumpBtn {
+    position:fixed; bottom:28px; right:28px; z-index:5; display:none;
+    width:70px; height:70px; background:rgba(255,210,0,.25); border:2px solid rgba(255,210,0,.75);
+    border-radius:50%; align-items:center; justify-content:center;
+    font-size:26px; cursor:pointer; user-select:none; color:#fff;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #jumpBtn.on { background:rgba(255,210,0,.55); }
 </style>
 </head>
 <body>
@@ -29,6 +60,14 @@
 <div id="glow"></div>
 <div id="countdown"></div>
 <div id="fade"></div>
+<div id="skipBtn">Überspringen ▶</div>
+<div id="dpad">
+  <div class="db" id="bU">▲</div>
+  <div class="db" id="bL">◀</div>
+  <div class="db" id="bD">▼</div>
+  <div class="db" id="bR">▶</div>
+</div>
+<div id="jumpBtn">⬆</div>
 
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -97,7 +136,20 @@ const MAT = {
   moonBaseDark: new THREE.MeshStandardMaterial({ color:0x53565c, flatShading:true, roughness:0.6, metalness:0.2 }),
   earth:     new THREE.MeshStandardMaterial({ color:0x2f7fe0, emissive:0x1f5fb0, emissiveIntensity:0.9, flatShading:true, roughness:0.6 }),
   earthCloud:new THREE.MeshStandardMaterial({ color:0xffffff, flatShading:true, transparent:true, opacity:0.5, roughness:1 }),
+  roverBody: new THREE.MeshStandardMaterial({ color:0xe8e2d0, flatShading:true, roughness:0.7 }),
+  roverDark: new THREE.MeshStandardMaterial({ color:0x3a3a3e, flatShading:true, roughness:0.8 }),
+  roverGold: new THREE.MeshStandardMaterial({ color:0xd8a83c, flatShading:true, roughness:0.5, metalness:0.4 }),
+  stationWall:new THREE.MeshStandardMaterial({ color:0xd2d5da, flatShading:true, roughness:0.55, metalness:0.2 }),
+  stationDark:new THREE.MeshStandardMaterial({ color:0x585c64, flatShading:true, roughness:0.6, metalness:0.2 }),
+  stationDome:new THREE.MeshStandardMaterial({ color:0x8fd0e8, flatShading:true, roughness:0.15, metalness:0.1, transparent:true, opacity:0.55 }),
+  suitWhite: new THREE.MeshStandardMaterial({ color:0xf1f0ea, flatShading:true, roughness:0.65 }),
+  suitDark:  new THREE.MeshStandardMaterial({ color:0x2b2c30, flatShading:true, roughness:0.6 }),
+  visor:     new THREE.MeshStandardMaterial({ color:0x0a0c10, flatShading:true, roughness:0.25, metalness:0.6 }),
+  suitAccent:new THREE.MeshStandardMaterial({ color:0xd8362c, flatShading:true, roughness:0.55 }),
 };
+
+const PAD_X = 0, PAD_TOP = 6;
+const PLATFORM_H = 3;
 
 /* ---------- engine exhaust glow: one flame assembly per nozzle ---------- */
 function buildFlame(scale){
@@ -234,7 +286,37 @@ function buildShipPart(){
   engineGlow.position.y = 3;
   g.add(engineGlow);
 
-  g.userData = { topY: y, engineGlow, rcsOffsets };
+  // ── hatch + ramp (used after moon landing) ─────────────────────────────
+  const hatchY = 17, hatchR = 7.3, hatchW = 4.2, hatchH = 6.2;
+  const hatchOpening = new THREE.Mesh(new THREE.PlaneGeometry(hatchW,hatchH), MAT.engineDark);
+  hatchOpening.position.set(hatchR-0.08, hatchY, 0);
+  hatchOpening.rotation.y = Math.PI/2;
+  g.add(hatchOpening);
+
+  const hatchPivot = new THREE.Group();
+  hatchPivot.position.set(hatchR, hatchY, -hatchW/2);
+  g.add(hatchPivot);
+  const hatchDoor = new THREE.Mesh(new THREE.BoxGeometry(0.25, hatchH, hatchW), MAT.metal);
+  hatchDoor.position.set(0, 0, hatchW/2);
+  hatchPivot.add(hatchDoor);
+
+  const rampRun = 32, rampRise = hatchY + PLATFORM_H;
+  const rampLen = Math.hypot(rampRun, rampRise);
+  const rampRestAngle = -Math.atan2(rampRise, rampRun);
+  const rampPivot = new THREE.Group();
+  rampPivot.position.set(hatchR, hatchY, 0);
+  rampPivot.rotation.z = Math.PI/2.05;
+  g.add(rampPivot);
+  const ramp = new THREE.Mesh(new THREE.BoxGeometry(rampLen, 0.5, 4.6), MAT.moonBase);
+  ramp.position.x = rampLen/2;
+  rampPivot.add(ramp);
+  for(let s=-1;s<=1;s+=2){
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(rampLen, 0.9, 0.2), MAT.moonBaseDark);
+    rail.position.set(rampLen/2, 0.6, s*2.25);
+    rampPivot.add(rail);
+  }
+
+  g.userData = { topY: y, engineGlow, rcsOffsets, hatchPivot, rampPivot, rampRestAngle, hatchY, hatchR, rampRun };
   return g;
 }
 
@@ -248,7 +330,6 @@ const rocketStack = new THREE.Group();
 const launchScene = new THREE.Group();
 scene.add(launchScene);
 
-const PAD_X = 0, PAD_TOP = 6;
 {
   const land = new THREE.Mesh(new THREE.PlaneGeometry(2600, 1500), MAT.ground);
   land.rotation.x = -Math.PI/2;
@@ -482,30 +563,35 @@ scene.add(stars);
 const moonScene = new THREE.Group();
 moonScene.visible = false;
 scene.add(moonScene);
-const PLATFORM_H = 3;
+const moonCraters = [];
+function moonCraterY(x,z){
+  let y = 0;
+  for(const c of moonCraters){
+    const d = Math.hypot(x-c.x, z-c.z);
+    if (d < c.r){
+      const tt = d/c.r;
+      const bowl = -c.depth*(1-tt*tt);
+      if (bowl < y) y = bowl;
+    }
+  }
+  return y;
+}
+function getMoonSurfaceY(x,z){
+  if (Math.hypot(x-PAD_X,z) < 27) return PLATFORM_H;
+  return moonCraterY(x,z);
+}
 {
   const moonSize = 1400, segs = 70;
   const moonGeo = new THREE.PlaneGeometry(moonSize, moonSize, segs, segs);
   moonGeo.rotateX(-Math.PI/2);
-  const craters = [];
-  for(let i=0;i<34;i++){
+  for(let i=0;i<52;i++){
     let cx,cz,r,ok=false,tries=0;
-    do { cx = rand(-600,600); cz = rand(-600,600); r = rand(20,68); ok = Math.hypot(cx,cz) > r+55; tries++; } while(!ok && tries<20);
-    if (ok) craters.push({ x:cx, z:cz, r, depth: rand(9,26) });
+    do { cx = rand(-650,650); cz = rand(-650,650); r = rand(14,62); ok = Math.hypot(cx,cz) > r+50; tries++; } while(!ok && tries<20);
+    if (ok) moonCraters.push({ x:cx, z:cz, r, depth: rand(8,28) });
   }
   const pos = moonGeo.attributes.position;
   for(let i=0;i<pos.count;i++){
-    const x = pos.getX(i), z = pos.getZ(i);
-    let y = 0;
-    for(const c of craters){
-      const d = Math.hypot(x-c.x, z-c.z);
-      if (d < c.r){
-        const tt = d/c.r;
-        const bowl = -c.depth*(1-tt*tt);
-        if (bowl < y) y = bowl;
-      }
-    }
-    pos.setY(i,y);
+    pos.setY(i, moonCraterY(pos.getX(i), pos.getZ(i)));
   }
   moonGeo.computeVertexNormals();
   const surf = new THREE.Mesh(moonGeo, MAT.moonGround);
@@ -555,6 +641,107 @@ const PLATFORM_H = 3;
   landingBase.position.set(PAD_X, 0, 0);
   moonScene.add(landingBase);
 
+  function buildRover(){
+    const grp = new THREE.Group();
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(8,2.2,12), MAT.roverBody);
+    chassis.position.y = 4.6; grp.add(chassis);
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(7,0.6,10), MAT.roverDark);
+    deck.position.y = 5.9; grp.add(deck);
+    for(let i=0;i<2;i++){
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(2.6,2.4,2.2), MAT.roverDark);
+      seat.position.set(i===0?-2:2, 7.3, -2.5);
+      grp.add(seat);
+    }
+    const wheelPositions = [[-4.4,3.2,4.2],[4.4,3.2,4.2],[-4.4,3.2,-4.2],[4.4,3.2,-4.2]];
+    wheelPositions.forEach(([x,y,z]) => {
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(3,3,1.6,10), MAT.roverDark);
+      wheel.rotation.z = Math.PI/2;
+      wheel.position.set(x,y,z);
+      grp.add(wheel);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(1,1,1.8,6), MAT.roverGold);
+      hub.rotation.z = Math.PI/2;
+      hub.position.set(x,y,z);
+      grp.add(hub);
+    });
+    for(let i=0;i<4;i++){
+      const s = i<2?-1:1, e = i%2===0?-1:1;
+      const strut = new THREE.Mesh(new THREE.BoxGeometry(0.5,2.6,0.5), MAT.roverDark);
+      strut.position.set(s*4.2, 4.0, e*4.0);
+      grp.add(strut);
+    }
+    const antennaPole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,6,6), MAT.roverDark);
+    antennaPole.position.set(-3,9,-4); grp.add(antennaPole);
+    const dish = new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,0.3,10), MAT.roverGold);
+    dish.rotation.x = 0.6; dish.position.set(-3,11.8,-4); grp.add(dish);
+    return grp;
+  }
+  const rover = buildRover();
+  rover.position.set(46, 0, 20);
+  rover.rotation.y = -0.6;
+  moonScene.add(rover);
+
+  function buildStationModule(hasDome, r, len, hoverY){
+    const grp = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,10), MAT.stationWall);
+    body.rotation.z = Math.PI/2;
+    grp.add(body);
+    for(let s=-1;s<=1;s+=2){
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(r*0.15,r*0.15,0.6,10), MAT.stationDark);
+      cap.rotation.z = Math.PI/2;
+      cap.position.x = s*(len/2+0.3);
+      grp.add(cap);
+    }
+    for(let i=0;i<3;i++){
+      const band = new THREE.Mesh(new THREE.TorusGeometry(r+0.08,0.16,6,12), MAT.stationDark);
+      band.rotation.y = Math.PI/2;
+      band.position.x = -len/2 + (i+0.5)*(len/3);
+      grp.add(band);
+    }
+    if (hasDome){
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(r*0.92,12,8,0,Math.PI*2,0,Math.PI/2), MAT.stationDome);
+      dome.position.x = len/2+0.2;
+      dome.rotation.z = -Math.PI/2;
+      grp.add(dome);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(r*0.92,0.15,6,14), MAT.stationDark);
+      ring.rotation.y = Math.PI/2;
+      ring.position.x = len/2+0.2;
+      grp.add(ring);
+    }
+    const legLen = Math.max(hoverY - r, 1);
+    for(let i=0;i<2;i++){
+      const s = i===0?-1:1;
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.5,legLen,0.5), MAT.stationDark);
+      leg.position.set(s*len*0.3, -(r+legLen/2), 0);
+      grp.add(leg);
+    }
+    return grp;
+  }
+  function buildConnector(from,to,r){
+    const dx=to[0]-from[0], dy=to[1]-from[1], dz=to[2]-from[2];
+    const len = Math.hypot(dx,dy,dz);
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,8), MAT.stationDark);
+    tube.position.set((from[0]+to[0])/2,(from[1]+to[1])/2,(from[2]+to[2])/2);
+    tube.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), new THREE.Vector3(dx,dy,dz).normalize());
+    return tube;
+  }
+  const stationGroup = new THREE.Group();
+  const modA = buildStationModule(true, 6, 20, 20);
+  modA.position.set(-16,20,0);
+  stationGroup.add(modA);
+  const modB = buildStationModule(false, 5, 16, 20);
+  modB.position.set(16,20,14);
+  modB.rotation.y = 0.7;
+  stationGroup.add(modB);
+  const modC = buildStationModule(true, 4.5, 14, 20);
+  modC.position.set(4,20,-20);
+  modC.rotation.y = -1.1;
+  stationGroup.add(modC);
+  stationGroup.add(buildConnector([-16,20,0],[16,20,14],2.2));
+  stationGroup.add(buildConnector([-16,20,0],[4,20,-20],2.0));
+  stationGroup.position.set(-95, 0, -55);
+  stationGroup.rotation.y = 0.4;
+  moonScene.add(stationGroup);
+
   const earth = new THREE.Mesh(new THREE.SphereGeometry(60,12,10), MAT.earth);
   earth.position.set(-420, 340, -900);
   moonScene.add(earth);
@@ -568,6 +755,100 @@ const PLATFORM_H = 3;
   const moonAmb = new THREE.HemisphereLight(0x2a2a3a,0x111111,0.35);
   moonScene.add(moonAmb);
 }
+
+/* ---------- astronaut: rig ported from dhl-city/character.html, restyled as a spacesuit ---------- */
+function astroCyl(rT, rB, h, mat){
+  return new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, 6), mat);
+}
+function astroIco(r, mat){
+  return new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat);
+}
+function astroBone(parent, px, py, pz, rT, rB, h, mat){
+  const j = new THREE.Group();
+  j.position.set(px, py, pz);
+  parent.add(j);
+  const b = astroCyl(rT, rB, h, mat);
+  b.position.y = -h/2;
+  j.add(b);
+  return j;
+}
+function buildAstronaut(){
+  const charRoot = new THREE.Group();
+  charRoot.position.y = 0.10;
+
+  const torso = new THREE.Group();
+  torso.position.y = 1.26;
+  charRoot.add(torso);
+  torso.add(astroCyl(0.22, 0.27, 0.62, MAT.suitWhite));
+  const chestPatch = new THREE.Mesh(new THREE.BoxGeometry(0.13,0.13,0.02), MAT.suitAccent);
+  chestPatch.position.set(0.09,0.10,0.24); torso.add(chestPatch);
+  const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.48,0.20), MAT.suitDark);
+  backpack.position.set(0,0.05,-0.25); torso.add(backpack);
+  const backpackTube = astroCyl(0.03,0.03,0.30,MAT.suitDark);
+  backpackTube.rotation.x = 0.5; backpackTube.position.set(0,0.32,-0.10); torso.add(backpackTube);
+
+  const neckJoint = astroBone(torso, 0, 0.40, 0, 0.085, 0.09, 0.11, MAT.suitWhite);
+  const headJoint = new THREE.Group();
+  headJoint.position.y = 0.17;
+  neckJoint.add(headJoint);
+
+  const helmet = astroIco(0.185, MAT.suitWhite);
+  helmet.scale.set(1.0, 1.06, 1.0);
+  headJoint.add(helmet);
+  const visor = new THREE.Mesh(new THREE.SphereGeometry(0.145,10,8), MAT.visor);
+  visor.scale.set(1.0, 0.68, 0.62);
+  visor.position.set(0, -0.015, 0.105);
+  headJoint.add(visor);
+  const antenna = astroCyl(0.008,0.008,0.14,MAT.suitDark);
+  antenna.rotation.z = 0.35;
+  antenna.position.set(0.11,0.19,-0.03);
+  headJoint.add(antenna);
+
+  function makeGlove(elbowJoint){
+    const g = new THREE.Group(); g.position.y = -0.27; elbowJoint.add(g);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.072, 6, 5), MAT.suitDark);
+    m.scale.set(1.0, 0.62, 0.92); g.add(m);
+  }
+  function makeShoulderCap(shoulderJoint){
+    const cap = astroIco(0.09, MAT.suitWhite);
+    cap.scale.set(1.05, 0.90, 1.05); shoulderJoint.add(cap);
+  }
+
+  const lShoulder = astroBone(torso, -0.24, 0.22, 0, 0.075, 0.065, 0.30, MAT.suitWhite);
+  makeShoulderCap(lShoulder);
+  const lElbow = astroBone(lShoulder, 0, -0.30, 0, 0.065, 0.055, 0.27, MAT.suitWhite);
+  makeGlove(lElbow);
+
+  const rShoulder = astroBone(torso, 0.24, 0.22, 0, 0.075, 0.065, 0.30, MAT.suitWhite);
+  makeShoulderCap(rShoulder);
+  const rElbow = astroBone(rShoulder, 0, -0.30, 0, 0.065, 0.055, 0.27, MAT.suitWhite);
+  makeGlove(rElbow);
+
+  const hipsGrp = new THREE.Group();
+  hipsGrp.position.y = -0.34;
+  torso.add(hipsGrp);
+  hipsGrp.add(astroCyl(0.24, 0.22, 0.19, MAT.suitWhite));
+
+  function makeBoot(ankleJoint){
+    const fg = new THREE.Group(); fg.position.y = -0.12; ankleJoint.add(fg);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.09, 0.24), MAT.suitDark);
+    m.position.set(0,-0.04,0.075); fg.add(m);
+  }
+  const lHip   = astroBone(hipsGrp, -0.13, -0.095, 0, 0.105, 0.09, 0.38, MAT.suitWhite);
+  const lKnee  = astroBone(lHip,      0,   -0.38,  0, 0.09, 0.078, 0.35, MAT.suitWhite);
+  const lAnkle = astroBone(lKnee,     0,   -0.35,  0, 0.078, 0.068, 0.12, MAT.suitWhite);
+  makeBoot(lAnkle);
+
+  const rHip   = astroBone(hipsGrp,  0.13, -0.095, 0, 0.105, 0.09, 0.38, MAT.suitWhite);
+  const rKnee  = astroBone(rHip,      0,   -0.38,  0, 0.09, 0.078, 0.35, MAT.suitWhite);
+  const rAnkle = astroBone(rKnee,     0,   -0.35,  0, 0.078, 0.068, 0.12, MAT.suitWhite);
+  makeBoot(rAnkle);
+
+  return { charRoot, torso, headJoint, lShoulder, rShoulder, lElbow, rElbow, hipsGrp, lHip, rHip, lKnee, rKnee, lAnkle, rAnkle };
+}
+const astro = buildAstronaut();
+moonScene.add(astro.charRoot);
+astro.charRoot.visible = false;
 
 /* ---------- particle puffs (smoke / fire / dust) ---------- */
 const puffGeo = new THREE.SphereGeometry(1,8,6);
@@ -621,14 +902,22 @@ const T_ASCENT_END = 34.0;
 const T_BLACK = 35.2;
 const T_MOON_IN = 36.4;
 const T_MOON_TOUCHDOWN = 46.4;
-const T_HOLD_END = 50.4;
-const T_CYCLE_END = 51.6;
 const ASCENT_DIST = 700;
 const ASCENT_EXP = 2.6;
 const MOON_START_Y = 260;
 const LOW_ALT_THRESHOLD = 90;
 const SEPARATION_ALT = 400;
 const FALL_G = 14;
+
+/* post-landing cutscene: ramp out, hatch open, astronaut walks down, camera hands off */
+const T_RAMP_START = T_MOON_TOUCHDOWN + 1.2;
+const T_RAMP_END = T_RAMP_START + 2.4;
+const T_HATCH_CUT = T_RAMP_START + 0.9;
+const T_HATCH_OPEN_START = T_HATCH_CUT + 0.3;
+const T_HATCH_OPEN_END = T_HATCH_OPEN_START + 1.4;
+const T_WALK_START = T_HATCH_OPEN_END + 0.2;
+const T_WALK_END = T_WALK_START + 3.6;
+const T_HANDOFF = T_WALK_END + 2.0;
 
 function currentAltitude(tt){
   if (tt < T_LIFTOFF) return 0;
@@ -647,28 +936,6 @@ function freshState(){
 }
 state = freshState();
 let smokeAccum = 0, trailAccum = 0, dustAccum = 0;
-
-function resetCycle(){
-  for (const p of activePuffs){ if (p.parent) p.parent.remove(p); p.material.dispose(); }
-  activePuffs.length = 0;
-  smokeAccum = 0; trailAccum = 0; dustAccum = 0; rcsAccum = 0;
-
-  launchScene.visible = true;
-  moonScene.visible = false;
-
-  rocketStack.add(boosterPart);
-  boosterPart.position.set(0,0,0); boosterPart.rotation.set(0,0,0); boosterPart.visible = true;
-  rocketStack.add(shipPart);
-  shipPart.position.set(0, SHIP_LOCAL_Y, 0); shipPart.rotation.set(0,0,0); shipPart.visible = true;
-  if (rocketStack.parent !== launchScene) launchScene.add(rocketStack);
-  rocketStack.position.set(PAD_X, PAD_TOP, 0); rocketStack.rotation.set(0,0,0);
-
-  boosterPart.userData.engineGlow.visible = false;
-  shipPart.userData.engineGlow.visible = false;
-  tower.userData.armPivot.rotation.z = 0;
-  stars.material.opacity = 0;
-  state = freshState();
-}
 
 /* ---------- sky colors ---------- */
 const skyDayTop="#8ec9f0", skyDayBot="#cfe9ff";
@@ -829,6 +1096,335 @@ function updateCameraMoon(altitude){
   camera.lookAt(PAD_X, camState.y*0.6, 0);
 }
 
+/* ---------- input (keyboard + touch) ---------- */
+const keys = { up:false, down:false, left:false, right:false };
+let jumpBuf = false;
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowUp'   ||e.key==='w'||e.key==='W') keys.up    = true;
+  if (e.key==='ArrowDown' ||e.key==='s'||e.key==='S') keys.down  = true;
+  if (e.key==='ArrowLeft' ||e.key==='a'||e.key==='A') keys.left  = true;
+  if (e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right = true;
+  if (e.key===' ') { jumpBuf = true; e.preventDefault(); }
+});
+document.addEventListener('keyup', e => {
+  if (e.key==='ArrowUp'   ||e.key==='w'||e.key==='W') keys.up    = false;
+  if (e.key==='ArrowDown' ||e.key==='s'||e.key==='S') keys.down  = false;
+  if (e.key==='ArrowLeft' ||e.key==='a'||e.key==='A') keys.left  = false;
+  if (e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right = false;
+});
+['bU','bD','bL','bR'].forEach((id, i) => {
+  const k = ['up','down','left','right'][i], el = document.getElementById(id);
+  el.addEventListener('pointerdown',  e => { keys[k]=true;  el.classList.add('on');    e.preventDefault(); });
+  el.addEventListener('pointerup',    e => { keys[k]=false; el.classList.remove('on'); e.preventDefault(); });
+  el.addEventListener('pointerleave', () => { keys[k]=false; el.classList.remove('on'); });
+});
+const jumpEl = document.getElementById('jumpBtn');
+jumpEl.addEventListener('pointerdown', e => { jumpBuf=true; jumpEl.classList.add('on'); e.preventDefault(); });
+jumpEl.addEventListener('pointerup',    () => jumpEl.classList.remove('on'));
+jumpEl.addEventListener('pointerleave', () => jumpEl.classList.remove('on'));
+
+/* ---------- astronaut animation (ported from dhl-city/character.html) ---------- */
+let animT = 0, charYaw = 0;
+let headYawTgt = 0;
+const JWALK = { NONE:0, WINDUP:1, AIR:2, LAND:3 };
+const WINDUP_DUR = 0.17, LAND_DUR = 0.28;
+let jumpState = JWALK.NONE, jumpTimer = 0;
+
+function animateAstronaut(dt){
+  const A = astro;
+  const moving = (keys.up || keys.down) && jumpState === JWALK.NONE;
+  if (moving) animT += dt * 9.5;
+  const s = Math.sin(animT);
+  const eff = moving ? 1.0 : 0.0;
+  const lLeg =  s * 0.68, rLeg = -s * 0.68;
+
+  headYawTgt = keys.left ? 0.38 : (keys.right ? -0.38 : 0);
+  A.headJoint.rotation.y = lerp(A.headJoint.rotation.y, headYawTgt, 0.06);
+
+  if (jumpState === JWALK.WINDUP){
+    const tt = Math.min(jumpTimer / WINDUP_DUR, 1.0);
+    const sq = Math.sin(tt * Math.PI * 0.5);
+    A.lHip.rotation.x = lerp(A.lHip.rotation.x, 0.52*sq, 0.32);
+    A.rHip.rotation.x = lerp(A.rHip.rotation.x, 0.52*sq, 0.32);
+    A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, 0.78*sq, 0.32);
+    A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, 0.78*sq, 0.32);
+    A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, 0.20*sq, 0.32);
+    A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, 0.20*sq, 0.32);
+    A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, 0.32*sq, 0.25);
+    A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, 0.32*sq, 0.25);
+    A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -0.55, 0.22);
+    A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -0.55, 0.22);
+    A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.10, 0.08);
+    A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.10, 0.08);
+    A.torso.position.y = lerp(A.torso.position.y, 1.26 - 0.14*sq, 0.32);
+    A.torso.rotation.x = lerp(A.torso.rotation.x, -0.20*sq, 0.25);
+    A.torso.rotation.y = 0;
+    A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, 0.10*sq, 0.20);
+  } else if (jumpState === JWALK.AIR){
+    A.lHip.rotation.x = lerp(A.lHip.rotation.x, -0.70, 0.17);
+    A.rHip.rotation.x = lerp(A.rHip.rotation.x, -0.70, 0.17);
+    A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, 1.45, 0.17);
+    A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, 1.45, 0.17);
+    A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, -0.45, 0.17);
+    A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, -0.45, 0.17);
+    A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -0.52, 0.14);
+    A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -0.52, 0.14);
+    A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.48, 0.10);
+    A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.48, 0.10);
+    A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -0.95, 0.15);
+    A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -0.95, 0.15);
+    A.torso.position.y = lerp(A.torso.position.y, 1.26, 0.15);
+    A.torso.rotation.x = lerp(A.torso.rotation.x, 0.0, 0.10);
+    A.torso.rotation.y = 0;
+    A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, 0.32, 0.14);
+  } else if (jumpState === JWALK.LAND){
+    const tt = Math.min(jumpTimer / LAND_DUR, 1.0);
+    const sq = 1.0 - tt;
+    A.lHip.rotation.x = lerp(A.lHip.rotation.x, 0.72*sq, 0.32);
+    A.rHip.rotation.x = lerp(A.rHip.rotation.x, 0.72*sq, 0.32);
+    A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, 1.10*sq, 0.32);
+    A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, 1.10*sq, 0.32);
+    A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, 0.22*sq, 0.32);
+    A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, 0.22*sq, 0.32);
+    A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, 0.22*sq, 0.25);
+    A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, 0.22*sq, 0.25);
+    A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.09, 0.08);
+    A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.09, 0.08);
+    A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -0.55*sq - 0.12, 0.25);
+    A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -0.55*sq - 0.12, 0.25);
+    A.torso.position.y = lerp(A.torso.position.y, 1.26 - 0.22*sq, 0.32);
+    A.torso.rotation.x = lerp(A.torso.rotation.x, 0.0, 0.10);
+    A.torso.rotation.y = 0;
+    A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, 0.0, 0.15);
+  } else {
+    A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -rLeg*0.68*eff, 0.30);
+    A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.09, 0.08);
+    A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, moving ? -1.22 : -0.12, 0.20);
+    const tc = 0.30;
+    A.lHip.rotation.x = lerp(A.lHip.rotation.x, lLeg*0.88*eff, tc);
+    A.rHip.rotation.x = lerp(A.rHip.rotation.x, rLeg*0.88*eff, tc);
+    const lKT = (Math.max(0, lLeg)*1.00 + Math.max(0,-lLeg)*0.70) * eff;
+    const rKT = (Math.max(0, rLeg)*1.00 + Math.max(0,-rLeg)*0.70) * eff;
+    A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, lKT, tc);
+    A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, rKT, tc);
+    A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, -lLeg*0.38*eff, tc);
+    A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, -rLeg*0.38*eff, tc);
+    A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -lLeg*0.68*eff, tc);
+    A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.09, 0.08);
+    A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, moving ? -1.22 : -0.12, 0.20);
+    A.torso.rotation.y = lerp(A.torso.rotation.y, s*0.13*eff, 0.18);
+    A.torso.rotation.x = lerp(A.torso.rotation.x, moving ? -0.10 : 0.0, 0.07);
+    A.torso.rotation.z = lerp(A.torso.rotation.z, Math.cos(animT)*0.042*eff, 0.20);
+    A.torso.position.y = lerp(A.torso.position.y, 1.26 + (moving ? Math.abs(s)*0.14 : 0), 0.28);
+    A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, moving ? Math.abs(s)*(-0.07) : 0, 0.18);
+    A.headJoint.rotation.z = lerp(A.headJoint.rotation.z, 0, 0.10);
+  }
+}
+
+/* ---------- gameplay: free astronaut movement + third-person camera ---------- */
+const CHAR_BASE_Y = 0.10;
+const GRAVITY = -22, JUMP_VEL = 8.2;
+const SPEED_MAX = 5.94, ACCEL_RATE = 14.0, DECEL_RATE = 18.0, TURN_RATE = 0.90;
+let velY = 0, onGround = true, moveSpeed = 0;
+let gameCamPos = new THREE.Vector3();
+let gameCamDist = 7.0;
+let gameMode = false;
+
+function updateAstronautGameplay(dt){
+  const A = astro;
+  if (keys.left)  charYaw += TURN_RATE * dt;
+  if (keys.right) charYaw -= TURN_RATE * dt;
+  A.charRoot.rotation.y = charYaw;
+
+  const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
+  const wantMove = keys.up || keys.down;
+  if (wantMove) moveSpeed = Math.min(moveSpeed + ACCEL_RATE*dt, SPEED_MAX);
+  else          moveSpeed = Math.max(moveSpeed - DECEL_RATE*dt, 0);
+  if (keys.up)   { A.charRoot.position.x += fwdX*moveSpeed*dt; A.charRoot.position.z += fwdZ*moveSpeed*dt; }
+  if (keys.down) { A.charRoot.position.x -= fwdX*moveSpeed*dt; A.charRoot.position.z -= fwdZ*moveSpeed*dt; }
+
+  if (jumpBuf && onGround && jumpState !== JWALK.WINDUP && jumpState !== JWALK.AIR){
+    jumpState = JWALK.WINDUP; jumpTimer = 0; jumpBuf = false;
+  }
+  if (jumpState === JWALK.WINDUP){
+    jumpTimer += dt;
+    if (jumpTimer >= WINDUP_DUR){ velY = JUMP_VEL; onGround = false; jumpState = JWALK.AIR; jumpTimer = 0; }
+  }
+  if (jumpState === JWALK.LAND){
+    jumpTimer += dt;
+    if (jumpTimer >= LAND_DUR) jumpState = JWALK.NONE;
+  }
+
+  velY += GRAVITY * dt;
+  A.charRoot.position.y += velY * dt;
+  const surfY = getMoonSurfaceY(A.charRoot.position.x, A.charRoot.position.z) + CHAR_BASE_Y;
+  if (A.charRoot.position.y <= surfY){
+    if (velY < -1.5 && jumpState === JWALK.AIR){ jumpState = JWALK.LAND; jumpTimer = 0; }
+    else if (jumpState === JWALK.AIR){ jumpState = JWALK.NONE; }
+    A.charRoot.position.y = surfY;
+    velY = 0; onGround = true;
+  } else {
+    onGround = false;
+    if (jumpState === JWALK.NONE) jumpState = JWALK.AIR;
+  }
+
+  animateAstronaut(dt);
+
+  const moving = keys.up || keys.down;
+  gameCamDist = lerp(gameCamDist, moving ? 7.0 : 4.0, dt*2.5);
+  const tCam = new THREE.Vector3(
+    A.charRoot.position.x - fwdX*gameCamDist,
+    A.charRoot.position.y + 2.6,
+    A.charRoot.position.z - fwdZ*gameCamDist
+  );
+  gameCamPos.lerp(tCam, 0.08);
+  camera.position.copy(gameCamPos);
+  camera.lookAt(A.charRoot.position.x, A.charRoot.position.y + 1.1, A.charRoot.position.z);
+}
+
+function enterGameMode(){
+  gameMode = true;
+  document.getElementById('dpad').style.display = 'grid';
+  document.getElementById('jumpBtn').style.display = 'flex';
+  document.getElementById('skipBtn').style.display = 'none';
+  gameCamPos.copy(camera.position);
+}
+
+/* ---------- post-landing cutscene: ramp out, hatch opens, astronaut exits ---------- */
+let walkPath = null;
+let astroRevealed = false;
+
+function computeWalkPath(){
+  const su = shipPart.userData;
+  const rampRise = su.hatchY + PLATFORM_H;
+  const p0 = shipPart.localToWorld(new THREE.Vector3(su.hatchR-0.5, su.hatchY-3.0+CHAR_BASE_Y, 0));
+  const p1 = shipPart.localToWorld(new THREE.Vector3(su.hatchR+su.rampRun, su.hatchY-rampRise+CHAR_BASE_Y, 0));
+  const p2 = p1.clone().add(new THREE.Vector3(9,0,5));
+  return [p0,p1,p2];
+}
+function scriptedWalk(wp){
+  const [a,b,c] = walkPath;
+  let from,to,localT;
+  if (wp < 0.65){ from=a; to=b; localT=wp/0.65; }
+  else { from=b; to=c; localT=(wp-0.65)/0.35; }
+  const e = smoothstep(0,1,localT);
+  astro.charRoot.position.lerpVectors(from, to, e);
+  const dir = new THREE.Vector3().subVectors(to, from);
+  if (dir.lengthSq() > 0.0001){
+    charYaw = Math.atan2(dir.x, dir.z);
+    astro.charRoot.rotation.y = charYaw;
+  }
+}
+function hatchShotPos(hatchWorld){
+  return new THREE.Vector3(hatchWorld.x+26, hatchWorld.y+9, hatchWorld.z+22);
+}
+function cameraCloseupOnHatch(){
+  const su = shipPart.userData;
+  const hatchWorld = shipPart.localToWorld(new THREE.Vector3(su.hatchR, su.hatchY, 0));
+  const pos = hatchShotPos(hatchWorld);
+  camera.position.copy(pos);
+  camera.lookAt(hatchWorld.x, hatchWorld.y-0.5, hatchWorld.z);
+}
+function cameraSwingToGameplay(tt){
+  const p = smoothstep(T_WALK_END, T_HANDOFF, tt);
+  const su = shipPart.userData;
+  const hatchWorld = shipPart.localToWorld(new THREE.Vector3(su.hatchR, su.hatchY, 0));
+  const fromPos = hatchShotPos(hatchWorld);
+  const A = astro;
+  const behindPos = new THREE.Vector3(
+    A.charRoot.position.x - Math.sin(charYaw)*7,
+    A.charRoot.position.y + 2.6,
+    A.charRoot.position.z - Math.cos(charYaw)*7
+  );
+  const pos = fromPos.clone().lerp(behindPos, p);
+  camera.position.copy(pos);
+  const lookTo = new THREE.Vector3(A.charRoot.position.x, A.charRoot.position.y+1.1, A.charRoot.position.z);
+  const look = hatchWorld.clone().lerp(lookTo, p);
+  camera.lookAt(look);
+  if (p >= 1) gameCamPos.copy(pos);
+}
+
+function updateCutscene(dt){
+  const su = shipPart.userData;
+  shipPart.position.y = PLATFORM_H;
+  su.engineGlow.visible = false;
+
+  const rampP = smoothstep(T_RAMP_START, T_RAMP_END, t);
+  su.rampPivot.rotation.z = lerp(Math.PI/2.05, su.rampRestAngle, rampP);
+
+  const hatchP = smoothstep(T_HATCH_OPEN_START, T_HATCH_OPEN_END, t);
+  su.hatchPivot.rotation.y = lerp(0, -1.9, hatchP);
+
+  if (!astroRevealed && t >= T_HATCH_OPEN_START + 0.5){
+    astroRevealed = true;
+    walkPath = computeWalkPath();
+    astro.charRoot.visible = true;
+    astro.charRoot.position.copy(walkPath[0]);
+    const dir = new THREE.Vector3().subVectors(walkPath[1], walkPath[0]);
+    charYaw = Math.atan2(dir.x, dir.z);
+    astro.charRoot.rotation.y = charYaw;
+  }
+
+  if (t < T_HATCH_CUT){
+    updateCameraMoon(PLATFORM_H);
+  } else if (t < T_WALK_END){
+    cameraCloseupOnHatch();
+  } else if (t < T_HANDOFF){
+    cameraSwingToGameplay(t);
+  }
+
+  if (astroRevealed){
+    if (t >= T_WALK_START && t < T_WALK_END){
+      scriptedWalk(clamp((t-T_WALK_START)/(T_WALK_END-T_WALK_START),0,1));
+      keys.up = true; animateAstronaut(dt); keys.up = false;
+    } else {
+      animateAstronaut(dt);
+    }
+  }
+
+  if (t >= T_HANDOFF && !gameMode) enterGameMode();
+}
+
+/* ---------- skip button: jump straight into astronaut control ---------- */
+function skipToAstronaut(){
+  launchScene.visible = false;
+  moonScene.visible = true;
+  cdEl.style.display = 'none';
+  fadeEl.style.display = 'none';
+  glowEl.style.display = 'none';
+
+  if (boosterPart.parent) boosterPart.parent.remove(boosterPart);
+  if (shipPart.parent) shipPart.parent.remove(shipPart);
+  moonScene.add(shipPart);
+  shipPart.position.set(PAD_X, PLATFORM_H, 0);
+  shipPart.rotation.set(0,0,0);
+  shipPart.userData.engineGlow.visible = false;
+  shipPart.userData.rampPivot.rotation.z = shipPart.userData.rampRestAngle;
+  shipPart.userData.hatchPivot.rotation.y = -1.9;
+
+  walkPath = computeWalkPath();
+  astro.charRoot.visible = true;
+  astro.charRoot.position.copy(walkPath[2]);
+  const dir = new THREE.Vector3().subVectors(walkPath[2], walkPath[1]);
+  charYaw = Math.atan2(dir.x, dir.z);
+  astro.charRoot.rotation.y = charYaw;
+
+  const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
+  gameCamPos.set(
+    astro.charRoot.position.x - fwdX*7,
+    astro.charRoot.position.y + 2.6,
+    astro.charRoot.position.z - fwdZ*7
+  );
+  camera.position.copy(gameCamPos);
+  camera.lookAt(astro.charRoot.position.x, astro.charRoot.position.y+1.1, astro.charRoot.position.z);
+
+  stars.material.opacity = 1;
+  skyEl.style.background = "linear-gradient(#03040c,#0a0c1c)";
+
+  enterGameMode();
+}
+document.getElementById('skipBtn').addEventListener('click', skipToAstronaut);
+
 /* ---------- main loop ---------- */
 const fadeEl = document.getElementById("fade");
 let lastNow = performance.now();
@@ -841,7 +1437,6 @@ function overlayOpacity(tt){
     if (tt < T_BLACK) return smoothstep(T_ASCENT_END,T_BLACK,tt);
     return 1 - smoothstep(T_BLACK,T_MOON_IN,tt);
   }
-  if (tt >= T_HOLD_END) return smoothstep(T_HOLD_END,T_CYCLE_END,tt);
   return 0;
 }
 
@@ -850,8 +1445,15 @@ function animate(){
   const now = performance.now();
   const dt = Math.min((now - lastNow)/1000, 0.05);
   lastNow = now;
+
+  if (gameMode){
+    updatePuffs(dt);
+    updateAstronautGameplay(dt);
+    renderer.render(scene, camera);
+    return;
+  }
+
   t = (now - missionStart)/1000;
-  if (t >= T_CYCLE_END){ resetCycle(); missionStart = now; t = 0; }
 
   updateCountdown(t);
 
@@ -947,7 +1549,11 @@ function animate(){
     if (q > 0.04 && q < 0.94) spawnRCS(dt);
     updatePuffs(dt);
 
-    updateCameraMoon(y);
+    if (q >= 1 && t >= T_RAMP_START){
+      updateCutscene(dt);
+    } else {
+      updateCameraMoon(y);
+    }
 
     sg.getWorldPosition(tmpV);
     updateGlow(tmpV, sg.visible ? 0.9 : 0);
