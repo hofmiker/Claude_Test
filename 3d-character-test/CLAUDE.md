@@ -15,8 +15,10 @@ Beim Start wählt man eines von zwei Levels (jederzeit über den "🔁 Level"-
 Button oben rechts wechselbar):
 - **🌲 Wald** — offene Wiese mit Bäumen, Büschen und Kisten-Stapeln
 - **📦 Lagerhaus** — geschlossene Halle (Boden + Wände + Hängelampen),
-  ausschließlich Kisten-Stapel als Hindernisse, mit mehr hohen Stapeln zum
-  Ausprobieren der Kletter-Mechanik
+  ausschließlich Kisten als Hindernisse: vier echte Kisten-Pyramiden
+  (`addCratePyramid()`, Ziggurat-Versatz mit bis zu 4 Stufen, größte mit
+  Basis 7×7 = 84 Kisten) plus ein paar einzelne Stapel — insgesamt über 170
+  Kisten, reichlich Gelegenheit für die Kletter-Mechanik
 
 Beide Level teilen sich Charakter, Physik und Steuerung; nur Deko/Layout,
 Beleuchtung, Hintergrundfarbe/Nebel und `worldBounds` (Lagerhaus ist von
@@ -50,7 +52,11 @@ und `buildWarehouseLevel()`.
   wieder los. Bei Kisten-Stapeln mit identischem Footprint zählt nur die
   **oberste** Lage als Kollisions-/Greifpunkt (tiefere Lagen sind rein
   visuelle Füllung, siehe `addCrate(..., registerCollision)`), da eine
-  direkt darübergestapelte Kiste jede tiefere Seitenkante verdeckt.
+  direkt darübergestapelte Kiste jede tiefere Seitenkante verdeckt. Genau
+  darauf baut `addCratePyramid()` auf: jede Pyramidenstufe ist ein
+  `n`×`n`-Raster, die nächste Stufe (`n-2`) sitzt exakt auf dem inneren
+  Feld der vorigen — nur der dadurch freibleibende äußerste Ring pro Stufe
+  wird als Kollisions-/Greifpunkt registriert, der Rest ist verdeckt.
 - Kamera folgt hinter dem Charakter und zoomt im Idle näher heran
 
 ## Tech-Stack
