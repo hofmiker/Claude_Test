@@ -109,6 +109,24 @@
   #fullscreenBtn .ico-compress { display:none; }
   #fullscreenBtn.on .ico-expand { display:none; }
   #fullscreenBtn.on .ico-compress { display:inline; }
+  #camViewBtn {
+    position:fixed; top:120px; left:16px; z-index:5; display:none;
+    width:44px; height:44px; background:rgba(20,20,25,.45); border:2px solid rgba(255,255,255,.55);
+    border-radius:50%; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; backdrop-filter:blur(2px);
+  }
+  #camViewBtn:active { background:rgba(255,255,255,.25); }
+  #camViewBtn .ico-chase {
+    width:0; height:0;
+    border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:12px solid #fff;
+  }
+  #camViewBtn .ico-top { display:none; position:relative; width:16px; height:16px; border:3px solid #fff; border-radius:50%; }
+  #camViewBtn .ico-top::after {
+    content:''; position:absolute; top:50%; left:50%; width:5px; height:5px;
+    background:#fff; border-radius:50%; transform:translate(-50%,-50%);
+  }
+  #camViewBtn.on .ico-chase { display:none; }
+  #camViewBtn.on .ico-top { display:block; }
 </style>
 </head>
 <body>
@@ -137,6 +155,10 @@
     <polyline points="3 16 8 16 8 21"/>
     <polyline points="21 16 16 16 16 21"/>
   </svg>
+</div>
+<div id="camViewBtn" title="Kameraansicht">
+  <span class="ico-chase"></span>
+  <span class="ico-top"></span>
 </div>
 
 <script type="importmap">
@@ -1363,39 +1385,6 @@ function stopLaunchRumble(){
 }
 function playIgnitionCrack(){ playNoiseBurst(1.4, 0.3, 180); }
 
-// Subtle astronaut suit breathing -- looped filtered noise with a slow
-// amplitude LFO for an inhale/exhale swell, active on foot, paused while
-// driving (the rover engine hum already carries the audio there).
-let breathNodes = null;
-function startBreathingSound(){
-  const ctx = ensureAudio();
-  if (!ctx || breathNodes) return;
-  const dur = 4.0;
-  const n = Math.floor(ctx.sampleRate*dur);
-  const buffer = ctx.createBuffer(1, n, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i=0;i<n;i++) data[i] = Math.random()*2-1;
-  const src = ctx.createBufferSource();
-  src.buffer = buffer; src.loop = true;
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'bandpass'; filter.frequency.value = 600; filter.Q.value = 0.6;
-  const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 1/3.6;
-  const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.045;
-  const gain = ctx.createGain(); gain.gain.value = 0.05;
-  lfo.connect(lfoGain); lfoGain.connect(gain.gain);
-  src.connect(filter); filter.connect(gain); gain.connect(masterGain);
-  src.start(); lfo.start();
-  breathNodes = { src, filter, lfo, gain };
-}
-function stopBreathingSound(fade){
-  if (!breathNodes) return;
-  const ctx = ensureAudio();
-  const nodes = breathNodes;
-  breathNodes = null;
-  nodes.gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (fade||0.3));
-  setTimeout(() => { nodes.src.stop(); nodes.lfo.stop(); }, (fade||0.3)*1000 + 100);
-}
-
 // Faint, unobtrusive atmospheric drone -- started once gameplay begins and
 // left running (root/fifth/octave sines, each independently detuned for slow
 // movement) at a deliberately low target gain.
@@ -1717,8 +1706,17 @@ if (!document.documentElement.requestFullscreen){
   document.addEventListener('fullscreenchange', () => fsBtn.classList.toggle('on', isFullscreen()));
 }
 
+/* ---------- camera view toggle: chase (default) vs. GTA-style top-down ---------- */
+const camViewEl = document.getElementById('camViewBtn');
+camViewEl.addEventListener('click', () => {
+  ensureAudio();
+  topViewCam = !topViewCam;
+  camViewEl.classList.toggle('on', topViewCam);
+});
+
 const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 820;
-const MOBILE_CAM_MULT = 1.45;
+const MOBILE_CAM_MULT = 2.0;
+let topViewCam = false;
 
 /* ---------- minimap (ported concept from dhl-city/index.html drawMM) ---------- */
 const mmCanvas = document.getElementById('minimap');
@@ -1881,6 +1879,7 @@ let velY = 0, onGround = true, moveSpeed = 0;
 let canBoost = false, jetBoosting = false, jetPulseT = 0;
 let gameCamPos = new THREE.Vector3();
 let gameCamDist = 7.0;
+let gameCamHeight = 2.6;
 let gameMode = false;
 
 /* ---------- rover vehicle: driving physics (adapted from dhl-city/index.html) ---------- */
@@ -1897,6 +1896,7 @@ const ROVER_HALF_LEN = 2.2, ROVER_HALF_WID = 1.4; // tilt sampling footprint, a 
 let inVehicle = false;
 let vehicleCamPos = new THREE.Vector3();
 let vehicleCamDist = 9.0;
+let vehicleCamHeight = 5.5;
 const enterHintEl = document.getElementById('enterHint');
 const pickupHintEl = document.getElementById('pickupHint');
 const tmpSeat = new THREE.Vector3();
@@ -1976,7 +1976,6 @@ function enterVehicle(){
   enterT = 0;
   enterFromPos.copy(astro.charRoot.position);
   enterFromYaw = charYaw;
-  stopBreathingSound();
   startEngineSound();
 }
 function exitVehicle(){
@@ -1992,7 +1991,6 @@ function exitVehicle(){
   gameCamPos.copy(camera.position);
   actionEl.style.display = 'flex';
   stopEngineSound();
-  startBreathingSound();
 }
 
 function updateRoverGameplay(dt){
@@ -2058,9 +2056,11 @@ function updateRoverGameplay(dt){
 
   if (jumpBuf){ jumpBuf = false; exitVehicle(); return; }
 
-  const baseVDist = 11.5 * (isMobile ? MOBILE_CAM_MULT : 1);
-  vehicleCamDist = lerp(vehicleCamDist, baseVDist, dt*2.5);
-  const tCam = new THREE.Vector3(roverX - fwdX*vehicleCamDist, groundY + 5.5, roverZ - fwdZ*vehicleCamDist);
+  const baseVBack = (topViewCam ? 7.0 : 11.5) * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseVHeight = topViewCam ? 22.0 : 5.5;
+  vehicleCamDist = lerp(vehicleCamDist, baseVBack, dt*2.5);
+  vehicleCamHeight = lerp(vehicleCamHeight, baseVHeight, dt*2.5);
+  const tCam = new THREE.Vector3(roverX - fwdX*vehicleCamDist, groundY + vehicleCamHeight, roverZ - fwdZ*vehicleCamDist);
   vehicleCamPos.lerp(tCam, 0.08);
   camera.position.copy(vehicleCamPos);
   camera.lookAt(roverX, groundY + 2.0, roverZ);
@@ -2163,11 +2163,13 @@ function updateAstronautGameplay(dt){
 
   const moving = curInput.fwd > 0.02 || curInput.back > 0.02;
   if (onGround && moving) spawnGroundDust(dt, A.charRoot.position.x, A.charRoot.position.z, surfY, 1, false);
-  const baseDist = (moving ? 7.0 : 4.0) * (isMobile ? MOBILE_CAM_MULT : 1);
-  gameCamDist = lerp(gameCamDist, baseDist, dt*2.5);
+  const baseBack = (topViewCam ? (moving ? 5.5 : 3.5) : (moving ? 7.0 : 4.0)) * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseHeight = topViewCam ? 15.0 : 2.6;
+  gameCamDist = lerp(gameCamDist, baseBack, dt*2.5);
+  gameCamHeight = lerp(gameCamHeight, baseHeight, dt*2.5);
   const tCam = new THREE.Vector3(
     A.charRoot.position.x - fwdX*gameCamDist,
-    A.charRoot.position.y + 2.6,
+    A.charRoot.position.y + gameCamHeight,
     A.charRoot.position.z - fwdZ*gameCamDist
   );
   gameCamPos.lerp(tCam, 0.08);
@@ -2182,10 +2184,10 @@ function enterGameMode(){
   document.getElementById('actionBtn').style.display = 'flex';
   document.getElementById('minimap').style.display = 'block';
   document.getElementById('crystalHud').style.display = 'flex';
+  document.getElementById('camViewBtn').style.display = 'flex';
   document.getElementById('skipBtn').style.display = 'none';
   gameCamPos.copy(camera.position);
   startAmbientMusic();
-  if (!inVehicle) startBreathingSound();
 }
 
 /* ---------- post-landing cutscene: ramp out, hatch opens, astronaut exits ---------- */
