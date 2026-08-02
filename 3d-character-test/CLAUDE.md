@@ -14,11 +14,12 @@ herausgelöst.
 Beim Start wählt man eines von zwei Levels (jederzeit über den "🔁 Level"-
 Button oben rechts wechselbar):
 - **🌲 Wald** — offene Wiese mit Bäumen, Büschen und Kisten-Stapeln
-- **📦 Lagerhaus** — geschlossene Halle (Boden + Wände + Hängelampen),
-  ausschließlich Kisten als Hindernisse: vier echte Kisten-Pyramiden
-  (`addCratePyramid()`, Ziggurat-Versatz mit bis zu 4 Stufen, größte mit
-  Basis 7×7 = 84 Kisten) plus ein paar einzelne Stapel — insgesamt über 170
-  Kisten, reichlich Gelegenheit für die Kletter-Mechanik
+- **📦 Lagerhaus** — große geschlossene Halle (150×150, Lampen-Raster alle
+  30 Einheiten), ausschließlich Kisten als Hindernisse: sechs echte
+  Kisten-Pyramiden (`addCratePyramid()`, Ziggurat-Versatz mit bis zu 5
+  Stufen, größte mit Basis 9×9 = 165 Kisten), großzügig über die ganze
+  Halle verteilt, plus ein paar einzelne Stapel nah am Spawn — über 400
+  Kisten insgesamt, reichlich Gelegenheit für die Kletter-Mechanik
 
 Beide Level teilen sich Charakter, Physik und Steuerung; nur Deko/Layout,
 Beleuchtung, Hintergrundfarbe/Nebel und `worldBounds` (Lagerhaus ist von

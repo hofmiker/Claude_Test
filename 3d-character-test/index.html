@@ -397,35 +397,40 @@ function buildForestLevel() {
 function buildWarehouseLevel() {
   clearLevel();
   scene.background = new THREE.Color(0x14161c);
-  scene.fog = new THREE.Fog(0x14161c, 22, 68);
+  scene.fog = new THREE.Fog(0x14161c, 35, 145);
   ambientLight.color.set(0xc7d2e6); ambientLight.intensity = 1.05;
   sun.color.set(0xdfe6ff); sun.intensity = 0.55;
 
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(72, 72), M.floor);
+  const WALL_H = 11, HALF = 75;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALF*2+4, HALF*2+4), M.floor);
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; levelGroup.add(floor);
 
-  const WALL_H = 9, HALF = 35;
   addWall(0, -HALF, HALF*2+1.6, 0.8, WALL_H);
   addWall(0,  HALF, HALF*2+1.6, 0.8, WALL_H);
   addWall(-HALF, 0, 0.8, HALF*2+1.6, WALL_H);
   addWall( HALF, 0, 0.8, HALF*2+1.6, WALL_H);
-  addLamp(-14, -10, WALL_H); addLamp(14, -10, WALL_H);
-  addLamp(-14,  12, WALL_H); addLamp(14,  12, WALL_H); addLamp(0, 0, WALL_H);
+
+  // Lampen-Raster für gleichmäßige Ausleuchtung der großen Halle.
+  for (let lx = -HALF+15; lx <= HALF-15; lx += 30)
+    for (let lz = -HALF+15; lz <= HALF-15; lz += 30)
+      addLamp(lx, lz, WALL_H);
 
   worldBounds = { minX: -HALF+1.4, maxX: HALF-1.4, minZ: -HALF+1.4, maxZ: HALF-1.4 };
 
-  // Nur Kisten: drei echte Pyramiden (Ziggurat-Versatz, jede Lage einen
-  // Ring kleiner) für die Masse, dazu ein paar einzelne Stapel als
-  // kleinere Zwischenziele.
-  addCratePyramid(-14, -10, 7);
-  addCratePyramid( 15,   6, 5);
-  addCratePyramid(-11,  17, 5);
-  addCratePyramid( 17, -18, 3);
+  // Nur Kisten: sechs echte Pyramiden (Ziggurat-Versatz, jede Lage einen
+  // Ring kleiner), großzügig über die ganze Halle verteilt — über 400
+  // Kisten insgesamt, reichlich Kanten zum Hangeln/Klettern in jeder Ecke.
+  addCratePyramid(-42, -42, 9);
+  addCratePyramid( 44, -38, 7);
+  addCratePyramid(-40,  40, 7);
+  addCratePyramid( 42,  44, 5);
+  addCratePyramid(  0, -60, 5);
+  addCratePyramid(-60,   8, 3);
 
-  addCrate( -7.0,  -2.0, 0.0, 1.3);
-  addCrate(  4.0,  17.0, 0.0, 1.0, false); addCrate(  4.0,  17.0, 0.8, 1.0);
-  addCrate(-16.0,  -2.0, 0.0, 1.0);
-  addCrate(  2.0, -24.0, 0.0, 1.2, false); addCrate(  2.0, -24.0, 0.8, 1.1);
+  // Ein paar einzelne Stapel nah am Spawn als leicht erreichbarer Einstieg.
+  addCrate( -6.0,   2.0, 0.0, 1.3);
+  addCrate(  8.0,  14.0, 0.0, 1.0, false); addCrate(  8.0,  14.0, 0.8, 1.0);
+  addCrate(-10.0,  16.0, 0.0, 1.0);
 
   charRoot.position.set(0, CHAR_BASE_Y, 8);
   resetCharacterState();
@@ -527,7 +532,7 @@ const GRAVITY     = -22;
 const JUMP_VEL    =  8.2;
 const PLAYER_RADIUS       = 0.30;
 const AUTO_STEP_MAX_TOPY  = 0.85; // Kisten bis zu dieser Höhe: frei begehbare Stufe
-const GRAB_REACH   = 0.55;
+const GRAB_REACH   = 0.95;
 const GRAB_SETTLE  = 0.16; // s, bis der Hang-Pose eingerastet ist
 const CLIMB_DUR    = 0.85; // s, volle Hochzieh-Animation
 
@@ -571,7 +576,7 @@ function tryGrabLedge() {
     if (dist > GRAB_REACH) continue;
     const surfaceY = c.topY + CHAR_BASE_Y;
     const rel = py - surfaceY;
-    if (rel > -1.60 && rel < -0.05) {
+    if (rel > -1.95 && rel < 0.10) {
       // Richtung von der Kistenmitte zum Charakter — robust auch wenn der
       // Charakter (durch die Wand-Kollision) fast exakt an der Kanten-
       // Bounding-Box klebt, wo der nächste-Punkt-Vektor gegen 0 ginge.
