@@ -344,28 +344,49 @@ function buildShipPart(){
   hatchDoor.position.set(0, 0, hatchW/2);
   hatchPivot.add(hatchDoor);
 
-  const rampRun = 32, rampRise = hatchY + PLATFORM_H;
+  const rampRun = 32;
+  g.userData = { topY: y, engineGlow, rcsOffsets, hatchPivot, hatchY, hatchR, hatchW, rampRun };
+  return g;
+}
+
+// Mobile ramp rig, used after moon landing: unlike the hatch door (which
+// stays hinged to the hull), the ramp is a separate ground vehicle/gangway
+// that drives in from a distance and docks against the hatch -- it does not
+// unfold away from the ship. Built once the ship's hatch geometry is known;
+// added to moonScene once that group exists (see below).
+function buildRampRig(hatchR, hatchY, rampRun){
+  const rampRise = hatchY + PLATFORM_H;
   const rampLen = Math.hypot(rampRun, rampRise);
-  const rampRestAngle = -Math.atan2(rampRise, rampRun);
-  const rampPivot = new THREE.Group();
-  rampPivot.position.set(hatchR, hatchY, 0);
-  rampPivot.rotation.z = Math.PI/2.05;
-  g.add(rampPivot);
+  const angle = -Math.atan2(rampRise, rampRun);
+  const grp = new THREE.Group(); // origin = the end that docks against the hatch
+  const rampBody = new THREE.Group();
+  rampBody.rotation.z = angle;
   const ramp = new THREE.Mesh(new THREE.BoxGeometry(rampLen, 0.5, 4.6), MAT.moonBase);
   ramp.position.x = rampLen/2;
-  rampPivot.add(ramp);
+  rampBody.add(ramp);
   for(let s=-1;s<=1;s+=2){
     const rail = new THREE.Mesh(new THREE.BoxGeometry(rampLen, 0.9, 0.2), MAT.moonBaseDark);
     rail.position.set(rampLen/2, 0.6, s*2.25);
-    rampPivot.add(rail);
+    rampBody.add(rail);
   }
-
-  g.userData = { topY: y, engineGlow, rcsOffsets, hatchPivot, rampPivot, rampRestAngle, hatchY, hatchR, rampRun };
-  return g;
+  // Small drive wheels under the ground-contact end, so it visibly reads as
+  // a self-propelled gangway vehicle rather than a static ramp. Positioned
+  // in rampBody's local (pre-rotation) space -- rampBody's own rotation.z
+  // carries them to the correct tilted, ground-touching spot automatically.
+  for(let s=-1;s<=1;s+=2){
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,0.7,10), MAT.roverDark);
+    wheel.rotation.x = Math.PI/2;
+    wheel.position.set(rampLen-1.5, -0.6, s*2.6);
+    rampBody.add(wheel);
+  }
+  grp.add(rampBody);
+  grp.visible = false;
+  return grp;
 }
 
 const boosterPart = buildBoosterPart();
 const shipPart = buildShipPart();
+const rampRig = buildRampRig(shipPart.userData.hatchR, shipPart.userData.hatchY, shipPart.userData.rampRun);
 const SHIP_LOCAL_Y = boosterPart.userData.topY; // where the ship sits on top of the booster
 
 const rocketStack = new THREE.Group();
@@ -607,6 +628,9 @@ scene.add(stars);
 const moonScene = new THREE.Group();
 moonScene.visible = false;
 scene.add(moonScene);
+moonScene.add(rampRig);
+const MOON_TERRAIN_SIZE = 4000, MOON_TERRAIN_SEGS = 200;
+const MOON_TERRAIN_CELL = MOON_TERRAIN_SIZE / MOON_TERRAIN_SEGS;
 const moonCraters = [];
 const moonRocksData = [];
 const pickupStones = []; // small hand-liftable stones, separate from the big climbable decorative rocks
@@ -642,11 +666,29 @@ function rockBumpY(x,z){
 }
 function getMoonSurfaceY(x,z){
   if (Math.hypot(x-PAD_X,z) < 27) return PLATFORM_H;
-  // Additive, not max(): moonCraterY is negative inside a bowl, and max()
-  // against rockBumpY's 0-elsewhere would clamp every crater floor up to 0,
-  // erasing all depth away from rocks. Adding lets rocks still raise a bump
-  // on top of the local terrain without flattening the surrounding crater.
-  return moonCraterY(x,z) + rockBumpY(x,z);
+  // Bilinear-interpolate craters between the same 20-unit grid corners the
+  // rendered terrain mesh uses, instead of sampling the exact analytic bowl
+  // formula at (x,z) directly. The mesh is flat-shaded between coarse grid
+  // vertices, so on a steep crater wall the true curve dips measurably below
+  // the straight chord the GPU actually draws -- a raw analytic sample there
+  // reads as several units *underground* relative to what's on screen,
+  // causing the astronaut/rover to visibly sink. Reconstructing the same
+  // interpolation the mesh does keeps physics and visuals in agreement.
+  // Rocks are NOT baked into the terrain mesh (they're separate decorative
+  // objects) and their bump radius is smaller than one grid cell, so they're
+  // sampled directly instead -- grid-interpolating them would miss most
+  // rocks entirely and make them unclimbable.
+  const half = MOON_TERRAIN_SIZE/2;
+  const gx = (x+half)/MOON_TERRAIN_CELL, gz = (z+half)/MOON_TERRAIN_CELL;
+  const ix = Math.floor(gx), iz = Math.floor(gz);
+  const fx = gx-ix, fz = gz-iz;
+  const wx = (i) => i*MOON_TERRAIN_CELL - half;
+  const h00 = moonCraterY(wx(ix),   wx(iz));
+  const h10 = moonCraterY(wx(ix+1), wx(iz));
+  const h01 = moonCraterY(wx(ix),   wx(iz+1));
+  const h11 = moonCraterY(wx(ix+1), wx(iz+1));
+  const craterY = lerp(lerp(h00,h10,fx), lerp(h01,h11,fx), fz);
+  return craterY + rockBumpY(x,z);
 }
 // Approximates a long object (station module, tube) as a chain of overlapping
 // circles along its local X axis, for cheap push-out collision.
@@ -681,7 +723,7 @@ function resolvePush(x, z, radius, list){
   // shallower than deep craters (down to y=-28), so it visually cut through
   // crater floors like a lid. One mesh means there's nothing left to cut
   // through anything.
-  const moonSize = 4000, segs = 200;
+  const moonSize = MOON_TERRAIN_SIZE, segs = MOON_TERRAIN_SEGS;
   const moonGeo = new THREE.PlaneGeometry(moonSize, moonSize, segs, segs);
   moonGeo.rotateX(-Math.PI/2);
   for(let i=0;i<52;i++){
@@ -802,6 +844,7 @@ function resolvePush(x, z, radius, list){
   }
   rover = buildRover();
   rover.scale.setScalar(ROVER_SCALE);
+  rover.rotation.order = 'YXZ'; // yaw first, then pitch/roll relative to heading -- avoids gimbal fighting with steering
   rover.position.set(46, getMoonSurfaceY(46,20), 20);
   rover.rotation.y = -0.6;
   moonScene.add(rover);
@@ -1576,9 +1619,23 @@ function animateAstronaut(dt){
     A.torso.rotation.y = 0;
     A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, 0.0, 0.15);
   } else {
-    A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -rLeg*0.68*eff, 0.30);
-    A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.09, 0.08);
-    A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, moving ? -1.22 : -0.12, 0.20);
+    if (heldRock){
+      // Both hands are occupied cradling the carried stone -- hold a fixed
+      // pose instead of the normal walk-swing, arms don't move while walking.
+      A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -0.95, 0.20);
+      A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z, 0.16, 0.15);
+      A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -1.75, 0.20);
+      A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -0.95, 0.20);
+      A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.16, 0.15);
+      A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -1.75, 0.20);
+    } else {
+      A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -rLeg*0.68*eff, 0.30);
+      A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.09, 0.08);
+      A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, moving ? -1.22 : -0.12, 0.20);
+      A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -lLeg*0.68*eff, 0.30);
+      A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.09, 0.08);
+      A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, moving ? -1.22 : -0.12, 0.20);
+    }
     const tc = 0.30;
     A.lHip.rotation.x = lerp(A.lHip.rotation.x, lLeg*0.88*eff, tc);
     A.rHip.rotation.x = lerp(A.rHip.rotation.x, rLeg*0.88*eff, tc);
@@ -1588,9 +1645,6 @@ function animateAstronaut(dt){
     A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, rKT, tc);
     A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, -lLeg*0.38*eff, tc);
     A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, -rLeg*0.38*eff, tc);
-    A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -lLeg*0.68*eff, tc);
-    A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.09, 0.08);
-    A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, moving ? -1.22 : -0.12, 0.20);
     A.torso.rotation.y = lerp(A.torso.rotation.y, s*0.13*eff, 0.18);
     A.torso.rotation.x = lerp(A.torso.rotation.x, moving ? -0.10 : 0.0, 0.07);
     A.torso.rotation.z = lerp(A.torso.rotation.z, Math.cos(animT)*0.042*eff, 0.20);
@@ -1618,6 +1672,8 @@ const CHAR_RADIUS = 0.55;
 const SEAT_LOCAL = new THREE.Vector3(-2, 7.3, -2.5); // local to unscaled rover geometry
 const SEAT_SIT_DROP = 0.45; // charRoot sits below the seat surface so the body doesn't float above it
 let roverX = 46, roverZ = 20, roverAngle = -0.6, roverSpd = 0, roverSteerAng = 0;
+let roverPitch = 0, roverRoll = 0;
+const ROVER_HALF_LEN = 2.2, ROVER_HALF_WID = 1.4; // tilt sampling footprint, a bit past the scaled chassis
 let inVehicle = false;
 let vehicleCamPos = new THREE.Vector3();
 let vehicleCamDist = 9.0;
@@ -1742,7 +1798,20 @@ function updateRoverGameplay(dt){
   roverX = resolved.x; roverZ = resolved.z;
   const groundY = getMoonSurfaceY(roverX, roverZ);
   rover.position.set(roverX, groundY, roverZ);
-  rover.rotation.y = roverAngle;
+
+  // Tilt with the slope: sample ground height at the front/back/left/right
+  // of the footprint and lean the chassis to match, instead of always
+  // sitting perfectly level regardless of terrain.
+  const rightX = Math.cos(roverAngle), rightZ = -Math.sin(roverAngle);
+  const yAhead  = getMoonSurfaceY(roverX+fwdX*ROVER_HALF_LEN,   roverZ+fwdZ*ROVER_HALF_LEN);
+  const yBehind = getMoonSurfaceY(roverX-fwdX*ROVER_HALF_LEN,   roverZ-fwdZ*ROVER_HALF_LEN);
+  const yRight  = getMoonSurfaceY(roverX+rightX*ROVER_HALF_WID, roverZ+rightZ*ROVER_HALF_WID);
+  const yLeft   = getMoonSurfaceY(roverX-rightX*ROVER_HALF_WID, roverZ-rightZ*ROVER_HALF_WID);
+  const pitchTarget = Math.atan2(yBehind-yAhead, ROVER_HALF_LEN*2);
+  const rollTarget  = Math.atan2(yRight-yLeft, ROVER_HALF_WID*2);
+  roverPitch = lerp(roverPitch, pitchTarget, 0.15);
+  roverRoll  = lerp(roverRoll, rollTarget, 0.15);
+  rover.rotation.set(roverPitch, roverAngle, roverRoll);
   rover.updateMatrixWorld(true);
 
   spawnGroundDust(dt, roverX - fwdX*2, roverZ - fwdZ*2, groundY, Math.min(1, Math.abs(roverSpd)/ROVER_MAX_SPD), true);
@@ -1906,7 +1975,7 @@ function cameraCloseupOnHatch(){
   camera.lookAt(hatchWorld.x, hatchWorld.y-0.5, hatchWorld.z);
 }
 function cameraSwingToGameplay(tt){
-  const p = smoothstep(T_WALK_END, T_HANDOFF, tt);
+  const p = smoothstep(T_WALK_START, T_HANDOFF, tt);
   const su = shipPart.userData;
   const hatchWorld = shipPart.localToWorld(new THREE.Vector3(su.hatchR, su.hatchY, 0));
   const fromPos = hatchShotPos(hatchWorld);
@@ -1924,13 +1993,20 @@ function cameraSwingToGameplay(tt){
   if (p >= 1) gameCamPos.copy(pos);
 }
 
+const rampHatchWorld = new THREE.Vector3();
+const rampStartWorld = new THREE.Vector3();
 function updateCutscene(dt){
   const su = shipPart.userData;
   shipPart.position.y = PLATFORM_H;
   su.engineGlow.visible = false;
 
+  // Ramp rig drives in from outside and docks at the hatch (not a panel
+  // hinged to the hull unfolding away from the ship).
   const rampP = smoothstep(T_RAMP_START, T_RAMP_END, t);
-  su.rampPivot.rotation.z = lerp(Math.PI/2.05, su.rampRestAngle, rampP);
+  if (rampP > 0) rampRig.visible = true;
+  rampHatchWorld.set(PAD_X + su.hatchR, PLATFORM_H + su.hatchY, 0);
+  rampStartWorld.set(rampHatchWorld.x + 46, rampHatchWorld.y, rampHatchWorld.z);
+  rampRig.position.lerpVectors(rampStartWorld, rampHatchWorld, rampP);
 
   const hatchP = smoothstep(T_HATCH_OPEN_START, T_HATCH_OPEN_END, t);
   su.hatchPivot.rotation.y = lerp(0, -1.9, hatchP);
@@ -1947,17 +2023,26 @@ function updateCutscene(dt){
 
   if (t < T_HATCH_CUT){
     updateCameraMoon(PLATFORM_H);
-  } else if (t < T_WALK_END){
+  } else if (t < T_WALK_START){
     cameraCloseupOnHatch();
   } else if (t < T_HANDOFF){
+    // Start tracking as soon as the astronaut starts moving (not only after
+    // they finish walking) so they stay in frame all the way down the ramp
+    // instead of walking out of a camera that's still fixed on the hatch.
     cameraSwingToGameplay(t);
   }
 
   if (astroRevealed){
     if (t >= T_WALK_START && t < T_WALK_END){
       scriptedWalk(clamp((t-T_WALK_START)/(T_WALK_END-T_WALK_START),0,1));
-      keys.up = true; animateAstronaut(dt); keys.up = false;
+      // animateAstronaut reads curInput (not the raw keys map) for its walk
+      // cycle since the joystick input port -- drive it directly here so the
+      // scripted walk actually plays the leg/arm animation instead of a
+      // static slide.
+      curInput.fwd = 1; curInput.back = 0; curInput.left = 0; curInput.right = 0;
+      animateAstronaut(dt);
     } else {
+      curInput.fwd = 0; curInput.back = 0;
       animateAstronaut(dt);
     }
   }
@@ -1979,7 +2064,8 @@ function skipToAstronaut(){
   shipPart.position.set(PAD_X, PLATFORM_H, 0);
   shipPart.rotation.set(0,0,0);
   shipPart.userData.engineGlow.visible = false;
-  shipPart.userData.rampPivot.rotation.z = shipPart.userData.rampRestAngle;
+  rampRig.position.set(PAD_X + shipPart.userData.hatchR, PLATFORM_H + shipPart.userData.hatchY, 0);
+  rampRig.visible = true;
   shipPart.userData.hatchPivot.rotation.y = -1.9;
 
   walkPath = computeWalkPath();
