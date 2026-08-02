@@ -6,29 +6,35 @@
   <title>3D Character Test</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { overflow: hidden; touch-action: none; background: #87CEEB; }
+    body { overflow: hidden; touch-action: none; background: #87CEEB; font-family: Arial, sans-serif; }
     #info {
       position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
-      color: #fff; font-family: Arial, sans-serif; font-size: 13px;
+      color: #fff; font-size: 12px;
       text-shadow: 0 1px 3px rgba(0,0,0,.7); pointer-events: none; white-space: nowrap;
     }
-    #dpad {
-      position: fixed; bottom: 28px; left: 28px;
-      display: grid; grid-template-columns: 52px 52px 52px; grid-template-rows: 52px 52px; gap: 5px;
+    #levelBtn {
+      position: fixed; top: 10px; right: 10px; z-index: 5;
+      background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.4);
+      color: #fff; font-size: 12px; padding: 7px 12px; border-radius: 8px;
+      cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
     }
-    .db {
-      background: rgba(255,255,255,.22); border: 2px solid rgba(255,255,255,.55);
-      border-radius: 12px; display: flex; align-items: center; justify-content: center;
-      font-size: 22px; cursor: pointer; user-select: none; color: #fff;
-      -webkit-tap-highlight-color: transparent;
+    #levelBtn:active { background: rgba(255,255,255,.25); }
+
+    /* Virtueller 360°-Joystick, ported von toy-story/gameplay/player.js */
+    #joystick {
+      position: fixed; bottom: 30px; left: 30px;
+      width: 130px; height: 130px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.35); background: rgba(20,22,35,.30);
+      touch-action: none; user-select: none; -webkit-tap-highlight-color: transparent;
     }
-    .db:active, .db.on { background: rgba(255,255,255,.5); }
-    #bU { grid-column:2; grid-row:1; }
-    #bL { grid-column:1; grid-row:2; }
-    #bD { grid-column:2; grid-row:2; }
-    #bR { grid-column:3; grid-row:2; }
+    #joystick-knob {
+      position: absolute; top: 50%; left: 50%; width: 56px; height: 56px;
+      margin: -28px 0 0 -28px; border-radius: 50%;
+      background: rgba(255,255,255,.32); border: 2px solid rgba(255,255,255,.6);
+      pointer-events: none;
+    }
     #jumpBtn {
-      position: fixed; bottom: 28px; right: 28px;
+      position: fixed; bottom: 40px; right: 34px;
       width: 70px; height: 70px;
       background: rgba(255,210,0,.25); border: 2px solid rgba(255,210,0,.75);
       border-radius: 50%; display: flex; align-items: center; justify-content: center;
@@ -36,16 +42,50 @@
       -webkit-tap-highlight-color: transparent;
     }
     #jumpBtn.on { background: rgba(255,210,0,.55); }
+
+    #levelSelect {
+      position: fixed; inset: 0; z-index: 20;
+      background: radial-gradient(ellipse at center, #1c2b3a 0%, #05080d 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 26px; color: #fff;
+    }
+    #levelSelect h1 { font-size: 18px; letter-spacing: .1em; text-transform: uppercase; opacity: .85; }
+    #levelCards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; padding: 0 20px; }
+    .levelCard {
+      width: 210px; border-radius: 16px; overflow: hidden; cursor: pointer;
+      border: 2px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04);
+      transition: border-color .15s, transform .15s; -webkit-tap-highlight-color: transparent;
+    }
+    .levelCard:hover, .levelCard:active { border-color: rgba(255,255,255,.55); transform: translateY(-3px); }
+    .levelCard .swatch { height: 105px; }
+    .levelCard .info { padding: 13px 15px; }
+    .levelCard .lname { font-size: 14px; font-weight: bold; letter-spacing: .04em; }
+    .levelCard .ldesc { font-size: 11px; opacity: .6; margin-top: 4px; line-height: 1.4; }
   </style>
 </head>
 <body>
-<div id="info">Pfeiltasten/WASD bewegen · Space / ⬆ springen</div>
-<div id="dpad">
-  <div class="db" id="bU">▲</div>
-  <div class="db" id="bL">◀</div>
-  <div class="db" id="bD">▼</div>
-  <div class="db" id="bR">▶</div>
+<div id="levelSelect">
+  <h1>Level wählen</h1>
+  <div id="levelCards">
+    <div class="levelCard" data-level="forest">
+      <div class="swatch" style="background:linear-gradient(180deg,#87CEEB 0%,#87CEEB 55%,#3A7230 55%,#2A5E20 100%)"></div>
+      <div class="info">
+        <div class="lname">🌲 Wald</div>
+        <div class="ldesc">Offene Wiese mit Bäumen, Büschen &amp; Kisten-Stapeln</div>
+      </div>
+    </div>
+    <div class="levelCard" data-level="warehouse">
+      <div class="swatch" style="background:linear-gradient(180deg,#3a3f47 0%,#3a3f47 55%,#8B6334 55%,#6b4c28 100%)"></div>
+      <div class="info">
+        <div class="lname">📦 Lagerhaus</div>
+        <div class="ldesc">Halle voller Kisten-Stapel — zum Klettern &amp; an Kanten hochziehen</div>
+      </div>
+    </div>
+  </div>
 </div>
+<div id="info">Pfeiltasten/WASD bewegen · Space springen/hochziehen · an hohen Kisten in der Luft: greifen</div>
+<div id="levelBtn">🔁 Level</div>
+<div id="joystick"><div id="joystick-knob"></div></div>
 <div id="jumpBtn">⬆</div>
 
 <script type="module">
@@ -66,7 +106,8 @@ scene.fog = new THREE.Fog(0x87CEEB, 50, 120);
 const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
 
 // ── LIGHTS ───────────────────────────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0xfff8e7, 0.65));
+const ambientLight = new THREE.AmbientLight(0xfff8e7, 0.65);
+scene.add(ambientLight);
 const sun = new THREE.DirectionalLight(0xfff8e7, 0.95);
 sun.position.set(25, 50, 15);
 sun.castShadow = true;
@@ -83,6 +124,8 @@ const M = {
   leaf:  mk(0x2A6E25), leaf2: mk(0x1E5219),
   bush:  mk(0x356A24), bush2: mk(0x477A34),
   wood:  mk(0x8B6334),
+  floor: mk(0x767F8A), wall: mk(0x545C68),
+  lampShade: mk(0x22262E), lampCord: mk(0x111318),
 };
 
 // ── GEO HELPERS ──────────────────────────────────────────────────────────────
@@ -220,19 +263,28 @@ const rFootG = new THREE.Group(); rFootG.position.y = -0.12; rAnkle.add(rFootG);
 const rFootM = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.075, 0.22), M.shoes);
 rFootM.position.set(0, -0.038, 0.07); rFootM.castShadow = true; rFootG.add(rFootM);
 
-// ── GROUND ───────────────────────────────────────────────────────────────────
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(240, 240, 24, 24), M.grass);
-ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+// ── LEVELS ───────────────────────────────────────────────────────────────────
+// Jedes Level baut in `levelGroup` (statt direkt in `scene`) und füllt
+// `crateData` neu — so kann beim Wechsel einfach die ganze Gruppe entfernt
+// werden, ohne Reste des vorherigen Levels.
+let levelGroup  = null;
+let crateData   = [];
+let worldBounds = null; // {minX,maxX,minZ,maxZ} oder null (unbegrenzt, wie im Wald)
 
-const dkG = mk(0x2A5E20);
-for (let i = 0; i < 90; i++) {
-  const p = new THREE.Mesh(new THREE.CircleGeometry(0.6 + Math.random() * 1.8, 5), dkG);
-  const a = Math.random() * Math.PI * 2, d = 6 + Math.random() * 90;
-  p.position.set(Math.cos(a) * d, 0.01, Math.sin(a) * d);
-  p.rotation.x = -Math.PI / 2; scene.add(p);
+function clearLevel() {
+  if (levelGroup) {
+    scene.remove(levelGroup);
+    levelGroup.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => m.dispose());
+    });
+  }
+  levelGroup = new THREE.Group();
+  scene.add(levelGroup);
+  crateData = [];
+  worldBounds = null;
 }
 
-// ── TREES & BUSHES ───────────────────────────────────────────────────────────
 function addTree(x, z) {
   const g = new THREE.Group(); g.position.set(x, 0, z);
   const th = 1.3 + Math.random() * 0.5;
@@ -243,87 +295,218 @@ function addTree(x, z) {
   c1.position.y = th + h1 / 2 - 0.15; c1.castShadow = true; g.add(c1);
   const c2 = new THREE.Mesh(new THREE.ConeGeometry(r2, h2, 7), M.leaf2);
   c2.position.y = th + h1 * 0.72 + h2 / 2; c2.castShadow = true; g.add(c2);
-  scene.add(g);
+  levelGroup.add(g);
 }
 function addBush(x, z) {
   const g = new THREE.Group(); g.position.set(x, 0, z);
   const s = 0.40 + Math.random() * 0.25;
   const b1 = icoMesh(s, M.bush); b1.position.y = s * 0.75; b1.scale.y = 0.72; g.add(b1);
   const b2 = icoMesh(s * 0.6, M.bush2); b2.position.set(s * 0.5, s * 0.5, 0.1); b2.scale.y = 0.72; g.add(b2);
-  scene.add(g);
+  levelGroup.add(g);
 }
-const rng = (a, b) => a + Math.random() * (b - a);
-for (let i = 0; i < 40; i++) {
-  let x, z; do { x = rng(-60,60); z = rng(-80,40); } while (Math.hypot(x,z) < 8);
-  addTree(x, z);
-}
-for (let i = 0; i < 60; i++) {
-  let x, z; do { x = rng(-60,60); z = rng(-80,40); } while (Math.hypot(x,z) < 5);
-  addBush(x, z);
-}
-
-// ── CRATES ───────────────────────────────────────────────────────────────────
-const crateData = [];
-function addCrate(cx, cz, yBottom, sz) {
+// `registerCollision=false` for the lower boxes of a same-footprint stack:
+// they're only visual filler, since a box stacked directly on top covers
+// their side face completely — there's no real ledge to stand on or grab
+// there, only at the topmost box of the stack.
+function addCrate(cx, cz, yBottom, sz, registerCollision = true) {
   const geo = new THREE.BoxGeometry(sz, 0.8, sz);
   const m = new THREE.Mesh(geo, M.wood);
   m.position.set(cx, yBottom + 0.4, cz);
-  m.castShadow = true; m.receiveShadow = true; scene.add(m);
+  m.castShadow = true; m.receiveShadow = true; levelGroup.add(m);
   m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x5D4225 })));
-  crateData.push({ x: cx, z: cz, hw: sz / 2, hd: sz / 2, topY: yBottom + 0.8 });
+  if (registerCollision) crateData.push({ x: cx, z: cz, hw: sz / 2, hd: sz / 2, topY: yBottom + 0.8 });
 }
-addCrate(  5.0,  -6.0, 0.0, 1.1); addCrate(  5.0,  -6.0, 0.8, 1.0);
-addCrate( -5.5,  -8.0, 0.0, 1.3);
-addCrate(  9.0, -13.0, 0.0, 1.0); addCrate(  9.0, -13.0, 0.8, 1.0); addCrate(  9.0, -13.0, 1.6, 1.0);
-addCrate( -8.0, -15.0, 0.0, 1.5);
-addCrate(  2.0, -19.0, 0.0, 1.0); addCrate( -2.0, -20.0, 0.0, 1.0); addCrate(  1.0, -22.0, 0.8, 0.9);
+function addLamp(x, z, wallH) {
+  const g = new THREE.Group(); g.position.set(x, wallH - 0.6, z);
+  const cordH = 1.6;
+  const cord = cylMesh(0.02, 0.02, cordH, M.lampCord, 5); cord.position.y = -cordH / 2; g.add(cord);
+  const shade = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.4, 10), M.lampShade);
+  shade.position.y = -cordH; shade.rotation.x = Math.PI; shade.castShadow = true; g.add(shade);
+  const bulb = new THREE.PointLight(0xffdca8, 2.2, 22, 2);
+  bulb.position.y = -cordH - 0.05; g.add(bulb);
+  levelGroup.add(g);
+}
+function addWall(x, z, w, d, h) {
+  const wa = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M.wall);
+  wa.position.set(x, h / 2, z); wa.castShadow = true; wa.receiveShadow = true;
+  levelGroup.add(wa);
+}
+
+function buildForestLevel() {
+  clearLevel();
+  scene.background = new THREE.Color(0x87CEEB);
+  scene.fog = new THREE.Fog(0x87CEEB, 50, 120);
+  ambientLight.color.set(0xfff8e7); ambientLight.intensity = 0.65;
+  sun.color.set(0xfff8e7); sun.intensity = 0.95;
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(240, 240, 24, 24), M.grass);
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; levelGroup.add(ground);
+
+  const dkG = mk(0x2A5E20);
+  for (let i = 0; i < 90; i++) {
+    const p = new THREE.Mesh(new THREE.CircleGeometry(0.6 + Math.random() * 1.8, 5), dkG);
+    const a = Math.random() * Math.PI * 2, d = 6 + Math.random() * 90;
+    p.position.set(Math.cos(a) * d, 0.01, Math.sin(a) * d);
+    p.rotation.x = -Math.PI / 2; levelGroup.add(p);
+  }
+
+  const rng = (a, b) => a + Math.random() * (b - a);
+  for (let i = 0; i < 40; i++) {
+    let x, z; do { x = rng(-60,60); z = rng(-80,40); } while (Math.hypot(x,z) < 8);
+    addTree(x, z);
+  }
+  for (let i = 0; i < 60; i++) {
+    let x, z; do { x = rng(-60,60); z = rng(-80,40); } while (Math.hypot(x,z) < 5);
+    addBush(x, z);
+  }
+
+  // Kisten — Einzelkisten (topY 0.8) bleiben frei begehbare Stufen, die
+  // zweite/dritte Lage (topY 1.6/2.4) verlangt Sprung + Klettern am Rand.
+  addCrate(  5.0,  -6.0, 0.0, 1.1, false); addCrate(  5.0,  -6.0, 0.8, 1.0);
+  addCrate( -5.5,  -8.0, 0.0, 1.3);
+  addCrate(  9.0, -13.0, 0.0, 1.0, false); addCrate(  9.0, -13.0, 0.8, 1.0, false); addCrate(  9.0, -13.0, 1.6, 1.0);
+  addCrate( -8.0, -15.0, 0.0, 1.5);
+  addCrate(  2.0, -19.0, 0.0, 1.0); addCrate( -2.0, -20.0, 0.0, 1.0); addCrate(  1.0, -22.0, 0.8, 0.9);
+
+  charRoot.position.set(0, CHAR_BASE_Y, 0);
+  resetCharacterState();
+}
+
+function buildWarehouseLevel() {
+  clearLevel();
+  scene.background = new THREE.Color(0x14161c);
+  scene.fog = new THREE.Fog(0x14161c, 22, 68);
+  ambientLight.color.set(0xc7d2e6); ambientLight.intensity = 1.05;
+  sun.color.set(0xdfe6ff); sun.intensity = 0.55;
+
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(72, 72), M.floor);
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; levelGroup.add(floor);
+
+  const WALL_H = 9, HALF = 35;
+  addWall(0, -HALF, HALF*2+1.6, 0.8, WALL_H);
+  addWall(0,  HALF, HALF*2+1.6, 0.8, WALL_H);
+  addWall(-HALF, 0, 0.8, HALF*2+1.6, WALL_H);
+  addWall( HALF, 0, 0.8, HALF*2+1.6, WALL_H);
+  addLamp(-14, -10, WALL_H); addLamp(14, -10, WALL_H);
+  addLamp(-14,  12, WALL_H); addLamp(14,  12, WALL_H); addLamp(0, 0, WALL_H);
+
+  worldBounds = { minX: -HALF+1.4, maxX: HALF-1.4, minZ: -HALF+1.4, maxZ: HALF-1.4 };
+
+  // Nur Kisten: Einzelstufen zum freien Erklimmen + mehrere hohe Stapel
+  // (2./3. Lage) extra für die Kanten-Hangel-Mechanik.
+  addCrate(  6.0,  -8.0, 0.0, 1.2, false); addCrate(  6.0,  -8.0, 0.8, 1.1, false); addCrate(  6.0,  -8.0, 1.6, 1.0);
+  addCrate( -7.0,  -9.0, 0.0, 1.3);
+  addCrate( 10.0,   4.0, 0.0, 1.0, false); addCrate( 10.0,   4.0, 0.8, 1.0);
+  addCrate(-11.0,   6.0, 0.0, 1.4);
+  addCrate( -4.0,  14.0, 0.0, 1.1, false); addCrate( -4.0,  14.0, 0.8, 1.0);
+  addCrate(  3.0, -18.0, 0.0, 1.0);
+  addCrate( 15.0, -16.0, 0.0, 1.2, false); addCrate( 15.0, -16.0, 0.8, 1.1);
+  addCrate(-16.0, -18.0, 0.0, 1.0);
+  addCrate(  0.0, -25.0, 0.0, 1.3, false); addCrate(  0.0, -25.0, 0.8, 1.1, false); addCrate(  0.0, -25.0, 1.6, 0.9);
+
+  charRoot.position.set(0, CHAR_BASE_Y, 8);
+  resetCharacterState();
+}
 
 // ── INPUT ─────────────────────────────────────────────────────────────────────
-const keys = { up:false, down:false, left:false, right:false };
+const kb    = { up:false, down:false, left:false, right:false };
+const touch = { up:0, down:0, left:0, right:0 };
+const keys  = { up:0, down:0, left:0, right:0 }; // pro Frame aus kb+touch gemischt
 let jumpBuf = false;
 
 document.addEventListener('keydown', e => {
-  if (e.key==='ArrowUp'    ||e.key==='w'||e.key==='W') keys.up    = true;
-  if (e.key==='ArrowDown'  ||e.key==='s'||e.key==='S') keys.down  = true;
-  if (e.key==='ArrowLeft'  ||e.key==='a'||e.key==='A') keys.left  = true;
-  if (e.key==='ArrowRight' ||e.key==='d'||e.key==='D') keys.right = true;
+  if (e.key==='ArrowUp'    ||e.key==='w'||e.key==='W') kb.up    = true;
+  if (e.key==='ArrowDown'  ||e.key==='s'||e.key==='S') kb.down  = true;
+  if (e.key==='ArrowLeft'  ||e.key==='a'||e.key==='A') kb.left  = true;
+  if (e.key==='ArrowRight' ||e.key==='d'||e.key==='D') kb.right = true;
   if (e.key===' ') { jumpBuf = true; e.preventDefault(); }
 });
 document.addEventListener('keyup', e => {
-  if (e.key==='ArrowUp'    ||e.key==='w'||e.key==='W') keys.up    = false;
-  if (e.key==='ArrowDown'  ||e.key==='s'||e.key==='S') keys.down  = false;
-  if (e.key==='ArrowLeft'  ||e.key==='a'||e.key==='A') keys.left  = false;
-  if (e.key==='ArrowRight' ||e.key==='d'||e.key==='D') keys.right = false;
+  if (e.key==='ArrowUp'    ||e.key==='w'||e.key==='W') kb.up    = false;
+  if (e.key==='ArrowDown'  ||e.key==='s'||e.key==='S') kb.down  = false;
+  if (e.key==='ArrowLeft'  ||e.key==='a'||e.key==='A') kb.left  = false;
+  if (e.key==='ArrowRight' ||e.key==='d'||e.key==='D') kb.right = false;
 });
-['bU','bD','bL','bR'].forEach((id, i) => {
-  const k = ['up','down','left','right'][i], el = document.getElementById(id);
-  el.addEventListener('pointerdown',  e => { keys[k]=true;  el.classList.add('on');    e.preventDefault(); });
-  el.addEventListener('pointerup',    e => { keys[k]=false; el.classList.remove('on'); e.preventDefault(); });
-  el.addEventListener('pointerleave', () => { keys[k]=false; el.classList.remove('on'); });
-});
+
+// Virtueller 360°-Joystick: der Knüppel folgt dem Finger/der Maus in jede
+// Richtung und liefert analoge 0..1-Beträge statt reiner Booleans
+// (ported von toy-story/gameplay/player.js).
+const joystickEl = document.getElementById('joystick');
+const knobEl = document.getElementById('joystick-knob');
+if (joystickEl && knobEl) {
+  const JOY_RADIUS = 50;
+  let activeTouchId = null;
+  const setFromPoint = (clientX, clientY) => {
+    const rect = joystickEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    let dx = clientX - cx, dy = clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > JOY_RADIUS) { dx = (dx / dist) * JOY_RADIUS; dy = (dy / dist) * JOY_RADIUS; }
+    knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+    touch.left  = Math.max(0, -dx / JOY_RADIUS);
+    touch.right = Math.max(0,  dx / JOY_RADIUS);
+    touch.up    = Math.max(0, -dy / JOY_RADIUS);
+    touch.down  = Math.max(0,  dy / JOY_RADIUS);
+  };
+  const resetJoystick = () => {
+    knobEl.style.transform = '';
+    touch.up = touch.down = touch.left = touch.right = 0;
+    activeTouchId = null;
+  };
+  joystickEl.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    activeTouchId = t.identifier;
+    setFromPoint(t.clientX, t.clientY);
+  }, { passive: false });
+  joystickEl.addEventListener('touchmove', e => {
+    if (activeTouchId === null) return;
+    for (const t of e.changedTouches) if (t.identifier === activeTouchId) setFromPoint(t.clientX, t.clientY);
+    e.preventDefault();
+  }, { passive: false });
+  const endTouch = e => { for (const t of e.changedTouches) if (t.identifier === activeTouchId) resetJoystick(); };
+  joystickEl.addEventListener('touchend', endTouch, { passive: false });
+  joystickEl.addEventListener('touchcancel', endTouch, { passive: false });
+  let mouseDown = false;
+  joystickEl.addEventListener('mousedown', e => { mouseDown = true; setFromPoint(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', e => { if (mouseDown) setFromPoint(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', () => { if (mouseDown) { mouseDown = false; resetJoystick(); } });
+}
+
 const jumpEl = document.getElementById('jumpBtn');
 jumpEl.addEventListener('pointerdown', e => { jumpBuf=true; jumpEl.classList.add('on'); e.preventDefault(); });
 jumpEl.addEventListener('pointerup',    () => jumpEl.classList.remove('on'));
 jumpEl.addEventListener('pointerleave', () => jumpEl.classList.remove('on'));
 
-let swipeOrigin = null;
-renderer.domElement.addEventListener('touchstart', e => {
-  swipeOrigin = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-}, { passive: true });
-renderer.domElement.addEventListener('touchmove', e => {
-  if (!swipeOrigin) return;
-  const dx = e.touches[0].clientX - swipeOrigin.x, dy = e.touches[0].clientY - swipeOrigin.y, th = 20;
-  keys.up=dy<-th; keys.down=dy>th; keys.left=dx<-th; keys.right=dx>th;
-  e.preventDefault();
-}, { passive: false });
-renderer.domElement.addEventListener('touchend', () => {
-  keys.up=keys.down=keys.left=keys.right=false; swipeOrigin=null;
+// ── LEVEL SELECT ─────────────────────────────────────────────────────────────
+const levelSelectEl = document.getElementById('levelSelect');
+const levelBtnEl    = document.getElementById('levelBtn');
+let frozen  = true;
+let started = false;
+
+function chooseLevel(name) {
+  if (name === 'warehouse') buildWarehouseLevel(); else buildForestLevel();
+  levelSelectEl.style.display = 'none';
+  frozen = false;
+  if (!started) { started = true; loop(); }
+}
+document.querySelectorAll('.levelCard').forEach(el => {
+  el.addEventListener('click', () => chooseLevel(el.dataset.level));
+});
+levelBtnEl.addEventListener('click', () => {
+  frozen = true;
+  levelSelectEl.style.display = 'flex';
 });
 
 // ── PHYSICS ───────────────────────────────────────────────────────────────────
 const CHAR_BASE_Y = 0.10;
 const GRAVITY     = -22;
 const JUMP_VEL    =  8.2;
+const PLAYER_RADIUS       = 0.30;
+const AUTO_STEP_MAX_TOPY  = 0.85; // Kisten bis zu dieser Höhe: frei begehbare Stufe
+const GRAB_REACH   = 0.55;
+const GRAB_SETTLE  = 0.16; // s, bis der Hang-Pose eingerastet ist
+const CLIMB_DUR    = 0.85; // s, volle Hochzieh-Animation
 
 let velY     = 0;
 let onGround = true;
@@ -336,12 +519,69 @@ function getSurfaceY(cx, cz) {
   return s;
 }
 
-// ── JUMP STATE MACHINE ────────────────────────────────────────────────────────
-const JS = { NONE:0, WINDUP:1, AIR:2, LAND:3 };
+// Blockiert das Hineinlaufen in Kisten, die zu hoch für eine automatische
+// Stufe sind (stattdessen: springen + an der Kante hochziehen, s.u.).
+function resolveWallCollisions() {
+  for (const c of crateData) {
+    if (c.topY <= AUTO_STEP_MAX_TOPY) continue;
+    const halfX = c.hw + PLAYER_RADIUS, halfZ = c.hd + PLAYER_RADIUS;
+    const dx = charRoot.position.x - c.x, dz = charRoot.position.z - c.z;
+    if (Math.abs(dx) >= halfX || Math.abs(dz) >= halfZ) continue;
+    const surfaceY = c.topY + CHAR_BASE_Y;
+    if (charRoot.position.y + 0.05 >= surfaceY) continue; // schon oben drauf/drüber
+    const penX = halfX - Math.abs(dx), penZ = halfZ - Math.abs(dz);
+    if (penX < penZ) charRoot.position.x = c.x + Math.sign(dx || 1) * halfX;
+    else             charRoot.position.z = c.z + Math.sign(dz || 1) * halfZ;
+  }
+}
+
+// In der Luft nah an einer zu hohen Kistenkante → einhängen (wie das
+// Kanten-Greifen in cape-character/rooftop-wanderer, auf 3D/Top-Down
+// übertragen: nächster Punkt auf der Kisten-AABB statt links/rechts).
+function tryGrabLedge() {
+  const px = charRoot.position.x, pz = charRoot.position.z, py = charRoot.position.y;
+  for (const c of crateData) {
+    if (c.topY <= AUTO_STEP_MAX_TOPY) continue;
+    const nx = Math.max(c.x - c.hw, Math.min(c.x + c.hw, px));
+    const nz = Math.max(c.z - c.hd, Math.min(c.z + c.hd, pz));
+    const dist = Math.hypot(px - nx, pz - nz);
+    if (dist > GRAB_REACH) continue;
+    const surfaceY = c.topY + CHAR_BASE_Y;
+    const rel = py - surfaceY;
+    if (rel > -1.60 && rel < -0.05) {
+      // Richtung von der Kistenmitte zum Charakter — robust auch wenn der
+      // Charakter (durch die Wand-Kollision) fast exakt an der Kanten-
+      // Bounding-Box klebt, wo der nächste-Punkt-Vektor gegen 0 ginge.
+      let dirX = px - c.x, dirZ = pz - c.z;
+      const dirLen = Math.hypot(dirX, dirZ) || 1;
+      dirX /= dirLen; dirZ /= dirLen;
+      hangCrate   = c;
+      grabFromX = px; grabFromY = py; grabFromZ = pz;
+      hangTargetX = nx + dirX * 0.36;
+      hangTargetZ = nz + dirZ * 0.36;
+      hangTargetY = surfaceY - 1.55;
+      hangYaw     = Math.atan2(-dirX, -dirZ); // Blick zur Kiste hin
+      jumpState = JS.HANG; jumpTimer = 0; grabT = 0;
+      velY = 0; moveSpeed = 0;
+      return true;
+    }
+  }
+  return false;
+}
+
+// ── JUMP / HANG / CLIMB STATE MACHINE ─────────────────────────────────────────
+const JS = { NONE:0, WINDUP:1, AIR:2, LAND:3, HANG:4, CLIMB:5 };
 const WINDUP_DUR = 0.17;   // crouch-before-jump duration (s)
 const LAND_DUR   = 0.28;   // landing-squat duration (s)
 let jumpState = JS.NONE;
 let jumpTimer = 0;
+
+let hangCrate = null;
+let grabFromX=0, grabFromY=0, grabFromZ=0;
+let hangTargetX=0, hangTargetY=0, hangTargetZ=0, hangYaw=0;
+let grabT = 0;
+let climbFromX=0, climbFromY=0, climbFromZ=0, climbToX=0, climbToY=0, climbToZ=0;
+let climbT = 0;
 
 // ── ANIMATION STATE ───────────────────────────────────────────────────────────
 let animT        = 0;
@@ -365,6 +605,17 @@ let scratchPhase = 0;
 let headYawTgt   = 0;
 
 function lerp(a, b, t) { return a + (b - a) * t; }
+function smooth(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
+
+function resetCharacterState() {
+  charYaw = 0; charRoot.rotation.y = 0;
+  velY = 0; onGround = true; moveSpeed = 0;
+  jumpState = JS.NONE; jumpTimer = 0; jumpBuf = false;
+  hangCrate = null; grabT = 0; climbT = 0;
+  animT = 0; idleTimer = 0; scratchPhase = 0;
+  camDist = 7.0;
+  camPos.set(charRoot.position.x, charRoot.position.y + 3.5, charRoot.position.z - 7);
+}
 
 function animateCharacter(dt) {
   const moving = (keys.up || keys.down) && jumpState === JS.NONE;
@@ -456,6 +707,56 @@ function animateCharacter(dt) {
     torso.rotation.y     = 0;
     headJoint.rotation.x = lerp(headJoint.rotation.x, 0.0, 0.15);
 
+  // ─ HANG: dangling from a grabbed ledge, reaching up ──────────────────────
+  } else if (jumpState === JS.HANG) {
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -2.3, 0.28);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -2.3, 0.28);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.16, 0.22);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.16, 0.22);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x, -0.18, 0.28);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x, -0.18, 0.28);
+    lHip.rotation.x       = lerp(lHip.rotation.x,   0.16, 0.22);
+    rHip.rotation.x       = lerp(rHip.rotation.x,   0.22, 0.22);
+    lKnee.rotation.x      = lerp(lKnee.rotation.x,  0.28, 0.22);
+    rKnee.rotation.x      = lerp(rKnee.rotation.x,  0.34, 0.22);
+    lAnkle.rotation.x     = lerp(lAnkle.rotation.x, 0, 0.2);
+    rAnkle.rotation.x     = lerp(rAnkle.rotation.x, 0, 0.2);
+    torso.rotation.x      = lerp(torso.rotation.x,  0.12, 0.22);
+    torso.rotation.y      = 0;
+    torso.position.y      = lerp(torso.position.y, 1.26, 0.22);
+    headJoint.rotation.x  = lerp(headJoint.rotation.x, -0.25, 0.2);
+
+  // ─ CLIMB: scripted mantle — pull up, then swing legs onto the ledge ──────
+  } else if (jumpState === JS.CLIMB) {
+    const p = Math.min(1, climbT / CLIMB_DUR);
+    if (p < 0.55) {
+      const e = p / 0.55;
+      lShoulder.rotation.x = lerp(lShoulder.rotation.x, -2.3 + 1.2 * e, 0.35);
+      rShoulder.rotation.x = lerp(rShoulder.rotation.x, -2.3 + 1.2 * e, 0.35);
+      lShoulder.rotation.z = lerp(lShoulder.rotation.z, 0, 0.3);
+      rShoulder.rotation.z = lerp(rShoulder.rotation.z, 0, 0.3);
+      lElbow.rotation.x    = lerp(lElbow.rotation.x, -1.5, 0.3);
+      rElbow.rotation.x    = lerp(rElbow.rotation.x, -1.5, 0.3);
+      lHip.rotation.x      = lerp(lHip.rotation.x,  -0.55, 0.3);
+      rHip.rotation.x      = lerp(rHip.rotation.x,  -0.75, 0.3);
+      lKnee.rotation.x     = lerp(lKnee.rotation.x,   1.55, 0.3);
+      rKnee.rotation.x     = lerp(rKnee.rotation.x,   1.75, 0.3);
+      torso.rotation.x     = lerp(torso.rotation.x,   0.35, 0.3);
+      headJoint.rotation.x = lerp(headJoint.rotation.x, -0.30, 0.25);
+    } else {
+      lShoulder.rotation.x = lerp(lShoulder.rotation.x, -0.15, 0.25);
+      rShoulder.rotation.x = lerp(rShoulder.rotation.x, -0.15, 0.25);
+      lElbow.rotation.x    = lerp(lElbow.rotation.x, -0.12, 0.25);
+      rElbow.rotation.x    = lerp(rElbow.rotation.x, -0.12, 0.25);
+      lHip.rotation.x      = lerp(lHip.rotation.x,  0, 0.25);
+      rHip.rotation.x      = lerp(rHip.rotation.x,  0, 0.25);
+      lKnee.rotation.x     = lerp(lKnee.rotation.x, 0, 0.25);
+      rKnee.rotation.x     = lerp(rKnee.rotation.x, 0, 0.25);
+      torso.rotation.x     = lerp(torso.rotation.x, 0, 0.22);
+      torso.position.y     = lerp(torso.position.y, 1.26, 0.22);
+      headJoint.rotation.x = lerp(headJoint.rotation.x, 0, 0.25);
+    }
+
   // ─ NONE: run / idle ───────────────────────────────────────────────────────
   } else {
     if (!doScratch) {
@@ -486,29 +787,31 @@ function animateCharacter(dt) {
   }
 }
 
-// ── GAME LOOP ─────────────────────────────────────────────────────────────────
-let lastTime = performance.now();
-
-function loop() {
-  requestAnimationFrame(loop);
-  const now = performance.now();
-  const dt  = Math.min((now - lastTime) / 1000, 0.05);
-  lastTime  = now;
-
+// ── PER-STATE UPDATE FUNCTIONS ────────────────────────────────────────────────
+function updateNormal(dt) {
   // ── Turn
-  if (keys.left)  charYaw += TURN_RATE * dt;
-  if (keys.right) charYaw -= TURN_RATE * dt;
+  if (keys.left)  charYaw += TURN_RATE * dt * keys.left;
+  if (keys.right) charYaw -= TURN_RATE * dt * keys.right;
   charRoot.rotation.y = charYaw;
 
   const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
 
   // ── Move with smooth acceleration / deceleration
-  const wantMove = keys.up || keys.down;
+  const wantMove = keys.up > 0.05 || keys.down > 0.05;
   if (wantMove) moveSpeed = Math.min(moveSpeed + ACCEL_RATE * dt, SPEED_MAX);
   else          moveSpeed = Math.max(moveSpeed - DECEL_RATE * dt, 0);
 
-  if (keys.up)   { charRoot.position.x += fwdX * moveSpeed * dt; charRoot.position.z += fwdZ * moveSpeed * dt; }
-  if (keys.down) { charRoot.position.x -= fwdX * moveSpeed * dt; charRoot.position.z -= fwdZ * moveSpeed * dt; }
+  if (keys.up)   { charRoot.position.x += fwdX * moveSpeed * dt * keys.up;   charRoot.position.z += fwdZ * moveSpeed * dt * keys.up; }
+  if (keys.down) { charRoot.position.x -= fwdX * moveSpeed * dt * keys.down; charRoot.position.z -= fwdZ * moveSpeed * dt * keys.down; }
+
+  if (worldBounds) {
+    charRoot.position.x = Math.max(worldBounds.minX, Math.min(worldBounds.maxX, charRoot.position.x));
+    charRoot.position.z = Math.max(worldBounds.minZ, Math.min(worldBounds.maxZ, charRoot.position.z));
+  }
+
+  // ── Ledge grab check (mid-air only) — takes over the frame if it fires
+  if (jumpState === JS.AIR && tryGrabLedge()) return;
+  resolveWallCollisions();
 
   // ── Jump state machine
   if (jumpBuf && onGround && jumpState !== JS.WINDUP && jumpState !== JS.AIR) {
@@ -548,11 +851,80 @@ function loop() {
     onGround = false;
     if (jumpState === JS.NONE) jumpState = JS.AIR;  // walked off edge
   }
+}
 
-  // ── Limb animation
-  animateCharacter(dt);
+function updateHang(dt) {
+  jumpTimer += dt;
+  grabT = Math.min(1, grabT + dt / GRAB_SETTLE);
+  const e = smooth(grabT);
+  charRoot.position.x = lerp(grabFromX, hangTargetX, e);
+  charRoot.position.y = lerp(grabFromY, hangTargetY, e);
+  charRoot.position.z = lerp(grabFromZ, hangTargetZ, e);
+  charYaw = hangYaw;
+  charRoot.rotation.y = charYaw;
+  velY = 0; moveSpeed = 0;
+
+  if (grabT >= 1) {
+    if (jumpBuf) {
+      jumpBuf = false;
+      climbFromX = charRoot.position.x; climbFromY = charRoot.position.y; climbFromZ = charRoot.position.z;
+      climbToX = hangCrate.x; climbToZ = hangCrate.z; climbToY = hangCrate.topY + CHAR_BASE_Y;
+      jumpState = JS.CLIMB; jumpTimer = 0; climbT = 0;
+    } else if (keys.down > 0.3) {
+      jumpState = JS.AIR; hangCrate = null; // loslassen
+    }
+  }
+}
+
+function updateClimb(dt) {
+  climbT += dt;
+  const p = Math.min(1, climbT / CLIMB_DUR);
+  const liftY = climbToY + 0.30;
+  let fx, fy, fz;
+  if (p < 0.55) {
+    fx = climbFromX; fz = climbFromZ;
+    fy = lerp(climbFromY, liftY, smooth(p / 0.55));
+  } else {
+    const e = smooth((p - 0.55) / 0.45);
+    fx = lerp(climbFromX, climbToX, e);
+    fz = lerp(climbFromZ, climbToZ, e);
+    fy = lerp(liftY, climbToY, e);
+  }
+  charRoot.position.set(fx, fy, fz);
+  charRoot.rotation.y = charYaw;
+  if (p >= 1) {
+    jumpState = JS.NONE;
+    hangCrate = null;
+    onGround  = true;
+    velY = 0;
+    charRoot.position.set(climbToX, climbToY, climbToZ);
+  }
+}
+
+// ── GAME LOOP ─────────────────────────────────────────────────────────────────
+let lastTime = performance.now();
+
+function loop() {
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  const dt  = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime  = now;
+
+  if (!frozen) {
+    keys.up    = Math.max(kb.up    ? 1 : 0, touch.up);
+    keys.down  = Math.max(kb.down  ? 1 : 0, touch.down);
+    keys.left  = Math.max(kb.left  ? 1 : 0, touch.left);
+    keys.right = Math.max(kb.right ? 1 : 0, touch.right);
+
+    if (jumpState === JS.HANG)       updateHang(dt);
+    else if (jumpState === JS.CLIMB) updateClimb(dt);
+    else                              updateNormal(dt);
+
+    animateCharacter(dt);
+  }
 
   // ── Camera: behind character, zooms in when idle
+  const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
   const moving = keys.up || keys.down;
   camDist = lerp(camDist, moving ? 7.0 : 4.0, dt * 2.5);
   const tCam = new THREE.Vector3(
@@ -572,13 +944,14 @@ function loop() {
   renderer.render(scene, camera);
 }
 
-loop();
-
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
+
+// Erstes Bild zeigen, solange die Level-Auswahl offen ist.
+renderer.render(scene, camera);
 </script>
 </body>
 </html>
