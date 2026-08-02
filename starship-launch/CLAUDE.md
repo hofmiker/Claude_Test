@@ -37,7 +37,13 @@ abzuwarten.
   als fahrbares Gefährt (siehe unten).
 - **Raumstation:** 6 verbundene Module (teils mit Kuppeln) direkt auf dem
   Boden stehend (keine Stelzen), über Verbindungsröhren verbunden, mit
-  Kollisionserkennung (kann nicht durchlaufen/durchfahren werden).
+  Kollisionserkennung (kann nicht durchlaufen/durchfahren werden) — sowohl
+  die Module ALS AUCH die Verbindungsröhren selbst sind kollidierbar
+  (`registerLineCollider`, sampled entlang der bekannten Modul-Endpunkte,
+  da die Röhren-Meshes eine andere lokale Achsausrichtung als die Module
+  haben). Auch die Antennenschüssel und das Leuchtfeuer der Landebasis sowie
+  der Rover (jetzt mit realistischerem Kollisionsradius passend zu Rädern/
+  Chassis) sind kollidierbar.
 - **Erde:** am Horizont sichtbar, tief genug positioniert, dass die flache
   Mondoberfläche ihre untere Hälfte im Tiefenpuffer abschneidet — wirkt wie
   ein "Erdaufgang" am Horizont statt einer voll sichtbaren Kugel am Himmel.
@@ -90,12 +96,38 @@ abzuwarten.
 - Kristall-Zähler oben links.
 - Kontext-Hinweise ("Sprung-Taste zum Einsteigen" / "Aktion-Taste zum
   Aufheben") blenden nur ein, wenn wirklich etwas in Reichweite ist.
+- Vollbild-Button (oben links, unter dem Kristall-Zähler): schaltet per
+  Fullscreen API auf `document.documentElement` um (damit alle UI-Overlays
+  im Vollbild sichtbar/bedienbar bleiben), Icon wechselt zwischen
+  Ausklapp-/Einklapp-Ecken je nach Zustand. Blendet sich selbst aus, falls
+  die Fullscreen API im Browser fehlt (z. B. iOS Safari).
+- Die Seite lässt sich nicht per Pinch/Doppeltipp/Strg+Mausrad zoomen
+  (Viewport-Meta + `touch-action:none` + Desktop-Handler) — das war zuvor
+  möglich und führte zu einem leicht verrutschten Bild. Das Canvas ist
+  zusätzlich fest auf den sichtbaren Viewport gepinnt (`position:fixed`,
+  `visualViewport`-bewusstes Resize) statt im normalen Dokumentfluss zu
+  hängen, was das Verrutschen behoben hat.
 
 ## Sound
-Rein prozedural über die Web Audio API (kein externes Audio-Asset):
-Schritte, Sprung, Landung, Kristall-Chime, sowie das drehzahlabhängige
-Rover-Triebwerksgeräusch. Der `AudioContext` wird lazy beim ersten
-Tastendruck/Touch erzeugt (Autoplay-Policy).
+Rein prozedural über die Web Audio API (kein externes Audio-Asset), alle
+Quellen über einen gemeinsamen Master-Gain + Kompressor geroutet (Schutz
+vor Clipping, seit mehrere Dauerklänge gleichzeitig laufen können):
+- Schritte, Landung, Kristall-Chime, Rakentenboost-Sound (Rucksack) wie
+  zuvor. Der Sprung-Sound wurde bewusst "unarcadiger" gemacht (leiser,
+  tieferer Einzelton + weiches Rauschen statt der ursprünglichen
+  aufsteigenden Zweiton-Blip-Bleep-Kombination).
+- Donnerndes Raketen-Rumble während Zündung/Aufstieg (zwei tiefe,
+  LFO-modulierte Sägezahn-Oszillatoren + ein Zündungs-Rauschstoß) — vorher
+  gab es dort nur ein Kamera-Shake ohne jeden Ton.
+- Dezentes Astronauten-Atemgeräusch (gefiltertes Loop-Rauschen mit
+  langsamer Lautstärke-Schwankung), aktiv zu Fuß, pausiert während der
+  Fahrt (das Rover-Triebwerksgeräusch trägt dort den Ton).
+- Leises, unaufdringliches atmosphärisches Drone/Pad (drei leicht
+  verstimmte Sinus-Layer), startet einmalig beim Gameplay-Einstieg und
+  läuft durchgehend weiter (zu Fuß wie im Fahrzeug).
+- Das drehzahlabhängige Rover-Triebwerksgeräusch wie zuvor.
+Der `AudioContext` wird lazy beim ersten Tastendruck/Touch erzeugt
+(Autoplay-Policy).
 
 ## Tech-Stack
 - Three.js r160, lokal vendored unter `vendor/three.module.min.js`

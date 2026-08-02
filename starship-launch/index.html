@@ -2,12 +2,16 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Starship Launch</title>
 <style>
-  html, body { margin:0; height:100%; overflow:hidden; background:#8ec9f0; }
+  html, body {
+    margin:0; width:100%; height:100%; overflow:hidden; background:#8ec9f0;
+    touch-action:none; overscroll-behavior:none;
+    -webkit-text-size-adjust:100%; text-size-adjust:100%;
+  }
   #sky { position:fixed; inset:0; background:linear-gradient(#8ec9f0,#cfe9ff); transition:none; z-index:0; }
-  canvas { display:block; position:relative; z-index:1; }
+  canvas { display:block; position:fixed; inset:0; width:100%; height:100%; z-index:1; }
   #glow {
     position:fixed; width:820px; height:820px; border-radius:50%;
     pointer-events:none; transform:translate(-50%,-50%); opacity:0;
@@ -95,6 +99,16 @@
     background:rgba(10,12,20,.5);
   }
   @media (max-width:768px), (pointer:coarse) { #minimap { width:122px; height:122px; } }
+  #fullscreenBtn {
+    position:fixed; top:64px; left:16px; z-index:5;
+    width:44px; height:44px; background:rgba(20,20,25,.45); border:2px solid rgba(255,255,255,.55);
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; backdrop-filter:blur(2px);
+  }
+  #fullscreenBtn:active { background:rgba(255,255,255,.25); }
+  #fullscreenBtn .ico-compress { display:none; }
+  #fullscreenBtn.on .ico-expand { display:none; }
+  #fullscreenBtn.on .ico-compress { display:inline; }
 </style>
 </head>
 <body>
@@ -110,6 +124,20 @@
 <div id="joystick"><div id="joystick-knob"></div></div>
 <div id="jumpBtn"><span class="ico"></span></div>
 <div id="actionBtn"><span class="ico"></span></div>
+<div id="fullscreenBtn" title="Vollbild">
+  <svg class="ico-expand" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+    <polyline points="8 3 3 3 3 8"/>
+    <polyline points="16 3 21 3 21 8"/>
+    <polyline points="8 21 3 21 3 16"/>
+    <polyline points="16 21 21 21 21 16"/>
+  </svg>
+  <svg class="ico-compress" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+    <polyline points="3 8 8 8 8 3"/>
+    <polyline points="21 8 16 8 16 3"/>
+    <polyline points="3 16 8 16 8 21"/>
+    <polyline points="21 16 16 16 16 21"/>
+  </svg>
+</div>
 
 <script type="importmap">
 { "imports": { "three": "./vendor/three.module.min.js" } }
@@ -143,12 +171,34 @@ const fill = new THREE.AmbientLight(0x8899aa, 0.25);
 scene.add(fill);
 
 function resize(){
-  renderer.setSize(innerWidth, innerHeight);
-  camera.aspect = innerWidth/innerHeight;
+  const w = window.visualViewport ? window.visualViewport.width  : innerWidth;
+  const h = window.visualViewport ? window.visualViewport.height : innerHeight;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
   camera.updateProjectionMatrix();
 }
-addEventListener("resize", resize);
+let resizeQueued = false;
+function scheduleResize(){
+  if (resizeQueued) return;
+  resizeQueued = true;
+  requestAnimationFrame(() => { resizeQueued = false; resize(); });
+}
+addEventListener("resize", scheduleResize);
+if (window.visualViewport){
+  visualViewport.addEventListener("resize", scheduleResize);
+  visualViewport.addEventListener("scroll", scheduleResize);
+}
 resize();
+
+/* ---------- prevent browser zoom (desktop ctrl+wheel / ctrl+plus/minus) ---------- */
+addEventListener("wheel", e => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
+addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && ["+","-","=","0"].includes(e.key)) e.preventDefault();
+}, { passive:false });
+["gesturestart","gesturechange"].forEach(evt =>
+  addEventListener(evt, e => e.preventDefault(), { passive:false })
+);
 
 /* ---------- materials ---------- */
 const MAT = {
@@ -702,6 +752,23 @@ function registerCapsuleCollider(obj, r, len, segments){
     moonCollidables.push({ x:p.x, z:p.z, r });
   }
 }
+// Same idea as registerCapsuleCollider, but for objects (like the station's
+// connector tubes) whose long axis isn't local X -- takes known local-space
+// endpoints directly instead of assuming an axis to sample along.
+function registerLineCollider(fromLocal, toLocal, r, groupObj, segments){
+  const n = segments || 4;
+  const p = new THREE.Vector3();
+  for (let i=0;i<n;i++){
+    const tt = n===1 ? 0.5 : i/(n-1);
+    p.set(
+      fromLocal[0] + (toLocal[0]-fromLocal[0])*tt,
+      fromLocal[1] + (toLocal[1]-fromLocal[1])*tt,
+      fromLocal[2] + (toLocal[2]-fromLocal[2])*tt
+    );
+    groupObj.localToWorld(p);
+    moonCollidables.push({ x:p.x, z:p.z, r });
+  }
+}
 function resolvePush(x, z, radius, list){
   let rx = x, rz = z;
   for (const c of list){
@@ -800,6 +867,8 @@ function resolvePush(x, z, radius, list){
   const landingBase = buildLandingBase();
   landingBase.position.set(PAD_X, 0, 0);
   moonScene.add(landingBase);
+  moonCollidables.push({ x: PAD_X-16, z: 14,  r: 1.0 }); // dish pole
+  moonCollidables.push({ x: PAD_X+15, z: -15, r: 1.0 }); // beacon pole
 
   function buildRover(){
     const grp = new THREE.Group();
@@ -915,6 +984,11 @@ function resolvePush(x, z, radius, list){
   moonScene.add(stationGroup);
   stationGroup.updateMatrixWorld(true);
   stationMods.forEach((m,i) => registerCapsuleCollider(m, modDefs[i].r, modDefs[i].len));
+  registerLineCollider(modPos(0), modPos(1), 2.6, stationGroup);
+  registerLineCollider(modPos(0), modPos(2), 2.5, stationGroup);
+  registerLineCollider(modPos(2), modPos(3), 2.2, stationGroup);
+  registerLineCollider(modPos(0), modPos(4), 2.2, stationGroup);
+  registerLineCollider(modPos(0), modPos(5), 2.0, stationGroup);
 
   // Glow is a cheap additive-blended unlit halo mesh, not a THREE.PointLight --
   // adding 10 more dynamic lights forces a shader recompile for every material
@@ -1153,11 +1227,17 @@ function updateCrystals(dt, tt, px, pz){
 
 /* ---------- audio: procedural sound effects (Web Audio API, no external assets) ---------- */
 let audioCtx = null;
+let masterGain = null;
 function ensureAudio(){
   if (!audioCtx){
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if (!Ctx) return null;
     audioCtx = new Ctx();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 1;
+    const compressor = audioCtx.createDynamicsCompressor();
+    masterGain.connect(compressor);
+    compressor.connect(audioCtx.destination);
   }
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
@@ -1172,7 +1252,7 @@ function playTone(freq, dur, type, gainPeak, when){
   gain.gain.setValueAtTime(0.0001, t0);
   gain.gain.linearRampToValueAtTime(gainPeak, t0+0.012);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
-  osc.connect(gain); gain.connect(ctx.destination);
+  osc.connect(gain); gain.connect(masterGain);
   osc.start(t0); osc.stop(t0+dur+0.02);
 }
 function playNoiseBurst(dur, gainPeak, filterFreq){
@@ -1188,11 +1268,14 @@ function playNoiseBurst(dur, gainPeak, filterFreq){
   filter.type = 'lowpass'; filter.frequency.value = filterFreq || 1200;
   const gain = ctx.createGain();
   gain.gain.value = gainPeak;
-  src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+  src.connect(filter); filter.connect(gain); gain.connect(masterGain);
   src.start();
 }
 function playStep(){ playNoiseBurst(0.07, 0.14, 850); }
-function playJump(){ playTone(340, 0.16, 'triangle', 0.20); playTone(560, 0.10, 'triangle', 0.10, 0.02); }
+function playJump(){
+  playNoiseBurst(0.18, 0.10, 700);
+  playTone(180, 0.14, 'sine', 0.07, 0.01);
+}
 function playLand(){ playNoiseBurst(0.11, 0.20, 480); }
 function playCollectChime(){
   playTone(660, 0.14, 'sine', 0.22);
@@ -1211,7 +1294,7 @@ function playJetBoost(){
   gain.gain.setValueAtTime(0.0001, t0);
   gain.gain.linearRampToValueAtTime(0.22, t0+0.05);
   gain.gain.exponentialRampToValueAtTime(0.0001, t0+0.5);
-  osc.connect(gain); gain.connect(ctx.destination);
+  osc.connect(gain); gain.connect(masterGain);
   osc.start(t0); osc.stop(t0+0.52);
 }
 
@@ -1226,7 +1309,7 @@ function startEngineSound(){
   engineFilter.type = 'lowpass'; engineFilter.frequency.value = 350;
   engineGain = ctx.createGain();
   engineGain.gain.value = 0.001;
-  engineOsc.connect(engineFilter); engineFilter.connect(engineGain); engineGain.connect(ctx.destination);
+  engineOsc.connect(engineFilter); engineFilter.connect(engineGain); engineGain.connect(masterGain);
   engineOsc.start();
 }
 function stopEngineSound(){
@@ -1242,6 +1325,103 @@ function updateEngineSound(speedRatio){
   engineOsc.frequency.value = 55 + r*90;
   engineGain.gain.value = 0.05 + r*0.09;
   engineFilter.frequency.value = 300 + r*500;
+}
+
+// Rocket launch rumble: two detuned low sawtooths pushed through a slow LFO
+// for a "grumble" texture, plus a one-shot ignition crack -- there was no
+// audio at all for launch before this, only a camera shake.
+let rumbleNodes = null;
+function startLaunchRumble(){
+  const ctx = ensureAudio();
+  if (!ctx || rumbleNodes) return;
+  const osc1 = ctx.createOscillator(); osc1.type = 'sawtooth'; osc1.frequency.value = 45;
+  const osc2 = ctx.createOscillator(); osc2.type = 'sawtooth'; osc2.frequency.value = 62;
+  const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 5.5;
+  const lfoGain = ctx.createGain(); lfoGain.gain.value = 18;
+  lfo.connect(lfoGain); lfoGain.connect(osc1.frequency); lfoGain.connect(osc2.frequency);
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = 150;
+  const gain = ctx.createGain();
+  gain.gain.value = 0.0001;
+  osc1.connect(filter); osc2.connect(filter); filter.connect(gain); gain.connect(masterGain);
+  osc1.start(); osc2.start(); lfo.start();
+  rumbleNodes = { osc1, osc2, lfo, filter, gain };
+}
+function updateLaunchRumble(intensity){
+  if (!rumbleNodes) return;
+  const ctx = ensureAudio();
+  rumbleNodes.gain.gain.linearRampToValueAtTime(0.05 + intensity*0.22, ctx.currentTime+0.08);
+  rumbleNodes.filter.frequency.value = 150 + intensity*300;
+}
+function stopLaunchRumble(){
+  if (!rumbleNodes) return;
+  const ctx = ensureAudio();
+  rumbleNodes.gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+1.2);
+  const nodes = rumbleNodes;
+  rumbleNodes = null;
+  setTimeout(() => { nodes.osc1.stop(); nodes.osc2.stop(); nodes.lfo.stop(); }, 1300);
+}
+function playIgnitionCrack(){ playNoiseBurst(1.4, 0.3, 180); }
+
+// Subtle astronaut suit breathing -- looped filtered noise with a slow
+// amplitude LFO for an inhale/exhale swell, active on foot, paused while
+// driving (the rover engine hum already carries the audio there).
+let breathNodes = null;
+function startBreathingSound(){
+  const ctx = ensureAudio();
+  if (!ctx || breathNodes) return;
+  const dur = 4.0;
+  const n = Math.floor(ctx.sampleRate*dur);
+  const buffer = ctx.createBuffer(1, n, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i=0;i<n;i++) data[i] = Math.random()*2-1;
+  const src = ctx.createBufferSource();
+  src.buffer = buffer; src.loop = true;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass'; filter.frequency.value = 600; filter.Q.value = 0.6;
+  const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 1/3.6;
+  const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.045;
+  const gain = ctx.createGain(); gain.gain.value = 0.05;
+  lfo.connect(lfoGain); lfoGain.connect(gain.gain);
+  src.connect(filter); filter.connect(gain); gain.connect(masterGain);
+  src.start(); lfo.start();
+  breathNodes = { src, filter, lfo, gain };
+}
+function stopBreathingSound(fade){
+  if (!breathNodes) return;
+  const ctx = ensureAudio();
+  const nodes = breathNodes;
+  breathNodes = null;
+  nodes.gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (fade||0.3));
+  setTimeout(() => { nodes.src.stop(); nodes.lfo.stop(); }, (fade||0.3)*1000 + 100);
+}
+
+// Faint, unobtrusive atmospheric drone -- started once gameplay begins and
+// left running (root/fifth/octave sines, each independently detuned for slow
+// movement) at a deliberately low target gain.
+let ambientNodes = null;
+function startAmbientMusic(){
+  const ctx = ensureAudio();
+  if (!ctx || ambientNodes) return;
+  const freqs = [55, 82.5, 110];
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = 500;
+  const master = ctx.createGain();
+  master.gain.value = 0.0001;
+  filter.connect(master); master.connect(masterGain);
+  const oscs = [];
+  freqs.forEach((f,i) => {
+    const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = f;
+    const detune = ctx.createOscillator(); detune.type = 'sine'; detune.frequency.value = 0.05 + i*0.02;
+    const detuneGain = ctx.createGain(); detuneGain.gain.value = 2.5;
+    detune.connect(detuneGain); detuneGain.connect(osc.detune);
+    const g = ctx.createGain(); g.gain.value = 0.28/(i+1);
+    osc.connect(g); g.connect(filter);
+    osc.start(); detune.start();
+    oscs.push(osc, detune);
+  });
+  master.gain.linearRampToValueAtTime(0.035, ctx.currentTime+3.0);
+  ambientNodes = { oscs, master, filter };
 }
 
 /* ---------- timeline / state ---------- */
@@ -1282,7 +1462,7 @@ function altitudeVelocity(tt){
 let t = 0;
 let state = null;
 function freshState(){
-  return { moonSwapped:false, separated:false, sepTime:0, sepVelY:0, sepX0:0, sepY0:0, sepZ0:0 };
+  return { moonSwapped:false, separated:false, sepTime:0, sepVelY:0, sepX0:0, sepY0:0, sepZ0:0, rumbleStarted:false };
 }
 state = freshState();
 let smokeAccum = 0, trailAccum = 0, dustAccum = 0;
@@ -1522,6 +1702,21 @@ actionEl.addEventListener('pointerdown', e => { ensureAudio(); actionBuf=true; a
 actionEl.addEventListener('pointerup',    () => actionEl.classList.remove('on'));
 actionEl.addEventListener('pointerleave', () => actionEl.classList.remove('on'));
 
+/* ---------- fullscreen toggle ---------- */
+const fsBtn = document.getElementById('fullscreenBtn');
+function isFullscreen(){ return !!document.fullscreenElement; }
+function toggleFullscreen(){
+  ensureAudio();
+  if (!isFullscreen()) document.documentElement.requestFullscreen?.().catch(() => {});
+  else document.exitFullscreen?.();
+}
+if (!document.documentElement.requestFullscreen){
+  fsBtn.style.display = 'none';
+} else {
+  fsBtn.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', () => fsBtn.classList.toggle('on', isFullscreen()));
+}
+
 const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 820;
 const MOBILE_CAM_MULT = 1.45;
 
@@ -1692,7 +1887,7 @@ let gameMode = false;
 const ROVER_MAX_SPD = 18, ROVER_ACCEL = 10.5, ROVER_BRAKE = 22, ROVER_FRICTION = 5, ROVER_STEER_RATE = 2.0;
 const ROVER_REVERSE_FRAC = 0.333; // keeps reverse top speed the same as before the forward-speed bump
 const VEHICLE_ENTER_RADIUS = 4.2;
-const ROVER_COLLIDE_R = 4 * ROVER_SCALE + 0.3; // chassis half-width (4) scaled, plus a small buffer
+const ROVER_COLLIDE_R = 7.2 * ROVER_SCALE + 0.3; // wheel extent (7.2, bigger than chassis half-width) scaled, plus a small buffer
 const CHAR_RADIUS = 0.55;
 const SEAT_LOCAL = new THREE.Vector3(-2, 7.3, -2.5); // local to unscaled rover geometry
 const SEAT_SIT_DROP = 0.45; // charRoot sits below the seat surface so the body doesn't float above it
@@ -1781,6 +1976,7 @@ function enterVehicle(){
   enterT = 0;
   enterFromPos.copy(astro.charRoot.position);
   enterFromYaw = charYaw;
+  stopBreathingSound();
   startEngineSound();
 }
 function exitVehicle(){
@@ -1796,6 +1992,7 @@ function exitVehicle(){
   gameCamPos.copy(camera.position);
   actionEl.style.display = 'flex';
   stopEngineSound();
+  startBreathingSound();
 }
 
 function updateRoverGameplay(dt){
@@ -1987,6 +2184,8 @@ function enterGameMode(){
   document.getElementById('crystalHud').style.display = 'flex';
   document.getElementById('skipBtn').style.display = 'none';
   gameCamPos.copy(camera.position);
+  startAmbientMusic();
+  if (!inVehicle) startBreathingSound();
 }
 
 /* ---------- post-landing cutscene: ramp out, hatch opens, astronaut exits ---------- */
@@ -2102,6 +2301,7 @@ function updateCutscene(dt){
 
 /* ---------- skip button: jump straight into astronaut control ---------- */
 function skipToAstronaut(){
+  stopLaunchRumble();
   launchScene.visible = false;
   moonScene.visible = true;
   cdEl.style.display = 'none';
@@ -2194,6 +2394,11 @@ function animate(){
 
       const bg = boosterPart.userData.engineGlow;
       if (t > T_IGNITE) bg.visible = true;
+      if (t > T_IGNITE && !state.rumbleStarted){
+        state.rumbleStarted = true;
+        startLaunchRumble();
+        playIgnitionCrack();
+      }
       if (bg.visible){
         pulseEngine(bg, t, 38);
         bg.getWorldPosition(tmpV);
@@ -2240,6 +2445,10 @@ function animate(){
 
     updatePuffs(dt);
     updateCameraLaunch(altitude, t);
+    if (state.rumbleStarted){
+      const rumbleIntensity = smoothstep(T_IGNITE-0.3, T_IGNITE+0.5, t) * (1 - smoothstep(T_ASCENT_END-4, T_ASCENT_END, t));
+      updateLaunchRumble(rumbleIntensity);
+    }
 
     const activeGlow = state.separated ? shipPart.userData.engineGlow : boosterPart.userData.engineGlow;
     activeGlow.getWorldPosition(tmpV);
@@ -2248,6 +2457,7 @@ function animate(){
 
     if (t >= T_BLACK && !state.moonSwapped){
       state.moonSwapped = true;
+      stopLaunchRumble();
       launchScene.visible = false;
       moonScene.visible = false;
       launchScene.remove(shipPart);
