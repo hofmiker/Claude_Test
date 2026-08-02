@@ -66,7 +66,11 @@ abzuwarten.
   zum Aufheben/Fallenlassen kleiner Steine
 - Kamera: feste Third-Person-Verfolgungskamera hinter dem Charakter, zoomt
   bei Bewegung etwas weiter raus; auf Mobile/Touch-Geräten zusätzlich
-  automatisch weiter herausgezoomt
+  automatisch deutlich weiter herausgezoomt. Kamera-Button (oben links,
+  unter dem Vollbild-Button) schaltet auf eine steilere GTA-artige
+  Top-Down-Ansicht um (mehr Höhe, weniger horizontaler Abstand) — sowohl
+  zu Fuß als auch im Fahrzeug, mit weichem Überblenden zwischen den
+  beiden Modi statt hartem Schnitt.
 - Kollision: kann keine Raumstationsmodule oder den geparkten Rover
   durchlaufen (Kreis-Pushout-Kollision); Felsen sind dagegen kletterbar
 
@@ -101,6 +105,9 @@ abzuwarten.
   im Vollbild sichtbar/bedienbar bleiben), Icon wechselt zwischen
   Ausklapp-/Einklapp-Ecken je nach Zustand. Blendet sich selbst aus, falls
   die Fullscreen API im Browser fehlt (z. B. iOS Safari).
+- Kamera-Button (oben links, unter dem Vollbild-Button): wechselt zwischen
+  der normalen Third-Person-Kamera und einer steileren Top-Down-Ansicht
+  (Icon wechselt zwischen Dreieck und Kreis-mit-Punkt).
 - Die Seite lässt sich nicht per Pinch/Doppeltipp/Strg+Mausrad zoomen
   (Viewport-Meta + `touch-action:none` + Desktop-Handler) — das war zuvor
   möglich und führte zu einem leicht verrutschten Bild. Das Canvas ist
@@ -119,9 +126,6 @@ vor Clipping, seit mehrere Dauerklänge gleichzeitig laufen können):
 - Donnerndes Raketen-Rumble während Zündung/Aufstieg (zwei tiefe,
   LFO-modulierte Sägezahn-Oszillatoren + ein Zündungs-Rauschstoß) — vorher
   gab es dort nur ein Kamera-Shake ohne jeden Ton.
-- Dezentes Astronauten-Atemgeräusch (gefiltertes Loop-Rauschen mit
-  langsamer Lautstärke-Schwankung), aktiv zu Fuß, pausiert während der
-  Fahrt (das Rover-Triebwerksgeräusch trägt dort den Ton).
 - Leises, unaufdringliches atmosphärisches Drone/Pad (drei leicht
   verstimmte Sinus-Layer), startet einmalig beim Gameplay-Einstieg und
   läuft durchgehend weiter (zu Fuß wie im Fahrzeug).
