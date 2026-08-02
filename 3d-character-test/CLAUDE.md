@@ -42,9 +42,12 @@ und `buildWarehouseLevel()`.
 - Lauf-, Idle-, Sprung-, Häng- und Klettersanimation über eine Zustandsmaschine
   (`JS.NONE/WINDUP/AIR/LAND/HANG/CLIMB`)
 - **Kanten-Klettern** (Konzept aus `cape-character/`/`rooftop-wanderer/`
-  übernommen, von 2D-Seitenansicht auf 3D/Top-Down übertragen): Kisten, die
-  höher als eine kleine Automatik-Stufe sind (`AUTO_STEP_MAX_TOPY = 0.85`),
-  sind keine begehbaren Rampen mehr, sondern echte Wände
+  übernommen, von 2D-Seitenansicht auf 3D/Top-Down übertragen): Jede Kiste
+  ist mit `CRATE_H = 2.3` bewusst höher als der Charakter (~2.1 Einheiten)
+  — es gibt also **keine** frei begehbare Kiste mehr, jede einzelne
+  verlangt Sprung + Dranhängen + Hochziehen (`AUTO_STEP_MAX_TOPY = 0.35`
+  liegt absichtlich unter jeder möglichen Kisten-Höhe). Kisten sind keine
+  begehbaren Rampen, sondern echte Wände
   (`resolveWallCollisions()`). Springt man in der Luft nah an eine solche
   Kante (`tryGrabLedge()`, nächster Punkt auf der Kisten-AABB statt
   links/rechts wie im 2D-Original), hängt sich der Charakter ein

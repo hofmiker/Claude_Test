@@ -304,17 +304,22 @@ function addBush(x, z) {
   const b2 = icoMesh(s * 0.6, M.bush2); b2.position.set(s * 0.5, s * 0.5, 0.1); b2.scale.y = 0.72; g.add(b2);
   levelGroup.add(g);
 }
+// Jede Kiste ist absichtlich höher als der Charakter (~2.1 Einheiten groß)
+// — so ist nie ein einfaches Hochsteigen möglich, jede Kiste verlangt
+// Sprung + Dranhängen + Hochziehen.
+const CRATE_H = 2.3;
+
 // `registerCollision=false` for the lower boxes of a same-footprint stack:
 // they're only visual filler, since a box stacked directly on top covers
 // their side face completely — there's no real ledge to stand on or grab
 // there, only at the topmost box of the stack.
 function addCrate(cx, cz, yBottom, sz, registerCollision = true) {
-  const geo = new THREE.BoxGeometry(sz, 0.8, sz);
+  const geo = new THREE.BoxGeometry(sz, CRATE_H, sz);
   const m = new THREE.Mesh(geo, M.wood);
-  m.position.set(cx, yBottom + 0.4, cz);
+  m.position.set(cx, yBottom + CRATE_H / 2, cz);
   m.castShadow = true; m.receiveShadow = true; levelGroup.add(m);
   m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x5D4225 })));
-  if (registerCollision) crateData.push({ x: cx, z: cz, hw: sz / 2, hd: sz / 2, topY: yBottom + 0.8 });
+  if (registerCollision) crateData.push({ x: cx, z: cz, hw: sz / 2, hd: sz / 2, topY: yBottom + CRATE_H });
 }
 function addLamp(x, z, wallH) {
   const g = new THREE.Group(); g.position.set(x, wallH - 0.6, z);
@@ -349,7 +354,7 @@ function addCratePyramid(cx, cz, baseN, spacing = 1.0, crateSz = 0.92) {
         addCrate(cx - offset + ix * spacing, cz - offset + iz * spacing, y, crateSz, !covered);
       }
     }
-    y += 0.8;
+    y += CRATE_H;
     n -= 2;
   }
 }
@@ -384,11 +389,11 @@ function buildForestLevel() {
 
   // Kisten — Einzelkisten (topY 0.8) bleiben frei begehbare Stufen, die
   // zweite/dritte Lage (topY 1.6/2.4) verlangt Sprung + Klettern am Rand.
-  addCrate(  5.0,  -6.0, 0.0, 1.1, false); addCrate(  5.0,  -6.0, 0.8, 1.0);
+  addCrate(  5.0,  -6.0, 0.0, 1.1, false); addCrate(  5.0,  -6.0, CRATE_H, 1.0);
   addCrate( -5.5,  -8.0, 0.0, 1.3);
-  addCrate(  9.0, -13.0, 0.0, 1.0, false); addCrate(  9.0, -13.0, 0.8, 1.0, false); addCrate(  9.0, -13.0, 1.6, 1.0);
+  addCrate(  9.0, -13.0, 0.0, 1.0, false); addCrate(  9.0, -13.0, CRATE_H, 1.0, false); addCrate(  9.0, -13.0, CRATE_H*2, 1.0);
   addCrate( -8.0, -15.0, 0.0, 1.5);
-  addCrate(  2.0, -19.0, 0.0, 1.0); addCrate( -2.0, -20.0, 0.0, 1.0); addCrate(  1.0, -22.0, 0.8, 0.9);
+  addCrate(  2.0, -19.0, 0.0, 1.0); addCrate( -2.0, -20.0, 0.0, 1.0); addCrate(  1.0, -22.0, 0.0, 0.9);
 
   charRoot.position.set(0, CHAR_BASE_Y, 0);
   resetCharacterState();
@@ -429,7 +434,7 @@ function buildWarehouseLevel() {
 
   // Ein paar einzelne Stapel nah am Spawn als leicht erreichbarer Einstieg.
   addCrate( -6.0,   2.0, 0.0, 1.3);
-  addCrate(  8.0,  14.0, 0.0, 1.0, false); addCrate(  8.0,  14.0, 0.8, 1.0);
+  addCrate(  8.0,  14.0, 0.0, 1.0, false); addCrate(  8.0,  14.0, CRATE_H, 1.0);
   addCrate(-10.0,  16.0, 0.0, 1.0);
 
   charRoot.position.set(0, CHAR_BASE_Y, 8);
@@ -531,7 +536,11 @@ const CHAR_BASE_Y = 0.10;
 const GRAVITY     = -22;
 const JUMP_VEL    =  8.2;
 const PLAYER_RADIUS       = 0.30;
-const AUTO_STEP_MAX_TOPY  = 0.85; // Kisten bis zu dieser Höhe: frei begehbare Stufe
+// Kisten bis zu dieser Höhe wären frei begehbare Stufen — bleibt niedrig
+// genug, dass jede echte Kiste (CRATE_H = 2.3, höher als der Charakter)
+// diese Schwelle immer überschreitet und nie einfach hochgelaufen werden
+// kann, nur gegriffen/hochgezogen.
+const AUTO_STEP_MAX_TOPY  = 0.35;
 const GRAB_REACH   = 0.95;
 const GRAB_SETTLE  = 0.16; // s, bis der Hang-Pose eingerastet ist
 const CLIMB_DUR    = 0.85; // s, volle Hochzieh-Animation
