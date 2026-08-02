@@ -996,6 +996,14 @@ function buildAstronaut(){
   const backpackTube = astroCyl(0.03,0.03,0.30,MAT.suitDark);
   backpackTube.rotation.x = 0.5; backpackTube.position.set(0,0.32,-0.10); torso.add(backpackTube);
 
+  // Jetpack boost flame -- reuses the same multi-layer engine-glow look as
+  // the rocket's own engines, just scaled down to backpack size.
+  const jetFlame = buildFlame(0.022);
+  jetFlame.grp.position.set(0, -0.16, -0.25);
+  jetFlame.grp.visible = false;
+  jetFlame.grp.userData = { flames: [jetFlame] };
+  torso.add(jetFlame.grp);
+
   const neckJoint = astroBone(torso, 0, 0.40, 0, 0.085, 0.09, 0.11, MAT.suitWhite);
   const headJoint = new THREE.Group();
   headJoint.position.y = 0.17;
@@ -1053,7 +1061,7 @@ function buildAstronaut(){
   const rAnkle = astroBone(rKnee,     0,   -0.35,  0, 0.078, 0.068, 0.12, MAT.suitWhite);
   makeBoot(rAnkle);
 
-  return { charRoot, torso, headJoint, lShoulder, rShoulder, lElbow, rElbow, hipsGrp, lHip, rHip, lKnee, rKnee, lAnkle, rAnkle };
+  return { charRoot, torso, headJoint, lShoulder, rShoulder, lElbow, rElbow, hipsGrp, lHip, rHip, lKnee, rKnee, lAnkle, rAnkle, jetFlame };
 }
 const astro = buildAstronaut();
 moonScene.add(astro.charRoot);
@@ -1190,6 +1198,21 @@ function playCollectChime(){
   playTone(660, 0.14, 'sine', 0.22);
   playTone(990, 0.16, 'sine', 0.16, 0.05);
   playTone(1320, 0.18, 'sine', 0.12, 0.10);
+}
+function playJetBoost(){
+  playNoiseBurst(0.5, 0.22, 2200);
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t0 = ctx.currentTime;
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(160, t0);
+  osc.frequency.exponentialRampToValueAtTime(420, t0+0.45);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.linearRampToValueAtTime(0.22, t0+0.05);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0+0.5);
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(t0); osc.stop(t0+0.52);
 }
 
 let engineOsc = null, engineGain = null, engineFilter = null;
@@ -1540,7 +1563,7 @@ function drawMinimap(px, pz, pAngle){
 let animT = 0, charYaw = 0;
 let headYawTgt = 0;
 const JWALK = { NONE:0, WINDUP:1, AIR:2, LAND:3 };
-const WINDUP_DUR = 0.17, LAND_DUR = 0.28;
+const WINDUP_DUR = 0.22, LAND_DUR = 0.30;
 let jumpState = JWALK.NONE, jumpTimer = 0;
 let stepSign = 0;
 
@@ -1656,9 +1679,11 @@ function animateAstronaut(dt){
 
 /* ---------- gameplay: free astronaut movement + third-person camera ---------- */
 const CHAR_BASE_Y = 0.10;
-const GRAVITY = -22, JUMP_VEL = 8.2;
+const GRAVITY = -15, JUMP_VEL = 7.0;
+const JUMP_BOOST_VEL = 11.2, JUMP_BOOST_SPEED_MULT = 2.0;
 const SPEED_MAX = 5.94, ACCEL_RATE = 14.0, DECEL_RATE = 18.0, TURN_RATE = 0.90;
 let velY = 0, onGround = true, moveSpeed = 0;
+let canBoost = false, jetBoosting = false, jetPulseT = 0;
 let gameCamPos = new THREE.Vector3();
 let gameCamDist = 7.0;
 let gameMode = false;
@@ -1747,6 +1772,7 @@ function poseAstronautSeated(k){
 function enterVehicle(){
   inVehicle = true;
   jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0;
+  canBoost = false; jetBoosting = false; astro.jetFlame.grp.visible = false;
   enterHintEl.style.display = 'none';
   pickupHintEl.style.display = 'none';
   actionEl.style.display = 'none';
@@ -1887,16 +1913,39 @@ function updateAstronautGameplay(dt){
     pickupHintEl.style.display = (nearStone && onGround) ? 'block' : 'none';
   }
 
+  // Rocket boost: pressing jump again while already airborne (once per jump)
+  // fires the backpack thruster for a much higher, farther second kick.
+  if (jumpBuf && jumpState === JWALK.AIR && canBoost){
+    jumpBuf = false;
+    canBoost = false;
+    jetBoosting = true;
+    jetPulseT = 0;
+    velY = JUMP_BOOST_VEL;
+    moveSpeed = Math.min(moveSpeed * JUMP_BOOST_SPEED_MULT, SPEED_MAX * JUMP_BOOST_SPEED_MULT);
+    A.jetFlame.grp.visible = true;
+    playJetBoost();
+    spawnPuff(new THREE.Vector3(A.charRoot.position.x, A.charRoot.position.y+0.9, A.charRoot.position.z), {
+      color: 0xffa93c, opacity: 0.85, emissive: 0xff7a1a, emissiveIntensity: 1.4,
+      vel: new THREE.Vector3(rand(-1,1), -3, rand(-1,1)), growth: 5, maxLife: 0.4, scale0: 0.4,
+      fadeFrom: 0.15, drag: 0.9, maxScale: 2.2,
+    }, moonScene);
+  }
+
   if (jumpBuf && onGround && jumpState !== JWALK.WINDUP && jumpState !== JWALK.AIR){
     jumpState = JWALK.WINDUP; jumpTimer = 0; jumpBuf = false;
   }
   if (jumpState === JWALK.WINDUP){
     jumpTimer += dt;
-    if (jumpTimer >= WINDUP_DUR){ velY = JUMP_VEL; onGround = false; jumpState = JWALK.AIR; jumpTimer = 0; playJump(); }
+    if (jumpTimer >= WINDUP_DUR){ velY = JUMP_VEL; onGround = false; jumpState = JWALK.AIR; jumpTimer = 0; playJump(); canBoost = true; }
   }
   if (jumpState === JWALK.LAND){
     jumpTimer += dt;
     if (jumpTimer >= LAND_DUR) jumpState = JWALK.NONE;
+  }
+
+  if (jetBoosting){
+    jetPulseT += dt;
+    pulseEngine(A.jetFlame.grp, jetPulseT, 55);
   }
 
   velY += GRAVITY * dt;
@@ -1907,6 +1956,7 @@ function updateAstronautGameplay(dt){
     else if (jumpState === JWALK.AIR){ jumpState = JWALK.NONE; }
     A.charRoot.position.y = surfY;
     velY = 0; onGround = true;
+    canBoost = false; jetBoosting = false; A.jetFlame.grp.visible = false;
   } else {
     onGround = false;
     if (jumpState === JWALK.NONE) jumpState = JWALK.AIR;
