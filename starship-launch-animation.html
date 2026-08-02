@@ -69,13 +69,14 @@
     width:16px; height:16px; border:3px solid #fff; border-radius:3px; transform:rotate(45deg);
   }
   #actionBtn.holding .ico { background:#fff; }
-  #enterHint {
+  #enterHint, #pickupHint {
     position:fixed; left:50%; bottom:112px; transform:translateX(-50%);
     z-index:5; display:none; padding:7px 16px; border-radius:16px;
     background:rgba(20,20,25,.5); border:1px solid rgba(255,255,255,.4);
     color:#fff; font-family:Arial,sans-serif; font-size:13px; font-weight:600;
     letter-spacing:.2px; pointer-events:none; text-align:center;
   }
+  #pickupHint { border-color:rgba(150,215,255,.6); bottom:172px; }
   #crystalHud {
     position:fixed; top:16px; left:16px; z-index:5; display:none;
     padding:7px 14px; border-radius:16px; background:rgba(20,20,25,.5);
@@ -105,6 +106,7 @@
 <canvas id="minimap" width="168" height="168"></canvas>
 <div id="crystalHud"><span class="ico"></span><span id="crystalCount">0 / 10</span></div>
 <div id="enterHint">Sprung-Taste zum Einsteigen</div>
+<div id="pickupHint">Aktion-Taste zum Aufheben</div>
 <div id="joystick"><div id="joystick-knob"></div></div>
 <div id="jumpBtn"><span class="ico"></span></div>
 <div id="actionBtn"><span class="ico"></span></div>
@@ -607,6 +609,7 @@ moonScene.visible = false;
 scene.add(moonScene);
 const moonCraters = [];
 const moonRocksData = [];
+const pickupStones = []; // small hand-liftable stones, separate from the big climbable decorative rocks
 const moonCollidables = [];
 const crystals = [];
 const CRYSTAL_COUNT = 10;
@@ -671,7 +674,14 @@ function resolvePush(x, z, radius, list){
   return { x:rx, z:rz };
 }
 {
-  const moonSize = 1400, segs = 70;
+  // Single continuous crater-displaced plane, sized well past the moon
+  // scene's fog-far distance (1900) so the edge is never visible -- no more
+  // separate flat "skirt" mesh. The skirt used to sit at a fixed y=-0.6
+  // underneath this whole plane, which worked for flat ground but was
+  // shallower than deep craters (down to y=-28), so it visually cut through
+  // crater floors like a lid. One mesh means there's nothing left to cut
+  // through anything.
+  const moonSize = 4000, segs = 200;
   const moonGeo = new THREE.PlaneGeometry(moonSize, moonSize, segs, segs);
   moonGeo.rotateX(-Math.PI/2);
   for(let i=0;i<52;i++){
@@ -687,25 +697,35 @@ function resolvePush(x, z, radius, list){
   const surf = new THREE.Mesh(moonGeo, MAT.moonGround);
   moonScene.add(surf);
 
-  const moonSkirt = new THREE.Mesh(new THREE.CircleGeometry(2800, 64), MAT.moonGround);
-  moonSkirt.rotation.x = -Math.PI/2;
-  moonSkirt.position.y = -0.6;
-  moonScene.add(moonSkirt);
-
   for(let i=0;i<60;i++){
     const a = rand(0,Math.PI*2), d = rand(60,600);
     const R = rand(1,4.5);
     const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(R,0), MAT.moonRock);
     const rx = Math.cos(a)*d, rz = Math.sin(a)*d;
     const embed = R*0.3;
-    rock.position.set(rx, embed, rz);
+    rock.position.set(rx, getMoonSurfaceY(rx,rz)+embed, rz);
     rock.rotation.set(rand(0,6),rand(0,6),rand(0,6));
     moonScene.add(rock);
-    // Rocks are climbable, not solid-blocking: getMoonSurfaceY treats them as
-    // a smooth raised bump (same math as crater bowls, inverted), so walking
-    // toward one ramps you up onto it instead of colliding with a wall.
-    // mesh/R/held are used by the pick-up/carry/drop action (see updateAstronautGameplay).
-    moonRocksData.push({ x:rx, z:rz, r:R*1.05, h: embed + R*0.8, mesh:rock, R, embed, held:false });
+    // Big scenic rocks are climbable, not liftable: getMoonSurfaceY treats
+    // them as a smooth raised bump (same math as crater bowls, inverted), so
+    // walking toward one ramps you up onto it instead of colliding with a wall.
+    moonRocksData.push({ x:rx, z:rz, r:R*1.05, h: embed + R*0.8 });
+  }
+
+  // Small hand-liftable stones -- deliberately separate from the big rocks
+  // above (which range up to R=4.5 and are meant to be climbed, not carried).
+  // Every one of these is liftable, so the pick-up/drop action always works
+  // on the nearest one instead of silently failing on an oversized rock.
+  for(let i=0;i<24;i++){
+    const a = rand(0,Math.PI*2), d = rand(20,420);
+    const R = rand(0.35,0.85);
+    const rx = Math.cos(a)*d, rz = Math.sin(a)*d;
+    const embed = R*0.35;
+    const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(R,0), MAT.moonRock);
+    mesh.position.set(rx, getMoonSurfaceY(rx,rz)+embed, rz);
+    mesh.rotation.set(rand(0,6),rand(0,6),rand(0,6));
+    moonScene.add(mesh);
+    pickupStones.push({ x:rx, z:rz, mesh, embed, held:false });
   }
 
   function buildLandingBase(){
@@ -1602,6 +1622,7 @@ let inVehicle = false;
 let vehicleCamPos = new THREE.Vector3();
 let vehicleCamDist = 9.0;
 const enterHintEl = document.getElementById('enterHint');
+const pickupHintEl = document.getElementById('pickupHint');
 const tmpSeat = new THREE.Vector3();
 
 // Enter-vehicle transition: blends the astronaut's position/pose from where
@@ -1612,8 +1633,7 @@ let enterFromPos = new THREE.Vector3();
 let enterFromYaw = 0;
 
 /* ---------- action button: pick up / carry / drop a rock ---------- */
-const PICKUP_RADIUS = 3.2;
-const CARRY_LIFT_R_MAX = 2.2; // only smaller rocks are liftable by hand
+const PICKUP_RADIUS = 3.5;
 let heldRock = null;
 
 function dropHeldRock(){
@@ -1630,14 +1650,18 @@ function dropHeldRock(){
   heldRock = null;
   actionEl.classList.remove('holding');
 }
-function pickUpNearestRock(){
-  if (heldRock) return;
+function nearestLiftableStone(px, pz){
   let best = null, bestD = Infinity;
-  for (const rk of moonRocksData){
-    if (rk.held || rk.R > CARRY_LIFT_R_MAX) continue;
-    const dd = Math.hypot(astro.charRoot.position.x-rk.x, astro.charRoot.position.z-rk.z);
+  for (const rk of pickupStones){
+    if (rk.held) continue;
+    const dd = Math.hypot(px-rk.x, pz-rk.z);
     if (dd < PICKUP_RADIUS && dd < bestD){ bestD = dd; best = rk; }
   }
+  return best;
+}
+function pickUpNearestRock(){
+  if (heldRock) return;
+  const best = nearestLiftableStone(astro.charRoot.position.x, astro.charRoot.position.z);
   if (best){ best.held = true; heldRock = best; actionEl.classList.add('holding'); }
 }
 
@@ -1668,6 +1692,7 @@ function enterVehicle(){
   inVehicle = true;
   jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0;
   enterHintEl.style.display = 'none';
+  pickupHintEl.style.display = 'none';
   actionEl.style.display = 'none';
   dropHeldRock();
   vehicleCamPos.copy(camera.position);
@@ -1787,6 +1812,10 @@ function updateAstronautGameplay(dt){
       A.charRoot.position.y + 1.15,
       A.charRoot.position.z + fwdZ*1.1
     );
+    pickupHintEl.style.display = 'none';
+  } else {
+    const nearStone = nearestLiftableStone(A.charRoot.position.x, A.charRoot.position.z);
+    pickupHintEl.style.display = (nearStone && onGround) ? 'block' : 'none';
   }
 
   if (jumpBuf && onGround && jumpState !== JWALK.WINDUP && jumpState !== JWALK.AIR){
