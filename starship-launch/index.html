@@ -791,15 +791,33 @@ function registerLineCollider(fromLocal, toLocal, r, groupObj, segments){
     moonCollidables.push({ x:p.x, z:p.z, r });
   }
 }
-function resolvePush(x, z, radius, list){
+// Resolves circle-vs-circle collision for a moving entity. Naively snapping
+// the proposed new position back out to the collider's edge cancels ALL of
+// the attempted movement whenever the collider center happens to sit roughly
+// behind the new position -- feels like slamming into a dead wall even on a
+// glancing approach. Instead, only the component of the attempted movement
+// pointing INTO the collider is removed; the tangential component survives,
+// so walking/driving past a station module at an angle glides along its
+// curve instead of stopping outright.
+function resolveSlide(oldX, oldZ, x, z, radius, list){
   let rx = x, rz = z;
   for (const c of list){
     const dx = rx - c.x, dz = rz - c.z;
     const minD = radius + c.r;
     const d = Math.hypot(dx,dz);
     if (d < minD){
-      if (d < 0.0001){ rx += minD; }
-      else { const push = (minD-d)/d; rx += dx*push; rz += dz*push; }
+      if (d < 0.0001){ rx = oldX; rz = oldZ; continue; }
+      const nxAxis = dx/d, nzAxis = dz/d; // outward normal at the proposed position
+      const moveX = rx - oldX, moveZ = rz - oldZ;
+      const inward = -(moveX*nxAxis + moveZ*nzAxis); // >0 = moving into the collider
+      if (inward > 0){ rx += nxAxis*inward; rz += nzAxis*inward; }
+      const dx2 = rx - c.x, dz2 = rz - c.z;
+      const d2 = Math.hypot(dx2, dz2);
+      if (d2 < minD){
+        if (d2 < 0.0001){ rx = oldX; rz = oldZ; continue; }
+        const push = (minD-d2)/d2;
+        rx += dx2*push; rz += dz2*push;
+      }
     }
   }
   return { x:rx, z:rz };
@@ -2014,7 +2032,7 @@ function updateRoverGameplay(dt){
 
   const fwdX = Math.sin(roverAngle), fwdZ = Math.cos(roverAngle);
   const nx = roverX + fwdX*roverSpd*dt, nz = roverZ + fwdZ*roverSpd*dt;
-  const resolved = resolvePush(nx, nz, ROVER_COLLIDE_R, moonCollidables);
+  const resolved = resolveSlide(roverX, roverZ, nx, nz, ROVER_COLLIDE_R, moonCollidables);
   if (Math.hypot(resolved.x-nx, resolved.z-nz) > 0.01) roverSpd *= 0.4;
   roverX = resolved.x; roverZ = resolved.z;
   const groundY = getMoonSurfaceY(roverX, roverZ);
@@ -2077,11 +2095,12 @@ function updateAstronautGameplay(dt){
   const mag = Math.max(curInput.fwd, curInput.back);
   if (mag > 0.02) moveSpeed = Math.min(moveSpeed + ACCEL_RATE*dt, SPEED_MAX*mag);
   else            moveSpeed = Math.max(moveSpeed - DECEL_RATE*dt, 0);
-  let nx = A.charRoot.position.x, nz = A.charRoot.position.z;
+  const oldX = A.charRoot.position.x, oldZ = A.charRoot.position.z;
+  let nx = oldX, nz = oldZ;
   if (curInput.fwd  > curInput.back) { nx += fwdX*moveSpeed*dt; nz += fwdZ*moveSpeed*dt; }
   if (curInput.back > curInput.fwd)  { nx -= fwdX*moveSpeed*dt; nz -= fwdZ*moveSpeed*dt; }
-  let resolvedPos = resolvePush(nx, nz, CHAR_RADIUS, moonCollidables);
-  resolvedPos = resolvePush(resolvedPos.x, resolvedPos.z, CHAR_RADIUS, [{ x:roverX, z:roverZ, r:ROVER_COLLIDE_R }]);
+  let resolvedPos = resolveSlide(oldX, oldZ, nx, nz, CHAR_RADIUS, moonCollidables);
+  resolvedPos = resolveSlide(oldX, oldZ, resolvedPos.x, resolvedPos.z, CHAR_RADIUS, [{ x:roverX, z:roverZ, r:ROVER_COLLIDE_R }]);
   A.charRoot.position.x = resolvedPos.x;
   A.charRoot.position.z = resolvedPos.z;
 
