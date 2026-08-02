@@ -43,7 +43,11 @@ abzuwarten.
   da die Röhren-Meshes eine andere lokale Achsausrichtung als die Module
   haben). Auch die Antennenschüssel und das Leuchtfeuer der Landebasis sowie
   der Rover (jetzt mit realistischerem Kollisionsradius passend zu Rädern/
-  Chassis) sind kollidierbar.
+  Chassis) sind kollidierbar. Die Kollisionsauflösung (`resolveSlide`)
+  entfernt beim Kontakt nur die Bewegungskomponente, die tatsächlich ins
+  Objekt hineinzeigt — die tangentiale Komponente bleibt erhalten, man
+  gleitet also an Modulen vorbei statt bei jeder Berührung hart stehen zu
+  bleiben (nur ein wirklich frontaler Aufprall bremst komplett ab).
 - **Erde:** am Horizont sichtbar, tief genug positioniert, dass die flache
   Mondoberfläche ihre untere Hälfte im Tiefenpuffer abschneidet — wirkt wie
   ein "Erdaufgang" am Horizont statt einer voll sichtbaren Kugel am Himmel.
