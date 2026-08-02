@@ -83,7 +83,7 @@
     </div>
   </div>
 </div>
-<div id="info">Pfeiltasten/WASD bewegen · Space springen/hochziehen · an hohen Kisten in der Luft: greifen</div>
+<div id="info">Bewegen · Space springen/hochziehen · in der Luft an Kisten: greifen, ←/→ hangeln, ↓ loslassen</div>
 <div id="levelBtn">🔁 Level</div>
 <div id="joystick"><div id="joystick-knob"></div></div>
 <div id="jumpBtn">⬆</div>
@@ -227,6 +227,7 @@ function makeHand(elbowJoint) {
   const g = new THREE.Group(); g.position.y = -0.27; elbowJoint.add(g);
   const m = new THREE.Mesh(new THREE.SphereGeometry(0.068, 6, 5), M.skin);
   m.scale.set(1.0, 0.62, 0.92); m.castShadow = true; g.add(m);
+  return g;
 }
 function makeShoulderCap(shoulderJoint) {
   const cap = icoMesh(0.085, M.shirt);
@@ -236,12 +237,12 @@ function makeShoulderCap(shoulderJoint) {
 const lShoulder = bone(torso, -0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
 makeShoulderCap(lShoulder);
 const lElbow    = bone(lShoulder, 0, -0.30, 0, 0.062, 0.052, 0.27, M.skin);
-makeHand(lElbow);
+const lHand     = makeHand(lElbow);
 
 const rShoulder = bone(torso,  0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
 makeShoulderCap(rShoulder);
 const rElbow    = bone(rShoulder, 0, -0.30, 0, 0.062, 0.052, 0.27, M.skin);
-makeHand(rElbow);
+const rHand     = makeHand(rElbow);
 
 // ── HIPS & LEGS ───────────────────────────────────────────────────────────
 const hipsGrp = new THREE.Group();
@@ -304,22 +305,23 @@ function addBush(x, z) {
   const b2 = icoMesh(s * 0.6, M.bush2); b2.position.set(s * 0.5, s * 0.5, 0.1); b2.scale.y = 0.72; g.add(b2);
   levelGroup.add(g);
 }
-// Jede Kiste ist absichtlich höher als der Charakter (~2.1 Einheiten groß)
-// — so ist nie ein einfaches Hochsteigen möglich, jede Kiste verlangt
-// Sprung + Dranhängen + Hochziehen.
-const CRATE_H = 2.3;
+// Jede Kiste ist ein echter Würfel (alle Kanten = CRATE_H) und deutlich
+// größer als der Charakter (~2.1 Einheiten groß) — ein einfacher Schritt
+// reicht nie, es braucht immer einen echten Sprung, um überhaupt in
+// Greif-Reichweite der Oberkante zu kommen.
+const CRATE_H = 3.2;
 
 // `registerCollision=false` for the lower boxes of a same-footprint stack:
 // they're only visual filler, since a box stacked directly on top covers
 // their side face completely — there's no real ledge to stand on or grab
 // there, only at the topmost box of the stack.
-function addCrate(cx, cz, yBottom, sz, registerCollision = true) {
-  const geo = new THREE.BoxGeometry(sz, CRATE_H, sz);
+function addCrate(cx, cz, yBottom, registerCollision = true) {
+  const geo = new THREE.BoxGeometry(CRATE_H, CRATE_H, CRATE_H);
   const m = new THREE.Mesh(geo, M.wood);
   m.position.set(cx, yBottom + CRATE_H / 2, cz);
   m.castShadow = true; m.receiveShadow = true; levelGroup.add(m);
   m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x5D4225 })));
-  if (registerCollision) crateData.push({ x: cx, z: cz, hw: sz / 2, hd: sz / 2, topY: yBottom + CRATE_H });
+  if (registerCollision) crateData.push({ x: cx, z: cz, hw: CRATE_H / 2, hd: CRATE_H / 2, topY: yBottom + CRATE_H });
 }
 function addLamp(x, z, wallH) {
   const g = new THREE.Group(); g.position.set(x, wallH - 0.6, z);
@@ -343,15 +345,15 @@ function addWall(x, z, w, d, h) {
 // äußerste Ring jeder Lage bleibt dadurch als begehbare/greifbare Kante
 // frei sichtbar (klassische Ziggurat-Optik). `baseN` sollte ungerade sein,
 // damit die Pyramide in einer einzelnen Kiste spitz zuläuft.
-function addCratePyramid(cx, cz, baseN, spacing = 1.0, crateSz = 0.92) {
+function addCratePyramid(cx, cz, baseN) {
   let n = baseN, y = 0;
   while (n >= 1) {
-    const offset = (n - 1) * spacing / 2;
+    const offset = (n - 1) * CRATE_H / 2;
     const nextN = n - 2;
     for (let ix = 0; ix < n; ix++) {
       for (let iz = 0; iz < n; iz++) {
         const covered = nextN >= 1 && ix >= 1 && ix <= n - 2 && iz >= 1 && iz <= n - 2;
-        addCrate(cx - offset + ix * spacing, cz - offset + iz * spacing, y, crateSz, !covered);
+        addCrate(cx - offset + ix * CRATE_H, cz - offset + iz * CRATE_H, y, !covered);
       }
     }
     y += CRATE_H;
@@ -389,11 +391,11 @@ function buildForestLevel() {
 
   // Kisten — Einzelkisten (topY 0.8) bleiben frei begehbare Stufen, die
   // zweite/dritte Lage (topY 1.6/2.4) verlangt Sprung + Klettern am Rand.
-  addCrate(  5.0,  -6.0, 0.0, 1.1, false); addCrate(  5.0,  -6.0, CRATE_H, 1.0);
-  addCrate( -5.5,  -8.0, 0.0, 1.3);
-  addCrate(  9.0, -13.0, 0.0, 1.0, false); addCrate(  9.0, -13.0, CRATE_H, 1.0, false); addCrate(  9.0, -13.0, CRATE_H*2, 1.0);
-  addCrate( -8.0, -15.0, 0.0, 1.5);
-  addCrate(  2.0, -19.0, 0.0, 1.0); addCrate( -2.0, -20.0, 0.0, 1.0); addCrate(  1.0, -22.0, 0.0, 0.9);
+  addCrate(  6.0,  -8.0, 0.0, false); addCrate(  6.0,  -8.0, CRATE_H);
+  addCrate( -7.0, -10.0, 0.0);
+  addCrate( 10.0, -18.0, 0.0, false); addCrate( 10.0, -18.0, CRATE_H, false); addCrate( 10.0, -18.0, CRATE_H*2);
+  addCrate(-10.0, -20.0, 0.0);
+  addCrate(  3.0, -26.0, 0.0); addCrate( -4.0, -28.0, 0.0); addCrate(  2.0, -34.0, 0.0);
 
   charRoot.position.set(0, CHAR_BASE_Y, 0);
   resetCharacterState();
@@ -406,7 +408,7 @@ function buildWarehouseLevel() {
   ambientLight.color.set(0xc7d2e6); ambientLight.intensity = 1.05;
   sun.color.set(0xdfe6ff); sun.intensity = 0.55;
 
-  const WALL_H = 11, HALF = 75;
+  const WALL_H = 13, HALF = 42;
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALF*2+4, HALF*2+4), M.floor);
   floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; levelGroup.add(floor);
 
@@ -415,27 +417,22 @@ function buildWarehouseLevel() {
   addWall(-HALF, 0, 0.8, HALF*2+1.6, WALL_H);
   addWall( HALF, 0, 0.8, HALF*2+1.6, WALL_H);
 
-  // Lampen-Raster für gleichmäßige Ausleuchtung der großen Halle.
-  for (let lx = -HALF+15; lx <= HALF-15; lx += 30)
-    for (let lz = -HALF+15; lz <= HALF-15; lz += 30)
+  // Lampen-Raster für gleichmäßige Ausleuchtung der Halle.
+  for (let lx = -HALF+14; lx <= HALF-14; lx += 28)
+    for (let lz = -HALF+14; lz <= HALF-14; lz += 28)
       addLamp(lx, lz, WALL_H);
 
   worldBounds = { minX: -HALF+1.4, maxX: HALF-1.4, minZ: -HALF+1.4, maxZ: HALF-1.4 };
 
-  // Nur Kisten: sechs echte Pyramiden (Ziggurat-Versatz, jede Lage einen
-  // Ring kleiner), großzügig über die ganze Halle verteilt — über 400
-  // Kisten insgesamt, reichlich Kanten zum Hangeln/Klettern in jeder Ecke.
-  addCratePyramid(-42, -42, 9);
-  addCratePyramid( 44, -38, 7);
-  addCratePyramid(-40,  40, 7);
-  addCratePyramid( 42,  44, 5);
-  addCratePyramid(  0, -60, 5);
-  addCratePyramid(-60,   8, 3);
+  // Nur Kisten: drei echte Pyramiden (Ziggurat-Versatz, jede Lage einen
+  // Ring kleiner) aus den großen Würfel-Kisten, über die Halle verteilt.
+  addCratePyramid(-24, -20, 5);
+  addCratePyramid( 24,  18, 5);
+  addCratePyramid(-20,  22, 3);
 
   // Ein paar einzelne Stapel nah am Spawn als leicht erreichbarer Einstieg.
-  addCrate( -6.0,   2.0, 0.0, 1.3);
-  addCrate(  8.0,  14.0, 0.0, 1.0, false); addCrate(  8.0,  14.0, CRATE_H, 1.0);
-  addCrate(-10.0,  16.0, 0.0, 1.0);
+  addCrate( -9.0,   3.0, 0.0);
+  addCrate( 12.0,  -6.0, 0.0, false); addCrate( 12.0,  -6.0, CRATE_H);
 
   charRoot.position.set(0, CHAR_BASE_Y, 8);
   resetCharacterState();
@@ -537,13 +534,20 @@ const GRAVITY     = -22;
 const JUMP_VEL    =  8.2;
 const PLAYER_RADIUS       = 0.30;
 // Kisten bis zu dieser Höhe wären frei begehbare Stufen — bleibt niedrig
-// genug, dass jede echte Kiste (CRATE_H = 2.3, höher als der Charakter)
+// genug, dass jede echte Kiste (CRATE_H = 3.2, höher als der Charakter)
 // diese Schwelle immer überschreitet und nie einfach hochgelaufen werden
 // kann, nur gegriffen/hochgezogen.
 const AUTO_STEP_MAX_TOPY  = 0.35;
 const GRAB_REACH   = 0.95;
 const GRAB_SETTLE  = 0.16; // s, bis der Hang-Pose eingerastet ist
 const CLIMB_DUR    = 0.85; // s, volle Hochzieh-Animation
+const SHIMMY_SPEED = 2.2;  // units/s, seitliches Hangeln an der Kante
+// Kalibriert aus der HANG-Pose (Schulter/Ellbogen-Rotationen unten): Welt-
+// Offset der Hand relativ zum charRoot, wenn der Arm hochgestreckt ist.
+// Damit landet die Hand exakt auf der Kanten-Höhe (nicht darüber) und an
+// der Kisten-Wand (nicht durch sie hindurch oder davor in der Luft).
+const HAND_DROP     = 1.838; // Hand ist im Hang so viel höher als charRoot.y
+const HAND_REACH_OUT = 0.457; // ... und so viel weiter vorn (Richtung Kiste)
 
 let velY     = 0;
 let onGround = true;
@@ -576,6 +580,7 @@ function resolveWallCollisions() {
 // Kanten-Greifen in cape-character/rooftop-wanderer, auf 3D/Top-Down
 // übertragen: nächster Punkt auf der Kisten-AABB statt links/rechts).
 function tryGrabLedge() {
+  if (grabCooldown > 0) return false;
   const px = charRoot.position.x, pz = charRoot.position.z, py = charRoot.position.y;
   for (const c of crateData) {
     if (c.topY <= AUTO_STEP_MAX_TOPY) continue;
@@ -586,18 +591,29 @@ function tryGrabLedge() {
     const surfaceY = c.topY + CHAR_BASE_Y;
     const rel = py - surfaceY;
     if (rel > -1.95 && rel < 0.10) {
-      // Richtung von der Kistenmitte zum Charakter — robust auch wenn der
-      // Charakter (durch die Wand-Kollision) fast exakt an der Kanten-
-      // Bounding-Box klebt, wo der nächste-Punkt-Vektor gegen 0 ginge.
-      let dirX = px - c.x, dirZ = pz - c.z;
-      const dirLen = Math.hypot(dirX, dirZ) || 1;
-      dirX /= dirLen; dirZ /= dirLen;
-      hangCrate   = c;
+      // Flächen-Normale auf die nächstliegende Würfelseite einrasten (statt
+      // dem freien Vektor zur Kistenmitte) — bei einem Quader mit exakt
+      // rechtwinkligen Seiten ist das robuster nahe den Ecken und sorgt
+      // dafür, dass der Charakter sauber parallel zur Wand hängt, nicht
+      // schräg auf eine Kante zu.
+      const clampedX = px < c.x - c.hw || px > c.x + c.hw;
+      const clampedZ = pz < c.z - c.hd || pz > c.z + c.hd;
+      let normalX, normalZ;
+      if (clampedX && !clampedZ)      { normalX = Math.sign(px - c.x) || 1; normalZ = 0; }
+      else if (clampedZ && !clampedX) { normalX = 0; normalZ = Math.sign(pz - c.z) || 1; }
+      else {
+        const dx = px - c.x, dz = pz - c.z, dl = Math.hypot(dx, dz) || 1;
+        normalX = dx / dl; normalZ = dz / dl;
+      }
+      hangCrate    = c;
+      hangNormalX  = normalX;  hangNormalZ  = normalZ;
+      hangTangentX = -normalZ; hangTangentZ = normalX;
+      shimmyOffset = 0; shimmyMax = Math.max(0, CRATE_H / 2 - PLAYER_RADIUS - 0.15);
       grabFromX = px; grabFromY = py; grabFromZ = pz;
-      hangTargetX = nx + dirX * 0.36;
-      hangTargetZ = nz + dirZ * 0.36;
-      hangTargetY = surfaceY - 1.55;
-      hangYaw     = Math.atan2(-dirX, -dirZ); // Blick zur Kiste hin
+      hangTargetX = nx + normalX * HAND_REACH_OUT;
+      hangTargetZ = nz + normalZ * HAND_REACH_OUT;
+      hangTargetY = surfaceY - HAND_DROP;
+      hangYaw     = Math.atan2(-normalX, -normalZ); // Blick zur Kiste hin
       jumpState = JS.HANG; jumpTimer = 0; grabT = 0;
       velY = 0; moveSpeed = 0;
       return true;
@@ -614,8 +630,11 @@ let jumpState = JS.NONE;
 let jumpTimer = 0;
 
 let hangCrate = null;
+let grabCooldown = 0; // s — verhindert sofortiges Wieder-Einhängen direkt nach dem Loslassen
 let grabFromX=0, grabFromY=0, grabFromZ=0;
 let hangTargetX=0, hangTargetY=0, hangTargetZ=0, hangYaw=0;
+let hangNormalX=0, hangNormalZ=1, hangTangentX=1, hangTangentZ=0;
+let shimmyOffset = 0, shimmyMax = 0;
 let grabT = 0;
 let climbFromX=0, climbFromY=0, climbFromZ=0, climbToX=0, climbToY=0, climbToZ=0;
 let climbT = 0;
@@ -648,7 +667,7 @@ function resetCharacterState() {
   charYaw = 0; charRoot.rotation.y = 0;
   velY = 0; onGround = true; moveSpeed = 0;
   jumpState = JS.NONE; jumpTimer = 0; jumpBuf = false;
-  hangCrate = null; grabT = 0; climbT = 0;
+  hangCrate = null; grabT = 0; climbT = 0; grabCooldown = 0; shimmyOffset = 0;
   animT = 0; idleTimer = 0; scratchPhase = 0;
   camDist = 7.0;
   camPos.set(charRoot.position.x, charRoot.position.y + 3.5, charRoot.position.z - 7);
@@ -826,6 +845,8 @@ function animateCharacter(dt) {
 
 // ── PER-STATE UPDATE FUNCTIONS ────────────────────────────────────────────────
 function updateNormal(dt) {
+  if (grabCooldown > 0) grabCooldown -= dt;
+
   // ── Turn
   if (keys.left)  charYaw += TURN_RATE * dt * keys.left;
   if (keys.right) charYaw -= TURN_RATE * dt * keys.right;
@@ -902,13 +923,25 @@ function updateHang(dt) {
   velY = 0; moveSpeed = 0;
 
   if (grabT >= 1) {
+    // Seitliches Weiterhangeln an derselben Kante — bleibt auf der
+    // gegriffenen Seitenfläche, geklemmt auf deren Breite (Würfel: ±halbe
+    // Kantenlänge, abzüglich Körperbreite).
+    const shimmyInput = (keys.right > 0.05 ? 1 : 0) - (keys.left > 0.05 ? 1 : 0);
+    shimmyOffset = Math.max(-shimmyMax, Math.min(shimmyMax, shimmyOffset + shimmyInput * SHIMMY_SPEED * dt));
+    charRoot.position.x = hangTargetX + hangTangentX * shimmyOffset;
+    charRoot.position.z = hangTargetZ + hangTangentZ * shimmyOffset;
+
     if (jumpBuf) {
       jumpBuf = false;
       climbFromX = charRoot.position.x; climbFromY = charRoot.position.y; climbFromZ = charRoot.position.z;
-      climbToX = hangCrate.x; climbToZ = hangCrate.z; climbToY = hangCrate.topY + CHAR_BASE_Y;
+      // Von der aktuellen (ggf. verschobenen) Hangel-Position aus nach
+      // innen auf die Kistenoberseite klettern, nicht zurück zur Mitte.
+      climbToX = climbFromX - hangNormalX * 1.0;
+      climbToZ = climbFromZ - hangNormalZ * 1.0;
+      climbToY = hangCrate.topY + CHAR_BASE_Y;
       jumpState = JS.CLIMB; jumpTimer = 0; climbT = 0;
     } else if (keys.down > 0.3) {
-      jumpState = JS.AIR; hangCrate = null; // loslassen
+      jumpState = JS.AIR; hangCrate = null; grabCooldown = 0.4; // loslassen
     }
   }
 }

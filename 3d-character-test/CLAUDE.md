@@ -14,12 +14,10 @@ herausgelöst.
 Beim Start wählt man eines von zwei Levels (jederzeit über den "🔁 Level"-
 Button oben rechts wechselbar):
 - **🌲 Wald** — offene Wiese mit Bäumen, Büschen und Kisten-Stapeln
-- **📦 Lagerhaus** — große geschlossene Halle (150×150, Lampen-Raster alle
-  30 Einheiten), ausschließlich Kisten als Hindernisse: sechs echte
-  Kisten-Pyramiden (`addCratePyramid()`, Ziggurat-Versatz mit bis zu 5
-  Stufen, größte mit Basis 9×9 = 165 Kisten), großzügig über die ganze
-  Halle verteilt, plus ein paar einzelne Stapel nah am Spawn — über 400
-  Kisten insgesamt, reichlich Gelegenheit für die Kletter-Mechanik
+- **📦 Lagerhaus** — kompakte geschlossene Halle (84×84, Lampen-Raster alle
+  28 Einheiten), ausschließlich Kisten als Hindernisse: drei Kisten-
+  Pyramiden (`addCratePyramid()`, Ziggurat-Versatz, Basis 5×5/5×5/3×3) aus
+  den großen Würfel-Kisten, plus ein paar einzelne Stapel nah am Spawn
 
 Beide Level teilen sich Charakter, Physik und Steuerung; nur Deko/Layout,
 Beleuchtung, Hintergrundfarbe/Nebel und `worldBounds` (Lagerhaus ist von
@@ -30,6 +28,9 @@ und `buildWarehouseLevel()`.
 - Pfeiltasten / WASD: Bewegen
 - Space bzw. On-Screen-Jump-Button: Springen, bzw. am Kisten-Rand hängend:
   hochziehen
+- Am Kisten-Rand hängend: ←/→ hangelt seitlich an derselben Kante entlang,
+  ↓ lässt los (mit kurzer Abklingzeit, damit man nicht sofort wieder in
+  dieselbe Kante fällt und erneut einhängt)
 - Virtueller 360°-Joystick unten links (Touch + Maus) für analoges Bewegen —
   ported aus `toy-story/gameplay/player.js` (dieselbe Technik läuft auch im
   Astronauten-Level von `starship-launch-animation.html`): Knüppel folgt
@@ -43,24 +44,33 @@ und `buildWarehouseLevel()`.
   (`JS.NONE/WINDUP/AIR/LAND/HANG/CLIMB`)
 - **Kanten-Klettern** (Konzept aus `cape-character/`/`rooftop-wanderer/`
   übernommen, von 2D-Seitenansicht auf 3D/Top-Down übertragen): Jede Kiste
-  ist mit `CRATE_H = 2.3` bewusst höher als der Charakter (~2.1 Einheiten)
-  — es gibt also **keine** frei begehbare Kiste mehr, jede einzelne
-  verlangt Sprung + Dranhängen + Hochziehen (`AUTO_STEP_MAX_TOPY = 0.35`
+  ist ein echter Würfel mit `CRATE_H = 3.2` (alle Kanten gleich lang) und
+  damit deutlich höher als der Charakter (~2.1 Einheiten) — ein einfacher
+  Schritt reicht nie, es braucht immer einen echten Sprung, um überhaupt
+  in Greif-Reichweite der Oberkante zu kommen (`AUTO_STEP_MAX_TOPY = 0.35`
   liegt absichtlich unter jeder möglichen Kisten-Höhe). Kisten sind keine
-  begehbaren Rampen, sondern echte Wände
-  (`resolveWallCollisions()`). Springt man in der Luft nah an eine solche
-  Kante (`tryGrabLedge()`, nächster Punkt auf der Kisten-AABB statt
-  links/rechts wie im 2D-Original), hängt sich der Charakter ein
-  (`JS.HANG`) und zieht sich auf erneuten Sprung-Tastendruck hoch
-  (`JS.CLIMB`, geskriptete Mantle-Animation) — oder lässt mit Taste "runter"
-  wieder los. Bei Kisten-Stapeln mit identischem Footprint zählt nur die
-  **oberste** Lage als Kollisions-/Greifpunkt (tiefere Lagen sind rein
-  visuelle Füllung, siehe `addCrate(..., registerCollision)`), da eine
-  direkt darübergestapelte Kiste jede tiefere Seitenkante verdeckt. Genau
-  darauf baut `addCratePyramid()` auf: jede Pyramidenstufe ist ein
-  `n`×`n`-Raster, die nächste Stufe (`n-2`) sitzt exakt auf dem inneren
-  Feld der vorigen — nur der dadurch freibleibende äußerste Ring pro Stufe
-  wird als Kollisions-/Greifpunkt registriert, der Rest ist verdeckt.
+  begehbaren Rampen, sondern echte Wände (`resolveWallCollisions()`).
+  Springt man in der Luft nah an eine solche Kante (`tryGrabLedge()`,
+  Flächen-Normale auf die nächstliegende Würfelseite eingerastet statt
+  freiem Vektor zur Mitte — robust auch nahe Ecken), hängt sich der
+  Charakter ein (`JS.HANG`). Die Hang-Pose ist aus der tatsächlichen
+  Schulter/Ellbogen-Geometrie kalibriert (`HAND_DROP`/`HAND_REACH_OUT`,
+  per `getWorldPosition()` an der Hand gemessen), damit die Hand exakt auf
+  Kantenhöhe an der Wand landet — nicht darüber schwebend oder durch die
+  Wand geclippt. Während des Hängens bewegen ←/→ den Charakter seitlich
+  an derselben Fläche entlang (`shimmyOffset`, geklemmt auf die
+  Kantenbreite abzüglich Körperbreite), ↓ lässt mit kurzer Abklingzeit
+  (`grabCooldown`) los, damit man nicht sofort wieder in dieselbe Kante
+  fällt. Erneuter Sprung-Tastendruck zieht von der aktuellen (ggf.
+  verschobenen) Position hoch (`JS.CLIMB`, geskriptete Mantle-Animation).
+  Bei Kisten-Stapeln mit identischem Footprint zählt nur die **oberste**
+  Lage als Kollisions-/Greifpunkt (tiefere Lagen sind rein visuelle
+  Füllung, siehe `addCrate(..., registerCollision)`), da eine direkt
+  darübergestapelte Kiste jede tiefere Seitenkante verdeckt. Genau darauf
+  baut `addCratePyramid()` auf: jede Pyramidenstufe ist ein `n`×`n`-Raster
+  aus Würfeln, die nächste Stufe (`n-2`) sitzt exakt auf dem inneren Feld
+  der vorigen — nur der dadurch freibleibende äußerste Ring pro Stufe wird
+  als Kollisions-/Greifpunkt registriert, der Rest ist verdeckt.
 - Kamera folgt hinter dem Charakter und zoomt im Idle näher heran
 
 ## Tech-Stack
