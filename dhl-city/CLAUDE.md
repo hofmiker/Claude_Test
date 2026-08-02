@@ -11,5 +11,7 @@ Die frühere Charakter-Studie (`character.html`) wurde als eigenständiges
 Projekt nach `3d-character-test/` verschoben.
 
 ## Tech-Stack
-- Three.js via CDN
+- Three.js r160, lokal vendored unter `vendor/three.module.min.js` (ES-Modul,
+  vorher r134 per CDN — CDN-Hosts sind per Netzwerk-Policy in der
+  Sandbox blockiert, lokales Vendoring war nötig für echte Screenshots/GIFs)
 - Touch + Keyboard Controls

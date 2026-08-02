@@ -61,8 +61,8 @@ canvas { display: block; }
   <div id="hint">Hoch/Runter wischen = Gas/Bremse · Links/Rechts = Lenken</div>
 </div>
 
-<script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
-<script>
+<script type="module">
+import * as THREE from './vendor/three.module.min.js';
 // ── Renderer / Scene / Camera ─────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -879,6 +879,7 @@ function spawnEndSparkles(){
   }
 }
 
+window.tryAgain = tryAgain;
 function tryAgain(){
   gameEnded=false; pkgCollected=0; crashCount=0;
   gameStartTime=performance.now(); elapsedMs=0;
