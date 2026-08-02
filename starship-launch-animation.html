@@ -57,12 +57,35 @@
     border-left:10px solid transparent; border-right:10px solid transparent;
     border-bottom:16px solid #fff;
   }
+  #actionBtn {
+    position:fixed; bottom:110px; right:34px; z-index:5; display:none;
+    width:56px; height:56px; background:rgba(150,215,255,.22); border:2px solid rgba(150,215,255,.75);
+    border-radius:50%; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
+    touch-action:none;
+  }
+  #actionBtn.on { background:rgba(150,215,255,.5); }
+  #actionBtn .ico {
+    width:16px; height:16px; border:3px solid #fff; border-radius:3px; transform:rotate(45deg);
+  }
+  #actionBtn.holding .ico { background:#fff; }
   #enterHint {
     position:fixed; left:50%; bottom:112px; transform:translateX(-50%);
     z-index:5; display:none; padding:7px 16px; border-radius:16px;
     background:rgba(20,20,25,.5); border:1px solid rgba(255,255,255,.4);
     color:#fff; font-family:Arial,sans-serif; font-size:13px; font-weight:600;
     letter-spacing:.2px; pointer-events:none; text-align:center;
+  }
+  #crystalHud {
+    position:fixed; top:16px; left:16px; z-index:5; display:none;
+    padding:7px 14px; border-radius:16px; background:rgba(20,20,25,.5);
+    border:1px solid rgba(200,140,255,.5); align-items:center; gap:8px;
+    color:#fff; font-family:Arial,sans-serif; font-size:14px; font-weight:600;
+  }
+  #crystalHud .ico {
+    width:12px; height:16px; background:#c07bff; opacity:0.95;
+    clip-path: polygon(50% 0%, 100% 30%, 78% 100%, 22% 100%, 0% 30%);
+    box-shadow: 0 0 6px 1px rgba(192,123,255,.9);
   }
   #minimap {
     position:fixed; top:16px; right:16px; z-index:5; display:none;
@@ -80,9 +103,11 @@
 <div id="fade"></div>
 <div id="skipBtn">Überspringen <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg></div>
 <canvas id="minimap" width="168" height="168"></canvas>
+<div id="crystalHud"><span class="ico"></span><span id="crystalCount">0 / 10</span></div>
 <div id="enterHint">Sprung-Taste zum Einsteigen</div>
 <div id="joystick"><div id="joystick-knob"></div></div>
 <div id="jumpBtn"><span class="ico"></span></div>
+<div id="actionBtn"><span class="ico"></span></div>
 
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -161,6 +186,7 @@ const MAT = {
   suitDark:  new THREE.MeshStandardMaterial({ color:0x2b2c30, flatShading:true, roughness:0.6 }),
   visor:     new THREE.MeshStandardMaterial({ color:0x0a0c10, flatShading:true, roughness:0.25, metalness:0.6 }),
   suitAccent:new THREE.MeshStandardMaterial({ color:0xd8362c, flatShading:true, roughness:0.55 }),
+  crystal:   new THREE.MeshStandardMaterial({ color:0xa855f7, emissive:0x9333ea, emissiveIntensity:1.4, flatShading:true, roughness:0.25, metalness:0.15, transparent:true, opacity:0.92 }),
 };
 
 const PAD_X = 0, PAD_TOP = 6;
@@ -582,6 +608,9 @@ scene.add(moonScene);
 const moonCraters = [];
 const moonRocksData = [];
 const moonCollidables = [];
+const crystals = [];
+const CRYSTAL_COUNT = 10;
+let crystalsCollected = 0;
 let rover;
 function moonCraterY(x,z){
   let y = 0;
@@ -598,6 +627,7 @@ function moonCraterY(x,z){
 function rockBumpY(x,z){
   let y = 0;
   for(const rk of moonRocksData){
+    if (rk.held) continue;
     const d = Math.hypot(x-rk.x, z-rk.z);
     if (d < rk.r){
       const tt = d/rk.r;
@@ -609,7 +639,11 @@ function rockBumpY(x,z){
 }
 function getMoonSurfaceY(x,z){
   if (Math.hypot(x-PAD_X,z) < 27) return PLATFORM_H;
-  return Math.max(moonCraterY(x,z), rockBumpY(x,z));
+  // Additive, not max(): moonCraterY is negative inside a bowl, and max()
+  // against rockBumpY's 0-elsewhere would clamp every crater floor up to 0,
+  // erasing all depth away from rocks. Adding lets rocks still raise a bump
+  // on top of the local terrain without flattening the surrounding crater.
+  return moonCraterY(x,z) + rockBumpY(x,z);
 }
 // Approximates a long object (station module, tube) as a chain of overlapping
 // circles along its local X axis, for cheap push-out collision.
@@ -670,7 +704,8 @@ function resolvePush(x, z, radius, list){
     // Rocks are climbable, not solid-blocking: getMoonSurfaceY treats them as
     // a smooth raised bump (same math as crater bowls, inverted), so walking
     // toward one ramps you up onto it instead of colliding with a wall.
-    moonRocksData.push({ x:rx, z:rz, r:R*1.05, h: embed + R*0.8 });
+    // mesh/R/held are used by the pick-up/carry/drop action (see updateAstronautGameplay).
+    moonRocksData.push({ x:rx, z:rz, r:R*1.05, h: embed + R*0.8, mesh:rock, R, embed, held:false });
   }
 
   function buildLandingBase(){
@@ -817,6 +852,39 @@ function resolvePush(x, z, radius, list){
   moonScene.add(stationGroup);
   stationGroup.updateMatrixWorld(true);
   stationMods.forEach((m,i) => registerCapsuleCollider(m, modDefs[i].r, modDefs[i].len));
+
+  // Glow is a cheap additive-blended unlit halo mesh, not a THREE.PointLight --
+  // adding 10 more dynamic lights forces a shader recompile for every material
+  // in the scene and tanks frame rate (same lesson as the coin lights elsewhere
+  // in this project: change intensity, never the light count, or avoid lights).
+  function buildCrystal(){
+    const grp = new THREE.Group();
+    const gem = new THREE.Mesh(new THREE.OctahedronGeometry(1.3,0), MAT.crystal);
+    gem.scale.set(1,1.7,1);
+    grp.add(gem);
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.55,0), new THREE.MeshBasicMaterial({ color:0xe6ccff, toneMapped:false }));
+    core.scale.set(1,1.7,1);
+    grp.add(core);
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(2.2,8,6), new THREE.MeshBasicMaterial({
+      color:0xb266ff, transparent:true, opacity:0.28, blending:THREE.AdditiveBlending, toneMapped:false,
+    }));
+    grp.add(halo);
+    return grp;
+  }
+  for(let i=0;i<CRYSTAL_COUNT;i++){
+    let cx=0, cz=0, ok=false, tries=0;
+    do {
+      const a = rand(0,Math.PI*2), d = rand(50,480);
+      cx = Math.cos(a)*d; cz = Math.sin(a)*d;
+      ok = Math.hypot(cx,cz) > 45 && Math.hypot(cx-(-95),cz-(-55)) > 70;
+      tries++;
+    } while(!ok && tries<30);
+    const grp = buildCrystal();
+    const gy = getMoonSurfaceY(cx,cz);
+    grp.position.set(cx, gy+1.4, cz);
+    moonScene.add(grp);
+    crystals.push({ x:cx, z:cz, group:grp, collected:false });
+  }
 
   const earth = new THREE.Mesh(new THREE.SphereGeometry(60,12,10), MAT.earth);
   // Low Y so the flat moon ground plane occludes the lower hemisphere in the
@@ -990,6 +1058,28 @@ function spawnGroundDust(dt, x, z, groundY, strength, big){
   }
 }
 
+const crystalCountEl = document.getElementById('crystalCount');
+function updateCrystals(dt, tt, px, pz){
+  for (const c of crystals){
+    if (c.collected) continue;
+    c.group.rotation.y += dt*0.8;
+    c.group.position.y = getMoonSurfaceY(c.x,c.z) + 1.4 + Math.sin(tt*1.6 + c.x)*0.15;
+    const dd = Math.hypot(px-c.x, pz-c.z);
+    if (dd < 3.0){
+      c.collected = true;
+      c.group.visible = false;
+      crystalsCollected++;
+      crystalCountEl.textContent = `${crystalsCollected} / ${CRYSTAL_COUNT}`;
+      playCollectChime();
+      spawnPuff(new THREE.Vector3(c.x, c.group.position.y, c.z), {
+        color: 0xc07bff, opacity: 0.9, emissive: 0xc07bff, emissiveIntensity: 1.2,
+        vel: new THREE.Vector3(0,3,0), growth: 8, maxLife: 0.5, scale0: 0.3,
+        fadeFrom: 0.2, drag: 0.9, maxScale: 3,
+      }, moonScene);
+    }
+  }
+}
+
 /* ---------- audio: procedural sound effects (Web Audio API, no external assets) ---------- */
 let audioCtx = null;
 function ensureAudio(){
@@ -1033,6 +1123,11 @@ function playNoiseBurst(dur, gainPeak, filterFreq){
 function playStep(){ playNoiseBurst(0.07, 0.14, 850); }
 function playJump(){ playTone(340, 0.16, 'triangle', 0.20); playTone(560, 0.10, 'triangle', 0.10, 0.02); }
 function playLand(){ playNoiseBurst(0.11, 0.20, 480); }
+function playCollectChime(){
+  playTone(660, 0.14, 'sine', 0.22);
+  playTone(990, 0.16, 'sine', 0.16, 0.05);
+  playTone(1320, 0.18, 'sine', 0.12, 0.10);
+}
 
 let engineOsc = null, engineGain = null, engineFilter = null;
 function startEngineSound(){
@@ -1275,6 +1370,7 @@ document.addEventListener('keydown', e => {
   if (e.key==='ArrowLeft' ||e.key==='a'||e.key==='A') keys.left  = true;
   if (e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right = true;
   if (e.key===' ') { jumpBuf = true; e.preventDefault(); }
+  if (e.key==='e'||e.key==='E'||e.key==='f'||e.key==='F') { actionBuf = true; }
 });
 document.addEventListener('keyup', e => {
   if (e.key==='ArrowUp'   ||e.key==='w'||e.key==='W') keys.up    = false;
@@ -1334,6 +1430,12 @@ jumpEl.addEventListener('pointerdown', e => { ensureAudio(); jumpBuf=true; jumpE
 jumpEl.addEventListener('pointerup',    () => jumpEl.classList.remove('on'));
 jumpEl.addEventListener('pointerleave', () => jumpEl.classList.remove('on'));
 
+let actionBuf = false;
+const actionEl = document.getElementById('actionBtn');
+actionEl.addEventListener('pointerdown', e => { ensureAudio(); actionBuf=true; actionEl.classList.add('on'); e.preventDefault(); });
+actionEl.addEventListener('pointerup',    () => actionEl.classList.remove('on'));
+actionEl.addEventListener('pointerleave', () => actionEl.classList.remove('on'));
+
 const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 820;
 const MOBILE_CAM_MULT = 1.45;
 
@@ -1357,6 +1459,11 @@ function drawMinimap(px, pz, pAngle){
   if (!inVehicle){
     mmCtx.fillStyle = '#ffcc55';
     mmCtx.beginPath(); mmCtx.arc(mx(roverX), mz(roverZ), 4, 0, Math.PI*2); mmCtx.fill();
+  }
+  mmCtx.fillStyle = '#c07bff';
+  for (const c of crystals){
+    if (c.collected) continue;
+    mmCtx.beginPath(); mmCtx.arc(mx(c.x), mz(c.z), 3, 0, Math.PI*2); mmCtx.fill();
   }
   mmCtx.restore();
   mmCtx.save();
@@ -1483,7 +1590,8 @@ let gameCamDist = 7.0;
 let gameMode = false;
 
 /* ---------- rover vehicle: driving physics (adapted from dhl-city/index.html) ---------- */
-const ROVER_MAX_SPD = 12, ROVER_ACCEL = 7, ROVER_BRAKE = 22, ROVER_FRICTION = 5, ROVER_STEER_RATE = 2.0;
+const ROVER_MAX_SPD = 18, ROVER_ACCEL = 10.5, ROVER_BRAKE = 22, ROVER_FRICTION = 5, ROVER_STEER_RATE = 2.0;
+const ROVER_REVERSE_FRAC = 0.333; // keeps reverse top speed the same as before the forward-speed bump
 const VEHICLE_ENTER_RADIUS = 4.2;
 const ROVER_COLLIDE_R = 4 * ROVER_SCALE + 0.3; // chassis half-width (4) scaled, plus a small buffer
 const CHAR_RADIUS = 0.55;
@@ -1492,27 +1600,80 @@ const SEAT_SIT_DROP = 0.45; // charRoot sits below the seat surface so the body 
 let roverX = 46, roverZ = 20, roverAngle = -0.6, roverSpd = 0, roverSteerAng = 0;
 let inVehicle = false;
 let vehicleCamPos = new THREE.Vector3();
-let vehicleCamDist = 7.0;
+let vehicleCamDist = 9.0;
 const enterHintEl = document.getElementById('enterHint');
 const tmpSeat = new THREE.Vector3();
 
-function poseAstronautSeated(){
+// Enter-vehicle transition: blends the astronaut's position/pose from where
+// they were standing to the seat over ENTER_ANIM_DUR, instead of snapping.
+const ENTER_ANIM_DUR = 0.4;
+let enterT = 1;
+let enterFromPos = new THREE.Vector3();
+let enterFromYaw = 0;
+
+/* ---------- action button: pick up / carry / drop a rock ---------- */
+const PICKUP_RADIUS = 3.2;
+const CARRY_LIFT_R_MAX = 2.2; // only smaller rocks are liftable by hand
+let heldRock = null;
+
+function dropHeldRock(){
+  if (!heldRock) return;
+  const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
+  const dropDist = 1.6;
+  const dx = astro.charRoot.position.x + fwdX*dropDist;
+  const dz = astro.charRoot.position.z + fwdZ*dropDist;
+  const gy = getMoonSurfaceY(dx,dz);
+  heldRock.x = dx; heldRock.z = dz;
+  heldRock.mesh.position.set(dx, gy+heldRock.embed, dz);
+  heldRock.mesh.rotation.set(rand(0,6),rand(0,6),rand(0,6));
+  heldRock.held = false;
+  heldRock = null;
+  actionEl.classList.remove('holding');
+}
+function pickUpNearestRock(){
+  if (heldRock) return;
+  let best = null, bestD = Infinity;
+  for (const rk of moonRocksData){
+    if (rk.held || rk.R > CARRY_LIFT_R_MAX) continue;
+    const dd = Math.hypot(astro.charRoot.position.x-rk.x, astro.charRoot.position.z-rk.z);
+    if (dd < PICKUP_RADIUS && dd < bestD){ bestD = dd; best = rk; }
+  }
+  if (best){ best.held = true; heldRock = best; actionEl.classList.add('holding'); }
+}
+
+function poseAstronautSeated(k){
   const A = astro;
-  A.lHip.rotation.x = -1.35; A.rHip.rotation.x = -1.35;
-  A.lKnee.rotation.x = 1.6;  A.rKnee.rotation.x = 1.6;
-  A.lAnkle.rotation.x = 0.35; A.rAnkle.rotation.x = 0.35;
-  A.lShoulder.rotation.set(-0.35, 0, 0.06); A.rShoulder.rotation.set(-0.35, 0, -0.06);
-  A.lElbow.rotation.x = -1.05; A.rElbow.rotation.x = -1.05;
-  A.torso.rotation.set(0.05, 0, 0);
-  A.torso.position.y = 1.26;
-  A.headJoint.rotation.set(0, 0, 0);
+  A.lHip.rotation.x = lerp(A.lHip.rotation.x, -1.35, k);
+  A.rHip.rotation.x = lerp(A.rHip.rotation.x, -1.35, k);
+  A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, 1.6, k);
+  A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, 1.6, k);
+  A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, 0.35, k);
+  A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, 0.35, k);
+  A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -0.35, k);
+  A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, 0.06, k);
+  A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -0.35, k);
+  A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z, -0.06, k);
+  A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -1.05, k);
+  A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -1.05, k);
+  A.torso.rotation.x = lerp(A.torso.rotation.x, 0.05, k);
+  A.torso.rotation.y = lerp(A.torso.rotation.y, 0, k);
+  A.torso.rotation.z = lerp(A.torso.rotation.z, 0, k);
+  A.torso.position.y = lerp(A.torso.position.y, 1.26, k);
+  A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, 0, k);
+  A.headJoint.rotation.y = lerp(A.headJoint.rotation.y, 0, k);
+  A.headJoint.rotation.z = lerp(A.headJoint.rotation.z, 0, k);
 }
 
 function enterVehicle(){
   inVehicle = true;
   jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0;
   enterHintEl.style.display = 'none';
+  actionEl.style.display = 'none';
+  dropHeldRock();
   vehicleCamPos.copy(camera.position);
+  enterT = 0;
+  enterFromPos.copy(astro.charRoot.position);
+  enterFromYaw = charYaw;
   startEngineSound();
 }
 function exitVehicle(){
@@ -1526,6 +1687,7 @@ function exitVehicle(){
   A.charRoot.rotation.y = charYaw;
   moveSpeed = 0; velY = 0; onGround = true; jumpState = JWALK.NONE;
   gameCamPos.copy(camera.position);
+  actionEl.style.display = 'flex';
   stopEngineSound();
 }
 
@@ -1534,7 +1696,7 @@ function updateRoverGameplay(dt){
 
   const gasIn = curInput.fwd, brakeIn = curInput.back;
   if (gasIn > brakeIn)        roverSpd = Math.min(roverSpd + ROVER_ACCEL*dt, ROVER_MAX_SPD*gasIn);
-  else if (brakeIn > gasIn)   roverSpd = roverSpd > 0.05 ? Math.max(roverSpd - ROVER_BRAKE*dt, 0) : Math.max(roverSpd - ROVER_ACCEL*0.9*dt, -ROVER_MAX_SPD*0.5*brakeIn);
+  else if (brakeIn > gasIn)   roverSpd = roverSpd > 0.05 ? Math.max(roverSpd - ROVER_BRAKE*dt, 0) : Math.max(roverSpd - ROVER_ACCEL*0.9*dt, -ROVER_MAX_SPD*ROVER_REVERSE_FRAC*brakeIn);
   else { const f = ROVER_FRICTION*dt; roverSpd = Math.abs(roverSpd) < f ? 0 : roverSpd - Math.sign(roverSpd)*f; }
 
   let steerTgt = 0;
@@ -1563,18 +1725,28 @@ function updateRoverGameplay(dt){
 
   tmpSeat.copy(SEAT_LOCAL);
   rover.localToWorld(tmpSeat);
-  astro.charRoot.position.set(tmpSeat.x, tmpSeat.y - SEAT_SIT_DROP, tmpSeat.z);
-  astro.charRoot.rotation.y = roverAngle;
-  poseAstronautSeated();
+  const seatY = tmpSeat.y - SEAT_SIT_DROP;
+  enterT = Math.min(enterT + dt/ENTER_ANIM_DUR, 1);
+  const easeT = smoothstep(0, 1, enterT);
+  astro.charRoot.position.set(
+    lerp(enterFromPos.x, tmpSeat.x, easeT),
+    lerp(enterFromPos.y, seatY, easeT),
+    lerp(enterFromPos.z, tmpSeat.z, easeT)
+  );
+  let yawDiff = roverAngle - enterFromYaw;
+  while (yawDiff > Math.PI) yawDiff -= Math.PI*2;
+  while (yawDiff < -Math.PI) yawDiff += Math.PI*2;
+  astro.charRoot.rotation.y = enterFromYaw + yawDiff*easeT;
+  poseAstronautSeated(easeT);
 
   if (jumpBuf){ jumpBuf = false; exitVehicle(); return; }
 
-  const baseVDist = 7.0 * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseVDist = 11.5 * (isMobile ? MOBILE_CAM_MULT : 1);
   vehicleCamDist = lerp(vehicleCamDist, baseVDist, dt*2.5);
-  const tCam = new THREE.Vector3(roverX - fwdX*vehicleCamDist, groundY + 2.4, roverZ - fwdZ*vehicleCamDist);
+  const tCam = new THREE.Vector3(roverX - fwdX*vehicleCamDist, groundY + 5.5, roverZ - fwdZ*vehicleCamDist);
   vehicleCamPos.lerp(tCam, 0.08);
   camera.position.copy(vehicleCamPos);
-  camera.lookAt(roverX, groundY + 1.6, roverZ);
+  camera.lookAt(roverX, groundY + 2.0, roverZ);
 }
 
 function updateAstronautGameplay(dt){
@@ -1603,6 +1775,18 @@ function updateAstronautGameplay(dt){
     jumpBuf = false;
     enterVehicle();
     return;
+  }
+
+  if (actionBuf){
+    actionBuf = false;
+    if (heldRock) dropHeldRock(); else pickUpNearestRock();
+  }
+  if (heldRock){
+    heldRock.mesh.position.set(
+      A.charRoot.position.x + fwdX*1.1,
+      A.charRoot.position.y + 1.15,
+      A.charRoot.position.z + fwdZ*1.1
+    );
   }
 
   if (jumpBuf && onGround && jumpState !== JWALK.WINDUP && jumpState !== JWALK.AIR){
@@ -1650,7 +1834,9 @@ function enterGameMode(){
   gameMode = true;
   document.getElementById('joystick').style.display = 'block';
   document.getElementById('jumpBtn').style.display = 'flex';
+  document.getElementById('actionBtn').style.display = 'flex';
   document.getElementById('minimap').style.display = 'block';
+  document.getElementById('crystalHud').style.display = 'flex';
   document.getElementById('skipBtn').style.display = 'none';
   gameCamPos.copy(camera.position);
 }
@@ -1814,6 +2000,10 @@ function animate(){
   if (gameMode){
     updatePuffs(dt);
     if (inVehicle) updateRoverGameplay(dt); else updateAstronautGameplay(dt);
+    updateCrystals(dt, now/1000,
+      inVehicle ? roverX : astro.charRoot.position.x,
+      inVehicle ? roverZ : astro.charRoot.position.z
+    );
     drawMinimap(
       inVehicle ? roverX : astro.charRoot.position.x,
       inVehicle ? roverZ : astro.charRoot.position.z,
