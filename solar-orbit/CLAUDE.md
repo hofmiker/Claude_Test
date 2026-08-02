@@ -7,8 +7,10 @@ https://hofmiker.github.io/Claude_Test/solar-orbit/
 Versionsnummer im `#deploy-time` div. Beim nächsten Commit auf v1.18 hochzählen.
 
 ## Tech-Stack
-- Three.js 0.160.0 via CDN (importmap)
-- OrbitControls für Kamera
+- Three.js 0.160.0, lokal vendored unter `vendor/three/` (importmap zeigt auf
+  relative Pfade statt CDN — CDN-Hosts sind per Netzwerk-Policy in der
+  Sandbox blockiert, lokales Vendoring war nötig für ein echtes GIF)
+- OrbitControls für Kamera (ebenfalls lokal unter `vendor/three/examples/jsm/controls/`)
 - Web Audio API für Bell-Sounds (Tonhöhe nach Körpergröße)
 - Canvas 2D Overlay für Labels, Glow-Pulse, Outline-Ring
 

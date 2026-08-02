@@ -22,5 +22,7 @@ nach 5s Inaktivität). Ursprünglich als Vorstudie für den Spielcharakter aus
   dem Charakter und zoomt im Idle näher heran
 
 ## Tech-Stack
-- Three.js via CDN
+- Three.js r160, lokal vendored unter `vendor/three.module.min.js` (ES-Modul,
+  vorher r128 per CDN — CDN-Hosts sind per Netzwerk-Policy in der Sandbox
+  blockiert, lokales Vendoring war nötig für ein echtes GIF)
 - Touch + Keyboard Controls
