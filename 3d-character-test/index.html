@@ -608,11 +608,18 @@ function tryGrabLedge() {
       hangCrate    = c;
       hangNormalX  = normalX;  hangNormalZ  = normalZ;
       hangTangentX = -normalZ; hangTangentZ = normalX;
-      shimmyOffset = 0; shimmyMax = Math.max(0, CRATE_H / 2 - PLAYER_RADIUS - 0.15);
+      shimmyMax = Math.max(0, CRATE_H / 2 - PLAYER_RADIUS - 0.15);
+      shimmyPhase = 0;
       grabFromX = px; grabFromY = py; grabFromZ = pz;
-      hangTargetX = nx + normalX * HAND_REACH_OUT;
-      hangTargetZ = nz + normalZ * HAND_REACH_OUT;
+      // Anker ist die Flächen-MITTE (nicht der Greifpunkt) — so bleibt
+      // `shimmyOffset` als Tangential-Abstand von der Kanten-Mitte auch
+      // nach einem Wechsel auf eine Nachbarkiste/-fläche konsistent.
+      const half = CRATE_H / 2;
+      const faceCenterX = c.x + normalX * half, faceCenterZ = c.z + normalZ * half;
+      hangTargetX = faceCenterX + normalX * HAND_REACH_OUT;
+      hangTargetZ = faceCenterZ + normalZ * HAND_REACH_OUT;
       hangTargetY = surfaceY - HAND_DROP;
+      shimmyOffset = (nx - c.x) * hangTangentX + (nz - c.z) * hangTangentZ;
       hangYaw     = Math.atan2(-normalX, -normalZ); // Blick zur Kiste hin
       jumpState = JS.HANG; jumpTimer = 0; grabT = 0;
       velY = 0; moveSpeed = 0;
@@ -634,7 +641,7 @@ let grabCooldown = 0; // s — verhindert sofortiges Wieder-Einhängen direkt na
 let grabFromX=0, grabFromY=0, grabFromZ=0;
 let hangTargetX=0, hangTargetY=0, hangTargetZ=0, hangYaw=0;
 let hangNormalX=0, hangNormalZ=1, hangTangentX=1, hangTangentZ=0;
-let shimmyOffset = 0, shimmyMax = 0;
+let shimmyOffset = 0, shimmyMax = 0, shimmyPhase = 0, shimmyActive = false;
 let grabT = 0;
 let climbFromX=0, climbFromY=0, climbFromZ=0, climbToX=0, climbToY=0, climbToZ=0;
 let climbT = 0;
@@ -667,7 +674,7 @@ function resetCharacterState() {
   charYaw = 0; charRoot.rotation.y = 0;
   velY = 0; onGround = true; moveSpeed = 0;
   jumpState = JS.NONE; jumpTimer = 0; jumpBuf = false;
-  hangCrate = null; grabT = 0; climbT = 0; grabCooldown = 0; shimmyOffset = 0;
+  hangCrate = null; grabT = 0; climbT = 0; grabCooldown = 0; shimmyOffset = 0; shimmyPhase = 0; shimmyActive = false;
   animT = 0; idleTimer = 0; scratchPhase = 0;
   camDist = 7.0;
   camPos.set(charRoot.position.x, charRoot.position.y + 3.5, charRoot.position.z - 7);
@@ -765,12 +772,19 @@ function animateCharacter(dt) {
 
   // ─ HANG: dangling from a grabbed ledge, reaching up ──────────────────────
   } else if (jumpState === JS.HANG) {
-    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -2.3, 0.28);
-    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -2.3, 0.28);
-    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.16, 0.22);
-    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.16, 0.22);
-    lElbow.rotation.x    = lerp(lElbow.rotation.x, -0.18, 0.28);
-    rElbow.rotation.x    = lerp(rElbow.rotation.x, -0.18, 0.28);
+    // Beim Hangeln greifen die Hände abwechselnd nach links/rechts (wie an
+    // einem Klettergriff): reach>0 = rechte Hand reicht gerade weiter nach
+    // vorn/außen und die linke zieht nach, reach<0 umgekehrt. Im Stand
+    // (nicht hangelnd) geht reach auf 0 zurück → exakt die kalibrierte,
+    // symmetrische Greif-Pose.
+    const reach = shimmyActive ? Math.sin(shimmyPhase) : 0;
+    const rLead = Math.max(0, reach), lLead = Math.max(0, -reach);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -2.3 + 0.45 * lLead, 0.3);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -2.3 + 0.45 * rLead, 0.3);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.16 - 0.32 * lLead, 0.28);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.16 + 0.32 * rLead, 0.28);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x, -0.18 - 0.55 * rLead, 0.3);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x, -0.18 - 0.55 * lLead, 0.3);
     lHip.rotation.x       = lerp(lHip.rotation.x,   0.16, 0.22);
     rHip.rotation.x       = lerp(rHip.rotation.x,   0.22, 0.22);
     lKnee.rotation.x      = lerp(lKnee.rotation.x,  0.28, 0.22);
@@ -911,25 +925,74 @@ function updateNormal(dt) {
   }
 }
 
+// Am Ende der gegriffenen Fläche angekommen (Hangel-Limit überschritten):
+// zuerst eine Nachbarkiste versuchen, die dieselbe Wand fortsetzt (gleiche
+// Normale); sonst um die eigene Kiste herum auf die angrenzende Seite
+// wechseln (Ecke). `sign` = Richtung, in die das Limit überschritten wurde.
+function tryContinueLedge(sign, overshoot) {
+  const half = CRATE_H / 2;
+  const nCx = hangCrate.x + hangTangentX * sign * CRATE_H;
+  const nCz = hangCrate.z + hangTangentZ * sign * CRATE_H;
+  const neighbor = crateData.find(c =>
+    Math.abs(c.x - nCx) < 0.1 && Math.abs(c.z - nCz) < 0.1 && Math.abs(c.topY - hangCrate.topY) < 0.1
+  );
+  if (neighbor) {
+    hangCrate = neighbor;
+    const faceCenterX = neighbor.x + hangNormalX * half, faceCenterZ = neighbor.z + hangNormalZ * half;
+    hangTargetX = faceCenterX + hangNormalX * HAND_REACH_OUT;
+    hangTargetZ = faceCenterZ + hangNormalZ * HAND_REACH_OUT;
+    // Nur den tatsächlichen Rest-Weg dieses Frames auf die neue Fläche
+    // übertragen (nicht wieder bis zum Limit springen) — sonst würde am
+    // Übergang bei gehaltener Taste jeden Frame erneut ausgelöst.
+    shimmyOffset = -sign * shimmyMax + sign * overshoot;
+    return;
+  }
+  // Ecke: dieselbe Kiste, aber auf die Nachbarfläche im 90°-Winkel drehen.
+  // Dieselbe Flächen-Mitte-Formel wie beim Erstgreifen/Nachbarkisten-Fall
+  // (nicht der Ecken-Eckpunkt selbst) — konsistent und ohne den größeren
+  // Sprung, den eine separate Eckpunkt-Berechnung sonst verursacht.
+  const newNormalX = hangTangentX * sign, newNormalZ = hangTangentZ * sign;
+  const newTangentX = -hangNormalX * sign, newTangentZ = -hangNormalZ * sign;
+  hangNormalX = newNormalX; hangNormalZ = newNormalZ;
+  hangTangentX = newTangentX; hangTangentZ = newTangentZ;
+  const faceCenterX = hangCrate.x + newNormalX * half, faceCenterZ = hangCrate.z + newNormalZ * half;
+  hangTargetX = faceCenterX + newNormalX * HAND_REACH_OUT;
+  hangTargetZ = faceCenterZ + newNormalZ * HAND_REACH_OUT;
+  hangYaw = Math.atan2(-newNormalX, -newNormalZ);
+  shimmyOffset = -sign * shimmyMax + sign * overshoot;
+}
+
 function updateHang(dt) {
   jumpTimer += dt;
   grabT = Math.min(1, grabT + dt / GRAB_SETTLE);
   const e = smooth(grabT);
-  charRoot.position.x = lerp(grabFromX, hangTargetX, e);
+  const settleX = hangTargetX + hangTangentX * shimmyOffset;
+  const settleZ = hangTargetZ + hangTangentZ * shimmyOffset;
+  charRoot.position.x = lerp(grabFromX, settleX, e);
   charRoot.position.y = lerp(grabFromY, hangTargetY, e);
-  charRoot.position.z = lerp(grabFromZ, hangTargetZ, e);
+  charRoot.position.z = lerp(grabFromZ, settleZ, e);
   charYaw = hangYaw;
   charRoot.rotation.y = charYaw;
   velY = 0; moveSpeed = 0;
 
   if (grabT >= 1) {
-    // Seitliches Weiterhangeln an derselben Kante — bleibt auf der
-    // gegriffenen Seitenfläche, geklemmt auf deren Breite (Würfel: ±halbe
-    // Kantenlänge, abzüglich Körperbreite).
-    const shimmyInput = (keys.right > 0.05 ? 1 : 0) - (keys.left > 0.05 ? 1 : 0);
-    shimmyOffset = Math.max(-shimmyMax, Math.min(shimmyMax, shimmyOffset + shimmyInput * SHIMMY_SPEED * dt));
+    // Seitliches Weiterhangeln an derselben Kante, parallel zur Fläche —
+    // geklemmt auf deren Breite (Würfel: ±halbe Kantenlänge abzüglich
+    // Körperbreite), am Limit geht es nahtlos auf die nächste Kiste bzw.
+    // um die Ecke weiter (tryContinueLedge).
+    const shimmyInput = (keys.left > 0.05 ? 1 : 0) - (keys.right > 0.05 ? 1 : 0);
+    shimmyActive = shimmyInput !== 0;
+    if (shimmyInput !== 0) {
+      shimmyPhase += shimmyInput * dt * 5.5;
+      const proposed = shimmyOffset + shimmyInput * SHIMMY_SPEED * dt;
+      if (proposed > shimmyMax) tryContinueLedge(1, proposed - shimmyMax);
+      else if (proposed < -shimmyMax) tryContinueLedge(-1, -shimmyMax - proposed);
+      else shimmyOffset = proposed;
+    }
     charRoot.position.x = hangTargetX + hangTangentX * shimmyOffset;
     charRoot.position.z = hangTargetZ + hangTangentZ * shimmyOffset;
+    charYaw = hangYaw;
+    charRoot.rotation.y = charYaw;
 
     if (jumpBuf) {
       jumpBuf = false;

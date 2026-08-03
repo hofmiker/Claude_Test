@@ -71,6 +71,19 @@ und `buildWarehouseLevel()`.
   aus Würfeln, die nächste Stufe (`n-2`) sitzt exakt auf dem inneren Feld
   der vorigen — nur der dadurch freibleibende äußerste Ring pro Stufe wird
   als Kollisions-/Greifpunkt registriert, der Rest ist verdeckt.
+
+  **Weiterhangeln** bleibt beim Bewegen strikt parallel zur Fläche
+  (`shimmyOffset` entlang der Tangente, `hangTargetX/Z` bleibt die
+  Flächen-Mitte als Anker) und geht am Ende einer Kante nahtlos weiter
+  (`tryContinueLedge()`): zuerst wird eine Nachbarkiste mit gleicher
+  Normalen probiert (dieselbe Wand geht weiter), sonst dreht sich der
+  Charakter um 90° auf die angrenzende Fläche derselben Kiste (Ecke) —
+  jeweils nur um den tatsächlichen Rest-Weg dieses Frames versetzt, nicht
+  wieder bis zum Limit, sonst würde bei gehaltener Taste jeden Frame erneut
+  gedreht. Die Hände greifen beim Hangeln abwechselnd (`shimmyPhase`,
+  animiert in `animateCharacter()`s HANG-Zweig) statt sich synchron zu
+  bewegen; im Stand geht die Pose zurück auf die kalibrierte, symmetrische
+  Greif-Haltung.
 - Kamera folgt hinter dem Charakter und zoomt im Idle näher heran
 
 ## Tech-Stack
