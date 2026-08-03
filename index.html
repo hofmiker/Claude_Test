@@ -242,21 +242,24 @@
             color: var(--text-quaternary);
             margin-top: 2px;
         }
+        .commits {
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            color: var(--text-quaternary);
+        }
         .link-badge {
             position: absolute;
-            right: 14px;
-            bottom: 14px;
-            width: 28px;
-            height: 28px;
+            right: 12px;
+            bottom: 12px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            border: 1.5px solid var(--text-primary);
+            border: 1px solid var(--text-tertiary);
             color: var(--text-primary);
             background: var(--tile-bg);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
-            line-height: 1;
             pointer-events: none;
             transition: background 0.2s ease;
         }
@@ -279,66 +282,6 @@
         <button type="button" class="chip" data-filter="3d">3D</button>
     </div>
     <div class="projects">
-        <a href="toy-story/" data-tags="games 3d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/toy-story.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
-                <span class="name">Spielzeug-Abenteuer</span>
-                <span class="desc">3D-Lauf-/Hüpfspiel als 10cm-Spielfigur durch ein zweistöckiges Haus</span>
-                <span class="updated">Aktualisiert: {{UPDATED:toy-story}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="gta/" data-tags="games 3d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/gta.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
-                <span class="name">Vice Grid</span>
-                <span class="desc">3D-Top-Down-Fahrspiel mit Auftr&#228;gen im GTA-Stil</span>
-                <span class="updated">Aktualisiert: {{UPDATED:gta}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="cape-character/" data-tags="2d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/cape-character.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">2D</span></span>
-                <span class="name">Cape Character</span>
-                <span class="desc">2D-IK-Charakter mit Knie-, Fu&#223;- &amp; Ellenbogengelenken, Umhang &amp; Kapuze</span>
-                <span class="updated">Aktualisiert: {{UPDATED:cape-character}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="starship-launch/" data-tags="games 3d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/starship-launch.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
-                <span class="name">Starship Launch</span>
-                <span class="desc">3D-Raketenstart &amp; Mondlandung mit begehbarer Mondoberfl&#228;che und fahrbarem Rover</span>
-                <span class="updated">Aktualisiert: {{UPDATED:starship-launch}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="3d-character-test/" data-tags="games 3d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/3d-character-test.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
-                <span class="name">3D Character Test</span>
-                <span class="desc">Low-Poly-Charakter-Studie: Joystick, 2 Level &amp; Kanten-Klettern</span>
-                <span class="updated">Aktualisiert: {{UPDATED:3d-character-test}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="flower-vase/" data-tags="3d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/flower-vase.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">3D</span></span>
-                <span class="name">Explosion-Szenen</span>
-                <span class="desc">3D-Explosionen (Blumenvase &amp; Spaceshuttle) mit Zeit-Regler</span>
-                <span class="updated">Aktualisiert: {{UPDATED:flower-vase}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
         <a href="dhl-city/" data-tags="games 3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/dhl-city.gif" alt="">
             <span class="label">
@@ -346,28 +289,9 @@
                 <span class="name">DHL City Drive</span>
                 <span class="desc">3D-Fahrspiel mit Paketzustellung</span>
                 <span class="updated">Aktualisiert: {{UPDATED:dhl-city}}</span>
+                <span class="commits">Commits: {{COMMITS:dhl-city}}</span>
             </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="rooftop-wanderer/" data-tags="games 2d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/rooftop-wanderer.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
-                <span class="name">Rooftop Wanderer</span>
-                <span class="desc">Atmosphären-Adventure: Umhang-Charakter über einer nächtlichen Dach-Skyline</span>
-                <span class="updated">Aktualisiert: {{UPDATED:rooftop-wanderer}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="neon-rain-game/" data-tags="games 2d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/neon-rain-game.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
-                <span class="name">The Neon Rain</span>
-                <span class="desc">Noir-Detektiv-Adventure in einer Regennacht-Stadt</span>
-                <span class="updated">Aktualisiert: {{UPDATED:neon-rain-game}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
         </a>
         <a href="solar-orbit/" data-tags="3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/solar-orbit.gif" alt="">
@@ -376,18 +300,86 @@
                 <span class="name">Solar Orbit</span>
                 <span class="desc">Interaktives 3D-Sonnensystem</span>
                 <span class="updated">Aktualisiert: {{UPDATED:solar-orbit}}</span>
+                <span class="commits">Commits: {{COMMITS:solar-orbit}}</span>
             </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
         </a>
-        <a href="snake/" data-tags="games 2d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/snake.gif" alt="">
+        <a href="starship-launch/" data-tags="games 3d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/starship-launch.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
+                <span class="name">Starship Launch</span>
+                <span class="desc">3D-Raketenstart &amp; Mondlandung mit begehbarer Mondoberfl&#228;che und fahrbarem Rover</span>
+                <span class="updated">Aktualisiert: {{UPDATED:starship-launch}}</span>
+                <span class="commits">Commits: {{COMMITS:starship-launch}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="3d-character-test/" data-tags="games 3d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/3d-character-test.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
+                <span class="name">3D Character Test</span>
+                <span class="desc">Low-Poly-Charakter-Studie: Joystick, 2 Level &amp; Kanten-Klettern</span>
+                <span class="updated">Aktualisiert: {{UPDATED:3d-character-test}}</span>
+                <span class="commits">Commits: {{COMMITS:3d-character-test}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="rooftop-wanderer/" data-tags="games 2d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/rooftop-wanderer.gif" alt="">
             <span class="label">
                 <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
-                <span class="name">Snake</span>
-                <span class="desc">Der Nokia-Klassiker mit Touch- und Tastatursteuerung</span>
-                <span class="updated">Aktualisiert: {{UPDATED:snake}}</span>
+                <span class="name">Rooftop Wanderer</span>
+                <span class="desc">Atmosphären-Adventure: Umhang-Charakter über einer nächtlichen Dach-Skyline</span>
+                <span class="updated">Aktualisiert: {{UPDATED:rooftop-wanderer}}</span>
+                <span class="commits">Commits: {{COMMITS:rooftop-wanderer}}</span>
             </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="toy-story/" data-tags="games 3d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/toy-story.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
+                <span class="name">Spielzeug-Abenteuer</span>
+                <span class="desc">3D-Lauf-/Hüpfspiel als 10cm-Spielfigur durch ein zweistöckiges Haus</span>
+                <span class="updated">Aktualisiert: {{UPDATED:toy-story}}</span>
+                <span class="commits">Commits: {{COMMITS:toy-story}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="cape-character/" data-tags="2d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/cape-character.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">2D</span></span>
+                <span class="name">Cape Character</span>
+                <span class="desc">2D-IK-Charakter mit Knie-, Fu&#223;- &amp; Ellenbogengelenken, Umhang &amp; Kapuze</span>
+                <span class="updated">Aktualisiert: {{UPDATED:cape-character}}</span>
+                <span class="commits">Commits: {{COMMITS:cape-character}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="gta/" data-tags="games 3d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/gta.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
+                <span class="name">Vice Grid</span>
+                <span class="desc">3D-Top-Down-Fahrspiel mit Auftr&#228;gen im GTA-Stil</span>
+                <span class="updated">Aktualisiert: {{UPDATED:gta}}</span>
+                <span class="commits">Commits: {{COMMITS:gta}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="flower-vase/" data-tags="3d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/flower-vase.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">3D</span></span>
+                <span class="name">Explosion-Szenen</span>
+                <span class="desc">3D-Explosionen (Blumenvase &amp; Spaceshuttle) mit Zeit-Regler</span>
+                <span class="updated">Aktualisiert: {{UPDATED:flower-vase}}</span>
+                <span class="commits">Commits: {{COMMITS:flower-vase}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
         </a>
         <a href="bitcoin-3d/" data-tags="crypto 3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/bitcoin-3d.png" alt="">
@@ -396,68 +388,20 @@
                 <span class="name">Bitcoin 3D</span>
                 <span class="desc">3D Candlestick-Visualisierung</span>
                 <span class="updated">Aktualisiert: {{UPDATED:bitcoin-3d}}</span>
+                <span class="commits">Commits: {{COMMITS:bitcoin-3d}}</span>
             </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
         </a>
-        <a href="arkanoid/" data-tags="games 2d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/arkanoid.gif" alt="">
+        <a href="neon-rain-game/" data-tags="games 2d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/neon-rain-game.gif" alt="">
             <span class="label">
                 <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
-                <span class="name">Arkanoid Klon</span>
-                <span class="desc">Breakout-artiges Arcade-Spiel mit Highscore</span>
-                <span class="updated">Aktualisiert: {{UPDATED:arkanoid}}</span>
+                <span class="name">The Neon Rain</span>
+                <span class="desc">Noir-Detektiv-Adventure in einer Regennacht-Stadt</span>
+                <span class="updated">Aktualisiert: {{UPDATED:neon-rain-game}}</span>
+                <span class="commits">Commits: {{COMMITS:neon-rain-game}}</span>
             </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="btc/" data-tags="crypto" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/btc.png" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Crypto</span></span>
-                <span class="name">Bitcoin On-Chain Dashboard</span>
-                <span class="desc">Live-Kurs, Mempool &amp; Netzwerk-Metriken</span>
-                <span class="updated">Aktualisiert: {{UPDATED:btc}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="flappy/" data-tags="games 2d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/flappy.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
-                <span class="name">Flappy Klon</span>
-                <span class="desc">Flappy-Bird-artiges Arcade-Spiel mit Highscore</span>
-                <span class="updated">Aktualisiert: {{UPDATED:flappy}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="spice-wars/" data-tags="games 2d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/spice-wars.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
-                <span class="name">Spice Wars</span>
-                <span class="desc">2D Sci-Fi Echtzeitstrategie im Dune-2-Stil</span>
-                <span class="updated">Aktualisiert: {{UPDATED:spice-wars}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="dark-city/" data-tags="games 2d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/dark-city.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
-                <span class="name">Dark City</span>
-                <span class="desc">2D Nacht-Jump'n'Run über die Dächer der Stadt</span>
-                <span class="updated">Aktualisiert: {{UPDATED:dark-city}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
-        </a>
-        <a href="toy-box-rescue/" data-tags="games 2d" target="_blank" rel="noopener">
-            <img class="thumb" src="screenshots/toy-box-rescue.gif" alt="">
-            <span class="label">
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
-                <span class="name">Toy Box Rescue</span>
-                <span class="desc">2D-Fangspiel: Spielzeuge auffangen, Zurgs Robotern ausweichen</span>
-                <span class="updated">Aktualisiert: {{UPDATED:toy-box-rescue}}</span>
-            </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
         </a>
         <a href="hello/" data-tags="2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/hello.gif" alt="">
@@ -466,8 +410,86 @@
                 <span class="name">Hello</span>
                 <span class="desc">Interaktive Partikel-Typografie</span>
                 <span class="updated">Aktualisiert: {{UPDATED:hello}}</span>
+                <span class="commits">Commits: {{COMMITS:hello}}</span>
             </span>
-            <span class="link-badge" aria-hidden="true">&#8594;</span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="snake/" data-tags="games 2d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/snake.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
+                <span class="name">Snake</span>
+                <span class="desc">Der Nokia-Klassiker mit Touch- und Tastatursteuerung</span>
+                <span class="updated">Aktualisiert: {{UPDATED:snake}}</span>
+                <span class="commits">Commits: {{COMMITS:snake}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="arkanoid/" data-tags="games 2d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/arkanoid.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
+                <span class="name">Arkanoid Klon</span>
+                <span class="desc">Breakout-artiges Arcade-Spiel mit Highscore</span>
+                <span class="updated">Aktualisiert: {{UPDATED:arkanoid}}</span>
+                <span class="commits">Commits: {{COMMITS:arkanoid}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="btc/" data-tags="crypto" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/btc.png" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Crypto</span></span>
+                <span class="name">Bitcoin On-Chain Dashboard</span>
+                <span class="desc">Live-Kurs, Mempool &amp; Netzwerk-Metriken</span>
+                <span class="updated">Aktualisiert: {{UPDATED:btc}}</span>
+                <span class="commits">Commits: {{COMMITS:btc}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="flappy/" data-tags="games 2d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/flappy.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
+                <span class="name">Flappy Klon</span>
+                <span class="desc">Flappy-Bird-artiges Arcade-Spiel mit Highscore</span>
+                <span class="updated">Aktualisiert: {{UPDATED:flappy}}</span>
+                <span class="commits">Commits: {{COMMITS:flappy}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="spice-wars/" data-tags="games 2d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/spice-wars.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
+                <span class="name">Spice Wars</span>
+                <span class="desc">2D Sci-Fi Echtzeitstrategie im Dune-2-Stil</span>
+                <span class="updated">Aktualisiert: {{UPDATED:spice-wars}}</span>
+                <span class="commits">Commits: {{COMMITS:spice-wars}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="dark-city/" data-tags="games 2d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/dark-city.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
+                <span class="name">Dark City</span>
+                <span class="desc">2D Nacht-Jump'n'Run über die Dächer der Stadt</span>
+                <span class="updated">Aktualisiert: {{UPDATED:dark-city}}</span>
+                <span class="commits">Commits: {{COMMITS:dark-city}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
+        </a>
+        <a href="toy-box-rescue/" data-tags="games 2d" target="_blank" rel="noopener">
+            <img class="thumb" src="screenshots/toy-box-rescue.gif" alt="">
+            <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
+                <span class="name">Toy Box Rescue</span>
+                <span class="desc">2D-Fangspiel: Spielzeuge auffangen, Zurgs Robotern ausweichen</span>
+                <span class="updated">Aktualisiert: {{UPDATED:toy-box-rescue}}</span>
+                <span class="commits">Commits: {{COMMITS:toy-box-rescue}}</span>
+            </span>
+            <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
         </a>
     </div>
     <script>

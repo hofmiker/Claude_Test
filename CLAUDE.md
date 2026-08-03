@@ -59,17 +59,29 @@ und `{{UPDATED:<projekt>}}` (pro Kachel, Datum des letzten Commits auf
            <span class="name">Projektname</span>
            <span class="desc">Kurzbeschreibung</span>
            <span class="updated">Aktualisiert: {{UPDATED:<projekt>}}</span>
+           <span class="commits">Commits: {{COMMITS:<projekt>}}</span>
        </span>
-       <span class="link-badge" aria-hidden="true">&#8594;</span>
+       <span class="link-badge" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></span>
    </a>
    ```
    Die Kachel-Reihenfolge in `.projects` ist **nicht** die Reihenfolge in
    der Tabelle oben, sondern nach Wichtigkeit absteigend sortiert (Proxy:
-   Anzahl Commits auf `<projekt>/`, bei Gleichstand Codezeilen — beides per
-   `git log --oneline -- <projekt>/ | wc -l` bzw. `find <projekt> -type f
-   \( -iname '*.html' -o -iname '*.js' -o -iname '*.css' \) ! -path
-   '*/vendor/*' -exec cat {} \; | wc -l` ermittelbar). Neue Kachel an der
-   passenden Stelle einsortieren, nicht einfach ans Ende anhängen.
+   Anzahl Commits auf dem Projekt, bei Gleichstand Codezeilen). **Wichtig:**
+   dafür `git log --follow -- <projekt>/index.html` verwenden, nicht
+   `git log -- <projekt>/`! Mehrere Projekte wurden im Lauf der Zeit
+   umbenannt/restrukturiert (`dhl` → `dhl-city`, `sonnensystem` →
+   `solar-orbit`, …) — ohne `--follow` zählt `git log` nur Commits nach der
+   Umbenennung und unterschlägt die gesamte Historie davor (bei `dhl-city`
+   z. B. 43 vs. nur 4 Commits). Codezeilen als Tiebreaker:
+   `find <projekt> -type f \( -iname '*.html' -o -iname '*.js' -o -iname
+   '*.css' \) ! -path '*/vendor/*' -exec cat {} \; | wc -l`. Neue Kachel an
+   der passenden Stelle einsortieren, nicht einfach ans Ende anhängen.
+
+   `{{UPDATED:<projekt>}}` und `{{COMMITS:<projekt>}}` **nie von Hand
+   ausrechnen** — beide werden von `.github/workflows/deploy.yml` bei
+   jedem Deploy automatisch befüllt (ebenfalls über `--follow` auf
+   `<projekt>/index.html`, aus demselben Grund). Genau diese
+   Platzhalter-Strings beim Anlegen einer neuen Kachel verwenden.
 
    `data-tags` ist eine mit Leerzeichen getrennte Liste aus den vier
    Filter-Kategorien oben auf der Seite: `games` (hat Spielmechanik/Ziel,
@@ -80,13 +92,6 @@ und `{{UPDATED:<projekt>}}` (pro Kachel, Datum des letzten Commits auf
    `<span class="tag">` mit der passenden Anzeige-Beschriftung (`Games`,
    `Crypto`, `2D`, `3D`) ergänzen — die Filter-Chips oben auf der Seite matchen
    automatisch gegen `data-tags`, dafür ist nichts weiter in JS anzupassen.
-
-   Das Datum in `.updated` **nicht mehr von Hand eintragen** — der
-   `{{UPDATED:<projekt>}}`-Platzhalter wird von `.github/workflows/deploy.yml`
-   bei jedem Deploy automatisch durch das Datum des letzten Commits ersetzt,
-   der `<projekt>/` verändert hat (`git log -1 --date=format:%d.%m.%Y --
-   <projekt>/`). Genau diesen Platzhalter-String beim Anlegen einer neuen
-   Kachel verwenden, nicht ausrechnen oder hart codieren.
 6. **Bevorzugt ein kurzes GIF für die Kachel erzeugen** (wie bei `hello/`):
    Startscreen wenn möglich überspringen (Klick/Taste simulieren) und ein
    paar Sekunden echtes Gameplay als `screenshots/<projekt>.gif` aufnehmen.
