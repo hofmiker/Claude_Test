@@ -18,6 +18,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Stamp live deploy date and per-project last-updated dates
+        run: |
+          DEPLOY_DATE=$(date -u +'%d.%m.%Y %H:%M UTC')
+          sed -i "s/{{DEPLOY_DATE}}/$DEPLOY_DATE/" index.html
+          for folder in $(grep -oP '(?<=\{\{UPDATED:)[^}]+' index.html | sort -u); do
+            DATE=$(git log -1 --format=%ad --date=format:'%d.%m.%Y' -- "$folder" 2>/dev/null)
+            if [ -z "$DATE" ]; then DATE=$(date -u +'%d.%m.%Y'); fi
+            sed -i "s/{{UPDATED:$folder}}/$DATE/g" index.html
+          done
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with:

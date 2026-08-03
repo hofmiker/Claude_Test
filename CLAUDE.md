@@ -33,6 +33,14 @@ heißt `index.html` → saubere URLs ohne Dateiendung. `.github/workflows/deploy
 deployed automatisch bei jedem Push auf `main` — kein manuelles Pages-Setting,
 kein PR nötig.
 
+Die Root-`index.html` enthält zwei Arten von Auto-Datumsplatzhaltern, die der
+Deploy-Workflow bei jedem Lauf frisch einsetzt (niemals von Hand mit einem
+Datum überschreiben, sonst geht die Automatik beim nächsten Edit kaputt):
+`{{DEPLOY_DATE}}` (ganz oben, Zeitpunkt des letzten tatsächlichen Live-Gangs)
+und `{{UPDATED:<projekt>}}` (pro Kachel, Datum des letzten Commits auf
+`<projekt>/`). Dafür checkt der Workflow mit `fetch-depth: 0` aus, damit
+`git log` die volle Historie sieht.
+
 ## Neues Projekt hinzufügen
 1. Direkt auf `main` committen (kein Feature-Branch/PR erforderlich)
 2. `<projekt>/index.html` anlegen (komplettes, selbstständiges Spiel/Projekt)
@@ -42,22 +50,34 @@ kein PR nötig.
 5. **Kachel in der Root-`index.html` ergänzen — Pflichtschritt, jedes Projekt
    braucht eine Kachel.** Jede Kachel ist ein `<a>` innerhalb von
    `.projects` mit exakt dieser Struktur (Klassen `thumb`/`label`/`name`/`desc`/
-   `updated` sind bereits per CSS gestylt, nichts weiter nötig):
+   `tags`/`tag`/`updated` sind bereits per CSS gestylt, nichts weiter nötig):
    ```html
-   <a href="<projekt>/">
+   <a href="<projekt>/" data-tags="games 3d">
        <img class="thumb" src="screenshots/<projekt>.gif" alt="">
        <span class="label">
            <span class="name">Projektname</span>
            <span class="desc">Kurzbeschreibung</span>
-           <span class="updated">Aktualisiert: DD.MM.YYYY</span>
+           <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
+           <span class="updated">Aktualisiert: {{UPDATED:<projekt>}}</span>
        </span>
    </a>
    ```
-   Das Datum in `.updated` kommt aus dem letzten Commit, der den Projektordner
-   verändert hat: `git log -1 --format=%ad --date=format:%d.%m.%Y -- <projekt>/`.
-   Bei jeder inhaltlichen Änderung an `<projekt>/` (nicht bei reinen
-   Screenshot-Updates im globalen `screenshots/`-Ordner) dieses Datum in der
-   Kachel mit hochziehen.
+   `data-tags` ist eine mit Leerzeichen getrennte Liste aus den vier
+   Filter-Kategorien oben auf der Seite: `games` (hat Spielmechanik/Ziel,
+   nicht nur eine Visualisierung/Studie), `crypto` (Bitcoin/Kurs-Bezug),
+   `2d` und `3d` (Rendering-Dimensionalität — bei reinen Dashboards ohne
+   2D/3D-Szene wie `btc/` weglassen). Mehrfachvergabe ist normal (z. B. ein
+   3D-Fahrspiel ist `games 3d`). Für jeden vergebenen Tag-Wert einen
+   `<span class="tag">` mit der passenden Anzeige-Beschriftung (`Games`,
+   `Crypto`, `2D`, `3D`) ergänzen — die Filter-Chips oben auf der Seite matchen
+   automatisch gegen `data-tags`, dafür ist nichts weiter in JS anzupassen.
+
+   Das Datum in `.updated` **nicht mehr von Hand eintragen** — der
+   `{{UPDATED:<projekt>}}`-Platzhalter wird von `.github/workflows/deploy.yml`
+   bei jedem Deploy automatisch durch das Datum des letzten Commits ersetzt,
+   der `<projekt>/` verändert hat (`git log -1 --date=format:%d.%m.%Y --
+   <projekt>/`). Genau diesen Platzhalter-String beim Anlegen einer neuen
+   Kachel verwenden, nicht ausrechnen oder hart codieren.
 6. **Bevorzugt ein kurzes GIF für die Kachel erzeugen** (wie bei `hello/`):
    Startscreen wenn möglich überspringen (Klick/Taste simulieren) und ein
    paar Sekunden echtes Gameplay als `screenshots/<projekt>.gif` aufnehmen.
