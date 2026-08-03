@@ -52,16 +52,25 @@ und `{{UPDATED:<projekt>}}` (pro Kachel, Datum des letzten Commits auf
    `.projects` mit exakt dieser Struktur (Klassen `thumb`/`label`/`name`/`desc`/
    `tags`/`tag`/`updated` sind bereits per CSS gestylt, nichts weiter nötig):
    ```html
-   <a href="<projekt>/" data-tags="games 3d">
+   <a href="<projekt>/" data-tags="games 3d" target="_blank" rel="noopener">
        <img class="thumb" src="screenshots/<projekt>.gif" alt="">
        <span class="label">
+           <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
            <span class="name">Projektname</span>
            <span class="desc">Kurzbeschreibung</span>
-           <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
            <span class="updated">Aktualisiert: {{UPDATED:<projekt>}}</span>
        </span>
+       <span class="link-badge" aria-hidden="true">&#8594;</span>
    </a>
    ```
+   Die Kachel-Reihenfolge in `.projects` ist **nicht** die Reihenfolge in
+   der Tabelle oben, sondern nach Wichtigkeit absteigend sortiert (Proxy:
+   Anzahl Commits auf `<projekt>/`, bei Gleichstand Codezeilen — beides per
+   `git log --oneline -- <projekt>/ | wc -l` bzw. `find <projekt> -type f
+   \( -iname '*.html' -o -iname '*.js' -o -iname '*.css' \) ! -path
+   '*/vendor/*' -exec cat {} \; | wc -l` ermittelbar). Neue Kachel an der
+   passenden Stelle einsortieren, nicht einfach ans Ende anhängen.
+
    `data-tags` ist eine mit Leerzeichen getrennte Liste aus den vier
    Filter-Kategorien oben auf der Seite: `games` (hat Spielmechanik/Ziel,
    nicht nur eine Visualisierung/Studie), `crypto` (Bitcoin/Kurs-Bezug),
