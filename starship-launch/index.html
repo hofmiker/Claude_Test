@@ -1724,7 +1724,24 @@ actionEl.addEventListener('pointerleave', () => actionEl.classList.remove('on'))
 /* ---------- fullscreen toggle ---------- */
 const fsBtn = document.getElementById('fullscreenBtn');
 function isFullscreen(){ return !!document.fullscreenElement; }
+// Forces any lingering pinch/double-tap browser zoom back to 1.0 -- rewriting
+// the viewport meta tag to the SAME value is a no-op, so this briefly swaps
+// it to a plain value and restores the original on the next frame, which is
+// enough to make mobile Safari snap the effective zoom back to normal.
+function resetZoom(){
+  const meta = document.querySelector('meta[name="viewport"]');
+  if (meta){
+    const original = meta.getAttribute('content');
+    meta.setAttribute('content', 'width=device-width, initial-scale=1.0');
+    requestAnimationFrame(() => {
+      meta.setAttribute('content', original);
+      scheduleResize();
+    });
+  }
+  window.scrollTo(0, 0);
+}
 function toggleFullscreen(){
+  resetZoom();
   ensureAudio();
   if (!isFullscreen()) document.documentElement.requestFullscreen?.().catch(() => {});
   else document.exitFullscreen?.();
