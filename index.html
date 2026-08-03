@@ -5,31 +5,147 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Projects</title>
     <style>
+        @font-face {
+            font-family: 'Space Grotesk';
+            src: url('vendor/fonts/space-grotesk-400.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Space Grotesk';
+            src: url('vendor/fonts/space-grotesk-500.woff2') format('woff2');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Space Grotesk';
+            src: url('vendor/fonts/space-grotesk-700.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('vendor/fonts/inter-400.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('vendor/fonts/inter-500.woff2') format('woff2');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('vendor/fonts/inter-600.woff2') format('woff2');
+            font-weight: 600;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --bg: #05050f;
+            --tile-bg: #101018;
+            --tile-bg-hover: #17171f;
+            --tile-border: rgba(255,255,255,0.08);
+            --tile-border-hover: rgba(255,255,255,0.22);
+            --text-primary: rgba(255,255,255,0.90);
+            --text-secondary: rgba(255,255,255,0.55);
+            --text-tertiary: rgba(255,255,255,0.35);
+            --text-quaternary: rgba(255,255,255,0.22);
+            --chip-border: rgba(255,255,255,0.15);
+            --chip-hover-border: rgba(255,255,255,0.35);
+            --chip-active-bg: rgba(255,255,255,0.85);
+            --chip-active-text: #05050f;
+            --gold: #e8b93f;
+            --gold-glow: rgba(232,185,63,0.40);
+            --switch-bg: rgba(255,255,255,0.08);
+            --switch-border: rgba(255,255,255,0.20);
+            --switch-thumb: #cfd2da;
+        }
+        :root[data-theme="light"] {
+            --bg: #f2f1ec;
+            --tile-bg: #ffffff;
+            --tile-bg-hover: #ffffff;
+            --tile-border: rgba(0,0,0,0.08);
+            --tile-border-hover: rgba(0,0,0,0.22);
+            --text-primary: rgba(0,0,0,0.85);
+            --text-secondary: rgba(0,0,0,0.55);
+            --text-tertiary: rgba(0,0,0,0.42);
+            --text-quaternary: rgba(0,0,0,0.32);
+            --chip-border: rgba(0,0,0,0.15);
+            --chip-hover-border: rgba(0,0,0,0.35);
+            --chip-active-bg: rgba(0,0,0,0.85);
+            --chip-active-text: #f2f1ec;
+            --switch-bg: rgba(0,0,0,0.06);
+            --switch-border: rgba(0,0,0,0.16);
+            --switch-thumb: #55534a;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #05050f;
-            color: rgba(255,255,255,0.7);
-            font-family: -apple-system, Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--text-secondary);
+            font-family: 'Inter', -apple-system, Helvetica, sans-serif;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 40px 24px;
+            transition: background 0.3s ease, color 0.3s ease;
         }
         h1 {
+            font-family: 'Space Grotesk', -apple-system, Helvetica, sans-serif;
             font-size: 36px;
             font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: rgba(255,255,255,0.85);
+            color: var(--text-primary);
             margin-bottom: 8px;
+            transition: color 0.3s ease;
         }
         .deploy-date {
             font-size: 10px;
             letter-spacing: 0.10em;
-            color: rgba(255,255,255,0.20);
+            color: var(--text-quaternary);
             margin-bottom: 28px;
+            transition: color 0.3s ease;
+        }
+        .theme-switch {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 46px;
+            height: 24px;
+            border-radius: 999px;
+            background: var(--switch-bg);
+            border: 1px solid var(--switch-border);
+            cursor: pointer;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .theme-switch-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--switch-thumb);
+            transform: translateX(0);
+            transition: transform 0.3s ease, background 0.3s ease;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        :root[data-theme="light"] .theme-switch-thumb {
+            transform: translateX(22px);
         }
         .filters {
             display: flex;
@@ -44,22 +160,22 @@
             font-size: 11px;
             letter-spacing: 0.10em;
             text-transform: uppercase;
-            color: rgba(255,255,255,0.55);
+            color: var(--text-secondary);
             background: transparent;
-            border: 1px solid rgba(255,255,255,0.15);
+            border: 1px solid var(--chip-border);
             border-radius: 999px;
             padding: 7px 16px;
             cursor: pointer;
             transition: border-color 0.2s, background 0.2s, color 0.2s;
         }
         .chip:hover {
-            border-color: rgba(255,255,255,0.35);
-            color: rgba(255,255,255,0.85);
+            border-color: var(--chip-hover-border);
+            color: var(--text-primary);
         }
         .chip.active {
-            background: rgba(255,255,255,0.85);
-            border-color: rgba(255,255,255,0.85);
-            color: #05050f;
+            background: var(--chip-active-bg);
+            border-color: var(--chip-active-bg);
+            color: var(--chip-active-text);
         }
         .projects {
             display: grid;
@@ -71,18 +187,23 @@
         a {
             display: flex;
             flex-direction: column;
-            border: 1px solid rgba(255,255,255,0.08);
+            background: var(--tile-bg);
+            border: 1px solid var(--tile-border);
             border-radius: 12px;
             text-decoration: none;
             overflow: hidden;
-            transition: border-color 0.2s, background 0.2s;
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
         }
         a:hover, a:active {
-            border-color: rgba(255,255,255,0.22);
-            background: rgba(255,255,255,0.03);
+            border-color: var(--tile-border-hover);
+            background: var(--tile-bg-hover);
         }
         a.is-hidden {
             display: none;
+        }
+        a.tile-clicked {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 1px var(--gold), 0 0 18px var(--gold-glow);
         }
         .thumb {
             width: 100%;
@@ -97,42 +218,45 @@
             gap: 6px;
             padding: 16px 20px;
         }
-        .name {
-            font-size: 19px;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.90);
-        }
-        .desc {
-            font-size: 11px;
-            letter-spacing: 0.04em;
-            color: rgba(255,255,255,0.35);
-        }
         .tags {
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
-            margin-top: 2px;
         }
         .tag {
             font-size: 9px;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: rgba(255,255,255,0.45);
-            border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text-tertiary);
+            border: 1px solid var(--chip-border);
             border-radius: 999px;
             padding: 3px 9px;
+        }
+        .name {
+            font-family: 'Space Grotesk', -apple-system, Helvetica, sans-serif;
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+        }
+        .desc {
+            font-size: 11px;
+            letter-spacing: 0.04em;
+            color: var(--text-tertiary);
         }
         .updated {
             font-size: 10px;
             letter-spacing: 0.06em;
-            color: rgba(255,255,255,0.22);
+            color: var(--text-quaternary);
             margin-top: 2px;
         }
     </style>
 </head>
 <body>
+    <button type="button" class="theme-switch" id="theme-toggle" aria-label="Hell-/Dunkelmodus umschalten">
+        <span class="theme-switch-thumb"></span>
+    </button>
     <h1>Projects</h1>
     <div class="deploy-date">Deployed {{DEPLOY_DATE}}</div>
     <div class="filters">
@@ -146,180 +270,207 @@
         <a href="hello/" data-tags="2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/hello.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">2D</span></span>
                 <span class="name">Hello</span>
                 <span class="desc">Interaktive Partikel-Typografie</span>
-                <span class="tags"><span class="tag">2D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:hello}}</span>
             </span>
         </a>
         <a href="solar-orbit/" data-tags="3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/solar-orbit.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">3D</span></span>
                 <span class="name">Solar Orbit</span>
                 <span class="desc">Interaktives 3D-Sonnensystem</span>
-                <span class="tags"><span class="tag">3D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:solar-orbit}}</span>
             </span>
         </a>
         <a href="dhl-city/" data-tags="games 3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/dhl-city.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
                 <span class="name">DHL City Drive</span>
                 <span class="desc">3D-Fahrspiel mit Paketzustellung</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:dhl-city}}</span>
             </span>
         </a>
         <a href="3d-character-test/" data-tags="games 3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/3d-character-test.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
                 <span class="name">3D Character Test</span>
                 <span class="desc">Low-Poly-Charakter-Studie: Joystick, 2 Level &amp; Kanten-Klettern</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:3d-character-test}}</span>
             </span>
         </a>
         <a href="bitcoin-3d/" data-tags="crypto 3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/bitcoin-3d.png" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Crypto</span><span class="tag">3D</span></span>
                 <span class="name">Bitcoin 3D</span>
                 <span class="desc">3D Candlestick-Visualisierung</span>
-                <span class="tags"><span class="tag">Crypto</span><span class="tag">3D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:bitcoin-3d}}</span>
             </span>
         </a>
         <a href="spice-wars/" data-tags="games 2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/spice-wars.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="name">Spice Wars</span>
                 <span class="desc">2D Sci-Fi Echtzeitstrategie im Dune-2-Stil</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:spice-wars}}</span>
             </span>
         </a>
         <a href="dark-city/" data-tags="games 2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/dark-city.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="name">Dark City</span>
                 <span class="desc">2D Nacht-Jump'n'Run über die Dächer der Stadt</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:dark-city}}</span>
             </span>
         </a>
         <a href="neon-rain-game/" data-tags="games 2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/neon-rain-game.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="name">The Neon Rain</span>
                 <span class="desc">Noir-Detektiv-Adventure in einer Regennacht-Stadt</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:neon-rain-game}}</span>
             </span>
         </a>
         <a href="toy-story/" data-tags="games 3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/toy-story.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
                 <span class="name">Spielzeug-Abenteuer</span>
                 <span class="desc">3D-Lauf-/Hüpfspiel als 10cm-Spielfigur durch ein zweistöckiges Haus</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:toy-story}}</span>
             </span>
         </a>
         <a href="flower-vase/" data-tags="3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/flower-vase.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">3D</span></span>
                 <span class="name">Explosion-Szenen</span>
                 <span class="desc">3D-Explosionen (Blumenvase &amp; Spaceshuttle) mit Zeit-Regler</span>
-                <span class="tags"><span class="tag">3D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:flower-vase}}</span>
             </span>
         </a>
         <a href="snake/" data-tags="games 2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/snake.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="name">Snake</span>
                 <span class="desc">Der Nokia-Klassiker mit Touch- und Tastatursteuerung</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:snake}}</span>
             </span>
         </a>
         <a href="btc/" data-tags="crypto" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/btc.png" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Crypto</span></span>
                 <span class="name">Bitcoin On-Chain Dashboard</span>
                 <span class="desc">Live-Kurs, Mempool &amp; Netzwerk-Metriken</span>
-                <span class="tags"><span class="tag">Crypto</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:btc}}</span>
             </span>
         </a>
         <a href="gta/" data-tags="games 3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/gta.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
                 <span class="name">Vice Grid</span>
                 <span class="desc">3D-Top-Down-Fahrspiel mit Auftr&#228;gen im GTA-Stil</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:gta}}</span>
             </span>
         </a>
         <a href="cape-character/" data-tags="2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/cape-character.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">2D</span></span>
                 <span class="name">Cape Character</span>
                 <span class="desc">2D-IK-Charakter mit Knie-, Fu&#223;- &amp; Ellenbogengelenken, Umhang &amp; Kapuze</span>
-                <span class="tags"><span class="tag">2D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:cape-character}}</span>
             </span>
         </a>
         <a href="rooftop-wanderer/" data-tags="games 2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/rooftop-wanderer.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="name">Rooftop Wanderer</span>
                 <span class="desc">Atmosphären-Adventure: Umhang-Charakter über einer nächtlichen Dach-Skyline</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:rooftop-wanderer}}</span>
             </span>
         </a>
         <a href="flappy/" data-tags="games 2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/flappy.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="name">Flappy Klon</span>
                 <span class="desc">Flappy-Bird-artiges Arcade-Spiel mit Highscore</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:flappy}}</span>
             </span>
         </a>
         <a href="arkanoid/" data-tags="games 2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/arkanoid.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="name">Arkanoid Klon</span>
                 <span class="desc">Breakout-artiges Arcade-Spiel mit Highscore</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:arkanoid}}</span>
             </span>
         </a>
         <a href="toy-box-rescue/" data-tags="games 2d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/toy-box-rescue.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="name">Toy Box Rescue</span>
                 <span class="desc">2D-Fangspiel: Spielzeuge auffangen, Zurgs Robotern ausweichen</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">2D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:toy-box-rescue}}</span>
             </span>
         </a>
         <a href="starship-launch/" data-tags="games 3d" target="_blank" rel="noopener">
             <img class="thumb" src="screenshots/starship-launch.gif" alt="">
             <span class="label">
+                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
                 <span class="name">Starship Launch</span>
                 <span class="desc">3D-Raketenstart &amp; Mondlandung mit begehbarer Mondoberfl&#228;che und fahrbarem Rover</span>
-                <span class="tags"><span class="tag">Games</span><span class="tag">3D</span></span>
                 <span class="updated">Aktualisiert: {{UPDATED:starship-launch}}</span>
             </span>
         </a>
     </div>
     <script>
         (function () {
+            var root = document.documentElement;
+            var toggle = document.getElementById('theme-toggle');
+            var thumb = toggle.querySelector('.theme-switch-thumb');
+
+            function applyTheme(theme) {
+                root.setAttribute('data-theme', theme);
+                thumb.textContent = theme === 'light' ? '☀' : '☾';
+            }
+
+            var stored = localStorage.getItem('theme');
+            applyTheme(stored === 'light' ? 'light' : 'dark');
+
+            toggle.addEventListener('click', function () {
+                var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                applyTheme(next);
+                localStorage.setItem('theme', next);
+            });
+        })();
+
+        (function () {
             var chips = document.querySelectorAll('.chip');
             var tiles = document.querySelectorAll('.projects > a');
             var active = new Set();
+
+            tiles.forEach(function (tile) {
+                tile.addEventListener('click', function () {
+                    tiles.forEach(function (t) { t.classList.remove('tile-clicked'); });
+                    tile.classList.add('tile-clicked');
+                });
+            });
 
             chips.forEach(function (chip) {
                 chip.addEventListener('click', function () {
@@ -343,14 +494,53 @@
                     var isActive = filter === 'all' ? active.size === 0 : active.has(filter);
                     chip.classList.toggle('active', isActive);
                 });
+
+                var before = new Map();
                 tiles.forEach(function (tile) {
-                    if (active.size === 0) {
-                        tile.classList.remove('is-hidden');
-                        return;
+                    if (!tile.classList.contains('is-hidden')) {
+                        before.set(tile, tile.getBoundingClientRect());
                     }
+                });
+
+                tiles.forEach(function (tile) {
                     var tags = tile.dataset.tags.split(' ');
-                    var matches = tags.some(function (t) { return active.has(t); });
+                    var matches = active.size === 0 || tags.some(function (t) { return active.has(t); });
                     tile.classList.toggle('is-hidden', !matches);
+                });
+
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        tiles.forEach(function (tile) {
+                            if (tile.classList.contains('is-hidden')) return;
+                            var first = before.get(tile);
+                            var last = tile.getBoundingClientRect();
+                            if (!first) {
+                                tile.style.transition = 'none';
+                                tile.style.opacity = '0';
+                                tile.style.transform = 'scale(0.92)';
+                                requestAnimationFrame(function () {
+                                    requestAnimationFrame(function () {
+                                        tile.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                                        tile.style.opacity = '1';
+                                        tile.style.transform = '';
+                                    });
+                                });
+                                return;
+                            }
+                            var dx = first.left - last.left;
+                            var dy = first.top - last.top;
+                            if (dx || dy) {
+                                tile.style.transition = 'none';
+                                tile.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+                                requestAnimationFrame(function () {
+                                    requestAnimationFrame(function () {
+                                        tile.style.transition = 'transform 0.35s ease';
+                                        tile.style.transform = '';
+                                    });
+                                });
+                            }
+                        });
+                    });
                 });
             }
         })();
