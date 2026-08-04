@@ -275,6 +275,8 @@ const MAT = {
   crystal:   new THREE.MeshStandardMaterial({ color:0xa855f7, emissive:0x9333ea, emissiveIntensity:1.4, flatShading:true, roughness:0.25, metalness:0.15, transparent:true, opacity:0.92 }),
   solarPanel:new THREE.MeshStandardMaterial({ color:0x14213d, flatShading:true, roughness:0.25, metalness:0.55 }),
   lampGlow:  new THREE.MeshBasicMaterial({ color:0xffe9b0, toneMapped:false }),
+  rigHull:     new THREE.MeshStandardMaterial({ color:0xd8dbe0, flatShading:true, roughness:0.45, metalness:0.3 }),
+  rigHullDark: new THREE.MeshStandardMaterial({ color:0x44474e, flatShading:true, roughness:0.5, metalness:0.3 }),
 };
 
 const PAD_X = 0, PAD_TOP = 6;
@@ -728,6 +730,7 @@ const crystals = [];
 const CRYSTAL_COUNT = 10;
 let crystalsCollected = 0;
 let rover;
+let bigRig;
 function moonCraterY(x,z){
   let y = 0;
   for(const c of moonCraters){
@@ -1044,6 +1047,64 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   rover.position.set(46, getMoonSurfaceY(46,20), 20);
   rover.rotation.y = -0.6;
   moonScene.add(rover);
+
+  // Big 12-wheel rig: a much larger second vehicle parked next to the rover,
+  // spaceship-hulled but wheeled, with a domed cockpit reached by a ladder.
+  function buildBigRig(){
+    const grp = new THREE.Group();
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(9,4,26), MAT.rigHull);
+    chassis.position.y = 5.5; grp.add(chassis);
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(4.5,6,8), MAT.rigHull);
+    nose.rotation.x = Math.PI/2; nose.position.set(0,5.5,16); grp.add(nose);
+    const cockpitBase = new THREE.Mesh(new THREE.BoxGeometry(5,2.4,5), MAT.rigHullDark);
+    cockpitBase.position.set(0,8.7,9); grp.add(cockpitBase);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(3.2,10,8,0,Math.PI*2,0,Math.PI/2), MAT.stationDome);
+    dome.scale.set(1,0.8,1.3);
+    dome.rotation.x = -0.3;
+    dome.position.set(0,9.9,10);
+    grp.add(dome);
+
+    function bigWheelUnit(){
+      const w = new THREE.Group();
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(1.9,1.9,1.3,12), MAT.roverDark);
+      wheel.rotation.z = Math.PI/2; w.add(wheel);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.7,1.5,6), MAT.roverGold);
+      hub.rotation.z = Math.PI/2; w.add(hub);
+      return w;
+    }
+    const frontWheels = [];
+    const wheelZs = [-9,-5.4,-1.8,1.8,5.4,9]; // 6 per side
+    wheelZs.forEach((z,i) => {
+      [-5.2,5.2].forEach(x => {
+        const w = bigWheelUnit(); w.position.set(x,2.1,z); grp.add(w);
+        if (i===wheelZs.length-1) frontWheels.push(w); // only the frontmost pair steers
+      });
+    });
+
+    // Ladder up the left side to the cockpit -- purely visual, entry itself
+    // is a quick blended transition like the rover's, not real climbing.
+    const ladderGroup = new THREE.Group();
+    ladderGroup.position.set(-4.8, 0, 6);
+    for(let i=0;i<6;i++){
+      const rung = new THREE.Mesh(new THREE.BoxGeometry(1.6,0.15,0.3), MAT.roverDark);
+      rung.position.y = 1.2 + i*1.2;
+      ladderGroup.add(rung);
+    }
+    [-0.7,0.7].forEach(rx => {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.12,8,0.12), MAT.roverDark);
+      rail.position.set(rx, 4.6, 0);
+      ladderGroup.add(rail);
+    });
+    grp.add(ladderGroup);
+
+    grp.userData = { frontWheels };
+    return grp;
+  }
+  bigRig = buildBigRig();
+  bigRig.rotation.order = 'YXZ';
+  bigRig.position.set(72, getMoonSurfaceY(72,20), 20);
+  bigRig.rotation.y = -0.6;
+  moonScene.add(bigRig);
 
   // Modules rest directly on the ground: local origin at the cylinder's own
   // axis, so placing a module's group at world y = r sits its underside on y=0.
@@ -2022,6 +2083,10 @@ function drawMinimap(px, pz, pAngle){
     mmCtx.fillStyle = '#ffcc55';
     mmCtx.beginPath(); mmCtx.arc(mx(roverX), mz(roverZ), 4, 0, Math.PI*2); mmCtx.fill();
   }
+  if (!inBigRig){
+    mmCtx.fillStyle = '#8fffb0';
+    mmCtx.beginPath(); mmCtx.arc(mx(bigRigX), mz(bigRigZ), 5, 0, Math.PI*2); mmCtx.fill();
+  }
   mmCtx.fillStyle = '#c07bff';
   for (const c of crystals){
     if (c.collected) continue;
@@ -2030,7 +2095,7 @@ function drawMinimap(px, pz, pAngle){
   mmCtx.restore();
   mmCtx.save();
   mmCtx.translate(cx,cy);
-  mmCtx.fillStyle = inVehicle ? '#ffcc55' : '#ffffff';
+  mmCtx.fillStyle = inVehicle ? '#ffcc55' : inBigRig ? '#8fffb0' : '#ffffff';
   mmCtx.beginPath(); mmCtx.moveTo(0,-7); mmCtx.lineTo(-5,6); mmCtx.lineTo(0,3); mmCtx.lineTo(5,6); mmCtx.closePath(); mmCtx.fill();
   mmCtx.restore();
 }
@@ -2191,6 +2256,28 @@ let enterT = 1;
 let enterFromPos = new THREE.Vector3();
 let enterFromYaw = 0;
 
+/* ---------- big rig: second, much larger drivable vehicle ---------- */
+// A fully parallel state block, not a generalization of the rover's --
+// the rover's own state (roverX/roverAngle/etc, enterVehicle/exitVehicle,
+// the single inVehicle boolean) is all flat module-level variables with no
+// registry, so a second vehicle needs its own copy of the same shape.
+const BIGRIG_MAX_SPD = 12, BIGRIG_ACCEL = 6, BIGRIG_BRAKE = 14, BIGRIG_FRICTION = 4, BIGRIG_STEER_RATE = 1.1;
+const BIGRIG_REVERSE_FRAC = 0.3;
+const BIGRIG_ENTER_RADIUS = 7;
+const BIGRIG_COLLIDE_R = 15; // much bigger footprint than the rover
+const BIGRIG_SEAT_LOCAL = new THREE.Vector3(0, 9.9, 9); // standing at the cockpit controls, under the dome
+const BIGRIG_ENTER_ANIM_DUR = 0.18; // "der Einstieg klappt sehr schnell" -- noticeably faster than the rover's
+let bigRigX = 72, bigRigZ = 20, bigRigAngle = -0.6, bigRigSpd = 0, bigRigSteerAng = 0;
+let bigRigPitch = 0, bigRigRoll = 0;
+const BIGRIG_HALF_LEN = 13, BIGRIG_HALF_WID = 5;
+let inBigRig = false;
+let bigRigCamPos = new THREE.Vector3();
+let bigRigCamDist = 16.0;
+let bigRigCamHeight = 8.0;
+let bigRigEnterT = 1;
+let bigRigEnterFromPos = new THREE.Vector3();
+let bigRigEnterFromYaw = 0;
+
 /* ---------- action button: pick up / carry / drop a rock ---------- */
 const PICKUP_RADIUS = 3.5;
 let heldRock = null;
@@ -2276,6 +2363,130 @@ function exitVehicle(){
   stopEngineSound();
 }
 
+// Standing at the big rig's controls under the dome (ladder-accessed cockpit,
+// not a seat) -- upright legs, arms forward as if gripping a console.
+function poseAstronautStanding(k){
+  const A = astro;
+  A.lHip.rotation.x = lerp(A.lHip.rotation.x, 0, k);
+  A.rHip.rotation.x = lerp(A.rHip.rotation.x, 0, k);
+  A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, 0.1, k);
+  A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, 0.1, k);
+  A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, 0, k);
+  A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, 0, k);
+  A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -0.55, k);
+  A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, 0.10, k);
+  A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -0.55, k);
+  A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z, -0.10, k);
+  A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -0.85, k);
+  A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -0.85, k);
+  A.torso.rotation.x = lerp(A.torso.rotation.x, 0.02, k);
+  A.torso.rotation.y = lerp(A.torso.rotation.y, 0, k);
+  A.torso.rotation.z = lerp(A.torso.rotation.z, 0, k);
+  A.torso.position.y = lerp(A.torso.position.y, 1.26, k);
+  A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, 0, k);
+  A.headJoint.rotation.y = lerp(A.headJoint.rotation.y, 0, k);
+  A.headJoint.rotation.z = lerp(A.headJoint.rotation.z, 0, k);
+}
+
+function enterBigRig(){
+  inBigRig = true;
+  jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0;
+  jetBoosting = false; astro.jetFlame.grp.visible = false;
+  enterHintEl.style.display = 'none';
+  pickupHintEl.style.display = 'none';
+  actionEl.style.display = 'none';
+  dropHeldRock();
+  bigRigCamPos.copy(camera.position);
+  bigRigEnterT = 0;
+  bigRigEnterFromPos.copy(astro.charRoot.position);
+  bigRigEnterFromYaw = charYaw;
+  startEngineSound();
+}
+function exitBigRig(){
+  inBigRig = false;
+  const A = astro;
+  const sideX = Math.cos(bigRigAngle), sideZ = -Math.sin(bigRigAngle);
+  const exitDist = 8;
+  const ex = bigRigX + sideX*exitDist, ez = bigRigZ + sideZ*exitDist;
+  A.charRoot.position.set(ex, getMoonSurfaceY(ex,ez) + CHAR_BASE_Y, ez);
+  charYaw = bigRigAngle;
+  A.charRoot.rotation.y = charYaw;
+  moveSpeed = 0; velY = 0; onGround = true; jumpState = JWALK.NONE;
+  gameCamPos.copy(camera.position);
+  actionEl.style.display = 'flex';
+  stopEngineSound();
+}
+
+function updateBigRigGameplay(dt){
+  refreshInput();
+
+  const gasIn = curInput.fwd, brakeIn = curInput.back;
+  if (gasIn > brakeIn)        bigRigSpd = Math.min(bigRigSpd + BIGRIG_ACCEL*dt, BIGRIG_MAX_SPD*gasIn);
+  else if (brakeIn > gasIn)   bigRigSpd = bigRigSpd > 0.05 ? Math.max(bigRigSpd - BIGRIG_BRAKE*dt, 0) : Math.max(bigRigSpd - BIGRIG_ACCEL*0.9*dt, -BIGRIG_MAX_SPD*BIGRIG_REVERSE_FRAC*brakeIn);
+  else { const f = BIGRIG_FRICTION*dt; bigRigSpd = Math.abs(bigRigSpd) < f ? 0 : bigRigSpd - Math.sign(bigRigSpd)*f; }
+
+  let steerTgt = 0;
+  if (Math.abs(bigRigSpd) > 0.05){
+    const turn = curInput.left - curInput.right;
+    const sdir = bigRigSpd >= 0 ? 1 : -1;
+    const sr = BIGRIG_STEER_RATE * (Math.abs(bigRigSpd)/BIGRIG_MAX_SPD);
+    bigRigAngle += sr*dt*turn*sdir;
+    steerTgt = turn*0.4*sdir;
+  }
+  bigRigSteerAng = lerp(bigRigSteerAng, steerTgt, 0.12);
+  if (bigRig.userData.frontWheels) bigRig.userData.frontWheels.forEach(w => w.rotation.y = bigRigSteerAng);
+
+  const fwdX = Math.sin(bigRigAngle), fwdZ = Math.cos(bigRigAngle);
+  const nx = bigRigX + fwdX*bigRigSpd*dt, nz = bigRigZ + fwdZ*bigRigSpd*dt;
+  let resolved = resolveSlide(bigRigX, bigRigZ, nx, nz, BIGRIG_COLLIDE_R, moonCollidables);
+  resolved = resolveSlide(bigRigX, bigRigZ, resolved.x, resolved.z, BIGRIG_COLLIDE_R, [{ x:roverX, z:roverZ, r:ROVER_COLLIDE_R }]);
+  if (Math.hypot(resolved.x-nx, resolved.z-nz) > 0.01) bigRigSpd *= 0.35;
+  bigRigX = resolved.x; bigRigZ = resolved.z;
+  const groundY = getMoonSurfaceY(bigRigX, bigRigZ);
+  bigRig.position.set(bigRigX, groundY, bigRigZ);
+
+  const rightX = Math.cos(bigRigAngle), rightZ = -Math.sin(bigRigAngle);
+  const yAhead  = getMoonSurfaceY(bigRigX+fwdX*BIGRIG_HALF_LEN,   bigRigZ+fwdZ*BIGRIG_HALF_LEN);
+  const yBehind = getMoonSurfaceY(bigRigX-fwdX*BIGRIG_HALF_LEN,   bigRigZ-fwdZ*BIGRIG_HALF_LEN);
+  const yRight  = getMoonSurfaceY(bigRigX+rightX*BIGRIG_HALF_WID, bigRigZ+rightZ*BIGRIG_HALF_WID);
+  const yLeft   = getMoonSurfaceY(bigRigX-rightX*BIGRIG_HALF_WID, bigRigZ-rightZ*BIGRIG_HALF_WID);
+  const pitchTarget = Math.atan2(yBehind-yAhead, BIGRIG_HALF_LEN*2);
+  const rollTarget  = Math.atan2(yRight-yLeft, BIGRIG_HALF_WID*2);
+  bigRigPitch = lerp(bigRigPitch, pitchTarget, 0.12);
+  bigRigRoll  = lerp(bigRigRoll, rollTarget, 0.12);
+  bigRig.rotation.set(bigRigPitch, bigRigAngle, bigRigRoll);
+  bigRig.updateMatrixWorld(true);
+
+  spawnGroundDust(dt, bigRigX - fwdX*4, bigRigZ - fwdZ*4, groundY, Math.min(1, Math.abs(bigRigSpd)/BIGRIG_MAX_SPD), true);
+  updateEngineSound(bigRigSpd/BIGRIG_MAX_SPD);
+
+  tmpSeat.copy(BIGRIG_SEAT_LOCAL);
+  bigRig.localToWorld(tmpSeat);
+  bigRigEnterT = Math.min(bigRigEnterT + dt/BIGRIG_ENTER_ANIM_DUR, 1);
+  const easeT = smoothstep(0, 1, bigRigEnterT);
+  astro.charRoot.position.set(
+    lerp(bigRigEnterFromPos.x, tmpSeat.x, easeT),
+    lerp(bigRigEnterFromPos.y, tmpSeat.y, easeT),
+    lerp(bigRigEnterFromPos.z, tmpSeat.z, easeT)
+  );
+  let bigYawDiff = bigRigAngle - bigRigEnterFromYaw;
+  while (bigYawDiff > Math.PI) bigYawDiff -= Math.PI*2;
+  while (bigYawDiff < -Math.PI) bigYawDiff += Math.PI*2;
+  astro.charRoot.rotation.y = bigRigEnterFromYaw + bigYawDiff*easeT;
+  poseAstronautStanding(easeT);
+
+  if (jumpBuf){ jumpBuf = false; exitBigRig(); return; }
+
+  const baseBBack = 16.0 * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseBHeight = 8.0;
+  bigRigCamDist = lerp(bigRigCamDist, baseBBack, dt*2.5);
+  bigRigCamHeight = lerp(bigRigCamHeight, baseBHeight, dt*2.5);
+  const bCam = new THREE.Vector3(bigRigX - fwdX*bigRigCamDist, groundY + bigRigCamHeight, bigRigZ - fwdZ*bigRigCamDist);
+  bigRigCamPos.lerp(bCam, 0.08);
+  camera.position.copy(bigRigCamPos);
+  camera.lookAt(bigRigX, groundY + 5.0, bigRigZ);
+}
+
 function updateRoverGameplay(dt){
   refreshInput();
 
@@ -2297,7 +2508,8 @@ function updateRoverGameplay(dt){
 
   const fwdX = Math.sin(roverAngle), fwdZ = Math.cos(roverAngle);
   const nx = roverX + fwdX*roverSpd*dt, nz = roverZ + fwdZ*roverSpd*dt;
-  const resolved = resolveSlide(roverX, roverZ, nx, nz, ROVER_COLLIDE_R, moonCollidables);
+  let resolved = resolveSlide(roverX, roverZ, nx, nz, ROVER_COLLIDE_R, moonCollidables);
+  resolved = resolveSlide(roverX, roverZ, resolved.x, resolved.z, ROVER_COLLIDE_R, [{ x:bigRigX, z:bigRigZ, r:BIGRIG_COLLIDE_R }]);
   if (Math.hypot(resolved.x-nx, resolved.z-nz) > 0.01) roverSpd *= 0.4;
   roverX = resolved.x; roverZ = resolved.z;
   const groundY = getMoonSurfaceY(roverX, roverZ);
@@ -2366,15 +2578,20 @@ function updateAstronautGameplay(dt){
   if (curInput.back > curInput.fwd)  { nx -= fwdX*moveSpeed*dt; nz -= fwdZ*moveSpeed*dt; }
   let resolvedPos = resolveSlide(oldX, oldZ, nx, nz, CHAR_RADIUS, moonCollidables);
   resolvedPos = resolveSlide(oldX, oldZ, resolvedPos.x, resolvedPos.z, CHAR_RADIUS, [{ x:roverX, z:roverZ, r:ROVER_COLLIDE_R }]);
+  resolvedPos = resolveSlide(oldX, oldZ, resolvedPos.x, resolvedPos.z, CHAR_RADIUS, [{ x:bigRigX, z:bigRigZ, r:BIGRIG_COLLIDE_R }]);
   A.charRoot.position.x = resolvedPos.x;
   A.charRoot.position.z = resolvedPos.z;
 
   const distToRover = Math.hypot(A.charRoot.position.x - roverX, A.charRoot.position.z - roverZ);
+  const distToBigRig = Math.hypot(A.charRoot.position.x - bigRigX, A.charRoot.position.z - bigRigZ);
   const nearRover = distToRover < VEHICLE_ENTER_RADIUS;
-  enterHintEl.style.display = (nearRover && onGround) ? 'block' : 'none';
-  if (jumpBuf && nearRover && onGround){
+  const nearBigRig = distToBigRig < BIGRIG_ENTER_RADIUS;
+  enterHintEl.style.display = ((nearRover || nearBigRig) && onGround) ? 'block' : 'none';
+  if (jumpBuf && onGround && (nearRover || nearBigRig)){
     jumpBuf = false;
-    enterVehicle();
+    // If both are in range (unlikely given their separation), enter whichever is closer.
+    if (nearBigRig && (!nearRover || distToBigRig < distToRover)) enterBigRig();
+    else enterVehicle();
     return;
   }
 
@@ -2651,16 +2868,14 @@ function animate(){
 
   if (gameMode){
     updatePuffs(dt);
-    if (inVehicle) updateRoverGameplay(dt); else updateAstronautGameplay(dt);
-    updateCrystals(dt, now/1000,
-      inVehicle ? roverX : astro.charRoot.position.x,
-      inVehicle ? roverZ : astro.charRoot.position.z
-    );
-    drawMinimap(
-      inVehicle ? roverX : astro.charRoot.position.x,
-      inVehicle ? roverZ : astro.charRoot.position.z,
-      inVehicle ? roverAngle : charYaw
-    );
+    if (inVehicle) updateRoverGameplay(dt);
+    else if (inBigRig) updateBigRigGameplay(dt);
+    else updateAstronautGameplay(dt);
+    const curX = inVehicle ? roverX : inBigRig ? bigRigX : astro.charRoot.position.x;
+    const curZ = inVehicle ? roverZ : inBigRig ? bigRigZ : astro.charRoot.position.z;
+    const curAngle = inVehicle ? roverAngle : inBigRig ? bigRigAngle : charYaw;
+    updateCrystals(dt, now/1000, curX, curZ);
+    drawMinimap(curX, curZ, curAngle);
     renderer.render(scene, camera);
     return;
   }
