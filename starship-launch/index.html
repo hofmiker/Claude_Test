@@ -273,6 +273,8 @@ const MAT = {
   visor:     new THREE.MeshStandardMaterial({ color:0x0a0c10, flatShading:true, roughness:0.25, metalness:0.6 }),
   suitAccent:new THREE.MeshStandardMaterial({ color:0xd8362c, flatShading:true, roughness:0.55 }),
   crystal:   new THREE.MeshStandardMaterial({ color:0xa855f7, emissive:0x9333ea, emissiveIntensity:1.4, flatShading:true, roughness:0.25, metalness:0.15, transparent:true, opacity:0.92 }),
+  solarPanel:new THREE.MeshStandardMaterial({ color:0x14213d, flatShading:true, roughness:0.25, metalness:0.55 }),
+  lampGlow:  new THREE.MeshBasicMaterial({ color:0xffe9b0, toneMapped:false }),
 };
 
 const PAD_X = 0, PAD_TOP = 6;
@@ -717,6 +719,8 @@ const MOON_TERRAIN_SIZE = 4000, MOON_TERRAIN_SEGS = 200;
 const MOON_TERRAIN_CELL = MOON_TERRAIN_SIZE / MOON_TERRAIN_SEGS;
 const moonCraters = [];
 const moonHills = [];
+const towerPlatforms = [];  // flat climbable landings on the comms tower
+const towerStairZones = []; // linear ramps connecting them
 const moonRocksData = [];
 const pickupStones = []; // small hand-liftable stones, separate from the big climbable decorative rocks
 const moonCollidables = [];
@@ -752,6 +756,31 @@ function moonHillY(x,z){
   }
   return y;
 }
+// A single straight ramp between two known (x,y,z) points -- returns the
+// interpolated Y if (x,z) falls within the ramp's length and half-width,
+// otherwise null. Each stair flight on the tower is offset to a different
+// side of the tower per level (see the tower-building code), so flights
+// never overlap each other in (x,z) and the height field stays single-valued
+// despite representing a multi-story structure.
+function stairZoneY(x,z,zone){
+  const dx = zone.x1-zone.x0, dz = zone.z1-zone.z0;
+  const len2 = dx*dx+dz*dz;
+  const t = ((x-zone.x0)*dx + (z-zone.z0)*dz) / len2;
+  if (t < 0 || t > 1) return null;
+  const projX = zone.x0+dx*t, projZ = zone.z0+dz*t;
+  if (Math.hypot(x-projX, z-projZ) > zone.halfWidth) return null;
+  return lerp(zone.yLow, zone.yHigh, t);
+}
+function getTowerY(x,z){
+  for (const p of towerPlatforms){
+    if (Math.abs(x-p.x) < p.half && Math.abs(z-p.z) < p.half) return p.y;
+  }
+  for (const s of towerStairZones){
+    const y = stairZoneY(x,z,s);
+    if (y !== null) return y;
+  }
+  return null;
+}
 function rockBumpY(x,z){
   let y = 0;
   for(const rk of moonRocksData){
@@ -767,6 +796,8 @@ function rockBumpY(x,z){
 }
 function getMoonSurfaceY(x,z){
   if (Math.hypot(x-PAD_X,z) < 27) return PLATFORM_H;
+  const towerY = getTowerY(x,z);
+  if (towerY !== null) return towerY;
   // Bilinear-interpolate craters between the same 20-unit grid corners the
   // rendered terrain mesh uses, instead of sampling the exact analytic bowl
   // formula at (x,z) directly. The mesh is flat-shaded between coarse grid
@@ -846,16 +877,48 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   const moonSize = MOON_TERRAIN_SIZE, segs = MOON_TERRAIN_SEGS;
   const moonGeo = new THREE.PlaneGeometry(moonSize, moonSize, segs, segs);
   moonGeo.rotateX(-Math.PI/2);
+
+  // Landmark placements, defined up front so terrain generation below can
+  // keep craters/hills clear of them.
+  const STATION_X = -95, STATION_Z = -55;
+  const ROAD_PAD_DIST = 30, ROAD_PLAZA_DIST = 95; // distance from pad center along the pad->station line
+  const roadAngle = Math.atan2(STATION_X, STATION_Z);
+  const roadDirX = Math.sin(roadAngle), roadDirZ = Math.cos(roadAngle);
+  const roadStart = [roadDirX*ROAD_PAD_DIST, roadDirZ*ROAD_PAD_DIST];
+  const roadEnd   = [roadDirX*ROAD_PLAZA_DIST, roadDirZ*ROAD_PLAZA_DIST];
+  const SOLAR_X = 380, SOLAR_Z = 220, SOLAR_EXCLUDE_R = 90;
+  const TOWER_X = -300, TOWER_Z = 260, TOWER_EXCLUDE_R = 55;
+  function distToRoad(px,pz){
+    const dx = roadEnd[0]-roadStart[0], dz = roadEnd[1]-roadStart[1];
+    const len2 = dx*dx+dz*dz;
+    const t = clamp(((px-roadStart[0])*dx + (pz-roadStart[1])*dz) / len2, 0, 1);
+    return Math.hypot(px-(roadStart[0]+dx*t), pz-(roadStart[1]+dz*t));
+  }
+  function nearLandmark(px,pz){
+    return distToRoad(px,pz) < 18
+      || Math.hypot(px-SOLAR_X,pz-SOLAR_Z) < SOLAR_EXCLUDE_R
+      || Math.hypot(px-TOWER_X,pz-TOWER_Z) < TOWER_EXCLUDE_R;
+  }
+
   for(let i=0;i<52;i++){
     let cx,cz,r,ok=false,tries=0;
-    do { cx = rand(-650,650); cz = rand(-650,650); r = rand(14,62); ok = Math.hypot(cx,cz) > r+50; tries++; } while(!ok && tries<20);
+    do {
+      cx = rand(-650,650); cz = rand(-650,650); r = rand(14,62);
+      ok = Math.hypot(cx,cz) > r+50 && distToRoad(cx,cz) > r+18
+        && Math.hypot(cx-SOLAR_X,cz-SOLAR_Z) > r+SOLAR_EXCLUDE_R
+        && Math.hypot(cx-TOWER_X,cz-TOWER_Z) > r+TOWER_EXCLUDE_R;
+      tries++;
+    } while(!ok && tries<20);
     if (ok) moonCraters.push({ x:cx, z:cz, r, depth: rand(8,28) });
   }
   for(let i=0;i<9;i++){
     let cx,cz,r,ok=false,tries=0;
     do {
       cx = rand(-700,700); cz = rand(-700,700); r = rand(40,90);
-      ok = Math.hypot(cx,cz) > r+40 && Math.hypot(cx+95,cz+55) > r+90;
+      ok = Math.hypot(cx,cz) > r+40 && Math.hypot(cx-STATION_X,cz-STATION_Z) > r+90
+        && distToRoad(cx,cz) > r+18
+        && Math.hypot(cx-SOLAR_X,cz-SOLAR_Z) > r+SOLAR_EXCLUDE_R
+        && Math.hypot(cx-TOWER_X,cz-TOWER_Z) > r+TOWER_EXCLUDE_R;
       tries++;
     } while(!ok && tries<20);
     if (ok) moonHills.push({ x:cx, z:cz, r, height: rand(3,7) });
@@ -869,10 +932,11 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   moonScene.add(surf);
 
   for(let i=0;i<60;i++){
-    const a = rand(0,Math.PI*2), d = rand(60,600);
+    let a,d,rx,rz,tries=0;
+    do { a = rand(0,Math.PI*2); d = rand(60,600); rx = Math.cos(a)*d; rz = Math.sin(a)*d; tries++; }
+    while (nearLandmark(rx,rz) && tries<15);
     const R = rand(1,4.5);
     const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(R,0), MAT.moonRock);
-    const rx = Math.cos(a)*d, rz = Math.sin(a)*d;
     const embed = R*0.3;
     rock.position.set(rx, getMoonSurfaceY(rx,rz)+embed, rz);
     rock.rotation.set(rand(0,6),rand(0,6),rand(0,6));
@@ -888,9 +952,10 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   // Every one of these is liftable, so the pick-up/drop action always works
   // on the nearest one instead of silently failing on an oversized rock.
   for(let i=0;i<24;i++){
-    const a = rand(0,Math.PI*2), d = rand(20,420);
+    let a,d,rx,rz,tries=0;
+    do { a = rand(0,Math.PI*2); d = rand(20,420); rx = Math.cos(a)*d; rz = Math.sin(a)*d; tries++; }
+    while (nearLandmark(rx,rz) && tries<15);
     const R = rand(0.35,0.85);
-    const rx = Math.cos(a)*d, rz = Math.sin(a)*d;
     const embed = R*0.35;
     const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(R,0), MAT.moonRock);
     mesh.position.set(rx, getMoonSurfaceY(rx,rz)+embed, rz);
@@ -1052,6 +1117,167 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   // drive underneath -- solid collision here would block passage the tube's
   // own geometry doesn't actually obstruct.
 
+  /* ---------- road: launch pad to station plaza ---------- */
+  function buildRoadSegment(from, to, width, thickness){
+    const dx = to[0]-from[0], dz = to[2]-from[2];
+    const len = Math.hypot(dx,dz);
+    const seg = new THREE.Mesh(new THREE.BoxGeometry(width, thickness, len), MAT.asphalt);
+    seg.position.set((from[0]+to[0])/2, (from[1]+to[1])/2, (from[2]+to[2])/2);
+    seg.rotation.y = Math.atan2(dx, dz);
+    return seg;
+  }
+  const roadGroup = new THREE.Group();
+  const ROAD_SEGS = 6;
+  let prevRoadPt = [roadStart[0], getMoonSurfaceY(roadStart[0], roadStart[1]) + 0.08, roadStart[1]];
+  for (let i=1;i<=ROAD_SEGS;i++){
+    const t = i/ROAD_SEGS;
+    const px = lerp(roadStart[0], roadEnd[0], t), pz = lerp(roadStart[1], roadEnd[1], t);
+    const py = getMoonSurfaceY(px,pz) + 0.08;
+    roadGroup.add(buildRoadSegment(prevRoadPt, [px,py,pz], 7, 0.3));
+    prevRoadPt = [px,py,pz];
+  }
+  moonScene.add(roadGroup);
+  const plaza = new THREE.Mesh(new THREE.CylinderGeometry(20,20,0.3,20), MAT.asphalt);
+  plaza.position.set(roadEnd[0], getMoonSurfaceY(roadEnd[0], roadEnd[1]) + 0.08, roadEnd[1]);
+  moonScene.add(plaza);
+
+  // Small lamps ringing the landing pad.
+  function buildLamp(){
+    const grp = new THREE.Group();
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.18,2.4,6), MAT.moonBaseDark);
+    pole.position.y = 1.2;
+    grp.add(pole);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.35,8,6), MAT.lampGlow);
+    bulb.position.y = 2.5;
+    grp.add(bulb);
+    return grp;
+  }
+  const LAMP_COUNT = 10;
+  for (let i=0;i<LAMP_COUNT;i++){
+    const a = (i/LAMP_COUNT)*Math.PI*2;
+    const lamp = buildLamp();
+    lamp.position.set(PAD_X+Math.cos(a)*25, PLATFORM_H, Math.sin(a)*25);
+    moonScene.add(lamp);
+  }
+
+  /* ---------- solar panel field ---------- */
+  function buildSolarPanel(){
+    const grp = new THREE.Group();
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,1.5,6), MAT.stationDark);
+    pole.position.y = 0.75;
+    grp.add(pole);
+    // Pivot group sits at the pole top; the panel mesh is offset so it
+    // hinges from its near edge instead of its center, so tilting it up
+    // doesn't dip the near edge underground.
+    const tiltGrp = new THREE.Group();
+    tiltGrp.position.y = 1.5;
+    tiltGrp.rotation.x = -0.62;
+    grp.add(tiltGrp);
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(6,0.2,6), MAT.solarPanel);
+    panel.position.z = 3;
+    tiltGrp.add(panel);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(6.2,0.12,6.2), MAT.stationDark);
+    frame.position.set(0,-0.02,3);
+    tiltGrp.add(frame);
+    return grp;
+  }
+  const SOLAR_ROWS = 7, SOLAR_COLS = 7, SOLAR_SPACING = 16;
+  const solarHalf = (SOLAR_ROWS-1)*SOLAR_SPACING/2;
+  for (let row=0; row<SOLAR_ROWS; row++){
+    for (let col=0; col<SOLAR_COLS; col++){
+      const px = SOLAR_X + col*SOLAR_SPACING - solarHalf;
+      const pz = SOLAR_Z + row*SOLAR_SPACING - solarHalf;
+      const panel = buildSolarPanel();
+      panel.position.set(px, getMoonSurfaceY(px,pz), pz);
+      moonScene.add(panel);
+    }
+  }
+
+  /* ---------- comms tower: taller than the rocket, climbable via a
+     rotating stair sequence -- each platform/flight is offset to a
+     different side per level (never stacking directly above each other
+     in x/z), so the single-valued height field stays unambiguous despite
+     representing a multi-story structure. ---------- */
+  const TOWER_LEVELS = [
+    { y: 38,  ox: 16, oz: 0   },
+    { y: 78,  ox: 0,  oz: 16  },
+    { y: 118, ox: -16,oz: 0   },
+    { y: 158, ox: 0,  oz: -16 },
+  ];
+  const TOWER_PLATFORM_HALF = 7;
+  const towerGroup = new THREE.Group();
+  towerGroup.position.set(TOWER_X, 0, TOWER_Z);
+  moonScene.add(towerGroup);
+
+  const towerTopY = TOWER_LEVELS[TOWER_LEVELS.length-1].y + 6;
+  [[7,7],[7,-7],[-7,7],[-7,-7]].forEach(([lx,lz]) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.7,towerTopY,6), MAT.tower);
+    leg.position.set(lx, towerTopY/2, lz);
+    towerGroup.add(leg);
+  });
+  for (let h=15; h<towerTopY; h+=20){
+    const brace = new THREE.Mesh(new THREE.TorusGeometry(9.5,0.25,5,4), MAT.towerDark);
+    brace.rotation.x = Math.PI/2;
+    brace.rotation.y = Math.PI/4;
+    brace.position.y = h;
+    towerGroup.add(brace);
+  }
+
+  function buildTowerPlatform(){
+    const grp = new THREE.Group();
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(TOWER_PLATFORM_HALF*2, 0.6, TOWER_PLATFORM_HALF*2), MAT.stationWall);
+    grp.add(deck);
+    const railH = 1.1;
+    [[TOWER_PLATFORM_HALF,0],[-TOWER_PLATFORM_HALF,0],[0,TOWER_PLATFORM_HALF],[0,-TOWER_PLATFORM_HALF]].forEach(([rx,rz]) => {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(rx?0.2:TOWER_PLATFORM_HALF*2, railH, rz?0.2:TOWER_PLATFORM_HALF*2), MAT.towerDark);
+      rail.position.set(rx, railH/2+0.3, rz);
+      grp.add(rail);
+    });
+    return grp;
+  }
+
+  // Ground-level start of the first flight, offset well outside the core
+  // lattice's collision radius (9) rather than the tower's true center --
+  // otherwise the flight would begin inside a collider the player can
+  // never actually reach.
+  let prevTowerLevel = { y: 0, ox: 16, oz: 20 };
+  TOWER_LEVELS.forEach((lvl) => {
+    const platform = buildTowerPlatform();
+    platform.position.set(lvl.ox, lvl.y, lvl.oz);
+    towerGroup.add(platform);
+    towerPlatforms.push({ x: TOWER_X+lvl.ox, z: TOWER_Z+lvl.oz, y: lvl.y, half: TOWER_PLATFORM_HALF });
+
+    const fromX = TOWER_X+prevTowerLevel.ox, fromZ = TOWER_Z+prevTowerLevel.oz;
+    const toX = TOWER_X+lvl.ox, toZ = TOWER_Z+lvl.oz;
+    towerStairZones.push({ x0:fromX, z0:fromZ, x1:toX, z1:toZ, yLow: prevTowerLevel.y, yHigh: lvl.y, halfWidth: 3 });
+
+    const stepDx = toX-fromX, stepDz = toZ-fromZ, stepDy = lvl.y-prevTowerLevel.y;
+    const stepLen = Math.hypot(stepDx,stepDz,stepDy);
+    const ramp = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.4, stepLen), MAT.towerDark);
+    ramp.position.set((fromX+toX)/2, (prevTowerLevel.y+lvl.y)/2, (fromZ+toZ)/2);
+    ramp.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), new THREE.Vector3(stepDx,stepDy,stepDz).normalize());
+    moonScene.add(ramp);
+
+    prevTowerLevel = lvl;
+  });
+
+  const topLvl = TOWER_LEVELS[TOWER_LEVELS.length-1];
+  const antennaGroup = new THREE.Group();
+  antennaGroup.position.set(topLvl.ox, topLvl.y+0.3, topLvl.oz);
+  towerGroup.add(antennaGroup);
+  [[3,3],[-3,3],[3,-3],[-3,-3]].forEach(([ax,az]) => {
+    const mastH = rand(4,7);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,mastH,5), MAT.towerDark);
+    mast.position.set(ax, mastH/2, az);
+    antennaGroup.add(mast);
+  });
+  const bigDish = new THREE.Mesh(new THREE.CylinderGeometry(5,5,0.8,12), MAT.moonBaseDark);
+  bigDish.rotation.z = 0.55;
+  bigDish.position.set(0, 4.5, 0);
+  antennaGroup.add(bigDish);
+
+  moonCollidables.push({ x: TOWER_X, z: TOWER_Z, r: 9 }); // tower core lattice
+
   // Glow is a cheap additive-blended unlit halo mesh, not a THREE.PointLight --
   // adding 10 more dynamic lights forces a shader recompile for every material
   // in the scene and tanks frame rate (same lesson as the coin lights elsewhere
@@ -1075,7 +1301,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     do {
       const a = rand(0,Math.PI*2), d = rand(50,480);
       cx = Math.cos(a)*d; cz = Math.sin(a)*d;
-      ok = Math.hypot(cx,cz) > 45 && Math.hypot(cx-(-95),cz-(-55)) > 70;
+      ok = Math.hypot(cx,cz) > 45 && Math.hypot(cx-(-95),cz-(-55)) > 70 && !nearLandmark(cx,cz);
       tries++;
     } while(!ok && tries<30);
     const grp = buildCrystal();
