@@ -84,13 +84,14 @@ abzuwarten.
   zum Aufheben/Fallenlassen kleiner Steine
 - Kamera: feste Third-Person-Verfolgungskamera hinter dem Charakter, zoomt
   bei Bewegung etwas weiter raus; auf Mobile/Touch-Geräten zusätzlich
-  automatisch deutlich weiter herausgezoomt. Kamera-Button (oben links,
-  unter dem Vollbild-Button) schaltet auf eine steilere GTA-artige
-  Top-Down-Ansicht um (mehr Höhe, weniger horizontaler Abstand) — sowohl
-  zu Fuß als auch im Fahrzeug, mit weichem Überblenden zwischen den
-  beiden Modi statt hartem Schnitt.
-- Kollision: kann keine Raumstationsmodule oder den geparkten Rover
-  durchlaufen (Kreis-Pushout-Kollision); Felsen sind dagegen kletterbar
+  automatisch deutlich weiter herausgezoomt. Auf Mobile/Tablet zusätzlich
+  Drag-to-Look: Ziehen auf dem Spielbildschirm (nicht auf Joystick/Buttons)
+  dreht/neigt nur die Kamera, unabhängig von Lauf-/Fahrtrichtung — bewegt
+  sich der Charakter, bleibt die Blickrichtung erhalten (kein Reset). Die
+  frühere GTA-artige Top-Down-Kamera wurde entfernt (zu nah, kein Mehrwert).
+- Kollision: kann keine Raumstationsmodule, den geparkten Rover oder den
+  großen Rig durchlaufen (Kreis-Pushout-Kollision); Felsen sind dagegen
+  kletterbar
 
 ## Fahrbarer Mondrover
 - In Reichweite (~4 Einheiten) Sprung-Taste drücken → Astronaut steigt ein
