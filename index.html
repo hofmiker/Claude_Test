@@ -165,6 +165,15 @@
             border-color: var(--chip-active-bg);
             color: var(--chip-active-text);
         }
+        .chip-shuffle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-style: dashed;
+        }
+        .chip-shuffle:active {
+            transform: scale(0.95);
+        }
         .projects {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -280,6 +289,10 @@
         <button type="button" class="chip" data-filter="crypto">Crypto</button>
         <button type="button" class="chip" data-filter="2d">2D</button>
         <button type="button" class="chip" data-filter="3d">3D</button>
+        <button type="button" class="chip chip-shuffle" id="shuffle-btn">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+            Shuffle
+        </button>
     </div>
     <div class="projects">
         <a href="dhl-city/" data-tags="games 3d" target="_blank" rel="noopener">
@@ -514,8 +527,10 @@
         })();
 
         (function () {
-            var chips = document.querySelectorAll('.chip');
+            var chips = document.querySelectorAll('.chip[data-filter]');
+            var projectsEl = document.querySelector('.projects');
             var tiles = document.querySelectorAll('.projects > a');
+            var shuffleBtn = document.getElementById('shuffle-btn');
             var active = new Set();
 
             tiles.forEach(function (tile) {
@@ -541,6 +556,29 @@
                 });
             });
 
+            shuffleBtn.addEventListener('click', function () {
+                var before = captureRects();
+                var shuffled = Array.prototype.slice.call(tiles);
+                for (var i = shuffled.length - 1; i > 0; i--) {
+                    var j = Math.floor(Math.random() * (i + 1));
+                    var tmp = shuffled[i];
+                    shuffled[i] = shuffled[j];
+                    shuffled[j] = tmp;
+                }
+                shuffled.forEach(function (tile) { projectsEl.appendChild(tile); });
+                animateReflow(before);
+            });
+
+            function captureRects() {
+                var before = new Map();
+                tiles.forEach(function (tile) {
+                    if (!tile.classList.contains('is-hidden')) {
+                        before.set(tile, tile.getBoundingClientRect());
+                    }
+                });
+                return before;
+            }
+
             function render() {
                 chips.forEach(function (chip) {
                     var filter = chip.dataset.filter;
@@ -548,12 +586,7 @@
                     chip.classList.toggle('active', isActive);
                 });
 
-                var before = new Map();
-                tiles.forEach(function (tile) {
-                    if (!tile.classList.contains('is-hidden')) {
-                        before.set(tile, tile.getBoundingClientRect());
-                    }
-                });
+                var before = captureRects();
 
                 tiles.forEach(function (tile) {
                     var tags = tile.dataset.tags.split(' ');
@@ -561,6 +594,10 @@
                     tile.classList.toggle('is-hidden', !matches);
                 });
 
+                animateReflow(before);
+            }
+
+            function animateReflow(before) {
                 requestAnimationFrame(function () {
                     requestAnimationFrame(function () {
                         tiles.forEach(function (tile) {
