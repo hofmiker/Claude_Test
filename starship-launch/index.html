@@ -716,6 +716,7 @@ moonScene.add(rampRig);
 const MOON_TERRAIN_SIZE = 4000, MOON_TERRAIN_SEGS = 200;
 const MOON_TERRAIN_CELL = MOON_TERRAIN_SIZE / MOON_TERRAIN_SEGS;
 const moonCraters = [];
+const moonHills = [];
 const moonRocksData = [];
 const pickupStones = []; // small hand-liftable stones, separate from the big climbable decorative rocks
 const moonCollidables = [];
@@ -731,6 +732,22 @@ function moonCraterY(x,z){
       const tt = d/c.r;
       const bowl = -c.depth*(1-tt*tt);
       if (bowl < y) y = bowl;
+    }
+  }
+  return y;
+}
+// Gentle rolling hills -- same inverted-bowl shape as craters but domed
+// upward, with a much larger radius relative to height so they read as
+// subtle terrain variation rather than climbable bumps (compare rockBumpY's
+// much smaller/steeper radius-to-height ratio).
+function moonHillY(x,z){
+  let y = 0;
+  for(const h of moonHills){
+    const d = Math.hypot(x-h.x, z-h.z);
+    if (d < h.r){
+      const tt = d/h.r;
+      const dome = h.height*(1-tt*tt);
+      if (dome > y) y = dome;
     }
   }
   return y;
@@ -767,12 +784,13 @@ function getMoonSurfaceY(x,z){
   const ix = Math.floor(gx), iz = Math.floor(gz);
   const fx = gx-ix, fz = gz-iz;
   const wx = (i) => i*MOON_TERRAIN_CELL - half;
-  const h00 = moonCraterY(wx(ix),   wx(iz));
-  const h10 = moonCraterY(wx(ix+1), wx(iz));
-  const h01 = moonCraterY(wx(ix),   wx(iz+1));
-  const h11 = moonCraterY(wx(ix+1), wx(iz+1));
-  const craterY = lerp(lerp(h00,h10,fx), lerp(h01,h11,fx), fz);
-  return craterY + rockBumpY(x,z);
+  const cornerY = (i,j) => moonCraterY(wx(i),wx(j)) + moonHillY(wx(i),wx(j));
+  const h00 = cornerY(ix,iz);
+  const h10 = cornerY(ix+1,iz);
+  const h01 = cornerY(ix,iz+1);
+  const h11 = cornerY(ix+1,iz+1);
+  const terrainY = lerp(lerp(h00,h10,fx), lerp(h01,h11,fx), fz);
+  return terrainY + rockBumpY(x,z);
 }
 // Approximates a long object (station module, tube) as a chain of overlapping
 // circles along its local X axis, for cheap push-out collision.
@@ -783,23 +801,6 @@ function registerCapsuleCollider(obj, r, len, segments){
     const tt = n===1 ? 0 : (i/(n-1) - 0.5);
     p.set(tt*len, 0, 0);
     obj.localToWorld(p);
-    moonCollidables.push({ x:p.x, z:p.z, r });
-  }
-}
-// Same idea as registerCapsuleCollider, but for objects (like the station's
-// connector tubes) whose long axis isn't local X -- takes known local-space
-// endpoints directly instead of assuming an axis to sample along.
-function registerLineCollider(fromLocal, toLocal, r, groupObj, segments){
-  const n = segments || 4;
-  const p = new THREE.Vector3();
-  for (let i=0;i<n;i++){
-    const tt = n===1 ? 0.5 : i/(n-1);
-    p.set(
-      fromLocal[0] + (toLocal[0]-fromLocal[0])*tt,
-      fromLocal[1] + (toLocal[1]-fromLocal[1])*tt,
-      fromLocal[2] + (toLocal[2]-fromLocal[2])*tt
-    );
-    groupObj.localToWorld(p);
     moonCollidables.push({ x:p.x, z:p.z, r });
   }
 }
@@ -850,9 +851,18 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     do { cx = rand(-650,650); cz = rand(-650,650); r = rand(14,62); ok = Math.hypot(cx,cz) > r+50; tries++; } while(!ok && tries<20);
     if (ok) moonCraters.push({ x:cx, z:cz, r, depth: rand(8,28) });
   }
+  for(let i=0;i<9;i++){
+    let cx,cz,r,ok=false,tries=0;
+    do {
+      cx = rand(-700,700); cz = rand(-700,700); r = rand(40,90);
+      ok = Math.hypot(cx,cz) > r+40 && Math.hypot(cx+95,cz+55) > r+90;
+      tries++;
+    } while(!ok && tries<20);
+    if (ok) moonHills.push({ x:cx, z:cz, r, height: rand(3,7) });
+  }
   const pos = moonGeo.attributes.position;
   for(let i=0;i<pos.count;i++){
-    pos.setY(i, moonCraterY(pos.getX(i), pos.getZ(i)));
+    pos.setY(i, moonCraterY(pos.getX(i), pos.getZ(i)) + moonHillY(pos.getX(i), pos.getZ(i)));
   }
   moonGeo.computeVertexNormals();
   const surf = new THREE.Mesh(moonGeo, MAT.moonGround);
@@ -1036,11 +1046,11 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   moonScene.add(stationGroup);
   stationGroup.updateMatrixWorld(true);
   stationMods.forEach((m,i) => registerCapsuleCollider(m, modDefs[i].r, modDefs[i].len));
-  registerLineCollider(modPos(0), modPos(1), 2.6, stationGroup);
-  registerLineCollider(modPos(0), modPos(2), 2.5, stationGroup);
-  registerLineCollider(modPos(2), modPos(3), 2.2, stationGroup);
-  registerLineCollider(modPos(0), modPos(4), 2.2, stationGroup);
-  registerLineCollider(modPos(0), modPos(5), 2.0, stationGroup);
+  // Connector tubes are NOT collidable: their vertical center sits well above
+  // both the astronaut and the rover (roughly the average of the two module
+  // radii they join, several units up), so there's real clearance to walk or
+  // drive underneath -- solid collision here would block passage the tube's
+  // own geometry doesn't actually obstruct.
 
   // Glow is a cheap additive-blended unlit halo mesh, not a THREE.PointLight --
   // adding 10 more dynamic lights forces a shader recompile for every material
@@ -1920,10 +1930,10 @@ function animateAstronaut(dt){
 /* ---------- gameplay: free astronaut movement + third-person camera ---------- */
 const CHAR_BASE_Y = 0.10;
 const GRAVITY = -15, JUMP_VEL = 7.0;
-const JUMP_BOOST_VEL = 11.2, JUMP_BOOST_SPEED_MULT = 2.0;
+const JUMP_BOOST_VEL = 9.5, JUMP_BOOST_SPEED_MULT = 1.6;
 const SPEED_MAX = 5.94, ACCEL_RATE = 14.0, DECEL_RATE = 18.0, TURN_RATE = 0.90;
 let velY = 0, onGround = true, moveSpeed = 0;
-let canBoost = false, jetBoosting = false, jetPulseT = 0;
+let jetBoosting = false, jetPulseT = 0;
 let gameCamPos = new THREE.Vector3();
 let gameCamDist = 7.0;
 let gameCamHeight = 2.6;
@@ -2014,7 +2024,7 @@ function poseAstronautSeated(k){
 function enterVehicle(){
   inVehicle = true;
   jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0;
-  canBoost = false; jetBoosting = false; astro.jetFlame.grp.visible = false;
+  jetBoosting = false; astro.jetFlame.grp.visible = false;
   enterHintEl.style.display = 'none';
   pickupHintEl.style.display = 'none';
   actionEl.style.display = 'none';
@@ -2158,11 +2168,12 @@ function updateAstronautGameplay(dt){
     pickupHintEl.style.display = (nearStone && onGround) ? 'block' : 'none';
   }
 
-  // Rocket boost: pressing jump again while already airborne (once per jump)
-  // fires the backpack thruster for a much higher, farther second kick.
-  if (jumpBuf && jumpState === JWALK.AIR && canBoost){
+  // Rocket boost: pressing jump again while airborne fires the backpack
+  // thruster for a higher, farther kick -- chainable, so repeated presses
+  // during ascent let you keep climbing instead of only getting one boost
+  // per jump.
+  if (jumpBuf && jumpState === JWALK.AIR){
     jumpBuf = false;
-    canBoost = false;
     jetBoosting = true;
     jetPulseT = 0;
     velY = JUMP_BOOST_VEL;
@@ -2181,7 +2192,7 @@ function updateAstronautGameplay(dt){
   }
   if (jumpState === JWALK.WINDUP){
     jumpTimer += dt;
-    if (jumpTimer >= WINDUP_DUR){ velY = JUMP_VEL; onGround = false; jumpState = JWALK.AIR; jumpTimer = 0; playJump(); canBoost = true; }
+    if (jumpTimer >= WINDUP_DUR){ velY = JUMP_VEL; onGround = false; jumpState = JWALK.AIR; jumpTimer = 0; playJump(); }
   }
   if (jumpState === JWALK.LAND){
     jumpTimer += dt;
@@ -2201,7 +2212,7 @@ function updateAstronautGameplay(dt){
     else if (jumpState === JWALK.AIR){ jumpState = JWALK.NONE; }
     A.charRoot.position.y = surfY;
     velY = 0; onGround = true;
-    canBoost = false; jetBoosting = false; A.jetFlame.grp.visible = false;
+    jetBoosting = false; A.jetFlame.grp.visible = false;
   } else {
     onGround = false;
     if (jumpState === JWALK.NONE) jumpState = JWALK.AIR;
