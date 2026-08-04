@@ -29,22 +29,25 @@ abzuwarten.
 - **Gelände:** Eine einzelne, großflächige vertex-verschobene Ebene
   (durchgängig, keine separate flache "Horizont-Schürze" mehr — die hätte
   tiefe Krater optisch abgedeckt, siehe Tech-Notizen) mit ~50 zufällig
-  verteilten Kratern (echte Mulden, keine Decals) und 60 kletterbaren
-  Felsen (glatte Erhebung in derselben Höhenfunktion wie die Krater-Mulden,
-  nur invertiert — man läuft/hüpft einfach drauf, keine harte Kollision).
+  verteilten Kratern (echte Mulden, keine Decals), ~9 sanften, breiten
+  Hügeln (gleiche Kuppelform wie Krater, nur nach oben und mit viel
+  größerem Radius im Verhältnis zur Höhe, damit sie als sanftes Gelände statt
+  als Hindernis wirken) und 60 kletterbaren Felsen (glatte Erhebung in
+  derselben Höhenfunktion, nur invertiert und deutlich steiler — man
+  läuft/hüpft einfach drauf, keine harte Kollision).
 - **Landebasis:** Plattform mit Antennenschüssel und rot blinkendem Leuchtfeuer.
 - **Mondrover-Deko + fahrbares Fahrzeug:** derselbe Rover dient als Deko UND
   als fahrbares Gefährt (siehe unten).
 - **Raumstation:** 6 verbundene Module (teils mit Kuppeln) direkt auf dem
-  Boden stehend (keine Stelzen), über Verbindungsröhren verbunden, mit
-  Kollisionserkennung (kann nicht durchlaufen/durchfahren werden) — sowohl
-  die Module ALS AUCH die Verbindungsröhren selbst sind kollidierbar
-  (`registerLineCollider`, sampled entlang der bekannten Modul-Endpunkte,
-  da die Röhren-Meshes eine andere lokale Achsausrichtung als die Module
-  haben). Auch die Antennenschüssel und das Leuchtfeuer der Landebasis sowie
-  der Rover (jetzt mit realistischerem Kollisionsradius passend zu Rädern/
-  Chassis) sind kollidierbar. Die Kollisionsauflösung (`resolveSlide`)
-  entfernt beim Kontakt nur die Bewegungskomponente, die tatsächlich ins
+  Boden stehend (keine Stelzen), über Verbindungsröhren verbunden. Nur die
+  Module selbst sind kollidierbar (kann nicht durchlaufen/durchfahren
+  werden) — die Verbindungsröhren sitzen deutlich höher (etwa auf
+  Modul-Mittenhöhe) und sind bewusst NICHT kollidierbar, da sowohl
+  Astronaut als auch Rover locker darunter hindurchpassen. Auch die
+  Antennenschüssel und das Leuchtfeuer der Landebasis sowie der Rover
+  (jetzt mit realistischerem Kollisionsradius passend zu Rädern/Chassis)
+  sind kollidierbar. Die Kollisionsauflösung (`resolveSlide`) entfernt
+  beim Kontakt nur die Bewegungskomponente, die tatsächlich ins
   Objekt hineinzeigt — die tangentiale Komponente bleibt erhalten, man
   gleitet also an Modulen vorbei statt bei jeder Berührung hart stehen zu
   bleiben (nur ein wirklich frontaler Aufprall bremst komplett ab).
