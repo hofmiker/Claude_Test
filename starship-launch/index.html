@@ -79,8 +79,12 @@
     background:rgba(20,20,25,.5); border:1px solid rgba(255,255,255,.4);
     color:#fff; font-family:Arial,sans-serif; font-size:13px; font-weight:600;
     letter-spacing:.2px; pointer-events:none; text-align:center;
+    max-width:min(78vw, 340px);
   }
   #pickupHint { border-color:rgba(150,215,255,.6); bottom:172px; }
+  @media (max-width:400px) {
+    #enterHint, #pickupHint { font-size:11px; padding:5px 10px; max-width:70vw; }
+  }
   #crystalHud {
     position:fixed; top:16px; left:16px; z-index:5; display:none;
     padding:7px 14px; border-radius:16px; background:rgba(20,20,25,.5);
@@ -99,6 +103,11 @@
     background:rgba(10,12,20,.5);
   }
   @media (max-width:768px), (pointer:coarse) { #minimap { width:122px; height:122px; } }
+  @media (max-height:340px) {
+    #minimap { width:96px; height:96px; }
+    #jumpBtn { width:56px; height:56px; bottom:14px; right:14px; }
+    #actionBtn { width:44px; height:44px; bottom:78px; right:20px; }
+  }
   #fullscreenBtn {
     position:fixed; top:64px; left:16px; z-index:5;
     width:44px; height:44px; background:rgba(20,20,25,.45); border:2px solid rgba(255,255,255,.55);
@@ -109,24 +118,6 @@
   #fullscreenBtn .ico-compress { display:none; }
   #fullscreenBtn.on .ico-expand { display:none; }
   #fullscreenBtn.on .ico-compress { display:inline; }
-  #camViewBtn {
-    position:fixed; top:120px; left:16px; z-index:5; display:none;
-    width:44px; height:44px; background:rgba(20,20,25,.45); border:2px solid rgba(255,255,255,.55);
-    border-radius:50%; align-items:center; justify-content:center;
-    cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; backdrop-filter:blur(2px);
-  }
-  #camViewBtn:active { background:rgba(255,255,255,.25); }
-  #camViewBtn .ico-chase {
-    width:0; height:0;
-    border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:12px solid #fff;
-  }
-  #camViewBtn .ico-top { display:none; position:relative; width:16px; height:16px; border:3px solid #fff; border-radius:50%; }
-  #camViewBtn .ico-top::after {
-    content:''; position:absolute; top:50%; left:50%; width:5px; height:5px;
-    background:#fff; border-radius:50%; transform:translate(-50%,-50%);
-  }
-  #camViewBtn.on .ico-chase { display:none; }
-  #camViewBtn.on .ico-top { display:block; }
 </style>
 </head>
 <body>
@@ -155,10 +146,6 @@
     <polyline points="3 16 8 16 8 21"/>
     <polyline points="21 16 16 16 16 21"/>
   </svg>
-</div>
-<div id="camViewBtn" title="Kameraansicht">
-  <span class="ico-chase"></span>
-  <span class="ico-top"></span>
 </div>
 
 <script type="importmap">
@@ -226,7 +213,7 @@ addEventListener("keydown", e => {
 // own, so block it explicitly by swallowing the second tap of a fast double-tap.
 // UI buttons are excluded so their own click/pointer handlers keep working.
 let lastTouchEnd = 0;
-const NO_DBLTAP_GUARD = '#skipBtn,#fullscreenBtn,#camViewBtn,#jumpBtn,#actionBtn,#joystick';
+const NO_DBLTAP_GUARD = '#skipBtn,#fullscreenBtn,#jumpBtn,#actionBtn,#joystick';
 addEventListener("touchend", e => {
   if (e.target.closest(NO_DBLTAP_GUARD)) return;
   const now = Date.now();
@@ -2050,17 +2037,34 @@ if (!document.documentElement.requestFullscreen){
   document.addEventListener('fullscreenchange', () => fsBtn.classList.toggle('on', isFullscreen()));
 }
 
-/* ---------- camera view toggle: chase (default) vs. GTA-style top-down ---------- */
-const camViewEl = document.getElementById('camViewBtn');
-camViewEl.addEventListener('click', () => {
-  ensureAudio();
-  topViewCam = !topViewCam;
-  camViewEl.classList.toggle('on', topViewCam);
-});
-
 const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 820;
 const MOBILE_CAM_MULT = 2.0;
-let topViewCam = false;
+
+// Mobile/tablet-only drag-to-look: dragging anywhere on the game canvas
+// (not the joystick/buttons, which are separate DOM elements layered above
+// it and get the touch first) offsets the camera's look direction without
+// touching charYaw/roverAngle/bigRigAngle -- so where you're LOOKING stays
+// independent of where you're actually WALKING/DRIVING, exactly like the
+// existing joystick already keeps movement independent of camera framing.
+let camYawOffset = 0, camPitchOffset = 0;
+if (isMobile){
+  let lookPointerId = null, lookLastX = 0, lookLastY = 0;
+  renderer.domElement.addEventListener('pointerdown', e => {
+    lookPointerId = e.pointerId;
+    lookLastX = e.clientX; lookLastY = e.clientY;
+    renderer.domElement.setPointerCapture(e.pointerId);
+  });
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (lookPointerId !== e.pointerId) return;
+    const dx = e.clientX - lookLastX, dy = e.clientY - lookLastY;
+    lookLastX = e.clientX; lookLastY = e.clientY;
+    camYawOffset -= dx * 0.006;
+    camPitchOffset = clamp(camPitchOffset - dy * 0.004, -0.5, 0.5);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(evt => {
+    renderer.domElement.addEventListener(evt, e => { if (lookPointerId === e.pointerId) lookPointerId = null; });
+  });
+}
 
 /* ---------- minimap (ported concept from dhl-city/index.html drawMM) ---------- */
 const mmCanvas = document.getElementById('minimap');
@@ -2481,10 +2485,15 @@ function updateBigRigGameplay(dt){
   const baseBHeight = 8.0;
   bigRigCamDist = lerp(bigRigCamDist, baseBBack, dt*2.5);
   bigRigCamHeight = lerp(bigRigCamHeight, baseBHeight, dt*2.5);
-  const bCam = new THREE.Vector3(bigRigX - fwdX*bigRigCamDist, groundY + bigRigCamHeight, bigRigZ - fwdZ*bigRigCamDist);
+  const camFwdXB = Math.sin(bigRigAngle+camYawOffset), camFwdZB = Math.cos(bigRigAngle+camYawOffset);
+  const bCam = new THREE.Vector3(
+    bigRigX - camFwdXB*bigRigCamDist,
+    groundY + bigRigCamHeight + camPitchOffset*6,
+    bigRigZ - camFwdZB*bigRigCamDist
+  );
   bigRigCamPos.lerp(bCam, 0.08);
   camera.position.copy(bigRigCamPos);
-  camera.lookAt(bigRigX, groundY + 5.0, bigRigZ);
+  camera.lookAt(bigRigX, groundY + 5.0 - camPitchOffset*4, bigRigZ);
 }
 
 function updateRoverGameplay(dt){
@@ -2551,14 +2560,19 @@ function updateRoverGameplay(dt){
 
   if (jumpBuf){ jumpBuf = false; exitVehicle(); return; }
 
-  const baseVBack = (topViewCam ? 7.0 : 11.5) * (isMobile ? MOBILE_CAM_MULT : 1);
-  const baseVHeight = topViewCam ? 22.0 : 5.5;
+  const baseVBack = 11.5 * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseVHeight = 5.5;
   vehicleCamDist = lerp(vehicleCamDist, baseVBack, dt*2.5);
   vehicleCamHeight = lerp(vehicleCamHeight, baseVHeight, dt*2.5);
-  const tCam = new THREE.Vector3(roverX - fwdX*vehicleCamDist, groundY + vehicleCamHeight, roverZ - fwdZ*vehicleCamDist);
+  const camFwdXV = Math.sin(roverAngle+camYawOffset), camFwdZV = Math.cos(roverAngle+camYawOffset);
+  const tCam = new THREE.Vector3(
+    roverX - camFwdXV*vehicleCamDist,
+    groundY + vehicleCamHeight + camPitchOffset*6,
+    roverZ - camFwdZV*vehicleCamDist
+  );
   vehicleCamPos.lerp(tCam, 0.08);
   camera.position.copy(vehicleCamPos);
-  camera.lookAt(roverX, groundY + 2.0, roverZ);
+  camera.lookAt(roverX, groundY + 2.0 - camPitchOffset*4, roverZ);
 }
 
 function updateAstronautGameplay(dt){
@@ -2665,18 +2679,19 @@ function updateAstronautGameplay(dt){
 
   const moving = curInput.fwd > 0.02 || curInput.back > 0.02;
   if (onGround && moving) spawnGroundDust(dt, A.charRoot.position.x, A.charRoot.position.z, surfY, 1, false);
-  const baseBack = (topViewCam ? (moving ? 5.5 : 3.5) : (moving ? 7.0 : 4.0)) * (isMobile ? MOBILE_CAM_MULT : 1);
-  const baseHeight = topViewCam ? 15.0 : 2.6;
+  const baseBack = (moving ? 7.0 : 4.0) * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseHeight = 2.6;
   gameCamDist = lerp(gameCamDist, baseBack, dt*2.5);
   gameCamHeight = lerp(gameCamHeight, baseHeight, dt*2.5);
+  const camFwdXA = Math.sin(charYaw+camYawOffset), camFwdZA = Math.cos(charYaw+camYawOffset);
   const tCam = new THREE.Vector3(
-    A.charRoot.position.x - fwdX*gameCamDist,
-    A.charRoot.position.y + gameCamHeight,
-    A.charRoot.position.z - fwdZ*gameCamDist
+    A.charRoot.position.x - camFwdXA*gameCamDist,
+    A.charRoot.position.y + gameCamHeight + camPitchOffset*6,
+    A.charRoot.position.z - camFwdZA*gameCamDist
   );
   gameCamPos.lerp(tCam, 0.08);
   camera.position.copy(gameCamPos);
-  camera.lookAt(A.charRoot.position.x, A.charRoot.position.y + 1.1, A.charRoot.position.z);
+  camera.lookAt(A.charRoot.position.x, A.charRoot.position.y + 1.1 - camPitchOffset*4, A.charRoot.position.z);
 }
 
 function enterGameMode(){
@@ -2686,7 +2701,6 @@ function enterGameMode(){
   document.getElementById('actionBtn').style.display = 'flex';
   document.getElementById('minimap').style.display = 'block';
   document.getElementById('crystalHud').style.display = 'flex';
-  document.getElementById('camViewBtn').style.display = 'flex';
   document.getElementById('skipBtn').style.display = 'none';
   gameCamPos.copy(camera.position);
   startAmbientMusic();
