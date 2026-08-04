@@ -35,7 +35,18 @@ abzuwarten.
   als Hindernis wirken) und 60 kletterbaren Felsen (glatte Erhebung in
   derselben Höhenfunktion, nur invertiert und deutlich steiler — man
   läuft/hüpft einfach drauf, keine harte Kollision).
-- **Landebasis:** Plattform mit Antennenschüssel und rot blinkendem Leuchtfeuer.
+- **Landebasis:** Plattform mit Antennenschüssel und rot blinkendem Leuchtfeuer,
+  von 10 kleinen Lämpchen umringt.
+- **Verbindungsstraße:** führt von der Landebasis zu einem Platz an der
+  Raumstation (Asphalt-Material, mehrere terrainfolgende Segmente).
+- **Solarpark:** 7×7-Raster schräg aufgestellter Solarpanele (~5 m hoch) in
+  größerer Entfernung von der Basis.
+- **Funkmast:** höher als die Rakete (~164 Einheiten, Rakete ~143), 4 über
+  Treppen erreichbare Plattformen, jede auf einer anderen Seite des Mastes
+  versetzt (kein Stockwerk sitzt direkt über dem vorherigen — sonst wäre die
+  Höhenfunktion an der gleichen (x,z)-Position mehrdeutig). Oberste Plattform
+  trägt mehrere Antennen und eine große Satellitenschüssel; wird später Teil
+  der Mission.
 - **Mondrover-Deko + fahrbares Fahrzeug:** derselbe Rover dient als Deko UND
   als fahrbares Gefährt (siehe unten).
 - **Raumstation:** 6 verbundene Module (teils mit Kuppeln) direkt auf dem
