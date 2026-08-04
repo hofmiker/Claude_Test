@@ -108,6 +108,25 @@ abzuwarten.
 - Staubwolken hinter den Rädern bei Fahrt, kleinere beim Laufen unter den
   Füßen — beides wiederverwendete Partikel-Puffs aus der Landesequenz
 
+## Großer 12-Rad-Rig (zweites Fahrzeug)
+Steht neben dem Rover, deutlich größer — raumschiffartiger Rumpf auf Rädern
+statt einem klassischen Rover-Chassis.
+- 12 Räder (6 links, 6 rechts), nur das vorderste Radpaar lenkt sichtbar
+- Kanzel mit schräger, halbtransparenter Glaskuppel; seitliche Leiter zum
+  Einstieg (rein optisch — der Einstieg selbst ist wie beim Rover eine
+  weiche Übergangsanimation, hier aber bewusst sehr kurz, damit er "sehr
+  schnell klappt")
+- Astronaut steht beim Fahren aufrecht in der Kanzel statt zu sitzen
+  (eigene Steh-Pose statt der Rover-Sitzpose)
+- Eigene, unabhängige Fahrphysik: schwerer/träger als der Rover (langsamere
+  Beschleunigung, geringere Höchstgeschwindigkeit, größerer
+  Kollisionsradius passend zum großen Rumpf)
+- Rover und Rig kollidieren auch untereinander (können sich nicht
+  gegenseitig durchfahren) und sind über eine eigene Minimap-Markierung
+  (grün) sichtbar
+- Ist man in Reichweite von beiden Fahrzeugen gleichzeitig, steigt man ins
+  jeweils näher gelegene ein
+
 ## UI
 - Alle Buttons/Icons sind reine CSS-/SVG-Formen, keine Unicode-Textzeichen
   als Icons (Pfeile, Symbole etc.) — nur echte Text-Labels (z. B. der
