@@ -64,9 +64,10 @@ abzuwarten.
   Objekt hineinzeigt — die tangentiale Komponente bleibt erhalten, man
   gleitet also an Modulen vorbei statt bei jeder Berührung hart stehen zu
   bleiben (nur ein wirklich frontaler Aufprall bremst komplett ab).
-- **Erde:** am Horizont sichtbar, tief genug positioniert, dass die flache
-  Mondoberfläche ihre untere Hälfte im Tiefenpuffer abschneidet — wirkt wie
-  ein "Erdaufgang" am Horizont statt einer voll sichtbaren Kugel am Himmel.
+- **Erde:** ein hoch am Himmel stehendes, immer zur Kamera ausgerichtetes
+  Sprite (radialer Blauverlauf auf Canvas-Textur) statt einer 3D-Kugel auf
+  Bodenhöhe — dadurch wirkt sie eindeutig als entfernter, unerreichbarer
+  Himmelskörper statt als Objekt, das scheinbar auf dem Mondboden liegt.
 - **10 lila leuchtende Kristalle**, über die Karte verstreut, einsammelbar
   durch Annähern (zu Fuß oder mit dem Rover), HUD-Zähler oben links.
 - **24 kleine, immer aufhebbare Steine** (separat von den 60 großen
@@ -78,6 +79,11 @@ abzuwarten.
 - Tastatur: Pfeiltasten/WASD zum Laufen/Drehen, Leertaste zum Springen
   (Ausholen → Luft → Landung als Zustandsautomat, Impuls beim Absprung
   festgehalten)
+- Rucksack-Boost: erneutes Drücken der Sprung-Taste in der Luft löst einen
+  Rückstoß aus (Flamme, Sound, Partikel), verkettbar durch mehrfaches
+  Drücken. Reiner Horizontal-Dash — fügt bewusst keine zusätzliche Höhe
+  hinzu, nur ein Geschwindigkeitsschub (fällt weiter normal der Schwerkraft
+  folgend).
 - Touch: virtueller 360°-Joystick unten links (analog, Pointer-Events mit
   `setPointerCapture`) + runder Sprung-Button unten rechts — Steuerschema
   1:1 von `toy-story/gameplay/player.js` übernommen, nur das Aussehen des
@@ -89,11 +95,20 @@ abzuwarten.
   automatisch deutlich weiter herausgezoomt. Auf Mobile/Tablet zusätzlich
   Drag-to-Look: Ziehen auf dem Spielbildschirm (nicht auf Joystick/Buttons)
   dreht/neigt nur die Kamera, unabhängig von Lauf-/Fahrtrichtung — bewegt
-  sich der Charakter, bleibt die Blickrichtung erhalten (kein Reset). Die
-  frühere GTA-artige Top-Down-Kamera wurde entfernt (zu nah, kein Mehrwert).
+  sich der Charakter, bleibt die Blickrichtung erhalten (kein Reset). Vertikale
+  Achse ist "natürlich" invertiert (nach oben ziehen senkt den Blick), wie bei
+  den meisten mobilen Kamerasteuerungen. Die frühere GTA-artige Top-Down-Kamera
+  wurde entfernt (zu nah, kein Mehrwert).
 - Kollision: kann keine Raumstationsmodule, den geparkten Rover oder den
   großen Rig durchlaufen (Kreis-Pushout-Kollision); Felsen sind dagegen
   kletterbar
+- Lauf-Animation: etwas langsamerer Zyklus als ursprünglich, dafür mehr
+  Knie-Federung/Bounce (Oberkörper hebt/senkt sich stärker, Knie geben mehr
+  nach) — die Schrittweite/Bewegungsfreiheit selbst blieb unverändert.
+  Sobald ein aufhebbarer kleiner Stein in unmittelbarer Reichweite ist,
+  streckt der Astronaut beide Arme danach aus und dreht Kopf/Oberkörper in
+  seine Richtung (nur innerhalb der Aufhebe-Reichweite, verschwindet sofort
+  wieder außerhalb).
 
 ## Fahrbarer Mondrover
 - In Reichweite (~4 Einheiten) Sprung-Taste drücken → Astronaut steigt ein
