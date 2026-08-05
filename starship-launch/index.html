@@ -247,8 +247,6 @@ const MAT = {
   moonRock:  new THREE.MeshStandardMaterial({ color:0x828282, flatShading:true, roughness:1 }),
   moonBase:  new THREE.MeshStandardMaterial({ color:0xd6d8db, flatShading:true, roughness:0.6, metalness:0.2 }),
   moonBaseDark: new THREE.MeshStandardMaterial({ color:0x53565c, flatShading:true, roughness:0.6, metalness:0.2 }),
-  earth:     new THREE.MeshStandardMaterial({ color:0x2f7fe0, emissive:0x1f5fb0, emissiveIntensity:0.9, flatShading:true, roughness:0.6 }),
-  earthCloud:new THREE.MeshStandardMaterial({ color:0xffffff, flatShading:true, transparent:true, opacity:0.5, roughness:1 }),
   roverBody: new THREE.MeshStandardMaterial({ color:0xe8e2d0, flatShading:true, roughness:0.7 }),
   roverDark: new THREE.MeshStandardMaterial({ color:0x3a3a3e, flatShading:true, roughness:0.8 }),
   roverGold: new THREE.MeshStandardMaterial({ color:0xd8a83c, flatShading:true, roughness:0.5, metalness:0.4 }),
@@ -834,6 +832,28 @@ function registerCapsuleCollider(obj, r, len, segments){
 // pointing INTO the collider is removed; the tangential component survives,
 // so walking/driving past a station module at an angle glides along its
 // curve instead of stopping outright.
+// A canvas-generated radial-gradient blue disc, used as a billboarded sprite
+// (always faces the camera, no per-frame lookAt needed) so Earth reads as a
+// distant sky object rather than a reachable ball sitting on the ground.
+function buildEarthSprite(){
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(size/2,size/2,0, size/2,size/2,size/2);
+  grad.addColorStop(0, 'rgba(90,160,235,1)');
+  grad.addColorStop(0.75, 'rgba(45,110,200,1)');
+  grad.addColorStop(0.92, 'rgba(30,80,170,0.9)');
+  grad.addColorStop(1, 'rgba(30,80,170,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,Math.PI*2); ctx.fill();
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent:true, depthWrite:false, toneMapped:false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(140,140,1);
+  return sprite;
+}
+
 function resolveSlide(oldX, oldZ, x, z, radius, list){
   let rx = x, rz = z;
   for (const c of list){
@@ -1364,14 +1384,12 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     crystals.push({ x:cx, z:cz, group:grp, collected:false });
   }
 
-  const earth = new THREE.Mesh(new THREE.SphereGeometry(60,12,10), MAT.earth);
-  // Low Y so the flat moon ground plane occludes the lower hemisphere in the
-  // depth buffer -- reads as Earth "rising", cut off by the horizon.
-  earth.position.set(-420, 16, -900);
+  // A billboarded sprite instead of a lit sphere -- a 3D globe read as an
+  // object "lying on the ground" out near the horizon; a flat glowing disc,
+  // high in the sky, unambiguously reads as a distant, unreachable body.
+  const earth = buildEarthSprite();
+  earth.position.set(-420, 140, -900);
   moonScene.add(earth);
-  const earthClouds = new THREE.Mesh(new THREE.SphereGeometry(63,12,10), MAT.earthCloud);
-  earthClouds.position.copy(earth.position);
-  moonScene.add(earthClouds);
 
   const moonSun = new THREE.DirectionalLight(0xffffff,1.3);
   moonSun.position.set(-150,200,120);
@@ -2057,7 +2075,7 @@ if (isMobile){
     const dx = e.clientX - lookLastX, dy = e.clientY - lookLastY;
     lookLastX = e.clientX; lookLastY = e.clientY;
     camYawOffset -= dx * 0.006;
-    camPitchOffset = clamp(camPitchOffset - dy * 0.004, -0.5, 0.5);
+    camPitchOffset = clamp(camPitchOffset + dy * 0.004, -0.5, 0.5);
   });
   ['pointerup','pointercancel','pointerleave'].forEach(evt => {
     renderer.domElement.addEventListener(evt, e => { if (lookPointerId === e.pointerId) lookPointerId = null; });
@@ -2110,10 +2128,10 @@ const WINDUP_DUR = 0.22, LAND_DUR = 0.30;
 let jumpState = JWALK.NONE, jumpTimer = 0;
 let stepSign = 0;
 
-function animateAstronaut(dt){
+function animateAstronaut(dt, reachStone){
   const A = astro;
   const moving = (curInput.fwd > 0.02 || curInput.back > 0.02) && jumpState === JWALK.NONE;
-  if (moving) animT += dt * 9.5;
+  if (moving) animT += dt * 7.6;
   const s = Math.sin(animT);
   const eff = moving ? 1.0 : 0.0;
   const lLeg =  s * 0.68, rLeg = -s * 0.68;
@@ -2126,7 +2144,19 @@ function animateAstronaut(dt){
     stepSign = 0;
   }
 
-  headYawTgt = (curInput.left - curInput.right) * 0.38;
+  // Only turns arms/head toward a stone within immediate pickup range --
+  // reachStone is already null unless the player is that close.
+  let stoneRelAngle = 0;
+  const reaching = reachStone && onGround && jumpState === JWALK.NONE;
+  if (reaching){
+    const dx = reachStone.x - A.charRoot.position.x, dz = reachStone.z - A.charRoot.position.z;
+    stoneRelAngle = Math.atan2(dx, dz) - charYaw;
+    while (stoneRelAngle >  Math.PI) stoneRelAngle -= Math.PI*2;
+    while (stoneRelAngle < -Math.PI) stoneRelAngle += Math.PI*2;
+    stoneRelAngle = clamp(stoneRelAngle, -0.85, 0.85);
+  }
+
+  headYawTgt = reaching ? stoneRelAngle*0.7 : (curInput.left - curInput.right) * 0.38;
   A.headJoint.rotation.y = lerp(A.headJoint.rotation.y, headYawTgt, 0.06);
 
   if (jumpState === JWALK.WINDUP){
@@ -2194,6 +2224,15 @@ function animateAstronaut(dt){
       A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -0.95, 0.20);
       A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.16, 0.15);
       A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -1.75, 0.20);
+    } else if (reaching){
+      // A liftable stone is within immediate pickup range -- reach both
+      // arms toward it instead of swinging them through the walk cycle.
+      A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -1.05, 0.18);
+      A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z, 0.18 - stoneRelAngle*0.3, 0.15);
+      A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -0.35, 0.18);
+      A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -1.05, 0.18);
+      A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.18 - stoneRelAngle*0.3, 0.15);
+      A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -0.35, 0.18);
     } else {
       A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -rLeg*0.68*eff, 0.30);
       A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.09, 0.08);
@@ -2205,16 +2244,18 @@ function animateAstronaut(dt){
     const tc = 0.30;
     A.lHip.rotation.x = lerp(A.lHip.rotation.x, lLeg*0.88*eff, tc);
     A.rHip.rotation.x = lerp(A.rHip.rotation.x, rLeg*0.88*eff, tc);
-    const lKT = (Math.max(0, lLeg)*1.00 + Math.max(0,-lLeg)*0.70) * eff;
-    const rKT = (Math.max(0, rLeg)*1.00 + Math.max(0,-rLeg)*0.70) * eff;
+    // Slightly more knee "give" (spring) than a straight-legged walk, without
+    // touching the hip swing amplitude above (range of motion stays the same).
+    const lKT = (Math.max(0, lLeg)*1.08 + Math.max(0,-lLeg)*0.78) * eff;
+    const rKT = (Math.max(0, rLeg)*1.08 + Math.max(0,-rLeg)*0.78) * eff;
     A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, lKT, tc);
     A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, rKT, tc);
     A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, -lLeg*0.38*eff, tc);
     A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, -rLeg*0.38*eff, tc);
-    A.torso.rotation.y = lerp(A.torso.rotation.y, s*0.13*eff, 0.18);
+    A.torso.rotation.y = lerp(A.torso.rotation.y, reaching ? stoneRelAngle*0.5 : s*0.13*eff, 0.18);
     A.torso.rotation.x = lerp(A.torso.rotation.x, moving ? -0.10 : 0.0, 0.07);
     A.torso.rotation.z = lerp(A.torso.rotation.z, Math.cos(animT)*0.042*eff, 0.20);
-    A.torso.position.y = lerp(A.torso.position.y, 1.26 + (moving ? Math.abs(s)*0.14 : 0), 0.28);
+    A.torso.position.y = lerp(A.torso.position.y, 1.26 + (moving ? Math.abs(s)*0.20 : 0), 0.28);
     A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, moving ? Math.abs(s)*(-0.07) : 0, 0.18);
     A.headJoint.rotation.z = lerp(A.headJoint.rotation.z, 0, 0.10);
   }
@@ -2223,7 +2264,7 @@ function animateAstronaut(dt){
 /* ---------- gameplay: free astronaut movement + third-person camera ---------- */
 const CHAR_BASE_Y = 0.10;
 const GRAVITY = -15, JUMP_VEL = 7.0;
-const JUMP_BOOST_VEL = 9.5, JUMP_BOOST_SPEED_MULT = 1.6;
+const JUMP_BOOST_SPEED_MULT = 1.25;
 const SPEED_MAX = 5.94, ACCEL_RATE = 14.0, DECEL_RATE = 18.0, TURN_RATE = 0.90;
 let velY = 0, onGround = true, moveSpeed = 0;
 let jetBoosting = false, jetPulseT = 0;
@@ -2617,6 +2658,7 @@ function updateAstronautGameplay(dt){
     actionBuf = false;
     if (heldRock) dropHeldRock(); else pickUpNearestRock();
   }
+  let nearStone = null;
   if (heldRock){
     heldRock.mesh.position.set(
       A.charRoot.position.x + fwdX*1.1,
@@ -2625,19 +2667,17 @@ function updateAstronautGameplay(dt){
     );
     pickupHintEl.style.display = 'none';
   } else {
-    const nearStone = nearestLiftableStone(A.charRoot.position.x, A.charRoot.position.z);
+    nearStone = nearestLiftableStone(A.charRoot.position.x, A.charRoot.position.z);
     pickupHintEl.style.display = (nearStone && onGround) ? 'block' : 'none';
   }
 
   // Rocket boost: pressing jump again while airborne fires the backpack
-  // thruster for a higher, farther kick -- chainable, so repeated presses
-  // during ascent let you keep climbing instead of only getting one boost
-  // per jump.
+  // thruster for a horizontal dash -- chainable, but purely a speed kick,
+  // no vertical velocity added (boosting must never gain extra height).
   if (jumpBuf && jumpState === JWALK.AIR){
     jumpBuf = false;
     jetBoosting = true;
     jetPulseT = 0;
-    velY = JUMP_BOOST_VEL;
     moveSpeed = Math.min(moveSpeed * JUMP_BOOST_SPEED_MULT, SPEED_MAX * JUMP_BOOST_SPEED_MULT);
     A.jetFlame.grp.visible = true;
     playJetBoost();
@@ -2679,7 +2719,7 @@ function updateAstronautGameplay(dt){
     if (jumpState === JWALK.NONE) jumpState = JWALK.AIR;
   }
 
-  animateAstronaut(dt);
+  animateAstronaut(dt, !heldRock ? nearStone : null);
 
   const moving = curInput.fwd > 0.02 || curInput.back > 0.02;
   if (onGround && moving) spawnGroundDust(dt, A.charRoot.position.x, A.charRoot.position.z, surfY, 1, false);
