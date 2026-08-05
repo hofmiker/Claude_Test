@@ -7,14 +7,12 @@
 | `solar-orbit/` | Solar Orbit — 3D-Sonnensystem | `.../solar-orbit/` |
 | `dhl-city/` | DHL City Drive — 3D-Fahrspiel | `.../dhl-city/` |
 | `3d-character-test/` | 3D Character Test — Low-Poly-Charakter-Studie | `.../3d-character-test/` |
-| `bitcoin-3d/` | Bitcoin 3D — Candlestick-Chart | `.../bitcoin-3d/` |
 | `spice-wars/` | Spice Wars — 2D Sci-Fi Strategie (Dune-2-Stil) | `.../spice-wars/` |
 | `dark-city/` | Dark City — 2D Nacht-Jump'n'Run | `.../dark-city/` |
 | `neon-rain-game/` | The Neon Rain — Noir-Detektiv-Adventure | `.../neon-rain-game/` |
 | `toy-story/` | Spielzeug-Abenteuer — 3D-Lauf-/Hüpfspiel im Puppenhaus | `.../toy-story/` |
 | `flower-vase/` | Explosion-Szenen — Blumenvase & Spaceshuttle, per Tabs wechselbar | `.../flower-vase/` |
 | `snake/` | Snake — Nokia-Klassiker | `.../snake/` |
-| `btc/` | Bitcoin On-Chain Dashboard — Live-Kurs & Netzwerk-Metriken | `.../btc/` |
 | `gta/` | Vice Grid — 3D-Top-Down-Fahrspiel im GTA-Stil | `.../gta/` |
 | `cape-character/` | Cape Character — 2D-IK-Charakter mit Umhang & Kapuze | `.../cape-character/` |
 | `rooftop-wanderer/` | Rooftop Wanderer — Atmosphären-Adventure | `.../rooftop-wanderer/` |
