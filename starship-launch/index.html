@@ -48,25 +48,30 @@
     background:rgba(255,255,255,.32); border:2px solid rgba(255,255,255,.62);
     pointer-events:none;
   }
-  #jumpBtn {
-    position:fixed; bottom:28px; right:28px; z-index:5; display:none;
-    width:70px; height:70px; background:rgba(255,210,0,.25); border:2px solid rgba(255,210,0,.75);
-    border-radius:50%; align-items:center; justify-content:center;
+  /* Jump and action share one visual family (size, border weight, opacity
+     steps, right-edge alignment) -- only their accent color differs, so
+     they read as a deliberate pair instead of two unrelated buttons. */
+  #jumpBtn, #actionBtn {
+    position:fixed; right:30px; z-index:5; display:none;
+    width:64px; height:64px; border-radius:50%;
+    align-items:center; justify-content:center;
+    border-width:2px; border-style:solid;
     cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
     touch-action:none;
   }
-  #jumpBtn.on { background:rgba(255,210,0,.55); }
+  #jumpBtn {
+    bottom:28px;
+    background:rgba(255,210,0,.24); border-color:rgba(255,210,0,.75);
+  }
+  #jumpBtn.on { background:rgba(255,210,0,.5); }
   #jumpBtn .ico {
     width:0; height:0; margin-top:-3px;
     border-left:10px solid transparent; border-right:10px solid transparent;
     border-bottom:16px solid #fff;
   }
   #actionBtn {
-    position:fixed; bottom:110px; right:34px; z-index:5; display:none;
-    width:56px; height:56px; background:rgba(150,215,255,.22); border:2px solid rgba(150,215,255,.75);
-    border-radius:50%; align-items:center; justify-content:center;
-    cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
-    touch-action:none;
+    bottom:106px;
+    background:rgba(150,215,255,.24); border-color:rgba(150,215,255,.75);
   }
   #actionBtn.on { background:rgba(150,215,255,.5); }
   #actionBtn .ico {
@@ -121,8 +126,9 @@
   @media (max-width:768px), (pointer:coarse) { #minimap { width:122px; height:122px; } }
   @media (max-height:340px) {
     #minimap { width:96px; height:96px; }
-    #jumpBtn { width:56px; height:56px; bottom:14px; right:14px; }
-    #actionBtn { width:44px; height:44px; bottom:78px; right:20px; }
+    #jumpBtn, #actionBtn { width:50px; height:50px; right:16px; }
+    #jumpBtn { bottom:14px; }
+    #actionBtn { bottom:76px; }
   }
   #fullscreenBtn {
     position:fixed; top:64px; left:16px; z-index:5;
@@ -1128,7 +1134,42 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     });
     grp.add(ladderGroup);
 
-    grp.userData = { frontWheels };
+    // Rear-right cargo hatch + grab arm: a side lid that swings open and a
+    // long two-joint arm that reaches out to snatch a nearby stone while
+    // driving. Stowed by default; animated by updateBigRigArm().
+    const HATCH_X = 4.6, HATCH_Y = 3.3, HATCH_Z = -8.5;
+    const hatchPivot = new THREE.Group();
+    hatchPivot.position.set(HATCH_X, HATCH_Y, HATCH_Z);
+    grp.add(hatchPivot);
+    const hatchPanel = new THREE.Mesh(new THREE.BoxGeometry(0.25,3,3.6), MAT.rigHullDark);
+    hatchPanel.position.set(0,0,1.8); // offset so the hinge (local origin) sits at its front edge
+    hatchPivot.add(hatchPanel);
+
+    const armShoulder = new THREE.Group();
+    armShoulder.position.set(HATCH_X, HATCH_Y, HATCH_Z);
+    armShoulder.rotation.x = -2.3; // stowed: folded up against the hull
+    grp.add(armShoulder);
+    const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,4,6), MAT.roverDark);
+    upperArm.position.y = -2;
+    armShoulder.add(upperArm);
+    const armElbow = new THREE.Group();
+    armElbow.position.y = -4;
+    armElbow.rotation.x = 1.9; // stowed: folded back against the upper arm
+    armShoulder.add(armElbow);
+    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.22,3.6,6), MAT.roverDark);
+    forearm.position.y = -1.8;
+    armElbow.add(forearm);
+    const clawGroup = new THREE.Group();
+    clawGroup.position.y = -3.6;
+    armElbow.add(clawGroup);
+    [-1,1].forEach(s => {
+      const prong = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.9,0.3), MAT.roverGold);
+      prong.position.set(s*0.28,-0.4,0);
+      prong.rotation.z = -s*0.3;
+      clawGroup.add(prong);
+    });
+
+    grp.userData = { frontWheels, hatchPivot, armShoulder, armElbow, clawGroup };
     return grp;
   }
   bigRig = buildBigRig();
@@ -1295,14 +1336,17 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
      rotating stair sequence -- each platform/flight is offset to a
      different side per level (never stacking directly above each other
      in x/z), so the single-valued height field stays unambiguous despite
-     representing a multi-story structure. ---------- */
+     representing a multi-story structure. Offsets are kept just large
+     enough to clear the core lattice collider below (see its reduced
+     radius further down) so platforms nestle between the corner legs
+     instead of reading as balconies bolted far off to one side. ---------- */
   const TOWER_LEVELS = [
-    { y: 38,  ox: 16, oz: 0   },
-    { y: 78,  ox: 0,  oz: 16  },
-    { y: 118, ox: -16,oz: 0   },
-    { y: 158, ox: 0,  oz: -16 },
+    { y: 38,  ox: 11, oz: 0   },
+    { y: 78,  ox: 0,  oz: 11  },
+    { y: 118, ox: -11,oz: 0   },
+    { y: 158, ox: 0,  oz: -11 },
   ];
-  const TOWER_PLATFORM_HALF = 7;
+  const TOWER_PLATFORM_HALF = 5;
   const towerGroup = new THREE.Group();
   towerGroup.userData.tapLabel = 'tower';
   towerGroup.position.set(TOWER_X, 0, TOWER_Z);
@@ -1335,11 +1379,11 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     return grp;
   }
 
-  // Ground-level start of the first flight, offset well outside the core
-  // lattice's collision radius (9) rather than the tower's true center --
-  // otherwise the flight would begin inside a collider the player can
-  // never actually reach.
-  let prevTowerLevel = { y: 0, ox: 16, oz: 20 };
+  // Ground-level start of the first flight, offset outside the core
+  // lattice's (shrunk) collision radius rather than the tower's true
+  // center -- otherwise the flight would begin inside a collider the
+  // player can never actually reach.
+  let prevTowerLevel = { y: 0, ox: 9, oz: 11 };
   TOWER_LEVELS.forEach((lvl) => {
     const platform = buildTowerPlatform();
     platform.position.set(lvl.ox, lvl.y, lvl.oz);
@@ -1375,11 +1419,15 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   bigDish.position.set(0, 4.5, 0);
   antennaGroup.add(bigDish);
 
-  moonCollidables.push({ x: TOWER_X, z: TOWER_Z, r: 9 }); // tower core lattice
+  // Small central-shaft collider -- kept well under the diagonal stairs'
+  // closest approach to the tower axis (~7.8 units, offset/sqrt2) so the
+  // spiral staircase between platforms is never blocked by it.
+  moonCollidables.push({ x: TOWER_X, z: TOWER_Z, r: 6 }); // tower core lattice
   // Vehicles may never drive onto the tower's stairs/platforms; the astronaut
   // still can (climbing is handled purely via getMoonSurfaceY's height field).
-  // Single enclosing circle covers the full stacked-platform/stair footprint.
-  vehicleOnlyCollidables.push({ x: TOWER_X, z: TOWER_Z, r: 30 });
+  // Single enclosing circle covers the full stacked-platform/stair footprint
+  // (farthest reach is the ground-level flight start, ~14 units out).
+  vehicleOnlyCollidables.push({ x: TOWER_X, z: TOWER_Z, r: 20 });
 
   // Glow is a cheap additive-blended unlit halo mesh, not a THREE.PointLight --
   // adding 10 more dynamic lights forces a shader recompile for every material
@@ -2351,7 +2399,7 @@ function animateAstronaut(dt, reachStone){
 /* ---------- gameplay: free astronaut movement + third-person camera ---------- */
 const CHAR_BASE_Y = 0.10;
 const GRAVITY = -15, JUMP_VEL = 7.0;
-const JUMP_BOOST_SPEED_MULT = 1.25;
+const JUMP_BOOST_VEL = 9.5, JUMP_BOOST_SPEED_MULT = 1.25;
 const SPEED_MAX = 5.94, ACCEL_RATE = 14.0, DECEL_RATE = 18.0, TURN_RATE = 0.90;
 let velY = 0, onGround = true, moveSpeed = 0;
 let jetBoosting = false, jetPulseT = 0;
@@ -2393,8 +2441,11 @@ let enterFromYaw = 0;
 // registry, so a second vehicle needs its own copy of the same shape.
 const BIGRIG_MAX_SPD = 9, BIGRIG_ACCEL = 4.5, BIGRIG_BRAKE = 14, BIGRIG_FRICTION = 4, BIGRIG_STEER_RATE = 1.1;
 const BIGRIG_REVERSE_FRAC = 0.3;
-const BIGRIG_ENTER_RADIUS = 7;
 const BIGRIG_COLLIDE_R = 15; // much bigger footprint than the rover
+// Must exceed BIGRIG_COLLIDE_R -- otherwise the astronaut's own collision
+// with the parked rig always pushes them back out beyond the enter radius
+// before it can ever trigger, making entry impossible from any side.
+const BIGRIG_ENTER_RADIUS = BIGRIG_COLLIDE_R + 4;
 const BIGRIG_SEAT_LOCAL = new THREE.Vector3(0, 9.9, 9); // standing at the cockpit controls, under the dome
 const BIGRIG_ENTER_ANIM_DUR = 0.18; // "der Einstieg klappt sehr schnell" -- noticeably faster than the rover's
 let bigRigX = 72, bigRigZ = 20, bigRigAngle = -0.6, bigRigSpd = 0, bigRigSteerAng = 0;
@@ -2426,12 +2477,13 @@ function dropHeldRock(){
   heldRock = null;
   actionEl.classList.remove('holding');
 }
-function nearestLiftableStone(px, pz){
+function nearestLiftableStone(px, pz, radius){
+  radius = radius === undefined ? PICKUP_RADIUS : radius;
   let best = null, bestD = Infinity;
   for (const rk of pickupStones){
     if (rk.held) continue;
     const dd = Math.hypot(px-rk.x, pz-rk.z);
-    if (dd < PICKUP_RADIUS && dd < bestD){ bestD = dd; best = rk; }
+    if (dd < radius && dd < bestD){ bestD = dd; best = rk; }
   }
   return best;
 }
@@ -2439,6 +2491,80 @@ function pickUpNearestRock(){
   if (heldRock) return;
   const best = nearestLiftableStone(astro.charRoot.position.x, astro.charRoot.position.z);
   if (best){ best.held = true; heldRock = best; actionEl.classList.add('holding'); }
+}
+
+/* ---------- big rig cargo arm: grabs/stows a stone through the rear hatch
+   while driving, instead of the on-foot pick-up-by-hand animation. ---------- */
+const BIGRIG_ARM_GRAB_RADIUS = 7;
+const BIGRIG_ARM_DUR = 1.1;
+let bigRigArmActive = false, bigRigArmT = 0, bigRigArmDir = 1, bigRigArmStone = null;
+function bigRigArmPoint(){
+  // World position of the hatch/claw's stowed anchor -- where the arm
+  // reaches from and the grab/search radius is centered on.
+  const local = new THREE.Vector3(4.6, 3.3, -8.5);
+  bigRig.localToWorld(local);
+  return local;
+}
+function triggerBigRigArm(){
+  if (bigRigArmActive) return;
+  if (heldRock){
+    bigRigArmStone = heldRock;
+    bigRigArmDir = -1; // stow -> place back on the ground
+  } else {
+    const p = bigRigArmPoint();
+    const target = nearestLiftableStone(p.x, p.z, BIGRIG_ARM_GRAB_RADIUS);
+    if (!target) return; // nothing in reach -- silent no-op, matching on-foot pickup
+    bigRigArmStone = target;
+    bigRigArmDir = 1; // grab -> pull a stone in
+  }
+  bigRigArmActive = true;
+  bigRigArmT = 0;
+}
+function updateBigRigArm(dt){
+  if (!bigRigArmActive) return;
+  const U = bigRig.userData;
+  bigRigArmT += dt / BIGRIG_ARM_DUR;
+  // Progress is always 0(stowed)->1(stowed again); dir just decides whether
+  // the grab/release event at the midpoint attaches or releases the stone.
+  const t = Math.min(bigRigArmT, 1);
+  const hatchT   = smoothstep(0, 0.22, t) - smoothstep(0.82, 1, t);
+  const reachT   = smoothstep(0.22, 0.5, t) - smoothstep(0.5, 0.82, t);
+  U.hatchPivot.rotation.y = -1.35 * hatchT;
+  U.armShoulder.rotation.x = lerp(-2.3, -0.5, reachT);
+  U.armElbow.rotation.x = lerp(1.9, 0.3, reachT);
+
+  if (bigRigArmStone){
+    if (bigRigArmDir === 1 && t < 0.5){
+      // Grab phase: stone stays put on the ground until the claw arrives.
+    } else if (bigRigArmDir === 1 && t >= 0.5 && bigRigArmStone.mesh.parent !== U.clawGroup){
+      // Snap to the claw's tip before attaching -- the stone's actual ground
+      // spot rarely lines up exactly with the fixed reach pose, and this
+      // reads as the claw closing on it rather than an odd mid-air jump.
+      const clawTip = new THREE.Vector3();
+      U.clawGroup.getWorldPosition(clawTip);
+      bigRigArmStone.mesh.position.copy(clawTip);
+      U.clawGroup.attach(bigRigArmStone.mesh);
+      bigRigArmStone.held = true;
+      heldRock = bigRigArmStone;
+      actionEl.classList.add('holding');
+    } else if (bigRigArmDir === -1 && t < 0.5 && bigRigArmStone.mesh.parent !== U.clawGroup){
+      U.clawGroup.attach(bigRigArmStone.mesh);
+    } else if (bigRigArmDir === -1 && t >= 0.5 && bigRigArmStone.mesh.parent === U.clawGroup){
+      moonScene.attach(bigRigArmStone.mesh);
+      const gy = getMoonSurfaceY(bigRigArmStone.mesh.position.x, bigRigArmStone.mesh.position.z);
+      bigRigArmStone.x = bigRigArmStone.mesh.position.x;
+      bigRigArmStone.z = bigRigArmStone.mesh.position.z;
+      bigRigArmStone.mesh.position.y = gy + bigRigArmStone.embed;
+      bigRigArmStone.held = false;
+      heldRock = null;
+      actionEl.classList.remove('holding');
+    }
+  }
+
+  if (bigRigArmT >= 1){
+    bigRigArmActive = false;
+    bigRigArmStone = null;
+  }
 }
 
 function poseAstronautSeated(k){
@@ -2524,8 +2650,10 @@ function enterBigRig(){
   jetBoosting = false; astro.jetFlame.grp.visible = false;
   enterHintEl.style.display = 'none';
   pickupHintEl.style.display = 'none';
-  actionEl.style.display = 'none';
+  // Stays visible (unlike in the rover) -- doubles as the cargo-arm control.
+  actionEl.style.display = 'flex';
   dropHeldRock();
+  bigRigArmActive = false; bigRigArmT = 0; bigRigArmStone = null;
   bigRigCamPos.copy(camera.position);
   bigRigEnterT = 0;
   bigRigEnterFromPos.copy(astro.charRoot.position);
@@ -2534,6 +2662,20 @@ function enterBigRig(){
 }
 function exitBigRig(){
   inBigRig = false;
+  // A stone gripped by the cargo arm is still parented under the rig's own
+  // hierarchy -- leaving it there while on foot would move it in the rig's
+  // local space instead of the world, so release it onto the ground first.
+  if (heldRock && heldRock.mesh.parent !== moonScene){
+    moonScene.attach(heldRock.mesh);
+    const gy = getMoonSurfaceY(heldRock.mesh.position.x, heldRock.mesh.position.z);
+    heldRock.x = heldRock.mesh.position.x;
+    heldRock.z = heldRock.mesh.position.z;
+    heldRock.mesh.position.y = gy + heldRock.embed;
+    heldRock.held = false;
+    heldRock = null;
+    actionEl.classList.remove('holding');
+  }
+  bigRigArmActive = false; bigRigArmT = 0; bigRigArmStone = null;
   const A = astro;
   const sideX = Math.cos(bigRigAngle), sideZ = -Math.sin(bigRigAngle);
   const exitDist = 8;
@@ -2592,6 +2734,9 @@ function updateBigRigGameplay(dt){
 
   spawnGroundDust(dt, bigRigX - fwdX*4, bigRigZ - fwdZ*4, groundY, Math.min(1, Math.abs(bigRigSpd)/BIGRIG_MAX_SPD), true);
   updateEngineSound(dt, bigRigSpd/BIGRIG_MAX_SPD);
+
+  if (actionBuf){ actionBuf = false; triggerBigRigArm(); }
+  updateBigRigArm(dt);
 
   tmpSeat.copy(BIGRIG_SEAT_LOCAL);
   bigRig.localToWorld(tmpSeat);
@@ -2759,12 +2904,14 @@ function updateAstronautGameplay(dt){
   }
 
   // Rocket boost: pressing jump again while airborne fires the backpack
-  // thruster for a horizontal dash -- chainable, but purely a speed kick,
-  // no vertical velocity added (boosting must never gain extra height).
+  // thruster for a higher, farther kick -- chainable, so repeated presses
+  // during ascent let you keep climbing instead of only getting one boost
+  // per jump.
   if (jumpBuf && jumpState === JWALK.AIR){
     jumpBuf = false;
     jetBoosting = true;
     jetPulseT = 0;
+    velY = JUMP_BOOST_VEL;
     moveSpeed = Math.min(moveSpeed * JUMP_BOOST_SPEED_MULT, SPEED_MAX * JUMP_BOOST_SPEED_MULT);
     A.jetFlame.grp.visible = true;
     playJetBoost();
