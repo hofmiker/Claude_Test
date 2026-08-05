@@ -82,14 +82,46 @@ export function createCutsceneScene(canvas: HTMLCanvasElement) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
+  // Not in the original index.html (which skips shadow mapping entirely for
+  // real-time framerate on low-end/mobile devices): this render tool is a
+  // one-off quality-preview export, not a live gameplay scene, so the extra
+  // depth-pass cost is fine here even though it isn't in the shipped game.
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(42, WIDTH / HEIGHT, 0.1, 6000);
+
+  function configureSunShadow(light: THREE.DirectionalLight, halfSize: number, far: number) {
+    light.castShadow = true;
+    light.shadow.mapSize.set(2048, 2048);
+    light.shadow.camera.left = -halfSize;
+    light.shadow.camera.right = halfSize;
+    light.shadow.camera.top = halfSize;
+    light.shadow.camera.bottom = -halfSize;
+    light.shadow.camera.near = 1;
+    light.shadow.camera.far = far;
+    light.shadow.bias = -0.0015;
+  }
+  // Every Mesh in `root` whose material isn't an unlit/emissive one (flame
+  // cones, beacon light, lamp bulbs -- MeshBasicMaterial) casts/receives
+  // shadows. Skipping those keeps glow effects looking like light sources
+  // instead of oddly shadow-casting solid cones.
+  function enableShadows(root: THREE.Object3D, cast: boolean, receive: boolean) {
+    root.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      if (mesh.material instanceof THREE.MeshBasicMaterial) return;
+      mesh.castShadow = cast;
+      mesh.receiveShadow = receive;
+    });
+  }
 
   const hemi = new THREE.HemisphereLight(0xbfe0ff, 0xd6d2bf, 0.9);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff4e0, 1.15);
   sun.position.set(120, 220, 160);
+  configureSunShadow(sun, 140, 500);
   scene.add(sun);
   const fill = new THREE.AmbientLight(0x8899aa, 0.25);
   scene.add(fill);
@@ -293,6 +325,7 @@ export function createCutsceneScene(canvas: HTMLCanvasElement) {
     const land = new THREE.Mesh(new THREE.PlaneGeometry(2600, 1500), MAT.ground);
     land.rotation.x = -Math.PI / 2;
     land.position.set(0, 0, 500);
+    land.receiveShadow = true;
     launchScene.add(land);
 
     const sea = new THREE.Mesh(new THREE.PlaneGeometry(2600, 1100), MAT.sea);
@@ -370,6 +403,8 @@ export function createCutsceneScene(canvas: HTMLCanvasElement) {
 
     const pad = new THREE.Mesh(new THREE.CylinderGeometry(30, 32, PAD_TOP, 8), MAT.pad);
     pad.position.set(PAD_X, PAD_TOP / 2, 0);
+    pad.receiveShadow = true;
+    pad.castShadow = true;
     launchScene.add(pad);
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2;
@@ -492,6 +527,7 @@ export function createCutsceneScene(canvas: HTMLCanvasElement) {
     tower.position.set(TOWER_X, 0, 0);
   }
   launchScene.add(tower);
+  enableShadows(tower, true, false);
 
   rocketStack.add(boosterPart);
   boosterPart.position.set(0, 0, 0);
@@ -499,6 +535,7 @@ export function createCutsceneScene(canvas: HTMLCanvasElement) {
   shipPart.position.set(0, SHIP_LOCAL_Y, 0);
   rocketStack.position.set(PAD_X, PAD_TOP, 0);
   launchScene.add(rocketStack);
+  enableShadows(rocketStack, true, false);
 
   /* ---------- cloud decks ---------- */
   const cloudSphereGeo = new THREE.SphereGeometry(1, 10, 8);
@@ -633,6 +670,7 @@ export function createCutsceneScene(canvas: HTMLCanvasElement) {
     }
     moonGeo.computeVertexNormals();
     const surf = new THREE.Mesh(moonGeo, MAT.moonGround);
+    surf.receiveShadow = true;
     moonScene.add(surf);
 
     function buildLandingBase() {
@@ -664,6 +702,7 @@ export function createCutsceneScene(canvas: HTMLCanvasElement) {
     const landingBase = buildLandingBase();
     landingBase.position.set(PAD_X, 0, 0);
     moonScene.add(landingBase);
+    enableShadows(landingBase, true, true);
 
     function buildLamp() {
       const grp = new THREE.Group();
@@ -692,6 +731,7 @@ export function createCutsceneScene(canvas: HTMLCanvasElement) {
 
     const moonSun = new THREE.DirectionalLight(0xffffff, 1.3);
     moonSun.position.set(-150, 200, 120);
+    configureSunShadow(moonSun, 90, 500);
     moonScene.add(moonSun);
     const moonAmb = new THREE.HemisphereLight(0x2a2a3a, 0x111111, 0.35);
     moonScene.add(moonAmb);
