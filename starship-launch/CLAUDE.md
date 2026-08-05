@@ -46,7 +46,9 @@ abzuwarten.
   versetzt (kein Stockwerk sitzt direkt über dem vorherigen — sonst wäre die
   Höhenfunktion an der gleichen (x,z)-Position mehrdeutig). Oberste Plattform
   trägt mehrere Antennen und eine große Satellitenschüssel; wird später Teil
-  der Mission.
+  der Mission. Treppen/Plattformen sind nur zu Fuß begehbar — Rover und Rig
+  werden durch eine Kollisionsscheibe um den Mastfuß herum abgehalten, können
+  also nicht auf den Turm auffahren.
 - **Mondrover-Deko + fahrbares Fahrzeug:** derselbe Rover dient als Deko UND
   als fahrbares Gefährt (siehe unten).
 - **Raumstation:** 6 verbundene Module (teils mit Kuppeln) direkt auf dem
@@ -99,9 +101,9 @@ abzuwarten.
   danach sichtbar mit angewinkelten Beinen im Fahrersitz)
 - Steuerung: gleiches Eingabeschema wie zu Fuß (Vorwärts/Rückwärts =
   Gas/Bremse, Links/Rechts = Lenkung, stärker bei höherem Tempo — wie bei
-  `dhl-city/index.html` adaptiert), sichtbar einschlagende Vorderräder
-- Motorengeräusch (prozedural, Tonhöhe/Lautstärke an Geschwindigkeit
-  gekoppelt) startet beim Einsteigen, stoppt beim Aussteigen
+  `dhl-city/index.html` adaptiert, auch beim Rückwärtsfahren dieselbe
+  Links/Rechts-Zuordnung wie vorwärts, kein realistischer Lenkungs-Flip),
+  sichtbar einschlagende Vorderräder
 - Kamera: höher und weiter hinter dem Fahrzeug als beim Laufen
 - Erneutes Drücken der Sprung-Taste steigt wieder aus
 - Kollision mit Raumstation/geparktem Fahrzeug wie beim Laufen, zusätzlich
@@ -121,7 +123,9 @@ statt einem klassischen Rover-Chassis.
   (eigene Steh-Pose statt der Rover-Sitzpose)
 - Eigene, unabhängige Fahrphysik: schwerer/träger als der Rover (langsamere
   Beschleunigung, geringere Höchstgeschwindigkeit, größerer
-  Kollisionsradius passend zum großen Rumpf)
+  Kollisionsradius passend zum großen Rumpf); Kamera sitzt deutlich weiter
+  hinten/höher als beim Rover, damit sich das Fahrgefühl trotz des riesigen
+  Rumpfes tatsächlich langsamer anfühlt statt schneller zu wirken
 - Rover und Rig kollidieren auch untereinander (können sich nicht
   gegenseitig durchfahren) und sind über eine eigene Minimap-Markierung
   (grün) sichtbar
@@ -143,9 +147,6 @@ statt einem klassischen Rover-Chassis.
   im Vollbild sichtbar/bedienbar bleiben), Icon wechselt zwischen
   Ausklapp-/Einklapp-Ecken je nach Zustand. Blendet sich selbst aus, falls
   die Fullscreen API im Browser fehlt (z. B. iOS Safari).
-- Kamera-Button (oben links, unter dem Vollbild-Button): wechselt zwischen
-  der normalen Third-Person-Kamera und einer steileren Top-Down-Ansicht
-  (Icon wechselt zwischen Dreieck und Kreis-mit-Punkt).
 - Die Seite lässt sich nicht per Pinch/Doppeltipp/Strg+Mausrad zoomen
   (Viewport-Meta + `touch-action:none` + Desktop-Handler) — das war zuvor
   möglich und führte zu einem leicht verrutschten Bild. Das Canvas ist
@@ -167,7 +168,9 @@ vor Clipping, seit mehrere Dauerklänge gleichzeitig laufen können):
 - Leises, unaufdringliches atmosphärisches Drone/Pad (drei leicht
   verstimmte Sinus-Layer), startet einmalig beim Gameplay-Einstieg und
   läuft durchgehend weiter (zu Fuß wie im Fahrzeug).
-- Das drehzahlabhängige Rover-Triebwerksgeräusch wie zuvor.
+- Kein Motorengeräusch mehr in Rover/Rig — stattdessen nur ein leises,
+  unregelmäßiges Knistern (kurze Rauschstöße, Rate steigt etwas mit dem
+  Tempo), egal welches der beiden Fahrzeuge gerade gefahren wird.
 Der `AudioContext` wird lazy beim ersten Tastendruck/Touch erzeugt
 (Autoplay-Policy).
 
