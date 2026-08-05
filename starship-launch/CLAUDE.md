@@ -44,11 +44,13 @@ abzuwarten.
 - **Funkmast:** höher als die Rakete (~164 Einheiten, Rakete ~143), 4 über
   Treppen erreichbare Plattformen, jede auf einer anderen Seite des Mastes
   versetzt (kein Stockwerk sitzt direkt über dem vorherigen — sonst wäre die
-  Höhenfunktion an der gleichen (x,z)-Position mehrdeutig). Oberste Plattform
-  trägt mehrere Antennen und eine große Satellitenschüssel; wird später Teil
-  der Mission. Treppen/Plattformen sind nur zu Fuß begehbar — Rover und Rig
-  werden durch eine Kollisionsscheibe um den Mastfuß herum abgehalten, können
-  also nicht auf den Turm auffahren.
+  Höhenfunktion an der gleichen (x,z)-Position mehrdeutig), aber nur so weit
+  versetzt wie technisch nötig, damit sie zwischen den vier Eckstützen
+  eingebettet wirken statt wie separate, weit herausragende Balkone. Oberste
+  Plattform trägt mehrere Antennen und eine große Satellitenschüssel; wird
+  später Teil der Mission. Treppen/Plattformen sind nur zu Fuß begehbar —
+  Rover und Rig werden durch eine Kollisionsscheibe um den Mastfuß herum
+  abgehalten, können also nicht auf den Turm auffahren.
 - **Mondrover-Deko + fahrbares Fahrzeug:** derselbe Rover dient als Deko UND
   als fahrbares Gefährt (siehe unten).
 - **Raumstation:** 6 verbundene Module (teils mit Kuppeln) direkt auf dem
@@ -81,9 +83,8 @@ abzuwarten.
   festgehalten)
 - Rucksack-Boost: erneutes Drücken der Sprung-Taste in der Luft löst einen
   Rückstoß aus (Flamme, Sound, Partikel), verkettbar durch mehrfaches
-  Drücken. Reiner Horizontal-Dash — fügt bewusst keine zusätzliche Höhe
-  hinzu, nur ein Geschwindigkeitsschub (fällt weiter normal der Schwerkraft
-  folgend).
+  Drücken — steigert sowohl Höhe als auch Geschwindigkeit, sodass wiederholtes
+  Drücken während des Aufstiegs stetiges Steigen ermöglicht.
 - Touch: virtueller 360°-Joystick unten links (analog, Pointer-Events mit
   `setPointerCapture`) + runder Sprung-Button unten rechts — Steuerschema
   1:1 von `toy-story/gameplay/player.js` übernommen, nur das Aussehen des
@@ -145,7 +146,14 @@ statt einem klassischen Rover-Chassis.
   gegenseitig durchfahren) und sind über eine eigene Minimap-Markierung
   (grün) sichtbar
 - Ist man in Reichweite von beiden Fahrzeugen gleichzeitig, steigt man ins
-  jeweils näher gelegene ein
+  jeweils näher gelegene ein — Einstieg funktioniert von jeder Seite
+  gleichermaßen (reine Abstandsprüfung zur Fahrzeugmitte)
+- Greifarm: Aktion-Taste während der Fahrt öffnet hinten rechts einen
+  seitlichen Frachtdeckel, ein langer zweigliedriger Greifarm fährt heraus
+  und schnappt sich den nächsten aufhebbaren Stein in Reichweite (oder legt
+  einen bereits gegriffenen wieder ab) — bleibt danach automatisch bis zum
+  Aussteigen sichtbar an Bord bzw. wird beim Aussteigen auf dem Boden
+  abgesetzt, statt in der Fahrzeug-Hierarchie hängen zu bleiben
 
 ## Antippen von Objekten (Mobile/Tablet)
 Kurzes Antippen (kaum Bewegung zwischen Pointer-Down/-Up, im Unterschied zum
@@ -160,6 +168,10 @@ aus. Rein atmosphärisch, ohne Spielmechanik-Effekt.
 - Alle Buttons/Icons sind reine CSS-/SVG-Formen, keine Unicode-Textzeichen
   als Icons (Pfeile, Symbole etc.) — nur echte Text-Labels (z. B. der
   "Überspringen"-Button-Text) sind Text.
+- Sprung- und Aktion-Button bilden bewusst ein einheitliches Paar: gleiche
+  Größe, Randstärke und Opazitätsstufen, exakt auf derselben rechten Kante
+  ausgerichtet und mit passendem Abstand übereinander gestapelt — nur die
+  Akzentfarbe (Gelb/Blau) unterscheidet sie funktional.
 - Kreisförmige Minimap oben rechts (an `dhl-city`s Minimap angelehnt):
   zeigt Landebasis, Raumstation, Rover und unsammelte Kristalle relativ
   zur eigenen Position/Blickrichtung.
