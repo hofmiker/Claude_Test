@@ -713,6 +713,7 @@ const towerStairZones = []; // linear ramps connecting them
 const moonRocksData = [];
 const pickupStones = []; // small hand-liftable stones, separate from the big climbable decorative rocks
 const moonCollidables = [];
+const vehicleOnlyCollidables = []; // blocks rover/big rig but not the astronaut (e.g. tower stairs)
 const crystals = [];
 const CRYSTAL_COUNT = 10;
 let crystalsCollected = 0;
@@ -1325,6 +1326,10 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   antennaGroup.add(bigDish);
 
   moonCollidables.push({ x: TOWER_X, z: TOWER_Z, r: 9 }); // tower core lattice
+  // Vehicles may never drive onto the tower's stairs/platforms; the astronaut
+  // still can (climbing is handled purely via getMoonSurfaceY's height field).
+  // Single enclosing circle covers the full stacked-platform/stair footprint.
+  vehicleOnlyCollidables.push({ x: TOWER_X, z: TOWER_Z, r: 30 });
 
   // Glow is a cheap additive-blended unlit halo mesh, not a THREE.PointLight --
   // adding 10 more dynamic lights forces a shader recompile for every material
@@ -1634,33 +1639,26 @@ function playJetBoost(){
   osc.start(t0); osc.stop(t0+0.52);
 }
 
-let engineOsc = null, engineGain = null, engineFilter = null;
+// Driving no longer has an engine hum -- just a sparse, quiet crackle
+// (like a cooling chassis / static), rate rising a little with speed.
+// Shared by whichever vehicle is currently occupied (only one at a time).
+let engineActive = false, engineCrackleAccum = 0;
 function startEngineSound(){
-  const ctx = ensureAudio();
-  if (!ctx || engineOsc) return;
-  engineOsc = ctx.createOscillator();
-  engineOsc.type = 'sawtooth';
-  engineOsc.frequency.value = 55;
-  engineFilter = ctx.createBiquadFilter();
-  engineFilter.type = 'lowpass'; engineFilter.frequency.value = 350;
-  engineGain = ctx.createGain();
-  engineGain.gain.value = 0.001;
-  engineOsc.connect(engineFilter); engineFilter.connect(engineGain); engineGain.connect(masterGain);
-  engineOsc.start();
+  engineActive = true;
+  engineCrackleAccum = 0;
 }
 function stopEngineSound(){
-  if (!engineOsc) return;
-  const ctx = ensureAudio();
-  engineGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.15);
-  engineOsc.stop(ctx.currentTime+0.2);
-  engineOsc = null; engineGain = null; engineFilter = null;
+  engineActive = false;
 }
-function updateEngineSound(speedRatio){
-  if (!engineOsc) return;
-  const r = Math.abs(speedRatio);
-  engineOsc.frequency.value = 55 + r*90;
-  engineGain.gain.value = 0.05 + r*0.09;
-  engineFilter.frequency.value = 300 + r*500;
+function updateEngineSound(dt, speedRatio){
+  if (!engineActive) return;
+  engineCrackleAccum += dt;
+  const rate = 2.5 + Math.abs(speedRatio)*7; // crackles per second
+  const interval = 1/rate;
+  while (engineCrackleAccum > interval){
+    engineCrackleAccum -= interval;
+    playNoiseBurst(rand(0.012,0.03), rand(0.012,0.03), rand(2200,4000));
+  }
 }
 
 // Rocket launch rumble: two detuned low sawtooths pushed through a slow LFO
@@ -2265,7 +2263,7 @@ let enterFromYaw = 0;
 // the rover's own state (roverX/roverAngle/etc, enterVehicle/exitVehicle,
 // the single inVehicle boolean) is all flat module-level variables with no
 // registry, so a second vehicle needs its own copy of the same shape.
-const BIGRIG_MAX_SPD = 12, BIGRIG_ACCEL = 6, BIGRIG_BRAKE = 14, BIGRIG_FRICTION = 4, BIGRIG_STEER_RATE = 1.1;
+const BIGRIG_MAX_SPD = 9, BIGRIG_ACCEL = 4.5, BIGRIG_BRAKE = 14, BIGRIG_FRICTION = 4, BIGRIG_STEER_RATE = 1.1;
 const BIGRIG_REVERSE_FRAC = 0.3;
 const BIGRIG_ENTER_RADIUS = 7;
 const BIGRIG_COLLIDE_R = 15; // much bigger footprint than the rover
@@ -2276,8 +2274,8 @@ let bigRigPitch = 0, bigRigRoll = 0;
 const BIGRIG_HALF_LEN = 13, BIGRIG_HALF_WID = 5;
 let inBigRig = false;
 let bigRigCamPos = new THREE.Vector3();
-let bigRigCamDist = 16.0;
-let bigRigCamHeight = 8.0;
+let bigRigCamDist = 26.0;
+let bigRigCamHeight = 13.0;
 let bigRigEnterT = 1;
 let bigRigEnterFromPos = new THREE.Vector3();
 let bigRigEnterFromYaw = 0;
@@ -2431,11 +2429,13 @@ function updateBigRigGameplay(dt){
 
   let steerTgt = 0;
   if (Math.abs(bigRigSpd) > 0.05){
+    // Turning always follows the input direction, matching on-foot turning --
+    // no forward/reverse flip, since that real-car behavior read as swapped
+    // left/right to players used to the on-foot mapping.
     const turn = curInput.left - curInput.right;
-    const sdir = bigRigSpd >= 0 ? 1 : -1;
     const sr = BIGRIG_STEER_RATE * (Math.abs(bigRigSpd)/BIGRIG_MAX_SPD);
-    bigRigAngle += sr*dt*turn*sdir;
-    steerTgt = turn*0.4*sdir;
+    bigRigAngle += sr*dt*turn;
+    steerTgt = turn*0.4;
   }
   bigRigSteerAng = lerp(bigRigSteerAng, steerTgt, 0.12);
   if (bigRig.userData.frontWheels) bigRig.userData.frontWheels.forEach(w => w.rotation.y = bigRigSteerAng);
@@ -2444,6 +2444,7 @@ function updateBigRigGameplay(dt){
   const nx = bigRigX + fwdX*bigRigSpd*dt, nz = bigRigZ + fwdZ*bigRigSpd*dt;
   let resolved = resolveSlide(bigRigX, bigRigZ, nx, nz, BIGRIG_COLLIDE_R, moonCollidables);
   resolved = resolveSlide(bigRigX, bigRigZ, resolved.x, resolved.z, BIGRIG_COLLIDE_R, [{ x:roverX, z:roverZ, r:ROVER_COLLIDE_R }]);
+  resolved = resolveSlide(bigRigX, bigRigZ, resolved.x, resolved.z, BIGRIG_COLLIDE_R, vehicleOnlyCollidables);
   if (Math.hypot(resolved.x-nx, resolved.z-nz) > 0.01) bigRigSpd *= 0.35;
   bigRigX = resolved.x; bigRigZ = resolved.z;
   const groundY = getMoonSurfaceY(bigRigX, bigRigZ);
@@ -2462,7 +2463,7 @@ function updateBigRigGameplay(dt){
   bigRig.updateMatrixWorld(true);
 
   spawnGroundDust(dt, bigRigX - fwdX*4, bigRigZ - fwdZ*4, groundY, Math.min(1, Math.abs(bigRigSpd)/BIGRIG_MAX_SPD), true);
-  updateEngineSound(bigRigSpd/BIGRIG_MAX_SPD);
+  updateEngineSound(dt, bigRigSpd/BIGRIG_MAX_SPD);
 
   tmpSeat.copy(BIGRIG_SEAT_LOCAL);
   bigRig.localToWorld(tmpSeat);
@@ -2481,8 +2482,8 @@ function updateBigRigGameplay(dt){
 
   if (jumpBuf){ jumpBuf = false; exitBigRig(); return; }
 
-  const baseBBack = 16.0 * (isMobile ? MOBILE_CAM_MULT : 1);
-  const baseBHeight = 8.0;
+  const baseBBack = 26.0 * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseBHeight = 13.0;
   bigRigCamDist = lerp(bigRigCamDist, baseBBack, dt*2.5);
   bigRigCamHeight = lerp(bigRigCamHeight, baseBHeight, dt*2.5);
   const camFwdXB = Math.sin(bigRigAngle+camYawOffset), camFwdZB = Math.cos(bigRigAngle+camYawOffset);
@@ -2506,11 +2507,13 @@ function updateRoverGameplay(dt){
 
   let steerTgt = 0;
   if (Math.abs(roverSpd) > 0.05){
+    // Turning always follows the input direction, matching on-foot turning --
+    // no forward/reverse flip, since that real-car behavior read as swapped
+    // left/right to players used to the on-foot mapping.
     const turn = curInput.left - curInput.right;
-    const sdir = roverSpd >= 0 ? 1 : -1;
     const sr = ROVER_STEER_RATE * (Math.abs(roverSpd)/ROVER_MAX_SPD);
-    roverAngle += sr*dt*turn*sdir;
-    steerTgt = turn*0.5*sdir;
+    roverAngle += sr*dt*turn;
+    steerTgt = turn*0.5;
   }
   roverSteerAng = lerp(roverSteerAng, steerTgt, 0.15);
   if (rover.userData.frontWheels) rover.userData.frontWheels.forEach(w => w.rotation.y = roverSteerAng);
@@ -2519,6 +2522,7 @@ function updateRoverGameplay(dt){
   const nx = roverX + fwdX*roverSpd*dt, nz = roverZ + fwdZ*roverSpd*dt;
   let resolved = resolveSlide(roverX, roverZ, nx, nz, ROVER_COLLIDE_R, moonCollidables);
   resolved = resolveSlide(roverX, roverZ, resolved.x, resolved.z, ROVER_COLLIDE_R, [{ x:bigRigX, z:bigRigZ, r:BIGRIG_COLLIDE_R }]);
+  resolved = resolveSlide(roverX, roverZ, resolved.x, resolved.z, ROVER_COLLIDE_R, vehicleOnlyCollidables);
   if (Math.hypot(resolved.x-nx, resolved.z-nz) > 0.01) roverSpd *= 0.4;
   roverX = resolved.x; roverZ = resolved.z;
   const groundY = getMoonSurfaceY(roverX, roverZ);
@@ -2540,7 +2544,7 @@ function updateRoverGameplay(dt){
   rover.updateMatrixWorld(true);
 
   spawnGroundDust(dt, roverX - fwdX*2, roverZ - fwdZ*2, groundY, Math.min(1, Math.abs(roverSpd)/ROVER_MAX_SPD), true);
-  updateEngineSound(roverSpd/ROVER_MAX_SPD);
+  updateEngineSound(dt, roverSpd/ROVER_MAX_SPD);
 
   tmpSeat.copy(SEAT_LOCAL);
   rover.localToWorld(tmpSeat);
