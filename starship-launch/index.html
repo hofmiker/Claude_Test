@@ -85,6 +85,19 @@
   @media (max-width:400px) {
     #enterHint, #pickupHint { font-size:11px; padding:5px 10px; max-width:70vw; }
   }
+  #speechCaption {
+    position:fixed; left:50%; top:64px; transform:translateX(-50%);
+    z-index:6; padding:8px 18px; border-radius:16px;
+    background:rgba(20,20,25,.55); border:1px solid rgba(255,255,255,.4);
+    color:#fff; font-family:Arial,sans-serif; font-size:13px; font-weight:600;
+    letter-spacing:.2px; pointer-events:none; text-align:center;
+    max-width:min(78vw, 340px);
+    opacity:0; transition:opacity .25s ease;
+  }
+  #speechCaption.show { opacity:1; }
+  @media (max-width:400px) {
+    #speechCaption { font-size:11px; padding:5px 10px; max-width:70vw; top:56px; }
+  }
   #crystalHud {
     position:fixed; top:16px; left:16px; z-index:5; display:none;
     padding:7px 14px; border-radius:16px; background:rgba(20,20,25,.5);
@@ -97,7 +110,10 @@
     box-shadow: 0 0 6px 1px rgba(192,123,255,.9);
   }
   #minimap {
-    position:fixed; top:16px; right:16px; z-index:5; display:none;
+    /* The generic canvas{inset:0} rule above also sets left/bottom on this
+       element (a <canvas>); since this rule only overrides top/right, those
+       leak through and pin it to the left edge unless reset explicitly. */
+    position:fixed; top:16px; right:16px; left:auto; bottom:auto; z-index:5; display:none;
     width:168px; height:168px; border-radius:50%;
     border:2px solid rgba(255,255,255,.45);
     background:rgba(10,12,20,.5);
@@ -130,6 +146,7 @@
 <div id="crystalHud"><span class="ico"></span><span id="crystalCount">0 / 10</span></div>
 <div id="enterHint">Sprung-Taste zum Einsteigen</div>
 <div id="pickupHint">Aktion-Taste zum Aufheben</div>
+<div id="speechCaption"></div>
 <div id="joystick"><div id="joystick-knob"></div></div>
 <div id="jumpBtn"><span class="ico"></span></div>
 <div id="actionBtn"><span class="ico"></span></div>
@@ -942,6 +959,9 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   const surf = new THREE.Mesh(moonGeo, MAT.moonGround);
   moonScene.add(surf);
 
+  const rocksGroup = new THREE.Group();
+  rocksGroup.userData.tapLabel = 'rock';
+  moonScene.add(rocksGroup);
   for(let i=0;i<60;i++){
     let a,d,rx,rz,tries=0;
     do { a = rand(0,Math.PI*2); d = rand(60,600); rx = Math.cos(a)*d; rz = Math.sin(a)*d; tries++; }
@@ -951,7 +971,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     const embed = R*0.3;
     rock.position.set(rx, getMoonSurfaceY(rx,rz)+embed, rz);
     rock.rotation.set(rand(0,6),rand(0,6),rand(0,6));
-    moonScene.add(rock);
+    rocksGroup.add(rock);
     // Big scenic rocks are climbable, not liftable: getMoonSurfaceY treats
     // them as a smooth raised bump (same math as crater bowls, inverted), so
     // walking toward one ramps you up onto it instead of colliding with a wall.
@@ -971,6 +991,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(R,0), MAT.moonRock);
     mesh.position.set(rx, getMoonSurfaceY(rx,rz)+embed, rz);
     mesh.rotation.set(rand(0,6),rand(0,6),rand(0,6));
+    mesh.userData.tapLabel = 'stone';
     moonScene.add(mesh);
     pickupStones.push({ x:rx, z:rz, mesh, embed, held:false });
   }
@@ -1004,6 +1025,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   }
   const landingBase = buildLandingBase();
   landingBase.position.set(PAD_X, 0, 0);
+  landingBase.userData.tapLabel = 'base';
   moonScene.add(landingBase);
   moonCollidables.push({ x: PAD_X-16, z: 14,  r: 1.0 }); // dish pole
   moonCollidables.push({ x: PAD_X+15, z: -15, r: 1.0 }); // beacon pole
@@ -1054,6 +1076,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   rover.rotation.order = 'YXZ'; // yaw first, then pitch/roll relative to heading -- avoids gimbal fighting with steering
   rover.position.set(46, getMoonSurfaceY(46,20), 20);
   rover.rotation.y = -0.6;
+  rover.userData.tapLabel = 'rover';
   moonScene.add(rover);
 
   // Big 12-wheel rig: a much larger second vehicle parked next to the rover,
@@ -1112,6 +1135,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   bigRig.rotation.order = 'YXZ';
   bigRig.position.set(72, getMoonSurfaceY(72,20), 20);
   bigRig.rotation.y = -0.6;
+  bigRig.userData.tapLabel = 'bigrig';
   moonScene.add(bigRig);
 
   // Modules rest directly on the ground: local origin at the cylinder's own
@@ -1154,6 +1178,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     return tube;
   }
   const stationGroup = new THREE.Group();
+  stationGroup.userData.tapLabel = 'station';
   const modDefs = [
     { hasDome:true,  r:9,   len:32, x:0,   z:0,   rot:0 },
     { hasDome:false, r:7.5, len:26, x:38,  z:12,  rot:0.55 },
@@ -1196,6 +1221,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     return seg;
   }
   const roadGroup = new THREE.Group();
+  roadGroup.userData.tapLabel = 'road';
   const ROAD_SEGS = 6;
   let prevRoadPt = [roadStart[0], getMoonSurfaceY(roadStart[0], roadStart[1]) + 0.08, roadStart[1]];
   for (let i=1;i<=ROAD_SEGS;i++){
@@ -1252,13 +1278,16 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   }
   const SOLAR_ROWS = 7, SOLAR_COLS = 7, SOLAR_SPACING = 16;
   const solarHalf = (SOLAR_ROWS-1)*SOLAR_SPACING/2;
+  const solarGroup = new THREE.Group();
+  solarGroup.userData.tapLabel = 'solar';
+  moonScene.add(solarGroup);
   for (let row=0; row<SOLAR_ROWS; row++){
     for (let col=0; col<SOLAR_COLS; col++){
       const px = SOLAR_X + col*SOLAR_SPACING - solarHalf;
       const pz = SOLAR_Z + row*SOLAR_SPACING - solarHalf;
       const panel = buildSolarPanel();
       panel.position.set(px, getMoonSurfaceY(px,pz), pz);
-      moonScene.add(panel);
+      solarGroup.add(panel);
     }
   }
 
@@ -1275,6 +1304,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   ];
   const TOWER_PLATFORM_HALF = 7;
   const towerGroup = new THREE.Group();
+  towerGroup.userData.tapLabel = 'tower';
   towerGroup.position.set(TOWER_X, 0, TOWER_Z);
   moonScene.add(towerGroup);
 
@@ -1380,6 +1410,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     const grp = buildCrystal();
     const gy = getMoonSurfaceY(cx,cz);
     grp.position.set(cx, gy+1.4, cz);
+    grp.userData.tapLabel = 'crystal';
     moonScene.add(grp);
     crystals.push({ x:cx, z:cz, group:grp, collected:false });
   }
@@ -1389,6 +1420,7 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   // high in the sky, unambiguously reads as a distant, unreachable body.
   const earth = buildEarthSprite();
   earth.position.set(-420, 140, -900);
+  earth.userData.tapLabel = 'earth';
   moonScene.add(earth);
 
   const moonSun = new THREE.DirectionalLight(0xffffff,1.3);
@@ -2063,22 +2095,77 @@ const MOBILE_CAM_MULT = 2.0;
 // independent of where you're actually WALKING/DRIVING, exactly like the
 // existing joystick already keeps movement independent of camera framing.
 let camYawOffset = 0, camPitchOffset = 0;
+
+// Tapping (as opposed to dragging) an object shows a short, context-specific
+// remark from the astronaut -- purely cosmetic flavor text, no gameplay
+// effect. Reuses the same tagged-object convention (userData.tapLabel) set
+// on every taggable group/mesh at build time.
+const speechCaptionEl = document.getElementById('speechCaption');
+const TAP_LINES = {
+  base:    ['Zurück zur Landebasis.', 'Von hier ging alles los.'],
+  station: ['Die Raumstation -- beeindruckend, wie sie hier steht.', 'Dort drüben wohnt der Rest der Crew.'],
+  road:    ['Eine ordentliche Straße, praktisch für die Anfahrt.'],
+  solar:   ['Der Solarpark versorgt die ganze Basis mit Energie.'],
+  tower:   ['Der Funkmast -- höher als die Rakete selbst.', 'Von der obersten Plattform hat man sicher einen tollen Blick.'],
+  rock:    ['Ein alter Mondfelsen. Den könnte ich hochklettern.'],
+  stone:   ['Ein kleiner Stein -- den könnte ich mitnehmen.'],
+  crystal: ['Ein leuchtender Kristall! Den sollte ich einsammeln.'],
+  earth:   ['Die Erde... so weit weg von hier.', 'Zuhause sieht von hier ganz klein aus.'],
+  rover:   ['Der Rover -- mein treuer Begleiter für kurze Strecken.'],
+  bigrig:  ['Das große Rig -- ein echtes Kraftpaket.'],
+};
+let captionTimer = null;
+function showSpeechCaption(text){
+  speechCaptionEl.textContent = text;
+  speechCaptionEl.classList.add('show');
+  clearTimeout(captionTimer);
+  captionTimer = setTimeout(() => speechCaptionEl.classList.remove('show'), 2600);
+}
+const tapRaycaster = new THREE.Raycaster();
+function handleWorldTap(clientX, clientY){
+  if (!gameMode) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+  const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
+  tapRaycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
+  const hits = tapRaycaster.intersectObjects(moonScene.children, true);
+  for (const hit of hits){
+    let obj = hit.object;
+    while (obj){
+      const label = obj.userData && obj.userData.tapLabel;
+      if (label){
+        const lines = TAP_LINES[label];
+        if (lines) showSpeechCaption(lines[Math.floor(Math.random()*lines.length)]);
+        return;
+      }
+      obj = obj.parent;
+    }
+  }
+}
+
 if (isMobile){
-  let lookPointerId = null, lookLastX = 0, lookLastY = 0;
+  let lookPointerId = null, lookLastX = 0, lookLastY = 0, lookDragDist = 0;
   renderer.domElement.addEventListener('pointerdown', e => {
     lookPointerId = e.pointerId;
     lookLastX = e.clientX; lookLastY = e.clientY;
+    lookDragDist = 0;
     renderer.domElement.setPointerCapture(e.pointerId);
   });
   renderer.domElement.addEventListener('pointermove', e => {
     if (lookPointerId !== e.pointerId) return;
     const dx = e.clientX - lookLastX, dy = e.clientY - lookLastY;
     lookLastX = e.clientX; lookLastY = e.clientY;
+    lookDragDist += Math.hypot(dx,dy);
     camYawOffset -= dx * 0.006;
     camPitchOffset = clamp(camPitchOffset + dy * 0.004, -0.5, 0.5);
   });
   ['pointerup','pointercancel','pointerleave'].forEach(evt => {
-    renderer.domElement.addEventListener(evt, e => { if (lookPointerId === e.pointerId) lookPointerId = null; });
+    renderer.domElement.addEventListener(evt, e => {
+      if (lookPointerId !== e.pointerId) return;
+      // Barely-moved pointer-up reads as a tap on an object, not a look-drag.
+      if (evt === 'pointerup' && lookDragDist < 12) handleWorldTap(e.clientX, e.clientY);
+      lookPointerId = null;
+    });
   });
 }
 

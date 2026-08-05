@@ -147,6 +147,15 @@ statt einem klassischen Rover-Chassis.
 - Ist man in Reichweite von beiden Fahrzeugen gleichzeitig, steigt man ins
   jeweils näher gelegene ein
 
+## Antippen von Objekten (Mobile/Tablet)
+Kurzes Antippen (kaum Bewegung zwischen Pointer-Down/-Up, im Unterschied zum
+Drag-to-Look) löst einen Raycast gegen die Szene aus. Trifft der Strahl ein
+markiertes Objekt (Landebasis, Raumstation, Straße, Solarpark, Funkmast,
+große Felsen, kleine aufhebbare Steine, Kristalle, Erde, Rover, großes Rig),
+sagt der Astronaut einen kurzen, zum Objekt passenden Satz — als Sprechblase
+oben mittig eingeblendet, blendet nach ein paar Sekunden von selbst wieder
+aus. Rein atmosphärisch, ohne Spielmechanik-Effekt.
+
 ## UI
 - Alle Buttons/Icons sind reine CSS-/SVG-Formen, keine Unicode-Textzeichen
   als Icons (Pfeile, Symbole etc.) — nur echte Text-Labels (z. B. der
