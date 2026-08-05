@@ -186,6 +186,17 @@ Der `AudioContext` wird lazy beim ersten Tastendruck/Touch erzeugt
   Vertex-Verschiebung der sichtbaren Geometrie als auch für Lauf-/
   Fahrphysik und die Kollisionsauflösung (`resolvePush`) genutzt.
 
+## Cutscene-Render (Remotion)
+`remotion-cutscene/` ist ein separates Render-Tool (eigenes `package.json`,
+Node/Remotion, kein Bestandteil des ausgelieferten Spiels) — kein neues
+Projekt im Sinne der Repo-Konvention, daher keine Kachel/Tabelleneintrag.
+Es portiert den Kino-Sequenz-Code aus `index.html` (Countdown bis
+Mondlandung, ohne Rampe/Luke/Astronaut-Ausstieg und ohne alles, was nur
+für das freie Gameplay existiert — Raumstation, Solarpark, Kommunikationsmast,
+Rover/Rig, Kristalle) fast unverändert in eine Remotion-Komposition und
+rendert sie zu `remotion-cutscene/out/starship-cutscene.mp4`. Details/
+Render-Befehl siehe `remotion-cutscene/README.md`.
+
 ## Tech-Notiz: Krater-Rendering
 Ursprünglich gab es zusätzlich zur detaillierten, krater-verschobenen
 Ebene eine große flache Kreisscheibe ("Skirt") knapp darunter, um dem
