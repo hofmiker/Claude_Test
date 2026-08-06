@@ -234,9 +234,15 @@ addEventListener("keydown", e => {
 // gesturestart/gesturechange only cover pinch -- iOS Safari's double-tap-to-zoom
 // is a separate gesture that touch-action:none doesn't reliably suppress on its
 // own, so block it explicitly by swallowing the second tap of a fast double-tap.
-// UI buttons are excluded so their own click/pointer handlers keep working.
+// UI buttons that depend on synthetic click/touchend events are excluded so
+// those keep working. jumpBtn/actionBtn are NOT excluded: they're driven
+// entirely by pointerdown (which already calls preventDefault itself), so
+// guarding them too costs nothing -- and leaving them unguarded was the
+// actual bug: repeatedly tapping jump for the jetpack boost is exactly the
+// fast-double-tap pattern that used to trigger Safari's native page zoom,
+// leaving the whole game visibly zoomed in with no in-game way back out.
 let lastTouchEnd = 0;
-const NO_DBLTAP_GUARD = '#skipBtn,#fullscreenBtn,#jumpBtn,#actionBtn,#joystick';
+const NO_DBLTAP_GUARD = '#skipBtn,#fullscreenBtn,#joystick';
 addEventListener("touchend", e => {
   if (e.target.closest(NO_DBLTAP_GUARD)) return;
   const now = Date.now();
