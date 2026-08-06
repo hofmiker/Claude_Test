@@ -37,8 +37,12 @@ abzuwarten.
   läuft/hüpft einfach drauf, keine harte Kollision).
 - **Landebasis:** Plattform mit Antennenschüssel und rot blinkendem Leuchtfeuer,
   von 10 kleinen Lämpchen umringt.
-- **Verbindungsstraße:** führt von der Landebasis zu einem Platz an der
-  Raumstation (Asphalt-Material, mehrere terrainfolgende Segmente).
+- **Straßennetz:** von der Landebasis zu einem Platz an der Raumstation
+  (Asphalt-Material, mehrere terrainfolgende Segmente), von dort weiter
+  verzweigt zum Funkmast und zum Solarpark — ein kleines Netz statt nur
+  einer einzelnen Strecke. Auf der Straße (inkl. Platz) fahren beide
+  Fahrzeuge 40 % schneller (höhere Höchstgeschwindigkeit, nicht nur mehr
+  Beschleunigung).
 - **Solarpark:** 7×7-Raster schräg aufgestellter Solarpanele (~5 m hoch) in
   größerer Entfernung von der Basis.
 - **Funkmast:** höher als die Rakete (~164 Einheiten, Rakete ~143), 4 über
@@ -97,11 +101,14 @@ abzuwarten.
   bei Bewegung etwas weiter raus; auf Mobile/Touch-Geräten zusätzlich
   automatisch deutlich weiter herausgezoomt. Auf Mobile/Tablet zusätzlich
   Drag-to-Look: Ziehen auf dem Spielbildschirm (nicht auf Joystick/Buttons)
-  dreht/neigt nur die Kamera, unabhängig von Lauf-/Fahrtrichtung — bewegt
-  sich der Charakter, bleibt die Blickrichtung erhalten (kein Reset). Vertikale
-  Achse ist "natürlich" invertiert (nach oben ziehen senkt den Blick), wie bei
-  den meisten mobilen Kamerasteuerungen. Die frühere GTA-artige Top-Down-Kamera
-  wurde entfernt (zu nah, kein Mehrwert).
+  dreht/neigt die Kamera, unabhängig von Lauf-/Fahrtrichtung; der Kopf des
+  Astronauten dreht sich sichtbar mit. Vertikale Achse ist "natürlich"
+  invertiert (nach oben ziehen senkt den Blick), wie bei den meisten
+  mobilen Kamerasteuerungen. Sobald man sich per Joystick/Tasten wieder in
+  eine Richtung bewegt (zu Fuß oder in einem Fahrzeug), zentriert sich die
+  Kamera automatisch wieder hinter die Bewegungsrichtung, statt beim
+  zuletzt gezogenen Blickwinkel hängen zu bleiben. Die frühere GTA-artige
+  Top-Down-Kamera wurde entfernt (zu nah, kein Mehrwert).
 - Kollision: kann keine Raumstationsmodule, den geparkten Rover oder den
   großen Rig durchlaufen (Kreis-Pushout-Kollision); Felsen sind dagegen
   kletterbar
@@ -140,8 +147,13 @@ statt einem klassischen Rover-Chassis.
 - Visuelle Lenkung knickt zusätzlich den ganzen vorderen Fahrzeugteil in der
   Mitte ab (wie ein Gelenkbus/Sattelschlepper) statt nur die Vorderräder zu
   drehen — rein optisches Gelenk, Bewegung/Kollision bleiben ein starrer
-  Körper
-- Kanzel mit schräger, halbtransparenter Glaskuppel; seitliche Leiter zum
+  Körper. Beim Rückwärtsfahren knickt die Front zur jeweils anderen Seite
+  als vorwärts (wie bei einem echten Anhängergelenk), obwohl die
+  Lenkrichtung selbst (links bleibt links) nicht umgedreht wird.
+- Fahrerkabine ist eine nach unten ausgebuchtete, verglaste Kanzel unter dem
+  Rumpf statt einer Kuppel obenauf — der Astronaut sitzt darin sichtbar
+  versenkt (Kopf/Oberkörper ragen über den Rand), mit einem kleinen
+  Armaturenbrett samt Bedienelementen davor. Kurze Trittleiter seitlich zum
   Einstieg (rein optisch — der Einstieg selbst ist wie beim Rover eine
   weiche Übergangsanimation, hier aber bewusst sehr kurz, damit er "sehr
   schnell klappt")
@@ -159,12 +171,15 @@ statt einem klassischen Rover-Chassis.
 - Ist man in Reichweite von beiden Fahrzeugen gleichzeitig, steigt man ins
   jeweils näher gelegene ein — Einstieg funktioniert von jeder Seite
   gleichermaßen (reine Abstandsprüfung zur Fahrzeugmitte)
-- Greifarm: Aktion-Taste während der Fahrt öffnet hinten rechts einen
-  seitlichen Frachtdeckel, ein langer zweigliedriger Greifarm fährt heraus
-  und schnappt sich den nächsten aufhebbaren Stein in Reichweite (oder legt
-  einen bereits gegriffenen wieder ab) — bleibt danach automatisch bis zum
-  Aussteigen sichtbar an Bord bzw. wird beim Aussteigen auf dem Boden
-  abgesetzt, statt in der Fahrzeug-Hierarchie hängen zu bleiben
+- Greifarm: sobald man einsteigt, öffnet sich hinten rechts automatisch der
+  seitliche Frachtdeckel und ein langer zweigliedriger Greifarm mit
+  4-zackiger Klaue fährt aus — bleibt die ganze Fahrt über sichtbar
+  ausgefahren, statt nur kurz für eine Aktion. Die Aktion-Taste löst darauf
+  aufbauend nur noch die eigentliche Greif-/Loslass-Bewegung aus: der Arm
+  reicht kurz weiter nach vorn zum nächsten Stein in Reichweite (oder zum
+  Ablegen eines bereits gegriffenen) und kehrt danach in die ausgefahrene
+  Ruhehaltung zurück, statt komplett einzufahren. Erst beim Aussteigen
+  fahren Deckel und Arm wieder vollständig ein.
 
 ## Antippen von Objekten (Mobile/Tablet)
 Kurzes Antippen (kaum Bewegung zwischen Pointer-Down/-Up, im Unterschied zum

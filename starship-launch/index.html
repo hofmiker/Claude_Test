@@ -741,6 +741,23 @@ const moonRocksData = [];
 const pickupStones = []; // small hand-liftable stones, separate from the big climbable decorative rocks
 const moonCollidables = [];
 const vehicleOnlyCollidables = []; // blocks rover/big rig but not the astronaut (e.g. tower stairs)
+// Road network: an array of straight [ [x0,z0], [x1,z1] ] segments, populated
+// during moon-scene setup below. Declared at true top level (not inside that
+// setup's own block scope) so vehicle gameplay code later in the file can
+// also query "am I on a road" for the speed bonus.
+const ROAD_SEGMENTS = [];
+function distToSegment(px,pz, from, to){
+  const dx = to[0]-from[0], dz = to[1]-from[1];
+  const len2 = dx*dx+dz*dz;
+  const t = clamp(((px-from[0])*dx + (pz-from[1])*dz) / len2, 0, 1);
+  return Math.hypot(px-(from[0]+dx*t), pz-(from[1]+dz*t));
+}
+function distToRoad(px,pz){
+  let best = Infinity;
+  for (const seg of ROAD_SEGMENTS) best = Math.min(best, distToSegment(px,pz,seg[0],seg[1]));
+  return best;
+}
+const ROAD_HALF_WIDTH = 5; // "on the road" threshold for the vehicle speed bonus (visual road is 7 wide)
 const crystals = [];
 const CRYSTAL_COUNT = 10;
 let crystalsCollected = 0;
@@ -928,12 +945,13 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   const roadEnd   = [roadDirX*ROAD_PLAZA_DIST, roadDirZ*ROAD_PLAZA_DIST];
   const SOLAR_X = 380, SOLAR_Z = 220, SOLAR_EXCLUDE_R = 90;
   const TOWER_X = -300, TOWER_Z = 260, TOWER_EXCLUDE_R = 55;
-  function distToRoad(px,pz){
-    const dx = roadEnd[0]-roadStart[0], dz = roadEnd[1]-roadStart[1];
-    const len2 = dx*dx+dz*dz;
-    const t = clamp(((px-roadStart[0])*dx + (pz-roadStart[1])*dz) / len2, 0, 1);
-    return Math.hypot(px-(roadStart[0]+dx*t), pz-(roadStart[1]+dz*t));
-  }
+  // A small network, not just one path: pad<->plaza (existing), then out to
+  // the tower and the solar park from that same plaza hub.
+  ROAD_SEGMENTS.push(
+    [roadStart, roadEnd],
+    [roadEnd, [TOWER_X, TOWER_Z]],
+    [roadEnd, [SOLAR_X, SOLAR_Z]],
+  );
   function nearLandmark(px,pz){
     return distToRoad(px,pz) < 18
       || Math.hypot(px-SOLAR_X,pz-SOLAR_Z) < SOLAR_EXCLUDE_R
@@ -1118,13 +1136,28 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
 
     const nose = new THREE.Mesh(new THREE.ConeGeometry(4.5,6,8), MAT.rigHull);
     nose.rotation.x = Math.PI/2; nose.position.set(0,5.5,16); frontPivot.add(nose);
-    const cockpitBase = new THREE.Mesh(new THREE.BoxGeometry(5,2.4,5), MAT.rigHullDark);
-    cockpitBase.position.set(0,8.7,9); frontPivot.add(cockpitBase);
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(3.2,10,8,0,Math.PI*2,0,Math.PI/2), MAT.stationDome);
-    dome.scale.set(1,0.8,1.3);
-    dome.rotation.x = -0.3;
-    dome.position.set(0,9.9,10);
-    frontPivot.add(dome);
+
+    // Cockpit is a pod that hangs DOWN off the belly of the hull instead of
+    // a dome rising off the roof -- the driver sits recessed inside it,
+    // visible from the chest up over the rim, dashboard just ahead of them.
+    // Shallow on purpose: deep enough to read as "sunken in," shallow enough
+    // that a seated astronaut's head still clears the rim.
+    const cockpitPod = new THREE.Mesh(new THREE.BoxGeometry(4.4,1.6,4.4), MAT.rigHullDark);
+    cockpitPod.position.set(0,1.8,9); frontPivot.add(cockpitPod);
+    const podWindshield = new THREE.Mesh(new THREE.BoxGeometry(3.8,1.6,0.15), MAT.stationDome);
+    podWindshield.rotation.x = -0.5;
+    podWindshield.position.set(0,2.7,11.1);
+    frontPivot.add(podWindshield);
+    const dashboard = new THREE.Mesh(new THREE.BoxGeometry(3.2,0.5,1.0), MAT.rigHull);
+    dashboard.rotation.x = -0.35;
+    dashboard.position.set(0,2.35,10.2);
+    frontPivot.add(dashboard);
+    [-1,0,1].forEach(i => {
+      const dial = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,0.08,8), MAT.roverGold);
+      dial.rotation.x = Math.PI/2 - 0.35;
+      dial.position.set(i*0.8,2.62,10.4);
+      frontPivot.add(dial);
+    });
 
     function bigWheelUnit(){
       const w = new THREE.Group();
@@ -1144,25 +1177,28 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
       });
     });
 
-    // Ladder up the left side to the cockpit -- purely visual, entry itself
-    // is a quick blended transition like the rover's, not real climbing.
+    // Short ladder/step up the left side to the now much lower recessed
+    // pod -- purely visual, entry itself is a quick blended transition
+    // like the rover's, not real climbing.
     const ladderGroup = new THREE.Group();
-    ladderGroup.position.set(-4.8, 0, 6);
-    for(let i=0;i<6;i++){
-      const rung = new THREE.Mesh(new THREE.BoxGeometry(1.6,0.15,0.3), MAT.roverDark);
-      rung.position.y = 1.2 + i*1.2;
+    ladderGroup.position.set(-4.6, 0, 8);
+    for(let i=0;i<3;i++){
+      const rung = new THREE.Mesh(new THREE.BoxGeometry(1.4,0.15,0.3), MAT.roverDark);
+      rung.position.y = 0.6 + i*0.6;
       ladderGroup.add(rung);
     }
-    [-0.7,0.7].forEach(rx => {
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.12,8,0.12), MAT.roverDark);
-      rail.position.set(rx, 4.6, 0);
+    [-0.6,0.6].forEach(rx => {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.1,2.2,0.1), MAT.roverDark);
+      rail.position.set(rx, 1.1, 0);
       ladderGroup.add(rail);
     });
     frontPivot.add(ladderGroup);
 
     // Rear-right cargo hatch + grab arm: a side lid that swings open and a
-    // long two-joint arm that reaches out to snatch a nearby stone while
-    // driving. Stowed by default; animated by updateBigRigArm().
+    // long two-joint arm with a 4-prong claw. Deploys as soon as the driver
+    // gets in (stays out the whole drive) and stows again on exit; the
+    // action button only drives the further reach-out-and-back grab motion
+    // layered on top. Animated by updateBigRigArm().
     const HATCH_X = 4.6, HATCH_Y = 3.3, HATCH_Z = -8.5;
     const hatchPivot = new THREE.Group();
     hatchPivot.position.set(HATCH_X, HATCH_Y, HATCH_Z);
@@ -1188,10 +1224,12 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
     const clawGroup = new THREE.Group();
     clawGroup.position.y = -3.6;
     armElbow.add(clawGroup);
-    [-1,1].forEach(s => {
-      const prong = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.9,0.3), MAT.roverGold);
-      prong.position.set(s*0.28,-0.4,0);
-      prong.rotation.z = -s*0.3;
+    // 4 prongs arranged in a cross (not just left/right) so it reads as a
+    // proper claw closing around an object from all sides.
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([sx,sz]) => {
+      const prong = new THREE.Mesh(new THREE.BoxGeometry(sx?0.18:0.3, 0.9, sz?0.18:0.3), MAT.roverGold);
+      prong.position.set(sx*0.28,-0.4,sz*0.28);
+      if (sx) prong.rotation.z = -sx*0.3; else prong.rotation.x = sz*0.3;
       clawGroup.add(prong);
     });
 
@@ -1289,15 +1327,19 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   }
   const roadGroup = new THREE.Group();
   roadGroup.userData.tapLabel = 'road';
-  const ROAD_SEGS = 6;
-  let prevRoadPt = [roadStart[0], getMoonSurfaceY(roadStart[0], roadStart[1]) + 0.08, roadStart[1]];
-  for (let i=1;i<=ROAD_SEGS;i++){
-    const t = i/ROAD_SEGS;
-    const px = lerp(roadStart[0], roadEnd[0], t), pz = lerp(roadStart[1], roadEnd[1], t);
-    const py = getMoonSurfaceY(px,pz) + 0.08;
-    roadGroup.add(buildRoadSegment(prevRoadPt, [px,py,pz], 7, 0.3));
-    prevRoadPt = [px,py,pz];
+  function buildRoadPath(from, to, segCount){
+    let prevRoadPt = [from[0], getMoonSurfaceY(from[0], from[1]) + 0.08, from[1]];
+    for (let i=1;i<=segCount;i++){
+      const t = i/segCount;
+      const px = lerp(from[0], to[0], t), pz = lerp(from[1], to[1], t);
+      const py = getMoonSurfaceY(px,pz) + 0.08;
+      roadGroup.add(buildRoadSegment(prevRoadPt, [px,py,pz], 7, 0.3));
+      prevRoadPt = [px,py,pz];
+    }
   }
+  buildRoadPath(roadStart, roadEnd, 6);
+  buildRoadPath(roadEnd, [TOWER_X, TOWER_Z], 10);
+  buildRoadPath(roadEnd, [SOLAR_X, SOLAR_Z], 10);
   moonScene.add(roadGroup);
   const plaza = new THREE.Mesh(new THREE.CylinderGeometry(20,20,0.3,20), MAT.asphalt);
   plaza.position.set(roadEnd[0], getMoonSurfaceY(roadEnd[0], roadEnd[1]) + 0.08, roadEnd[1]);
@@ -2317,8 +2359,11 @@ function animateAstronaut(dt, reachStone){
     stoneRelAngle = clamp(stoneRelAngle, -0.85, 0.85);
   }
 
-  headYawTgt = reaching ? stoneRelAngle*0.7 : (curInput.left - curInput.right) * 0.38;
-  A.headJoint.rotation.y = lerp(A.headJoint.rotation.y, headYawTgt, 0.06);
+  // On mobile, dragging to look also turns the head to visually match --
+  // camYawOffset/camPitchOffset are 0 whenever there's no active drag, so
+  // this is a no-op on desktop and whenever the player isn't looking around.
+  headYawTgt = (reaching ? stoneRelAngle*0.7 : (curInput.left - curInput.right) * 0.38) + camYawOffset*0.6;
+  A.headJoint.rotation.y = lerp(A.headJoint.rotation.y, clamp(headYawTgt, -1.1, 1.1), 0.06);
 
   if (jumpState === JWALK.WINDUP){
     const tt = Math.min(jumpTimer / WINDUP_DUR, 1.0);
@@ -2417,7 +2462,7 @@ function animateAstronaut(dt, reachStone){
     A.torso.rotation.x = lerp(A.torso.rotation.x, moving ? -0.10 : 0.0, 0.07);
     A.torso.rotation.z = lerp(A.torso.rotation.z, Math.cos(animT)*0.042*eff, 0.20);
     A.torso.position.y = lerp(A.torso.position.y, 1.26 + (moving ? Math.abs(s)*0.20 : 0), 0.28);
-    A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, moving ? Math.abs(s)*(-0.07) : 0, 0.18);
+    A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, (moving ? Math.abs(s)*(-0.07) : 0) - camPitchOffset*0.8, 0.18);
     A.headJoint.rotation.z = lerp(A.headJoint.rotation.z, 0, 0.10);
   }
 }
@@ -2466,7 +2511,7 @@ let enterFromYaw = 0;
 // the rover's own state (roverX/roverAngle/etc, enterVehicle/exitVehicle,
 // the single inVehicle boolean) is all flat module-level variables with no
 // registry, so a second vehicle needs its own copy of the same shape.
-const BIGRIG_MAX_SPD = 18, BIGRIG_ACCEL = 4.5, BIGRIG_BRAKE = 14, BIGRIG_FRICTION = 4, BIGRIG_STEER_RATE = 1.1;
+const BIGRIG_MAX_SPD = 36, BIGRIG_ACCEL = 4.5, BIGRIG_BRAKE = 14, BIGRIG_FRICTION = 4, BIGRIG_STEER_RATE = 1.1;
 const BIGRIG_REVERSE_FRAC = 0.3;
 const BIGRIG_COLLIDE_R = 15; // much bigger footprint than the rover
 const BIGRIG_POP_RADIUS = 7; // driving over a small stone crushes it -- deliberately smaller than
@@ -2475,7 +2520,7 @@ const BIGRIG_POP_RADIUS = 7; // driving over a small stone crushes it -- deliber
 // with the parked rig always pushes them back out beyond the enter radius
 // before it can ever trigger, making entry impossible from any side.
 const BIGRIG_ENTER_RADIUS = BIGRIG_COLLIDE_R + 4;
-const BIGRIG_SEAT_LOCAL = new THREE.Vector3(0, 9.9, 9); // standing at the cockpit controls, under the dome
+const BIGRIG_SEAT_LOCAL = new THREE.Vector3(0, 1.0, 9); // seated, recessed in the belly pod, floor height
 const BIGRIG_ENTER_ANIM_DUR = 0.18; // "der Einstieg klappt sehr schnell" -- noticeably faster than the rover's
 let bigRigX = 72, bigRigZ = 20, bigRigAngle = -0.6, bigRigSpd = 0, bigRigSteerAng = 0;
 let bigRigPitch = 0, bigRigRoll = 0;
@@ -2540,10 +2585,17 @@ function popStonesNear(x, z, radius){
   }
 }
 
-/* ---------- big rig cargo arm: grabs/stows a stone through the rear hatch
-   while driving, instead of the on-foot pick-up-by-hand animation. ---------- */
+/* ---------- big rig cargo arm: hatch + claw deploy as soon as the driver
+   gets in and stay out for the whole drive (not just during a grab), and
+   stow again on exit. The action button drives a further reach-and-back
+   "grab" motion layered on top of that deployed idle pose. ---------- */
 const BIGRIG_ARM_GRAB_RADIUS = 7;
-const BIGRIG_ARM_DUR = 1.1;
+const BIGRIG_DEPLOY_DUR = 0.35;
+const BIGRIG_ARM_DUR = 0.9;
+const ARM_SHOULDER_STOWED = -2.3, ARM_SHOULDER_DEPLOYED = -1.2, ARM_SHOULDER_REACH = -0.5;
+const ARM_ELBOW_STOWED = 1.9, ARM_ELBOW_DEPLOYED = 1.0, ARM_ELBOW_REACH = 0.3;
+const HATCH_CLOSED = 0, HATCH_OPEN = -1.35;
+let bigRigDeployT = 0;
 let bigRigArmActive = false, bigRigArmT = 0, bigRigArmDir = 1, bigRigArmStone = null;
 function bigRigArmPoint(){
   // World position of the hatch/claw's stowed anchor -- where the arm
@@ -2553,10 +2605,10 @@ function bigRigArmPoint(){
   return local;
 }
 function triggerBigRigArm(){
-  if (bigRigArmActive) return;
+  if (bigRigArmActive || bigRigDeployT < 0.999) return; // wait for the arm to finish deploying first
   if (heldRock){
     bigRigArmStone = heldRock;
-    bigRigArmDir = -1; // stow -> place back on the ground
+    bigRigArmDir = -1; // release -> place back on the ground
   } else {
     const p = bigRigArmPoint();
     const target = nearestLiftableStone(p.x, p.z, BIGRIG_ARM_GRAB_RADIUS);
@@ -2568,50 +2620,56 @@ function triggerBigRigArm(){
   bigRigArmT = 0;
 }
 function updateBigRigArm(dt){
-  if (!bigRigArmActive) return;
   const U = bigRig.userData;
-  bigRigArmT += dt / BIGRIG_ARM_DUR;
-  // Progress is always 0(stowed)->1(stowed again); dir just decides whether
-  // the grab/release event at the midpoint attaches or releases the stone.
-  const t = Math.min(bigRigArmT, 1);
-  const hatchT   = smoothstep(0, 0.22, t) - smoothstep(0.82, 1, t);
-  const reachT   = smoothstep(0.22, 0.5, t) - smoothstep(0.5, 0.82, t);
-  U.hatchPivot.rotation.y = -1.35 * hatchT;
-  U.armShoulder.rotation.x = lerp(-2.3, -0.5, reachT);
-  U.armElbow.rotation.x = lerp(1.9, 0.3, reachT);
+  if (!U || !U.hatchPivot) return; // called every frame regardless of mode; no-op before the rig exists
 
-  if (bigRigArmStone){
-    if (bigRigArmDir === 1 && t < 0.5){
-      // Grab phase: stone stays put on the ground until the claw arrives.
-    } else if (bigRigArmDir === 1 && t >= 0.5 && bigRigArmStone.mesh.parent !== U.clawGroup){
-      // Snap to the claw's tip before attaching -- the stone's actual ground
-      // spot rarely lines up exactly with the fixed reach pose, and this
-      // reads as the claw closing on it rather than an odd mid-air jump.
-      const clawTip = new THREE.Vector3();
-      U.clawGroup.getWorldPosition(clawTip);
-      bigRigArmStone.mesh.position.copy(clawTip);
-      U.clawGroup.attach(bigRigArmStone.mesh);
-      bigRigArmStone.held = true;
-      heldRock = bigRigArmStone;
-      actionEl.classList.add('holding');
-    } else if (bigRigArmDir === -1 && t < 0.5 && bigRigArmStone.mesh.parent !== U.clawGroup){
-      U.clawGroup.attach(bigRigArmStone.mesh);
-    } else if (bigRigArmDir === -1 && t >= 0.5 && bigRigArmStone.mesh.parent === U.clawGroup){
-      moonScene.attach(bigRigArmStone.mesh);
-      const gy = getMoonSurfaceY(bigRigArmStone.mesh.position.x, bigRigArmStone.mesh.position.z);
-      bigRigArmStone.x = bigRigArmStone.mesh.position.x;
-      bigRigArmStone.z = bigRigArmStone.mesh.position.z;
-      bigRigArmStone.mesh.position.y = gy + bigRigArmStone.embed;
-      bigRigArmStone.held = false;
-      heldRock = null;
-      actionEl.classList.remove('holding');
+  const deployTarget = inBigRig ? 1 : 0;
+  bigRigDeployT = clamp(bigRigDeployT + Math.sign(deployTarget-bigRigDeployT)*dt/BIGRIG_DEPLOY_DUR, 0, 1);
+
+  // Reach "bump" -- 0 at rest (deployed idle pose), peaks at 1 mid-grab,
+  // back to 0 once the motion completes, instead of returning all the way
+  // to fully stowed between grabs.
+  let reachAmount = 0;
+  if (bigRigArmActive){
+    bigRigArmT += dt / BIGRIG_ARM_DUR;
+    const t = Math.min(bigRigArmT, 1);
+    reachAmount = Math.sin(Math.min(t,1) * Math.PI);
+
+    if (bigRigArmStone){
+      if (bigRigArmDir === 1 && t >= 0.5 && bigRigArmStone.mesh.parent !== U.clawGroup){
+        // Snap to the claw's tip before attaching -- the stone's actual
+        // ground spot rarely lines up exactly with the reach pose, and this
+        // reads as the claw closing on it rather than an odd mid-air jump.
+        const clawTip = new THREE.Vector3();
+        U.clawGroup.getWorldPosition(clawTip);
+        bigRigArmStone.mesh.position.copy(clawTip);
+        U.clawGroup.attach(bigRigArmStone.mesh);
+        bigRigArmStone.held = true;
+        heldRock = bigRigArmStone;
+        actionEl.classList.add('holding');
+      } else if (bigRigArmDir === -1 && t < 0.5 && bigRigArmStone.mesh.parent !== U.clawGroup){
+        U.clawGroup.attach(bigRigArmStone.mesh);
+      } else if (bigRigArmDir === -1 && t >= 0.5 && bigRigArmStone.mesh.parent === U.clawGroup){
+        moonScene.attach(bigRigArmStone.mesh);
+        const gy = getMoonSurfaceY(bigRigArmStone.mesh.position.x, bigRigArmStone.mesh.position.z);
+        bigRigArmStone.x = bigRigArmStone.mesh.position.x;
+        bigRigArmStone.z = bigRigArmStone.mesh.position.z;
+        bigRigArmStone.mesh.position.y = gy + bigRigArmStone.embed;
+        bigRigArmStone.held = false;
+        heldRock = null;
+        actionEl.classList.remove('holding');
+      }
+    }
+
+    if (bigRigArmT >= 1){
+      bigRigArmActive = false;
+      bigRigArmStone = null;
     }
   }
 
-  if (bigRigArmT >= 1){
-    bigRigArmActive = false;
-    bigRigArmStone = null;
-  }
+  U.hatchPivot.rotation.y = lerp(HATCH_CLOSED, HATCH_OPEN, bigRigDeployT);
+  U.armShoulder.rotation.x = lerp(lerp(ARM_SHOULDER_STOWED, ARM_SHOULDER_DEPLOYED, bigRigDeployT), ARM_SHOULDER_REACH, reachAmount);
+  U.armElbow.rotation.x = lerp(lerp(ARM_ELBOW_STOWED, ARM_ELBOW_DEPLOYED, bigRigDeployT), ARM_ELBOW_REACH, reachAmount);
 }
 
 function poseAstronautSeated(k){
@@ -2714,9 +2772,14 @@ function exitBigRig(){
 function updateBigRigGameplay(dt){
   refreshInput();
 
+  if (curInput.fwd > 0.02 || curInput.back > 0.02){
+    camYawOffset = lerp(camYawOffset, 0, dt*3); camPitchOffset = lerp(camPitchOffset, 0, dt*3);
+  }
+  const onRoad = distToRoad(bigRigX, bigRigZ) < ROAD_HALF_WIDTH;
+  const roadMaxSpd = BIGRIG_MAX_SPD * (onRoad ? 1.4 : 1);
   const gasIn = curInput.fwd, brakeIn = curInput.back;
-  if (gasIn > brakeIn)        bigRigSpd = Math.min(bigRigSpd + BIGRIG_ACCEL*dt, BIGRIG_MAX_SPD*gasIn);
-  else if (brakeIn > gasIn)   bigRigSpd = bigRigSpd > 0.05 ? Math.max(bigRigSpd - BIGRIG_BRAKE*dt, 0) : Math.max(bigRigSpd - BIGRIG_ACCEL*0.9*dt, -BIGRIG_MAX_SPD*BIGRIG_REVERSE_FRAC*brakeIn);
+  if (gasIn > brakeIn)        bigRigSpd = Math.min(bigRigSpd + BIGRIG_ACCEL*dt, roadMaxSpd*gasIn);
+  else if (brakeIn > gasIn)   bigRigSpd = bigRigSpd > 0.05 ? Math.max(bigRigSpd - BIGRIG_BRAKE*dt, 0) : Math.max(bigRigSpd - BIGRIG_ACCEL*0.9*dt, -roadMaxSpd*BIGRIG_REVERSE_FRAC*brakeIn);
   else { const f = BIGRIG_FRICTION*dt; bigRigSpd = Math.abs(bigRigSpd) < f ? 0 : bigRigSpd - Math.sign(bigRigSpd)*f; }
 
   let steerTgt = 0;
@@ -2732,8 +2795,12 @@ function updateBigRigGameplay(dt){
   bigRigSteerAng = lerp(bigRigSteerAng, steerTgt, 0.12);
   if (bigRig.userData.frontWheels) bigRig.userData.frontWheels.forEach(w => w.rotation.y = bigRigSteerAng);
   // Visual steering: the whole front half articulates at the middle joint
-  // (like a bendy bus), not just the front wheels turning.
-  if (bigRig.userData.frontPivot) bigRig.userData.frontPivot.rotation.y = clamp(bigRigSteerAng*1.6, -0.6, 0.6);
+  // (like a bendy bus), not just the front wheels turning. Unlike the wheel
+  // turn itself, the bend direction DOES flip in reverse -- pushing the
+  // front half backward with the wheels turned a given way swings it the
+  // opposite way from pulling it forward, same as a real trailer joint.
+  const bendDir = bigRigSpd < 0 ? -1 : 1;
+  if (bigRig.userData.frontPivot) bigRig.userData.frontPivot.rotation.y = clamp(bigRigSteerAng*1.6*bendDir, -0.6, 0.6);
 
   const fwdX = Math.sin(bigRigAngle), fwdZ = Math.cos(bigRigAngle);
   const nx = bigRigX + fwdX*bigRigSpd*dt, nz = bigRigZ + fwdZ*bigRigSpd*dt;
@@ -2762,7 +2829,6 @@ function updateBigRigGameplay(dt){
   updateEngineSound(dt, bigRigSpd/BIGRIG_MAX_SPD);
 
   if (actionBuf){ actionBuf = false; triggerBigRigArm(); }
-  updateBigRigArm(dt);
 
   // The cockpit/seat now lives inside frontPivot, which articulates
   // relative to the rest of the rig while turning -- transform through it
@@ -2803,9 +2869,14 @@ function updateBigRigGameplay(dt){
 function updateRoverGameplay(dt){
   refreshInput();
 
+  if (curInput.fwd > 0.02 || curInput.back > 0.02){
+    camYawOffset = lerp(camYawOffset, 0, dt*3); camPitchOffset = lerp(camPitchOffset, 0, dt*3);
+  }
+  const onRoad = distToRoad(roverX, roverZ) < ROAD_HALF_WIDTH;
+  const roadMaxSpd = ROVER_MAX_SPD * (onRoad ? 1.4 : 1);
   const gasIn = curInput.fwd, brakeIn = curInput.back;
-  if (gasIn > brakeIn)        roverSpd = Math.min(roverSpd + ROVER_ACCEL*dt, ROVER_MAX_SPD*gasIn);
-  else if (brakeIn > gasIn)   roverSpd = roverSpd > 0.05 ? Math.max(roverSpd - ROVER_BRAKE*dt, 0) : Math.max(roverSpd - ROVER_ACCEL*0.9*dt, -ROVER_MAX_SPD*ROVER_REVERSE_FRAC*brakeIn);
+  if (gasIn > brakeIn)        roverSpd = Math.min(roverSpd + ROVER_ACCEL*dt, roadMaxSpd*gasIn);
+  else if (brakeIn > gasIn)   roverSpd = roverSpd > 0.05 ? Math.max(roverSpd - ROVER_BRAKE*dt, 0) : Math.max(roverSpd - ROVER_ACCEL*0.9*dt, -roadMaxSpd*ROVER_REVERSE_FRAC*brakeIn);
   else { const f = ROVER_FRICTION*dt; roverSpd = Math.abs(roverSpd) < f ? 0 : roverSpd - Math.sign(roverSpd)*f; }
 
   let steerTgt = 0;
@@ -2988,6 +3059,10 @@ function updateAstronautGameplay(dt){
 
   const moving = curInput.fwd > 0.02 || curInput.back > 0.02;
   if (onGround && moving) spawnGroundDust(dt, A.charRoot.position.x, A.charRoot.position.z, surfY, 1, false);
+  // Look-drag offset auto-recenters once the player actually moves in a
+  // direction -- otherwise a stale look angle from an earlier drag would
+  // keep the camera awkwardly off-axis from where you're now heading.
+  if (moving){ camYawOffset = lerp(camYawOffset, 0, dt*3); camPitchOffset = lerp(camPitchOffset, 0, dt*3); }
   const baseBack = (jetBoosting ? 13.0 : moving ? 7.0 : 4.0) * (isMobile ? MOBILE_CAM_MULT : 1);
   const baseHeight = jetBoosting ? 5.0 : 2.6;
   gameCamDist = lerp(gameCamDist, baseBack, dt*2.5);
@@ -3191,6 +3266,9 @@ function animate(){
 
   if (gameMode){
     updatePuffs(dt);
+    // Runs every frame regardless of mode so the hatch/arm can finish
+    // stowing after the player exits, not just while actively driving it.
+    updateBigRigArm(dt);
     if (inVehicle) updateRoverGameplay(dt);
     else if (inBigRig) updateBigRigGameplay(dt);
     else updateAstronautGameplay(dt);
