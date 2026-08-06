@@ -84,7 +84,9 @@ abzuwarten.
 - Rucksack-Boost: erneutes Drücken der Sprung-Taste in der Luft löst einen
   Rückstoß aus (Flamme, Sound, Partikel), verkettbar durch mehrfaches
   Drücken — steigert sowohl Höhe als auch Geschwindigkeit, sodass wiederholtes
-  Drücken während des Aufstiegs stetiges Steigen ermöglicht.
+  Drücken während des Aufstiegs stetiges Steigen ermöglicht. Kamera zoomt
+  während des Boosts zusätzlich deutlich weiter heraus als beim normalen
+  Laufen, damit der Höhengewinn sichtbar bleibt.
 - Touch: virtueller 360°-Joystick unten links (analog, Pointer-Events mit
   `setPointerCapture`) + runder Sprung-Button unten rechts — Steuerschema
   1:1 von `toy-story/gameplay/player.js` übernommen, nur das Aussehen des
@@ -126,22 +128,31 @@ abzuwarten.
   bremst ein Zusammenstoß das Tempo deutlich ab (Rempler-Gefühl)
 - Staubwolken hinter den Rädern bei Fahrt, kleinere beim Laufen unter den
   Füßen — beides wiederverwendete Partikel-Puffs aus der Landesequenz
+- Fährt ein Fahrzeug (Rover oder Rig) über einen kleinen aufhebbaren Stein,
+  zerplatzt dieser in ein paar graue Splitter-Puffs mit Krachgeräusch und
+  ist danach dauerhaft weg (wie ein eingesammelter Kristall)
 
 ## Großer 12-Rad-Rig (zweites Fahrzeug)
 Steht neben dem Rover, deutlich größer — raumschiffartiger Rumpf auf Rädern
 statt einem klassischen Rover-Chassis.
-- 12 Räder (6 links, 6 rechts), nur das vorderste Radpaar lenkt sichtbar
+- 12 Räder (6 links, 6 rechts, doppelt so dick und weiter auseinander als
+  ursprünglich), nur das vorderste Radpaar dreht sich sichtbar zum Lenken
+- Visuelle Lenkung knickt zusätzlich den ganzen vorderen Fahrzeugteil in der
+  Mitte ab (wie ein Gelenkbus/Sattelschlepper) statt nur die Vorderräder zu
+  drehen — rein optisches Gelenk, Bewegung/Kollision bleiben ein starrer
+  Körper
 - Kanzel mit schräger, halbtransparenter Glaskuppel; seitliche Leiter zum
   Einstieg (rein optisch — der Einstieg selbst ist wie beim Rover eine
   weiche Übergangsanimation, hier aber bewusst sehr kurz, damit er "sehr
   schnell klappt")
-- Astronaut steht beim Fahren aufrecht in der Kanzel statt zu sitzen
-  (eigene Steh-Pose statt der Rover-Sitzpose)
+- Astronaut sitzt beim Fahren wie im Rover (gleiche Sitz-Pose, angewinkelte
+  Beine)
 - Eigene, unabhängige Fahrphysik: schwerer/träger als der Rover (langsamere
-  Beschleunigung, geringere Höchstgeschwindigkeit, größerer
-  Kollisionsradius passend zum großen Rumpf); Kamera sitzt deutlich weiter
-  hinten/höher als beim Rover, damit sich das Fahrgefühl trotz des riesigen
-  Rumpfes tatsächlich langsamer anfühlt statt schneller zu wirken
+  Beschleunigung bis zur Höchstgeschwindigkeit, die dafür deutlich höher
+  liegt als beim Rover, größerer Kollisionsradius passend zum großen
+  Rumpf); Kamera sitzt deutlich weiter hinten/höher als beim Rover, damit
+  sich das Fahrgefühl trotz des riesigen Rumpfes und der hohen
+  Endgeschwindigkeit nicht unkontrolliert eng anfühlt
 - Rover und Rig kollidieren auch untereinander (können sich nicht
   gegenseitig durchfahren) und sind über eine eigene Minimap-Markierung
   (grün) sichtbar
