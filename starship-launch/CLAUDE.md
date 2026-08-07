@@ -183,10 +183,11 @@ statt einem klassischen Rover-Chassis.
   schnell klappt")
 - Astronaut sitzt beim Fahren wie im Rover (gleiche Sitz-Pose, angewinkelte
   Beine)
-- Eigene, unabhängige Fahrphysik: schwerer/träger als der Rover (langsamere
-  Beschleunigung bis zur Höchstgeschwindigkeit, die dafür deutlich höher
-  liegt als beim Rover, größerer Kollisionsradius passend zum großen
-  Rumpf); Kamera sitzt deutlich weiter hinten/höher als beim Rover, damit
+- Eigene, unabhängige Fahrphysik: Höchstgeschwindigkeit liegt deutlich höher
+  als beim Rover, Beschleunigung bis dahin aber bewusst spürbar knackiger
+  als eine reine 1:1-Skalierung nahelegen würde (~4s bis Volltempo statt der
+  ursprünglich zu zähen ~8s) — größerer Kollisionsradius passend zum großen
+  Rumpf; Kamera sitzt deutlich weiter hinten/höher als beim Rover, damit
   sich das Fahrgefühl trotz des riesigen Rumpfes und der hohen
   Endgeschwindigkeit nicht unkontrolliert eng anfühlt
 - Rover und Rig kollidieren auch untereinander (können sich nicht
