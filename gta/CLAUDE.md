@@ -35,10 +35,22 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   `main.js` (`setTimeout(..., 2400)` vor dem Opacity-Fade).
 - **Analoger Joystick:** ersetzt die vorherigen vier Einzel-Buttons
   (Links/Rechts/Gas/Bremse) sowie das vollflächige Wisch-Steuern —
-  1:1 dasselbe Pointer-Events-Pattern (`setPointerCapture`,
-  `touchMove.forward/back/left/right`) wie in `starship-launch`. Die
-  frühere "Tasten aus"-Einstellung wurde entfernt, da sie nur die jetzt
-  nicht mehr existierenden vier Buttons betraf.
+  dasselbe Pointer-Events-Pattern (`setPointerCapture`,
+  `touchMove.forward/back/left/right`) wie in `starship-launch`, mit zwei
+  Härtungen gegenüber dem starship-Original: (1) `pointermove`/`pointerup`/
+  `pointercancel` hängen am `window`, nicht am `#joystick`-Element selbst —
+  ein echter Finger verlässt bei voller Auslenkung leicht die kleine
+  92px-Kreisfläche, und `pointerleave` feuert auf manchen mobilen Browsern
+  nach der physischen Position statt nach dem Capture-Ziel, was den Knüppel
+  mitten in der Bewegung auf Mitte zurückschnappen ließ ("Joystick bewegt
+  sich nicht"); `pointerleave` wird deshalb gar nicht mehr als Reset-Trigger
+  benutzt. (2) Die Auslenkung wird pro Achse unabhängig geclampt (Quadrat
+  statt Kreis) statt den kombinierten Vektor auf `JOY_RADIUS` zu
+  normalisieren — ein Kreis-Clamp kappt Lenkung UND Gas bei diagonaler
+  Auslenkung gemeinsam auf ~70%, was sich beim Fahren wie eine deutlich
+  schwächere Lenkung anfühlte. Die frühere "Tasten aus"-Einstellung wurde
+  entfernt, da sie nur die jetzt nicht mehr existierenden vier Buttons
+  betraf.
 - **Buttons:** Sprung-/Aktion-Button bilden ein visuelles Paar (gleiche
   Randstärke/Glow-Sprache wie `starship-launch`, nur Akzentfarbe
   unterscheidet sie); der Aktion-Button ist eine Pille statt eines
@@ -49,6 +61,17 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   Meldung (`#subMsg`, z. B. "Eingestiegen") ist größer, hat eine eigene
   Kapsel-Optik und einen expliziten "OK"-Button zum sofortigen Wegklicken,
   statt nur auf das automatische Timeout (2.6s) zu warten.
+- **Dialogbox:** zentriert unterhalb der oberen HUD-Reihe (statt oben
+  links geklemmt neben Ziel-Panel/Minimap) mit Pink statt Gelb als
+  Akzentfarbe (Rahmen/Sprecher-Name/Weiter-Button). Der frühere Text-Button
+  "Weiter" ist einem kleinen runden Pfeil-Button (`#dialogNextBtn`, reine
+  CSS-Form) neben der letzten Textzeile gewichen.
+- **Spielfigur-Farbe:** trägt ein einheitliches Outfit (Hemd/Hose/Schuhe
+  alle in Pink, `PLAYER_PALETTE` in `main.js`) statt drei verschiedener
+  Farbtöne — dadurch sofort von Passanten (`createPedMesh`, zufällige
+  Hemdfarbe) und benannten Missions-NPCs (`NPC_BY_STEP`, jeweils eigene
+  Palette) unterscheidbar, die weiterhin ihre eigenen, unveränderten
+  Farbschemata behalten.
 
 ## Tech-Stack
 - Three.js, lokal vendored unter `vendor/` (ES-Modul, kein CDN)
