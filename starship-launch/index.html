@@ -1706,6 +1706,31 @@ function spawnPuff(pos, opts, targetGroup){
   target.add(mesh);
   activePuffs.push(mesh);
 }
+// Bright, additive-blended burst particle (same look as the main engine
+// flames' MeshBasicMaterial+toneMapped:false treatment) instead of the
+// matte MeshStandardMaterial smoke/dust puffs above -- for short-lived fire
+// effects like the RCS thrusters rather than billowing smoke.
+function spawnFlamePuff(pos, opts, targetGroup){
+  const target = targetGroup || launchScene;
+  const mat = new THREE.MeshBasicMaterial({
+    color: opts.color, transparent:true, opacity: opts.opacity ?? 0.9,
+    blending: THREE.AdditiveBlending, toneMapped:false,
+  });
+  const mesh = new THREE.Mesh(puffGeo, mat);
+  mesh.position.copy(pos);
+  const scale0 = opts.scale0 ?? 1.0;
+  mesh.scale.setScalar(scale0);
+  mesh.userData = {
+    vel: opts.vel.clone(),
+    growth: opts.growth ?? 2,
+    life: 0, maxLife: opts.maxLife ?? 0.3,
+    fadeFrom: opts.fadeFrom ?? 0.1,
+    drag: opts.drag ?? 0.85,
+    maxScale: opts.maxScale ?? 2,
+  };
+  target.add(mesh);
+  activePuffs.push(mesh);
+}
 function updatePuffs(dt){
   for(let i=activePuffs.length-1;i>=0;i--){
     const p = activePuffs[i], d = p.userData;
@@ -2086,21 +2111,30 @@ function spawnMoonDust(dt, rocketWorldPos, closeness){
   }
 }
 
-let rcsAccum = 0, rcsNextFire = rand(0.6,1.4);
+let rcsAccum = 0, rcsNextFire = rand(0.6,1.4), rcsLastIdx = -1;
+const RCS_FLAME_COLORS = [0xfff2c8, 0xffa93c, 0xff7a1a];
 function spawnRCS(dt){
   rcsAccum += dt;
   if (rcsAccum < rcsNextFire) return;
-  rcsAccum = 0; rcsNextFire = rand(0.7,1.8);
+  rcsAccum = 0; rcsNextFire = rand(0.5,1.2);
   const offsets = shipPart.userData.rcsOffsets;
-  const off = offsets[Math.floor(Math.random()*offsets.length)];
+  // Randomized, but never the same nozzle twice in a row -- reads as the
+  // thrusters taking turns firing instead of one flickering repeatedly
+  // while its neighbors stay dark.
+  let idx = Math.floor(Math.random()*offsets.length);
+  if (offsets.length > 1 && idx === rcsLastIdx) idx = (idx+1) % offsets.length;
+  rcsLastIdx = idx;
+  const off = offsets[idx];
   const local = new THREE.Vector3(off[0], off[1], off[2]);
   const worldPos = shipPart.localToWorld(local.clone());
   const outDir = new THREE.Vector3(off[0], 0, off[2]).normalize();
-  for(let i=0;i<5;i++){
-    spawnPuff(worldPos.clone().addScaledVector(outDir, i*0.7), {
-      color:0xf3f2ee, opacity:0.88,
-      vel:new THREE.Vector3(outDir.x*rand(20,34), rand(-2,2), outDir.z*rand(20,34)),
-      growth:rand(3,5), maxLife:rand(0.35,0.6), scale0:rand(0.5,0.9), fadeFrom:0.15, drag:0.88, maxScale:3,
+  for(let i=0;i<4;i++){
+    spawnFlamePuff(worldPos.clone().addScaledVector(outDir, i*0.35), {
+      color: RCS_FLAME_COLORS[Math.min(i, RCS_FLAME_COLORS.length-1)],
+      opacity: 0.95 - i*0.12,
+      vel: new THREE.Vector3(outDir.x*rand(30,46), rand(-1.5,1.5), outDir.z*rand(30,46)),
+      growth: rand(1.5,3), maxLife: rand(0.14,0.24), scale0: rand(0.4,0.6)*(1-i*0.12),
+      fadeFrom: 0.05, drag: 0.8, maxScale: 1.1,
     }, moonScene);
   }
 }
@@ -3624,7 +3658,10 @@ function animate(){
     }
 
     sg.getWorldPosition(tmpV);
-    updateGlow(tmpV, sg.visible ? 0.9 : 0);
+    // Noticeably less orange screen-space glow on landing than the 0.9 used
+    // during launch -- the touchdown engine burn shouldn't wash out the moon
+    // view the way the liftoff fireball does.
+    updateGlow(tmpV, sg.visible ? 0.4 : 0);
 
     stars.material.opacity = 1;
     skyEl.style.background = "linear-gradient(#03040c,#0a0c1c)";

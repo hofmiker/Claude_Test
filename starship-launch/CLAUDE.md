@@ -26,8 +26,11 @@ Sekunden vor dem Schnitt auf eine fixe Einstellung um, die auf einem
 platzierten, immer zur Kamera ausgerichteten Mond-Sprite hält — das Schiff
 fliegt dadurch sichtbar nach oben aus dem Bild, während der Mond mittig
 stehen bleibt → Himmel dunkelt ab, Sterne erscheinen → Schnitt zum Mond →
-Landeanflug mit sichtbarem Bremstriebwerk und seitlichen RCS-Steuerdüsen →
-Touchdown auf einer Landebasis → Rampe fährt aus, Kamera schneidet auf die
+Landeanflug mit sichtbarem Bremstriebwerk (dezenter oranger Screen-Glow,
+deutlich schwächer als beim Start) und seitlichen RCS-Steuerdüsen, die kurze,
+additiv geblendete Flammenstöße statt Rauch ausstoßen — zufällig, aber nie
+zweimal hintereinander an derselben Düse, wirkt also wie abwechselndes
+Feuern → Touchdown auf einer Landebasis → Rampe fährt aus, Kamera schneidet auf die
 sich öffnende Luke → Astronaut (weißer Anzug, schwarzes Visier) klettert
 raus und läuft die Rampe runter → Kamera schwenkt hinter ihn → Übergabe an
 freie Steuerung.
