@@ -116,8 +116,13 @@ direkt zur freien Astronauten-Steuerung, ohne die komplette Kinosequenz
   Erdschwerkraft.
 - Rucksack-Boost: erneutes Drücken der Sprung-Taste in der Luft löst einen
   Rückstoß aus (Flamme, Sound, Partikel), verkettbar durch mehrfaches
-  Drücken — steigert sowohl Höhe als auch Geschwindigkeit, sodass wiederholtes
-  Drücken während des Aufstiegs stetiges Steigen ermöglicht. Kamera zoomt
+  Drücken — steigert Höhe und gibt einen zusätzlichen Vorwärtsschub, sodass
+  wiederholtes Drücken während des Aufstiegs stetiges Steigen ermöglicht.
+  Der Geschwindigkeitsschub wirkt bewusst nur auf die Vorwärtsbewegung (ein
+  Rückstoßtriebwerk am Rücken beschleunigt logischerweise nach vorne, nicht
+  in beliebige Richtungen) und klingt getrennt von der normalen Lauf-
+  geschwindigkeit über Zeit wieder ab — betrifft also weder Rückwärtslaufen
+  noch bleibt er als dauerhaft erhöhtes Lauftempo hängen. Kamera zoomt
   während des Boosts zusätzlich deutlich weiter heraus als beim normalen
   Laufen, damit der Höhengewinn sichtbar bleibt.
 - Touch: virtueller 360°-Joystick unten links (analog, Pointer-Events mit
