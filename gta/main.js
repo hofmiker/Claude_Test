@@ -1211,8 +1211,13 @@ function animateCharacter(p, dt, input) {
   }
 }
 
+// player wears one solid, uniform outfit color (head-to-toe: shirt/pants/
+// shoes all match) so they stay instantly recognizable among pedestrians
+// and named NPCs, which each keep their own distinct palette (see
+// NPC_BY_STEP / createPedMesh) instead of sharing this one.
+const PLAYER_PALETTE = { shirt: 0xff2e88, pants: 0xff2e88, shoes: 0xff2e88 };
 const player = {
-  mesh: createPlayerMesh(),
+  mesh: createPlayerMesh(PLAYER_PALETTE),
   pos: new THREE.Vector3(0, 0, 6),
   heading: 0,
   speed: 0,
@@ -1684,14 +1689,17 @@ document.getElementById('btnJump')?.addEventListener('click', triggerJump);
 const touchMove = { forward: 0, back: 0, left: 0, right: 0 };
 const joyEl = document.getElementById('joystick');
 const joyKnobEl = document.getElementById('joystickKnob');
-const JOY_RADIUS = 42;
+const JOY_RADIUS = 46;
 let joyPointerId = null;
+// independent per-axis clamp (a square range, not a circular one) so
+// pushing the knob diagonally still gives full steer AND full throttle at
+// the same time - a circular clamp silently caps both to ~70% whenever
+// they're combined, which read as "steering got weaker" while driving.
 function setJoyFromPoint(clientX, clientY) {
   const rect = joyEl.getBoundingClientRect();
   const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
-  let dx = clientX - cx, dy = clientY - cy;
-  const dist = Math.hypot(dx, dy);
-  if (dist > JOY_RADIUS) { dx = dx / dist * JOY_RADIUS; dy = dy / dist * JOY_RADIUS; }
+  const dx = clamp(clientX - cx, -JOY_RADIUS, JOY_RADIUS);
+  const dy = clamp(clientY - cy, -JOY_RADIUS, JOY_RADIUS);
   joyKnobEl.style.transform = `translate(${dx}px, ${dy}px)`;
   touchMove.left = Math.max(0, -dx / JOY_RADIUS);
   touchMove.right = Math.max(0, dx / JOY_RADIUS);
@@ -1706,17 +1714,22 @@ function resetJoy() {
 if (joyEl) {
   joyEl.addEventListener('pointerdown', (e) => {
     joyPointerId = e.pointerId;
-    joyEl.setPointerCapture(e.pointerId);
+    try { joyEl.setPointerCapture(e.pointerId); } catch { /* still tracked via window listeners below */ }
     setJoyFromPoint(e.clientX, e.clientY);
     e.preventDefault();
   });
-  joyEl.addEventListener('pointermove', (e) => {
+  // move/up/cancel listen on window (not joyEl) and are pointerId-gated:
+  // a real finger easily drifts outside the small 92px pad while pushed to
+  // full deflection, and 'pointerleave' firing on that drift (some mobile
+  // browsers fire it by physical position even under setPointerCapture)
+  // was snapping the knob straight back to center mid-drag.
+  window.addEventListener('pointermove', (e) => {
     if (joyPointerId !== e.pointerId) return;
     setJoyFromPoint(e.clientX, e.clientY);
     e.preventDefault();
-  });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach((evt) => {
-    joyEl.addEventListener(evt, (e) => { if (joyPointerId === e.pointerId) resetJoy(); });
+  }, { passive: false });
+  ['pointerup', 'pointercancel'].forEach((evt) => {
+    window.addEventListener(evt, (e) => { if (joyPointerId === e.pointerId) resetJoy(); });
   });
 }
 
@@ -1853,7 +1866,7 @@ const objectiveDistanceEl = document.getElementById('objectiveDistance');
 const wantedBanner = document.getElementById('wantedBanner');
 const dialogBox = document.getElementById('dialogBox');
 const dialogSpeakerEl = document.getElementById('dialogSpeaker');
-const dialogTextEl = document.getElementById('dialogText');
+const dialogTextEl = document.getElementById('dialogTextInner');
 const dialogNextBtn = document.getElementById('dialogNextBtn');
 const endOverlay = document.getElementById('endOverlay');
 const endTitleEl = document.getElementById('endTitle');

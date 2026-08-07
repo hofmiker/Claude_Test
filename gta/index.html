@@ -251,14 +251,15 @@
   }
   #settingsMenu button:active { background: rgba(255,255,255,0.25); }
 
-  /* ---- dialog box: grouped with the objective panel, top-left ---- */
+  /* ---- dialog box: centered, clear of the top HUD row ---- */
   #dialogBox {
     position: absolute;
-    left: 16px;
-    top: 70px;
-    width: min(360px, calc(100vw - 180px));
+    left: 50%;
+    top: 190px;
+    transform: translateX(-50%);
+    width: min(460px, calc(100vw - 32px));
     background: rgba(8,10,14,0.94);
-    border: 1px solid rgba(255,204,0,0.3);
+    border: 1px solid rgba(255,46,136,0.35);
     border-radius: 12px;
     padding: 12px 16px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
@@ -272,30 +273,39 @@
     font-size: 15px;
     text-transform: uppercase;
     letter-spacing: 2px;
-    color: #ffcc00;
+    color: #ff6fb3;
     margin-bottom: 5px;
     min-height: 16px;
   }
   #dialogText {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-size: 16px;
     line-height: 1.45;
-    margin-bottom: 10px;
   }
+  #dialogTextInner { flex: 1 1 auto; }
   #dialogNextBtn {
-    display: block;
-    margin-left: auto;
-    padding: 7px 18px;
-    background: rgba(255,204,0,0.18);
-    border: 1px solid rgba(255,204,0,0.55);
-    border-radius: 999px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,46,136,0.18);
+    border: 1px solid rgba(255,46,136,0.6);
     cursor: pointer;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: #ffe27a;
     pointer-events: auto;
     animation: nextPulse 1.6s ease-in-out infinite;
+  }
+  #dialogNextBtn .arrow {
+    width: 0;
+    height: 0;
+    margin-left: 2px;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 9px solid #ff8fc7;
   }
   @keyframes nextPulse {
     0%, 100% { transform: scale(1); opacity: 0.88; }
@@ -571,8 +581,10 @@
 
     <div id="dialogBox">
       <div id="dialogSpeaker"></div>
-      <div id="dialogText"></div>
-      <div id="dialogNextBtn">Weiter</div>
+      <div id="dialogText">
+        <span id="dialogTextInner"></span>
+        <div id="dialogNextBtn" aria-label="Weiter"><span class="arrow"></span></div>
+      </div>
     </div>
 
     <div id="endOverlay">
