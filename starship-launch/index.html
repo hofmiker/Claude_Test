@@ -13,7 +13,7 @@
   #sky { position:fixed; inset:0; background:linear-gradient(#8ec9f0,#cfe9ff); transition:none; z-index:0; }
   canvas { display:block; position:fixed; inset:0; width:100%; height:100%; z-index:1; }
   #glow {
-    position:fixed; width:820px; height:820px; border-radius:50%;
+    position:fixed; width:480px; height:480px; border-radius:50%;
     pointer-events:none; transform:translate(-50%,-50%); opacity:0;
     background:radial-gradient(circle, rgba(255,225,140,0.92) 0%, rgba(255,150,40,0.55) 26%, rgba(255,90,10,0) 66%);
     mix-blend-mode:screen; filter:blur(2px); z-index:2;
@@ -1964,15 +1964,19 @@ function startAmbientMusic(){
 const T_COUNTDOWN = 10.0;
 const T_IGNITE = 9.4;
 const T_LIFTOFF = 10.6;
-// Ascent curve now saturates well after the cut to black (T_BLACK) instead
-// of just before it -- the ship is still visibly climbing at full thrust
-// when the scene cuts, rather than leveling off at a fixed altitude first.
-const T_ASCENT_END = 58.0;
-const T_BLACK = 50.0;
-const T_MOON_IN = 51.2;
-const T_MOON_TOUCHDOWN = 61.2;
+// Ascent curve saturates well after the cut (T_BLACK) so the ship is still
+// visibly climbing at full thrust when the scene cuts. A lower exponent than
+// a "slow-start" curve would use keeps the climb rate visible early on too,
+// instead of barely moving for the first several seconds after liftoff.
+const T_ASCENT_END = 38.0;
+const T_BLACK = 34.0;
+// No fade-to-black cut anymore -- the moon scene becomes visible in the same
+// instant the launch scene is swapped out, so this equals T_BLACK exactly
+// instead of leaving a gap that used to be masked by the black overlay.
+const T_MOON_IN = T_BLACK;
+const T_MOON_TOUCHDOWN = T_MOON_IN + 10;
 const ASCENT_DIST = 700;
-const ASCENT_EXP = 2.6;
+const ASCENT_EXP = 1.8;
 const MOON_START_Y = 260;
 const LOW_ALT_THRESHOLD = 90;
 const SEPARATION_ALT = 320;
@@ -2192,15 +2196,20 @@ function updateCameraLaunch(altitude, tt){
     shakeX = Math.sin(tt*47)*amt*1.4;
     shakeY = Math.cos(tt*53)*amt*1.1;
   }
-  // In the final stretch before the cut to black, stop chasing the ship's
-  // rise and hold on the moon instead -- the ship keeps climbing at full
-  // thrust and visibly flies up out of frame past it.
-  const holdBlend = smoothstep(T_BLACK-10, T_BLACK-3, tt);
+  // In the final stretch before the cut, stop chasing the ship's rise and
+  // hold on the moon instead -- the ship keeps climbing at full thrust and
+  // visibly flies up out of frame past it. There's no fade-to-black at the
+  // cut anymore, so the camera position/XZ is also blended toward the exact
+  // spot updateCameraMoon starts from (150,200) -- that way the scene swap
+  // is a hard cut only in *content*, not a visible camera teleport too.
+  const holdBlend = smoothstep(T_BLACK-8, T_BLACK-2, tt);
   const camY = lerp(camState.y, HOLD_CAM_Y, holdBlend);
+  const camX = lerp(215, 150, holdBlend);
+  const camZ = lerp(265, 200, holdBlend);
   const lookX = lerp(PAD_X, launchMoon.position.x, holdBlend);
   const lookY = lerp(camState.y-5, launchMoon.position.y, holdBlend);
   const lookZ = lerp(0, launchMoon.position.z, holdBlend);
-  camera.position.set(215+shakeX, camY+shakeY, 265);
+  camera.position.set(camX+shakeX, camY+shakeY, camZ);
   camera.lookAt(lookX, lookY, lookZ);
 }
 function updateCameraMoon(altitude){
@@ -2586,12 +2595,11 @@ function animateAstronaut(dt, reachStone){
 
 /* ---------- gameplay: free astronaut movement + third-person camera ---------- */
 const CHAR_BASE_Y = 0.10;
-const GRAVITY = -15, JUMP_VEL = 7.0;
-// While the jetpack is boosting, gravity is halved -- both the climb (less
-// deceleration, so the apex is noticeably higher) and the eventual fall
-// (half the normal descent acceleration) are affected for the whole boosted
-// flight, not just the instant of the kick.
-const GRAVITY_BOOSTED = GRAVITY * 0.5;
+// Lunar gravity: half of the original Earth-like -15, applied at all times
+// (not just during a jetpack boost) -- more thematically correct for a moon
+// walk, and it already gives the boost a noticeably higher/floatier arc for
+// free without any boost-specific special-casing.
+const GRAVITY = -7.5, JUMP_VEL = 7.0;
 const JUMP_BOOST_VEL = 9.5, JUMP_BOOST_SPEED_MULT = 1.25;
 const SPEED_MAX = 5.94, ACCEL_RATE = 14.0, DECEL_RATE = 18.0, TURN_RATE = 0.90;
 let velY = 0, onGround = true, moveSpeed = 0;
@@ -3163,7 +3171,7 @@ function updateAstronautGameplay(dt){
     pulseEngine(A.jetFlame.grp, jetPulseT, 55);
   }
 
-  velY += (jetBoosting ? GRAVITY_BOOSTED : GRAVITY) * dt;
+  velY += GRAVITY * dt;
   A.charRoot.position.y += velY * dt;
   const surfY = getMoonSurfaceY(A.charRoot.position.x, A.charRoot.position.z) + CHAR_BASE_Y;
   if (A.charRoot.position.y <= surfY){
@@ -3372,19 +3380,15 @@ let missionStart = lastNow;
 const tmpV = new THREE.Vector3();
 
 function overlayOpacity(tt){
+  // Only the very first fade-in from black at the start of the whole
+  // cinematic remains -- the launch-to-moon cut is a hard cut on purpose
+  // (the ship flies out of frame past the held moon instead of the scene
+  // fading to black), so there's no fade window around T_BLACK anymore.
   if (tt < 1.2) return 1 - smoothstep(0,1.2,tt);
-  // Fade-to-black is anchored to T_BLACK (the actual scene-cut moment) rather
-  // than T_ASCENT_END, since the ascent now keeps climbing well past the cut
-  // instead of finishing just before it.
-  const fadeStart = T_BLACK - 1.2;
-  if (tt >= fadeStart && tt < T_MOON_IN){
-    if (tt < T_BLACK) return smoothstep(fadeStart,T_BLACK,tt);
-    return 1 - smoothstep(T_BLACK,T_MOON_IN,tt);
-  }
   return 0;
 }
 
-/* ---------- cockpit-interior intro (hands on the controls, before the
+/* ---------- cockpit-interior intro (astronaut checking controls, before the
    exterior countdown view) ---------- */
 // Built far below the rest of the world so it can never be visible from any
 // other camera -- only the intro phase ever points a camera at it.
@@ -3395,29 +3399,36 @@ const cockpitIntro = new THREE.Group();
 cockpitIntro.position.set(0, COCKPIT_Y, 0);
 scene.add(cockpitIntro);
 
+// A standing, full-body astronaut (same rig as the gameplay character) that
+// the camera watches from behind/over the shoulder, rather than a close-up
+// on floating hands -- reads much more like an actual cockpit shot.
+const cockpitAstro = buildAstronaut();
+cockpitAstro.charRoot.rotation.y = Math.PI; // face -Z, toward the console/window
+cockpitIntro.add(cockpitAstro.charRoot);
+
 {
-  const cabinBack = new THREE.Mesh(new THREE.BoxGeometry(6,4,0.3), MAT.rigHullDark);
-  cabinBack.position.set(0, 1.6, -2.3);
+  const cabinBack = new THREE.Mesh(new THREE.BoxGeometry(7,4.4,0.3), MAT.rigHullDark);
+  cabinBack.position.set(0, 2.1, -2.6);
   cockpitIntro.add(cabinBack);
 
   [-1,1].forEach(s => {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(2.4,4,0.25), MAT.rigHullDark);
-    wall.position.set(s*2.1, 1.6, -1.2);
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(3.0,4.4,0.25), MAT.rigHullDark);
+    wall.position.set(s*3.2, 2.1, -0.9);
     wall.rotation.y = -s*0.5;
     cockpitIntro.add(wall);
   });
 
-  const ceil = new THREE.Mesh(new THREE.BoxGeometry(4.6,0.2,3), MAT.stationDark);
-  ceil.position.set(0, 3.4, -1.3);
+  const ceil = new THREE.Mesh(new THREE.BoxGeometry(6,0.2,4.6), MAT.stationDark);
+  ceil.position.set(0, 4.2, -0.8);
   cockpitIntro.add(ceil);
   for(let i=-1;i<=1;i+=2){
-    const light = new THREE.Mesh(new THREE.SphereGeometry(0.06,8,6), MAT.lampGlow);
-    light.position.set(i*1.4, 3.28, -1.3);
+    const light = new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6), MAT.lampGlow);
+    light.position.set(i*1.8, 4.08, -0.8);
     cockpitIntro.add(light);
   }
 
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(6,0.2,4), MAT.engineDark);
-  floor.position.set(0, -1.3, -1.1);
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(6,0.2,5), MAT.engineDark);
+  floor.position.set(0, -0.05, -0.6);
   cockpitIntro.add(floor);
 }
 
@@ -3437,65 +3448,74 @@ function buildCockpitScreenTex(){
 }
 const cockpitScreenMat = new THREE.MeshBasicMaterial({ map: buildCockpitScreenTex(), toneMapped:false });
 
+// Sichtfenster -- a window ahead of the console, above and beyond it, with a
+// faint starry-sky texture standing in for the view outside (the real pad
+// exterior isn't rendered here; this is a lightweight cinematic stand-in).
+function buildCockpitWindowTex(){
+  const size = 160;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,size);
+  grad.addColorStop(0, '#0a0e1c');
+  grad.addColorStop(1, '#141c33');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,size,size);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  for(let i=0;i<40;i++){
+    const x = Math.random()*size, y = Math.random()*size, r = Math.random()*1.4+0.3;
+    ctx.globalAlpha = 0.4+Math.random()*0.5;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  return new THREE.CanvasTexture(c);
+}
+const cockpitWindow = new THREE.Mesh(
+  new THREE.PlaneGeometry(2.6,1.5),
+  new THREE.MeshBasicMaterial({ map: buildCockpitWindowTex(), toneMapped:false })
+);
+cockpitWindow.position.set(0, 2.15, -2.44);
+cockpitIntro.add(cockpitWindow);
+const cockpitWindowFrame = new THREE.Mesh(new THREE.BoxGeometry(2.8,1.66,0.1), MAT.rigHull);
+cockpitWindowFrame.position.set(0, 2.15, -2.5);
+cockpitIntro.add(cockpitWindowFrame);
+
+// Console sits at waist/chest height in front of the astronaut, below the
+// window, within comfortable arm's reach.
 const cockpitConsole = new THREE.Group();
-cockpitConsole.position.set(0, 0.55, -1.15);
-cockpitConsole.rotation.x = -0.42;
+cockpitConsole.position.set(0, 1.02, -1.15);
+cockpitConsole.rotation.x = -0.3;
 cockpitIntro.add(cockpitConsole);
 
 {
-  const base = new THREE.Mesh(new THREE.BoxGeometry(3.4,0.3,1.1), MAT.rigHull);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(2.2,0.24,0.85), MAT.rigHull);
   cockpitConsole.add(base);
 
-  [-0.85,0.85].forEach(sx => {
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.95,0.6), cockpitScreenMat);
-    screen.position.set(sx, 0.17, -0.05);
-    screen.rotation.x = -Math.PI/2 + 0.55;
+  [-0.6,0.6].forEach(sx => {
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.6,0.4), cockpitScreenMat);
+    screen.position.set(sx, 0.13, -0.05);
+    screen.rotation.x = -Math.PI/2 + 0.5;
     cockpitConsole.add(screen);
   });
 
-  for(let i=0;i<6;i++){
-    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.05,10), i%2===0 ? MAT.yellow : MAT.red);
-    btn.position.set(-0.75+i*0.3, 0.19, 0.35);
+  for(let i=0;i<5;i++){
+    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.04,10), i%2===0 ? MAT.yellow : MAT.red);
+    btn.position.set(-0.42+i*0.21, 0.15, 0.28);
     cockpitConsole.add(btn);
   }
 }
 
+// Lever mounted on the console's right side, within the astronaut's reach.
 const cockpitLeverPivot = new THREE.Group();
-cockpitLeverPivot.position.set(1.35, 0.17, 0.15);
+cockpitLeverPivot.position.set(0.95, 0.13, 0.12);
 cockpitConsole.add(cockpitLeverPivot);
 {
-  const leverArm = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.5,0.06), MAT.metalDark);
-  leverArm.position.y = 0.25;
+  const leverArm = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.4,0.05), MAT.metalDark);
+  leverArm.position.y = 0.2;
   cockpitLeverPivot.add(leverArm);
-  const leverKnob = new THREE.Mesh(new THREE.SphereGeometry(0.09,8,6), MAT.red);
-  leverKnob.position.y = 0.5;
+  const leverKnob = new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6), MAT.red);
+  leverKnob.position.y = 0.4;
   cockpitLeverPivot.add(leverKnob);
 }
-
-function buildCockpitHand(){
-  const hand = new THREE.Group();
-  const palm = new THREE.Mesh(new THREE.BoxGeometry(0.26,0.05,0.24), MAT.suitWhite);
-  hand.add(palm);
-  for(let i=0;i<4;i++){
-    const finger = new THREE.Mesh(new THREE.BoxGeometry(0.042,0.04,0.19), MAT.suitWhite);
-    finger.position.set(-0.09+i*0.06, -0.005, -0.21);
-    finger.rotation.y = (i-1.5)*0.08;
-    hand.add(finger);
-  }
-  const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.045,0.13), MAT.suitWhite);
-  thumb.position.set(-0.16, -0.005, -0.01);
-  thumb.rotation.y = 0.8;
-  hand.add(thumb);
-  // Flat wrist segment (not a camera-facing cylinder cap) so it reads as
-  // part of the hand's silhouette instead of a separate round blob.
-  const wrist = new THREE.Mesh(new THREE.BoxGeometry(0.2,0.045,0.1), MAT.suitDark);
-  wrist.position.set(0, 0, 0.17);
-  hand.add(wrist);
-  return hand;
-}
-const cockpitRightHand = buildCockpitHand();
-const cockpitLeftHand = buildCockpitHand();
-cockpitConsole.add(cockpitRightHand, cockpitLeftHand);
 
 function cockpitIntroOpacity(tt){
   if (tt < 0.7) return 1 - smoothstep(0,0.7,tt);
@@ -3506,31 +3526,40 @@ function cockpitIntroOpacity(tt){
 function updateCockpitIntro(tt){
   fadeEl.style.opacity = cockpitIntroOpacity(tt);
 
-  // Slow pan across the console over the course of the intro, ending near
-  // the lever so its pull is actually in frame instead of off to the side.
-  const panX = lerp(-0.6, 1.1, clamp(tt/T_COCKPIT_INTRO, 0, 1));
-  const swayX = Math.sin(tt*0.55)*0.05;
-  const swayY = Math.sin(tt*0.8+1)*0.025;
-  camera.position.set(panX+swayX, COCKPIT_Y+1.55+swayY, 0.35);
-  camera.lookAt(panX+swayX*0.5, COCKPIT_Y+0.45, -1.0);
+  // Camera stays behind the astronaut, over his shoulder, with a slow dolly
+  // in toward the console/window and a light handheld sway.
+  const dollyT = clamp(tt/T_COCKPIT_INTRO, 0, 1);
+  const camZ = lerp(2.1, 1.35, dollyT);
+  const swayX = Math.sin(tt*0.5)*0.06;
+  const swayY = Math.sin(tt*0.7+1)*0.03;
+  camera.position.set(swayX, COCKPIT_Y+1.85+swayY, camZ);
+  camera.lookAt(swayX*0.4, COCKPIT_Y+1.55, -1.6);
 
-  // Right hand roams across the button row, with a quick tap-bounce.
-  const tapCycle = (tt*1.6) % 1;
-  const tapBounce = tapCycle < 0.2 ? Math.sin(tapCycle/0.2*Math.PI)*0.06 : 0;
-  cockpitRightHand.position.set(Math.sin(tt*0.85)*0.8, 0.24-tapBounce, 0.32);
-  cockpitRightHand.rotation.z = Math.sin(tt*0.85)*0.15;
+  // Right arm reaches down to the console to check/press buttons through
+  // most of the intro, in a slow repeating cycle.
+  const cyc = (tt*0.55) % 1;
+  const reachAmt = 0.5 - 0.5*Math.cos(cyc*Math.PI*2); // 0..1..0, eased
+  cockpitAstro.rShoulder.rotation.x = lerp(-0.15, -0.85, reachAmt);
+  cockpitAstro.rShoulder.rotation.z = 0.14;
+  cockpitAstro.rElbow.rotation.x = lerp(-0.15, -1.35, reachAmt);
 
-  // Left hand idles near the screens for the first half, then reaches for
-  // the lever and pulls it down through the back half of the intro.
-  const leverT = clamp((tt - T_COCKPIT_INTRO*0.5) / (T_COCKPIT_INTRO*0.35), 0, 1);
-  cockpitLeverPivot.rotation.x = -leverT*0.85;
-  if (leverT > 0.05){
-    cockpitLeftHand.position.set(1.35, 0.42 - leverT*0.28, 0.15 + leverT*0.12);
-    cockpitLeftHand.rotation.x = -leverT*0.85;
+  // Left arm idles for the first half, then reaches to the lever on the
+  // console's right side and pulls it down through the back half.
+  const leverT = clamp((tt - T_COCKPIT_INTRO*0.55) / (T_COCKPIT_INTRO*0.3), 0, 1);
+  cockpitLeverPivot.rotation.x = -leverT*0.8;
+  if (leverT > 0.02){
+    cockpitAstro.lShoulder.rotation.x = lerp(-0.15, -0.95, leverT);
+    cockpitAstro.lShoulder.rotation.z = lerp(0, -0.35, leverT);
+    cockpitAstro.lElbow.rotation.x = lerp(-0.15, -1.5, leverT);
   } else {
-    cockpitLeftHand.position.set(-0.6+Math.sin(tt*0.5)*0.2, 0.22+Math.sin(tt*2.2)*0.02, -0.05);
-    cockpitLeftHand.rotation.x = 0;
+    cockpitAstro.lShoulder.rotation.x = -0.1 + Math.sin(tt*0.6)*0.05;
+    cockpitAstro.lShoulder.rotation.z = 0;
+    cockpitAstro.lElbow.rotation.x = -0.1;
   }
+
+  // Subtle idle head/weight shift so the pose doesn't read as frozen.
+  cockpitAstro.headJoint.rotation.x = Math.sin(tt*0.9)*0.05;
+  cockpitAstro.hipsGrp.rotation.y = Math.sin(tt*0.4)*0.04;
 }
 
 function animate(){
@@ -3637,22 +3666,23 @@ function animate(){
     const activeGlow = state.separated ? shipPart.userData.engineGlow : boosterPart.userData.engineGlow;
     activeGlow.getWorldPosition(tmpV);
     const glowStrength = activeGlow.visible ? clamp(1 - altitude/260, 0.2, 1) : 0;
-    updateGlow(tmpV, glowStrength*0.95);
+    updateGlow(tmpV, glowStrength*0.65);
 
     if (t >= T_BLACK && !state.moonSwapped){
       state.moonSwapped = true;
       stopLaunchRumble();
       launchScene.visible = false;
-      moonScene.visible = false;
+      moonScene.visible = true;
       launchScene.remove(shipPart);
       moonScene.add(shipPart);
       shipPart.position.set(PAD_X, MOON_START_Y, 0);
       shipPart.rotation.set(0,0,0);
-      camState.y = 90 + MOON_START_Y*0.55 + 40;
+      // Continue from the exact camera Y the launch hold-shot ended on
+      // (rather than a value picked for the old separately-timed reveal)
+      // so there's no visible pop now that there's no fade to cover one.
+      camState.y = HOLD_CAM_Y;
     }
   } else {
-    if (t >= T_MOON_IN && !moonScene.visible) moonScene.visible = true;
-
     const q = clamp((t - T_MOON_IN)/(T_MOON_TOUCHDOWN - T_MOON_IN), 0, 1);
     const y = MOON_START_Y * (1-q)*(1-q) + PLATFORM_H;
     shipPart.position.y = y;
