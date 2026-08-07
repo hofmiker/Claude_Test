@@ -59,9 +59,14 @@ direkt zur freien Astronauten-Steuerung, ohne die komplette Kinosequenz
 - **Straßennetz:** von der Landebasis zu einem Platz an der Raumstation
   (Asphalt-Material, mehrere terrainfolgende Segmente), von dort weiter
   verzweigt zum Funkmast und zum Solarpark — ein kleines Netz statt nur
-  einer einzelnen Strecke. Auf der Straße (inkl. Platz) fahren beide
-  Fahrzeuge 40 % schneller (höhere Höchstgeschwindigkeit, nicht nur mehr
-  Beschleunigung).
+  einer einzelnen Strecke. Der Solarpark-Ast knickt bewusst über einen
+  Zwischenpunkt ab statt direkt zu laufen — eine gerade Linie vom Platz
+  zum Solarpark würde sonst fast exakt durchs Zentrum der Landerampe
+  schneiden (die beiden liegen sich fast gegenüber), was auf der flachen
+  Rampen-Plattform zu einem sichtbar in der Luft schwebenden Straßenstück
+  führte (siehe Tech-Notiz unten). Auf der Straße (inkl. Platz) fahren
+  beide Fahrzeuge 40 % schneller (höhere Höchstgeschwindigkeit, nicht nur
+  mehr Beschleunigung).
 - **Solarpark:** 7×7-Raster schräg aufgestellter Solarpanele (~5 m hoch) in
   größerer Entfernung von der Basis.
 - **Funkmast:** höher als die Rakete (~164 Einheiten, Rakete ~143), 4 über
@@ -326,6 +331,28 @@ entspricht jetzt exakt `T_BLACK` (die Mondszene wird im selben Frame wie der
 Schnitt sichtbar, kein Wartefenster mehr), und `overlayOpacity()` hat keinen
 eigenen Fade-Block für diesen Übergang mehr — nur die allererste Einblendung
 aus Schwarz zu Beginn der ganzen Kinosequenz bleibt bestehen.
+
+## Tech-Notiz: Schwebendes Straßenstück (Solarpark-Ast)
+`buildRoadPath(from, to, segCount)` samplet `getMoonSurfaceY` nur an
+`segCount` groben Punkten entlang einer Geraden und verbindet sie mit
+geraden Straßensegmenten — das folgt sanften Höhenänderungen (Krater,
+Hügel) unauffällig genug, weil die Terrainhöhe dort selbst nur allmählich
+variiert. Die Landerampe ist dagegen eine harte Stufe: innerhalb von 27
+Einheiten um `PAD_X` liefert `getMoonSurfaceY` konstant `PLATFORM_H`,
+außerhalb sofort das normale (hier flache) Terrain — ein Sprung, kein
+Übergang. Die ursprüngliche direkte Linie vom Platz zum Solarpark verlief
+(unbeabsichtigt) fast exakt durchs Zentrum dieser Rampe; die groben
+Sample-Punkte trafen den flachen Rampenbereich nur an einer einzigen
+Stelle, sodass `buildRoadPath` von dort eine lange, sanft abfallende Rampe
+zum nächsten (bereits wieder ebenerdigen) Punkt zog — real sprang das
+Terrain aber schon kurz danach zurück auf Bodenhöhe, und die Straße
+schwebte über weite Strecken deutlich über dem tatsächlichen Boden.
+Behoben durch einen Zwischen-Wegpunkt (`SOLAR_BEND_X/Z`), der beide
+Teilstrecken (Platz→Bend, Bend→Solarpark) mit komfortablem Abstand um die
+Rampe herumführt, statt die Terrainstufe überhaupt erst zu durchqueren —
+behebt die Ursache, nicht nur das Symptom (feinere Sample-Auflösung hätte
+die Straße zwar dichter an den echten Boden gebracht, aber sie liefe
+immer noch mitten über die Rampe, was ohnehin falsch wäre).
 
 ## Tech-Notiz: Krater-Rendering
 Ursprünglich gab es zusätzlich zur detaillierten, krater-verschobenen
