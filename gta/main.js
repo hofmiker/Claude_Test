@@ -1671,20 +1671,6 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 
-const mobileState = { left: false, right: false, gas: false, brake: false };
-function bindHold(id, key) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const set = (v) => (mobileState[key] = v);
-  el.addEventListener('touchstart', (e) => { e.preventDefault(); set(true); }, { passive: false });
-  el.addEventListener('touchend', (e) => { e.preventDefault(); set(false); }, { passive: false });
-  el.addEventListener('mousedown', () => set(true));
-  el.addEventListener('mouseup', () => set(false));
-}
-bindHold('btnLeft', 'left');
-bindHold('btnRight', 'right');
-bindHold('btnGas', 'gas');
-bindHold('btnBrake', 'brake');
 const btnActionEl = document.getElementById('btnAction');
 btnActionEl?.addEventListener('touchstart', (e) => { e.preventDefault(); handleActionButton(); });
 btnActionEl?.addEventListener('click', handleActionButton);
@@ -1692,21 +1678,49 @@ function triggerJump() { if (!player.inCar) player.jumpBuf = true; }
 document.getElementById('btnJump')?.addEventListener('touchstart', (e) => { e.preventDefault(); triggerJump(); });
 document.getElementById('btnJump')?.addEventListener('click', triggerJump);
 
-// ---------- Settings: camera mode + buttons-visible, tucked into a gear menu
-let buttonsVisible = localStorage.getItem('viceGridButtonsVisible') !== 'false';
-const buttonsToggleBtn = document.getElementById('btnButtonsToggle');
-function applyButtonsVisible() {
-  document.body.classList.toggle('buttons-hidden', !buttonsVisible);
-  if (buttonsToggleBtn) buttonsToggleBtn.textContent = buttonsVisible ? '👆 Tasten aus' : '🕹️ Tasten ein';
+// ---------- Analog joystick (steering + throttle in one), ported from
+// starship-launch/toy-story: a fixed circular pad instead of drag-anywhere,
+// so it can't be triggered by accidentally touching HUD/dialog elements.
+const touchMove = { forward: 0, back: 0, left: 0, right: 0 };
+const joyEl = document.getElementById('joystick');
+const joyKnobEl = document.getElementById('joystickKnob');
+const JOY_RADIUS = 42;
+let joyPointerId = null;
+function setJoyFromPoint(clientX, clientY) {
+  const rect = joyEl.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  let dx = clientX - cx, dy = clientY - cy;
+  const dist = Math.hypot(dx, dy);
+  if (dist > JOY_RADIUS) { dx = dx / dist * JOY_RADIUS; dy = dy / dist * JOY_RADIUS; }
+  joyKnobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+  touchMove.left = Math.max(0, -dx / JOY_RADIUS);
+  touchMove.right = Math.max(0, dx / JOY_RADIUS);
+  touchMove.forward = Math.max(0, -dy / JOY_RADIUS);
+  touchMove.back = Math.max(0, dy / JOY_RADIUS);
 }
-function toggleButtonsVisible() {
-  buttonsVisible = !buttonsVisible;
-  localStorage.setItem('viceGridButtonsVisible', String(buttonsVisible));
-  applyButtonsVisible();
+function resetJoy() {
+  joyKnobEl.style.transform = '';
+  touchMove.forward = touchMove.back = touchMove.left = touchMove.right = 0;
+  joyPointerId = null;
 }
-buttonsToggleBtn?.addEventListener('click', toggleButtonsVisible);
-applyButtonsVisible();
+if (joyEl) {
+  joyEl.addEventListener('pointerdown', (e) => {
+    joyPointerId = e.pointerId;
+    joyEl.setPointerCapture(e.pointerId);
+    setJoyFromPoint(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  joyEl.addEventListener('pointermove', (e) => {
+    if (joyPointerId !== e.pointerId) return;
+    setJoyFromPoint(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((evt) => {
+    joyEl.addEventListener(evt, (e) => { if (joyPointerId === e.pointerId) resetJoy(); });
+  });
+}
 
+// ---------- Settings: camera mode, tucked into a gear menu
 const cameraToggleBtn = document.getElementById('btnCameraToggle');
 function applyCameraMode() {
   if (cameraToggleBtn) cameraToggleBtn.textContent = cameraMode === 'top' ? '🎥 Kamera: Oben' : '🎥 Kamera: 3rd Person';
@@ -1729,47 +1743,14 @@ document.addEventListener('click', (e) => {
   settingsMenu.classList.remove('show');
 });
 
-// drag steering is analog (proportional to swipe distance) rather than a
-// hard boolean flip at a tiny deadzone - a boolean flip meant any stray
-// finger drift instantly demanded full-lock steering, which felt far too
-// twitchy compared to tapping a discrete on-screen button
-const dragState = { up: false, down: false, steerAxis: 0 };
-let dragOrigin = null;
-const DRAG_DEADZONE = 14;
-const DRAG_STEER_RANGE = 110;
-const appEl = document.getElementById('app');
-appEl.addEventListener('touchstart', (e) => {
-  if (e.target.closest('.mbtn, #btnSettings, #settingsMenu, #dialogBox, #endOverlay')) return;
-  const t = e.touches[0];
-  dragOrigin = { x: t.clientX, y: t.clientY };
-}, { passive: true });
-appEl.addEventListener('touchmove', (e) => {
-  if (!dragOrigin) return;
-  const t = e.touches[0];
-  const dx = t.clientX - dragOrigin.x, dy = t.clientY - dragOrigin.y;
-  dragState.up = dy < -DRAG_DEADZONE;
-  dragState.down = dy > DRAG_DEADZONE;
-  let steerAxis = 0;
-  if (Math.abs(dx) > DRAG_DEADZONE) {
-    const past = dx - Math.sign(dx) * DRAG_DEADZONE;
-    steerAxis = clamp(-past / DRAG_STEER_RANGE, -1, 1);
-  }
-  dragState.steerAxis = steerAxis;
-  e.preventDefault();
-}, { passive: false });
-appEl.addEventListener('touchend', () => {
-  dragOrigin = null;
-  dragState.up = dragState.down = false;
-  dragState.steerAxis = 0;
-});
-
 function readInput() {
-  const up = keys.has('KeyW') || keys.has('ArrowUp') || mobileState.gas || dragState.up;
-  const down = keys.has('KeyS') || keys.has('ArrowDown') || mobileState.brake || dragState.down;
-  const leftKey = keys.has('KeyA') || keys.has('ArrowLeft') || mobileState.left;
-  const rightKey = keys.has('KeyD') || keys.has('ArrowRight') || mobileState.right;
+  const up = keys.has('KeyW') || keys.has('ArrowUp') || touchMove.forward > 0.12;
+  const down = keys.has('KeyS') || keys.has('ArrowDown') || touchMove.back > 0.12;
+  const leftKey = keys.has('KeyA') || keys.has('ArrowLeft');
+  const rightKey = keys.has('KeyD') || keys.has('ArrowRight');
   const keySteer = (leftKey ? 1 : 0) - (rightKey ? 1 : 0);
-  const steer = keySteer !== 0 ? keySteer : dragState.steerAxis;
+  const joySteer = touchMove.left - touchMove.right;
+  const steer = keySteer !== 0 ? keySteer : joySteer;
   const handbrake = keys.has('Space');
   return {
     throttle: up ? 1 : (down ? -1 : 0),
@@ -1864,6 +1845,8 @@ const moneyEl = document.getElementById('moneyDisplay');
 const speedEl = document.getElementById('speed');
 const gearEl = document.getElementById('gear');
 const subMsg = document.getElementById('subMsg');
+const subMsgTextEl = document.getElementById('subMsgText');
+const subMsgOkBtn = document.getElementById('subMsgOk');
 const controlsHint = document.getElementById('controlsHint');
 const objectiveTextEl = document.getElementById('objectiveText');
 const objectiveDistanceEl = document.getElementById('objectiveDistance');
@@ -1878,11 +1861,16 @@ const endSubtitleEl = document.getElementById('endSubtitle');
 const endRestartBtn = document.getElementById('endRestartBtn');
 
 let subTimer = 0;
-function showSub(text) {
-  subMsg.textContent = text;
-  subMsg.classList.add('show');
-  subTimer = 2.2;
+function hideSub() {
+  subTimer = 0;
+  subMsg.classList.remove('show');
 }
+function showSub(text) {
+  subMsgTextEl.textContent = text;
+  subMsg.classList.add('show');
+  subTimer = 2.6;
+}
+subMsgOkBtn.addEventListener('click', hideSub);
 
 function showDialogLine() {
   const line = missionState.dialogLines[missionState.dialogLineIndex];
@@ -1911,7 +1899,7 @@ function updateHud(dt) {
 
   if (subTimer > 0) {
     subTimer -= dt;
-    if (subTimer <= 0) subMsg.classList.remove('show');
+    if (subTimer <= 0) hideSub();
   }
 
   const step = missionState.step;
@@ -2230,11 +2218,11 @@ onResize();
 
 // ---------- Boot -----------------------------------------------------
 const loadingEl = document.getElementById('loading');
-requestAnimationFrame(() => {
+setTimeout(() => {
   loadingEl.style.transition = 'opacity 0.6s ease';
   loadingEl.style.opacity = '0';
   setTimeout(() => loadingEl.remove(), 700);
-});
+}, 2400);
 
 // ---------- TEMP DEBUG: click/tap logs world [x,z] to console ----------
 // Used to fine-tune the placeholder pos values in mission.js. Remove once done.

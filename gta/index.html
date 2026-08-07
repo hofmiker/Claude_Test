@@ -8,6 +8,13 @@
   :root {
     color-scheme: dark;
   }
+  @font-face {
+    font-family: 'ViceDisplay';
+    src: url('./vendor/fonts/bebas-neue-400.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
   html, body {
     margin: 0;
     padding: 0;
@@ -48,9 +55,12 @@
     max-width: 46vw;
   }
   #objectiveText {
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.3;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 19px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    line-height: 1.25;
+    text-transform: uppercase;
   }
   #objectiveDistance {
     font-size: 11px;
@@ -67,14 +77,16 @@
     text-align: right;
   }
   #speed {
-    font-size: 24px;
-    font-weight: 800;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 32px;
+    font-weight: 400;
     line-height: 1;
   }
   #speedUnit {
-    font-size: 10px;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 12px;
     opacity: 0.75;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
   }
   #gear {
     font-size: 11px;
@@ -85,8 +97,10 @@
     position: absolute;
     top: 14px;
     right: 16px;
-    font-size: 20px;
-    font-weight: 700;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 26px;
+    letter-spacing: 1px;
+    font-weight: 400;
     color: #7CFC7A;
     text-align: right;
   }
@@ -114,11 +128,16 @@
     top: 14px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 19px;
-    font-weight: 900;
-    letter-spacing: 4px;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 26px;
+    letter-spacing: 6px;
     color: #ff3b3b;
+    background: rgba(20,0,4,0.55);
+    border: 1px solid rgba(255,59,59,0.55);
+    padding: 4px 18px 2px;
+    border-radius: 8px;
     text-shadow: 0 0 14px rgba(255,59,59,0.9), 0 2px 3px #000;
+    box-shadow: 0 0 22px rgba(255,59,59,0.35);
     opacity: 0;
     transition: opacity 0.3s ease;
   }
@@ -128,52 +147,90 @@
   }
   @keyframes wantedPulse {
     0%, 100% { transform: translateX(-50%) scale(1); }
-    50% { transform: translateX(-50%) scale(1.08); }
+    50% { transform: translateX(-50%) scale(1.05); }
   }
 
   #subMsg {
     position: absolute;
-    top: 50px;
+    top: 54px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 14px;
-    background: rgba(0,0,0,0.5);
-    padding: 5px 14px;
-    border-radius: 8px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: min(80vw, 340px);
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(10,10,16,0.88);
+    border: 1px solid rgba(255,255,255,0.22);
+    padding: 9px 12px 9px 18px;
+    border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
     opacity: 0;
-    transition: opacity 0.4s ease;
+    transform-origin: top center;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
   }
-  #subMsg.show { opacity: 1; }
+  #subMsg.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+  }
+  #subMsgText {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  #subMsgOk {
+    flex: none;
+    pointer-events: auto;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  #subMsgOk:active { background: rgba(255,255,255,0.3); }
 
   /* ---- bottom-left: small settings gear (tucked beside steering) ---- */
   #btnSettings {
     position: absolute;
     bottom: calc(14px + env(safe-area-inset-bottom));
     left: calc(14px + env(safe-area-inset-left));
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    background: rgba(0,0,0,0.5);
+    background: rgba(20,20,26,0.6);
     border: 1px solid rgba(255,255,255,0.35);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     color: #fff;
-    font-size: 14px;
+    font-size: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: auto;
     cursor: pointer;
+    transition: transform 0.1s ease, background 0.1s ease;
   }
+  #btnSettings:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
   #settingsMenu {
     position: absolute;
-    bottom: calc(50px + env(safe-area-inset-bottom));
+    bottom: calc(52px + env(safe-area-inset-bottom));
     left: calc(14px + env(safe-area-inset-left));
-    background: rgba(10,10,14,0.92);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 10px;
+    background: rgba(10,10,14,0.94);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 12px;
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 6px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
@@ -184,53 +241,59 @@
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.3);
     color: #fff;
-    border-radius: 6px;
-    padding: 7px 12px;
-    font-size: 12px;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
     cursor: pointer;
     white-space: nowrap;
     text-align: left;
+    transition: background 0.1s ease;
   }
+  #settingsMenu button:active { background: rgba(255,255,255,0.25); }
 
   /* ---- dialog box: grouped with the objective panel, top-left ---- */
   #dialogBox {
     position: absolute;
     left: 16px;
-    top: 66px;
-    width: min(320px, 60vw);
+    top: 70px;
+    width: min(360px, calc(100vw - 180px));
     background: rgba(8,10,14,0.94);
-    border: 1px solid rgba(255,204,0,0.25);
-    border-radius: 10px;
-    padding: 10px 14px;
+    border: 1px solid rgba(255,204,0,0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.25s ease;
   }
   #dialogBox.show { opacity: 1; pointer-events: auto; }
   #dialogSpeaker {
-    font-size: 10px;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 15px;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     color: #ffcc00;
-    margin-bottom: 4px;
-    font-weight: 700;
-    min-height: 12px;
+    margin-bottom: 5px;
+    min-height: 16px;
   }
   #dialogText {
-    font-size: 13px;
-    line-height: 1.4;
-    margin-bottom: 8px;
+    font-size: 16px;
+    line-height: 1.45;
+    margin-bottom: 10px;
   }
   #dialogNextBtn {
     display: block;
     margin-left: auto;
-    padding: 4px 12px;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.35);
-    border-radius: 6px;
+    padding: 7px 18px;
+    background: rgba(255,204,0,0.18);
+    border: 1px solid rgba(255,204,0,0.55);
+    border-radius: 999px;
     cursor: pointer;
-    font-size: 11px;
-    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #ffe27a;
     pointer-events: auto;
     animation: nextPulse 1.6s ease-in-out infinite;
   }
@@ -256,30 +319,34 @@
   }
   #endOverlay.show { opacity: 1; pointer-events: auto; }
   #endTitle {
-    font-size: 40px;
-    font-weight: 900;
-    letter-spacing: 3px;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 58px;
+    letter-spacing: 5px;
     text-align: center;
   }
   #endOverlay.win #endTitle { color: #6be36b; text-shadow: 0 0 20px rgba(107,227,107,0.6); }
   #endOverlay.fail #endTitle { color: #ff3b3b; text-shadow: 0 0 20px rgba(255,59,59,0.6); }
   #endSubtitle {
-    font-size: 15px;
+    font-size: 16px;
     opacity: 0.85;
     text-align: center;
     max-width: 80vw;
   }
   #endRestartBtn {
     margin-top: 10px;
-    padding: 10px 24px;
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.4);
-    border-radius: 8px;
+    padding: 12px 30px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.45);
+    border-radius: 999px;
     color: #fff;
-    font-size: 15px;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1.5px;
     cursor: pointer;
     pointer-events: auto;
+    transition: background 0.15s ease, transform 0.1s ease;
   }
+  #endRestartBtn:active { background: rgba(255,255,255,0.3); transform: scale(0.96); }
 
   #controlsHint {
     position: absolute;
@@ -301,30 +368,69 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
-    gap: 10px;
     background: #000;
     color: #fff;
     z-index: 10;
-    font-size: 20px;
-    letter-spacing: 2px;
   }
-  #loading .bar {
-    width: 240px;
-    height: 6px;
-    background: rgba(255,255,255,0.15);
-    border-radius: 3px;
-    overflow: hidden;
+  #titleSplash {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
   }
-  #loading .fill {
-    width: 30%;
-    height: 100%;
-    background: #ff3b3b;
-    animation: pulse 1.1s ease-in-out infinite;
+  .ts-word {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(46px, 15vw, 118px);
+    letter-spacing: 6px;
+    line-height: 0.94;
+    text-transform: uppercase;
+    transform: skewX(-6deg);
+    opacity: 0;
   }
-  @keyframes pulse {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(400%); }
+  .ts-word1 {
+    color: #ff2e88;
+    text-shadow: 0 0 18px rgba(255,46,136,0.85), 0 0 46px rgba(255,46,136,0.5), 0 4px 0 #7a0f3f;
+    animation: viceWordIn 1.5s cubic-bezier(.2,.85,.25,1) forwards;
+  }
+  .ts-word2 {
+    color: #20e3ff;
+    text-shadow: 0 0 18px rgba(32,227,255,0.85), 0 0 46px rgba(32,227,255,0.5), 0 4px 0 #0b5866;
+    animation: viceWordIn 1.5s cubic-bezier(.2,.85,.25,1) 0.16s forwards;
+  }
+  @keyframes viceWordIn {
+    0%   { opacity: 0; transform: translateX(-40px) skewX(-14deg) scale(0.7); }
+    8%   { opacity: 1; }
+    13%  { opacity: 0.3; }
+    18%  { opacity: 1; transform: translateX(0) skewX(-6deg) scale(1.08); }
+    32%  { transform: translateX(0) skewX(-6deg) scale(1); }
+    100% { opacity: 1; transform: translateX(0) skewX(-6deg) scale(1); }
+  }
+  .ts-sub {
+    margin-top: 10px;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(13px, 3vw, 18px);
+    letter-spacing: 8px;
+    color: #ffcc00;
+    text-shadow: 0 0 10px rgba(255,204,0,0.6);
+    opacity: 0;
+    animation: tsSubIn 1s ease-out 0.9s forwards;
+  }
+  @keyframes tsSubIn {
+    0% { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 0.9; transform: translateY(0); }
+  }
+  .ts-hint {
+    margin-top: 26px;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: rgba(255,255,255,0.4);
+    opacity: 0;
+    animation: tsSubIn 1s ease-out 1.3s forwards, tsPulse 1.6s ease-in-out 1.3s infinite;
+  }
+  @keyframes tsPulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.75; }
   }
 
   #mobileControls {
@@ -340,46 +446,92 @@
       inset: 0;
       pointer-events: none;
     }
-    .mbtn {
+
+    /* ---- analog joystick, bottom-left (steering + throttle in one) ---- */
+    #joystick {
       position: absolute;
       pointer-events: auto;
-      width: 58px;
-      height: 58px;
+      left: calc(20px + env(safe-area-inset-left));
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      width: 116px;
+      height: 116px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.12);
-      border: 2px solid rgba(255,255,255,0.4);
-      color: #fff;
-      font-size: 20px;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.14), rgba(10,10,16,0.55) 70%);
+      border: 2px solid rgba(255,46,136,0.55);
+      box-shadow: 0 0 18px rgba(255,46,136,0.28), inset 0 0 18px rgba(0,0,0,0.5);
+      touch-action: none;
+    }
+    #joystickKnob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 50px;
+      height: 50px;
+      margin: -25px 0 0 -25px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9), rgba(32,227,255,0.55) 75%);
+      border: 2px solid rgba(255,255,255,0.85);
+      box-shadow: 0 0 14px rgba(32,227,255,0.7);
+      pointer-events: none;
+    }
+
+    /* ---- jump / action pair, bottom-right (shared visual family) ---- */
+    #btnJump, #btnAction {
+      position: absolute;
+      pointer-events: auto;
+      right: calc(20px + env(safe-area-inset-right));
       display: flex;
       align-items: center;
       justify-content: center;
+      border-width: 2px;
+      border-style: solid;
+      color: #fff;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+      transition: transform 0.08s ease, background 0.1s ease;
     }
-    /* steering hugs the very bottom-left, even in landscape */
-    #btnLeft { left: calc(14px + env(safe-area-inset-left)); bottom: calc(14px + env(safe-area-inset-bottom)); }
-    #btnRight { left: calc(80px + env(safe-area-inset-left)); bottom: calc(14px + env(safe-area-inset-bottom)); }
+    #btnJump {
+      bottom: calc(96px + env(safe-area-inset-bottom));
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(255,225,120,0.4), rgba(255,204,0,0.18));
+      border-color: rgba(255,204,0,0.75);
+      box-shadow: 0 0 14px rgba(255,204,0,0.3);
+    }
+    #btnJump .ico {
+      width: 0; height: 0;
+      border-left: 11px solid transparent;
+      border-right: 11px solid transparent;
+      border-bottom: 17px solid #ffe27a;
+      filter: drop-shadow(0 0 4px rgba(255,204,0,0.8));
+    }
+    #btnAction {
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      min-width: 64px;
+      height: 46px;
+      padding: 0 18px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 35% 30%, rgba(140,220,255,0.4), rgba(32,227,255,0.18));
+      border-color: rgba(32,227,255,0.75);
+      box-shadow: 0 0 14px rgba(32,227,255,0.3);
+      font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+      font-size: 17px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    #btnJump:active, #btnAction:active { transform: scale(0.92); }
 
-    /* gas/brake/jump/action clustered bottom-right, hugging the edge */
-    #btnGas { right: calc(80px + env(safe-area-inset-right)); bottom: calc(80px + env(safe-area-inset-bottom)); background: rgba(80,220,100,0.25); }
-    #btnJump { right: calc(14px + env(safe-area-inset-right)); bottom: calc(80px + env(safe-area-inset-bottom)); background: rgba(255,210,0,0.25); }
-    #btnBrake { right: calc(80px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); background: rgba(220,80,80,0.25); }
-    #btnAction { right: calc(14px + env(safe-area-inset-right)); bottom: calc(14px + env(safe-area-inset-bottom)); font-size: 13px; }
-
-    /* small settings gear, tucked right above the steering pair */
+    /* small settings gear, tucked right above the joystick */
     #btnSettings {
-      bottom: calc(80px + env(safe-area-inset-bottom));
-      left: calc(14px + env(safe-area-inset-left));
+      bottom: calc(146px + env(safe-area-inset-bottom));
+      left: calc(20px + env(safe-area-inset-left));
     }
     #settingsMenu {
-      bottom: calc(116px + env(safe-area-inset-bottom));
-      left: calc(14px + env(safe-area-inset-left));
-    }
-
-    /* buttons hidden: swipe the screen directly instead (always live either way) */
-    body.buttons-hidden #btnLeft,
-    body.buttons-hidden #btnRight,
-    body.buttons-hidden #btnGas,
-    body.buttons-hidden #btnBrake {
-      display: none;
+      bottom: calc(182px + env(safe-area-inset-bottom));
+      left: calc(20px + env(safe-area-inset-left));
     }
   }
 </style>
@@ -389,8 +541,12 @@
   <canvas id="scene"></canvas>
 
   <div id="loading">
-    <div>VICE GRID WIRD GELADEN…</div>
-    <div class="bar"><div class="fill"></div></div>
+    <div id="titleSplash">
+      <span class="ts-word ts-word1">VICE</span>
+      <span class="ts-word ts-word2">GRID</span>
+      <span class="ts-sub">Der Kessel</span>
+      <span class="ts-hint">WIRD GELADEN…</span>
+    </div>
   </div>
 
   <div id="hud">
@@ -399,7 +555,7 @@
       <div id="objectiveDistance"></div>
     </div>
     <div id="wantedBanner"></div>
-    <div id="subMsg"></div>
+    <div id="subMsg"><span id="subMsgText"></span><button id="subMsgOk" type="button">OK</button></div>
     <div id="moneyDisplay">$0</div>
     <div id="minimapWrap"><canvas id="minimap"></canvas></div>
 
@@ -411,7 +567,6 @@
     <div id="btnSettings">⚙</div>
     <div id="settingsMenu">
       <button id="btnCameraToggle">🎥 Kamera: Oben</button>
-      <button id="btnButtonsToggle">👆 Tasten aus</button>
     </div>
 
     <div id="dialogBox">
@@ -432,12 +587,9 @@
   </div>
 
   <div id="mobileControls">
-    <div class="mbtn" id="btnLeft">◀</div>
-    <div class="mbtn" id="btnRight">▶</div>
-    <div class="mbtn" id="btnGas">▲</div>
-    <div class="mbtn" id="btnBrake">▼</div>
-    <div class="mbtn" id="btnAction">F</div>
-    <div class="mbtn" id="btnJump">▲</div>
+    <div id="joystick"><div id="joystickKnob"></div></div>
+    <div id="btnJump"><span class="ico"></span></div>
+    <div id="btnAction">F</div>
   </div>
 </div>
 
