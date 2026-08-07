@@ -124,14 +124,18 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   Blaulicht, statt einfarbig Blau zu stehen.
 - **Vollbild:** `⛶ Vollbild`-Button im Einstellungs-Menü (Zahnrad) schaltet
   per Fullscreen API auf `document.documentElement` um (Pattern aus
-  `starship-launch` übernommen) — blendet die Browser-eigene Adress-/
-  Tab-Leiste (oben) und Navigationsleiste (unten) aus, die sonst permanent
-  Spielfläche wegnehmen; blendet sich selbst aus, falls die Fullscreen API
-  im Browser komplett fehlt. Versucht sowohl die Standard- als auch die
-  ältere `webkit`-präfixte API (iOS Safaris Unterstützung dafür ist je nach
-  iOS-Version uneinheitlich) und meldet über den vorhandenen Toast
-  (`showSub()`), wenn beide Versuche scheitern, statt den Button ohne
-  jede Rückmeldung nichts tun zu lassen.
+  `starship-launch` übernommen), inkl. `webkit`-präfixtem Fallback und
+  Toast-Meldung (`showSub()`) statt stillem Nichtstun, falls beide Versuche
+  scheitern. iOS Safari bietet die Fullscreen-API für normale Elemente aber
+  in vielen Versionen gar nicht erst an (kein Bug, echte Plattform-Lücke) —
+  in dem Fall wird der Button NICHT einfach versteckt, sondern zu einem
+  Hinweis auf den tatsächlich funktionierenden iOS-Weg umfunktioniert:
+  "Zum Home-Bildschirm hinzufügen" (`apple-mobile-web-app-capable` +
+  `apple-mobile-web-app-status-bar-style` Meta-Tags, `viewport-fit=cover`
+  für die Notch) startet als eigenständige App komplett ohne Safari-Chrome.
+  Läuft die Seite bereits als solche Home-Bildschirm-App (`display-mode:
+  standalone` bzw. `navigator.standalone`), verschwindet der Button ganz,
+  da dann schon echtes Vollbild aktiv ist.
 - **Build-Stempel:** Einstellungs-Menü zeigt unten `Build {{DEPLOY_DATE}} ·
   {{DEPLOY_SHA}}` — beide Platzhalter werden vom selben Deploy-Workflow
   (`.github/workflows/deploy.yml`) befüllt, der schon `{{DEPLOY_DATE}}` /

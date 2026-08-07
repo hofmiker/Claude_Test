@@ -1860,8 +1860,23 @@ function toggleFullscreen() {
     exitFs().catch(() => {});
   }
 }
-if (!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) {
+const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const hasFullscreenApi = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+if (isStandaloneApp) {
+  // launched from a home-screen icon - already chrome-less, the button
+  // would just be redundant
   if (fullscreenBtn) fullscreenBtn.style.display = 'none';
+} else if (!hasFullscreenApi) {
+  // typical iOS Safari: no Fullscreen API for regular elements at all, in
+  // any version. Repurpose the button into a hint for the one thing that
+  // DOES reliably give a chrome-less iOS launch (see the apple-mobile-web-
+  // app-capable meta tag), instead of just hiding it with no explanation.
+  if (fullscreenBtn) {
+    fullscreenBtn.textContent = '⛶ Vollbild: Zum Home-Bildschirm';
+    fullscreenBtn.addEventListener('click', () => {
+      showSub('Teilen-Symbol → „Zum Home-Bildschirm" für echtes Vollbild');
+    });
+  }
 } else {
   fullscreenBtn?.addEventListener('click', toggleFullscreen);
   document.addEventListener('fullscreenchange', applyFullscreenLabel);
