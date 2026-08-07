@@ -228,7 +228,16 @@ aus. Rein atmosphärisch, ohne Spielmechanik-Effekt.
   möglich und führte zu einem leicht verrutschten Bild. Das Canvas ist
   zusätzlich fest auf den sichtbaren Viewport gepinnt (`position:fixed`,
   `visualViewport`-bewusstes Resize) statt im normalen Dokumentfluss zu
-  hängen, was das Verrutschen behoben hat.
+  hängen, was das Verrutschen behoben hat. Der Doppeltipp-Guard (blockiert
+  den zweiten `touchend` eines schnellen Doppeltipps) gilt für Joystick,
+  Sprung- und Aktion-Button gleichermaßen — alle drei hängen ausschließlich
+  an Pointer-Events, nicht an `touchend`/`click`, lassen sich also gefahrlos
+  mitschützen (nur `#skipBtn`/`#fullscreenBtn` sind ausgenommen, weil die
+  wirklich auf synthetische `click`-Events angewiesen sind). Zusätzliche
+  Absicherung in `resize()`: weicht `visualViewport.scale` erkennbar von 1
+  ab, wird automatisch `resetZoom()` ausgelöst — falls doch einmal ein
+  Zoom-Trigger durchrutscht, korrigiert sich das Spiel selbst statt den
+  Spieler ohne Weg zurück dazustehen zu lassen.
 
 ## Sound
 Rein prozedural über die Web Audio API (kein externes Audio-Asset), alle
