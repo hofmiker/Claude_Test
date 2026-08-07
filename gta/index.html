@@ -280,6 +280,12 @@
     flex-direction: column;
     gap: 8px;
     pointer-events: none;
+    /* #dialogBox is a sibling of #hud, not a child - it doesn't inherit
+       #hud's color:#fff, so message text (which has no color of its own,
+       unlike the explicitly-colored speaker name) was rendering in the
+       browser's default black-on-dark and reading as "invisible/missing". */
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
   }
   /* grid-template-rows 0fr->1fr is the standard trick for animating to an
      auto/content height - a plain height transition can't do that, and
