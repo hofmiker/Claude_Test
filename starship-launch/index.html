@@ -2587,6 +2587,11 @@ function animateAstronaut(dt, reachStone){
 /* ---------- gameplay: free astronaut movement + third-person camera ---------- */
 const CHAR_BASE_Y = 0.10;
 const GRAVITY = -15, JUMP_VEL = 7.0;
+// While the jetpack is boosting, gravity is halved -- both the climb (less
+// deceleration, so the apex is noticeably higher) and the eventual fall
+// (half the normal descent acceleration) are affected for the whole boosted
+// flight, not just the instant of the kick.
+const GRAVITY_BOOSTED = GRAVITY * 0.5;
 const JUMP_BOOST_VEL = 9.5, JUMP_BOOST_SPEED_MULT = 1.25;
 const SPEED_MAX = 5.94, ACCEL_RATE = 14.0, DECEL_RATE = 18.0, TURN_RATE = 0.90;
 let velY = 0, onGround = true, moveSpeed = 0;
@@ -3158,7 +3163,7 @@ function updateAstronautGameplay(dt){
     pulseEngine(A.jetFlame.grp, jetPulseT, 55);
   }
 
-  velY += GRAVITY * dt;
+  velY += (jetBoosting ? GRAVITY_BOOSTED : GRAVITY) * dt;
   A.charRoot.position.y += velY * dt;
   const surfY = getMoonSurfaceY(A.charRoot.position.x, A.charRoot.position.z) + CHAR_BASE_Y;
   if (A.charRoot.position.y <= surfY){

@@ -102,9 +102,12 @@ direkt zur freien Astronauten-Steuerung, ohne die komplette Kinosequenz
 - Rucksack-Boost: erneutes Drücken der Sprung-Taste in der Luft löst einen
   Rückstoß aus (Flamme, Sound, Partikel), verkettbar durch mehrfaches
   Drücken — steigert sowohl Höhe als auch Geschwindigkeit, sodass wiederholtes
-  Drücken während des Aufstiegs stetiges Steigen ermöglicht. Kamera zoomt
-  während des Boosts zusätzlich deutlich weiter heraus als beim normalen
-  Laufen, damit der Höhengewinn sichtbar bleibt.
+  Drücken während des Aufstiegs stetiges Steigen ermöglicht. Solange der
+  Boost aktiv ist (bis zur Landung, nicht nur im Moment des Rückstoßes),
+  wirkt zusätzlich nur die halbe Schwerkraft — man fliegt dadurch spürbar
+  höher und sinkt am Ende auch entsprechend langsamer/schwebender zu Boden.
+  Kamera zoomt während des Boosts zusätzlich deutlich weiter heraus als beim
+  normalen Laufen, damit der Höhengewinn sichtbar bleibt.
 - Touch: virtueller 360°-Joystick unten links (analog, Pointer-Events mit
   `setPointerCapture`) + runder Sprung-Button unten rechts — Steuerschema
   1:1 von `toy-story/gameplay/player.js` übernommen, nur das Aussehen des
