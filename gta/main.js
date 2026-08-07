@@ -1831,6 +1831,26 @@ document.addEventListener('click', (e) => {
   settingsMenu.classList.remove('show');
 });
 
+// mobile browsers keep their own address/tab bar chrome unless the page is
+// actually in the Fullscreen API - lets players reclaim that space instead
+// of playing in a letterboxed strip between two browser toolbars
+const fullscreenBtn = document.getElementById('btnFullscreen');
+function isFullscreen() { return !!document.fullscreenElement; }
+function applyFullscreenLabel() {
+  if (fullscreenBtn) fullscreenBtn.textContent = isFullscreen() ? '⛶ Vollbild aus' : '⛶ Vollbild';
+}
+function toggleFullscreen() {
+  if (!isFullscreen()) document.documentElement.requestFullscreen?.().catch(() => {});
+  else document.exitFullscreen?.();
+}
+if (!document.documentElement.requestFullscreen) {
+  if (fullscreenBtn) fullscreenBtn.style.display = 'none';
+} else {
+  fullscreenBtn?.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', applyFullscreenLabel);
+  applyFullscreenLabel();
+}
+
 function readInput() {
   const up = keys.has('KeyW') || keys.has('ArrowUp') || touchMove.forward > 0.12;
   const down = keys.has('KeyS') || keys.has('ArrowDown') || touchMove.back > 0.12;
@@ -1966,12 +1986,12 @@ subMsgOkBtn.addEventListener('click', hideSub);
 // UI; every other character gets their own fixed color; narration (no
 // speaker) is centered, bubble-less italic text.
 const SPEAKER_STYLE = {
-  Marek: { bubble: 'rgba(255,46,136,0.20)', border: 'rgba(255,46,136,0.65)', name: '#ff6fb3' },
-  Dragan: { bubble: 'rgba(32,140,255,0.18)', border: 'rgba(32,140,255,0.55)', name: '#7cc0ff' },
-  Lena: { bubble: 'rgba(160,90,230,0.18)', border: 'rgba(160,90,230,0.55)', name: '#c9a3ff' },
-  Vess: { bubble: 'rgba(255,170,40,0.18)', border: 'rgba(255,170,40,0.55)', name: '#ffcf7a' },
+  Marek: { bubble: 'rgba(255,46,136,0.34)', border: 'rgba(255,46,136,0.7)', name: '#ff6fb3' },
+  Dragan: { bubble: 'rgba(32,140,255,0.30)', border: 'rgba(32,140,255,0.6)', name: '#7cc0ff' },
+  Lena: { bubble: 'rgba(160,90,230,0.30)', border: 'rgba(160,90,230,0.6)', name: '#c9a3ff' },
+  Vess: { bubble: 'rgba(255,170,40,0.30)', border: 'rgba(255,170,40,0.6)', name: '#ffcf7a' },
 };
-const DEFAULT_SPEAKER_STYLE = { bubble: 'rgba(255,255,255,0.10)', border: 'rgba(255,255,255,0.28)', name: '#e6e8eb' };
+const DEFAULT_SPEAKER_STYLE = { bubble: 'rgba(255,255,255,0.22)', border: 'rgba(255,255,255,0.32)', name: '#e6e8eb' };
 const DIALOG_HISTORY_MAX = 3;
 const dialogRows = [];
 
@@ -2008,19 +2028,30 @@ function pushDialogRow(line) {
 
   dialogBox.insertBefore(row, dialogNextRow);
   dialogRows.push(row);
-  while (dialogRows.length > DIALOG_HISTORY_MAX) dialogRows.shift().remove();
 
-  // fade the entrance in, and dim older rows a beat later so they read as
-  // "pushed up/out" by the newest message instead of all sitting at full
-  // brightness like one static caption box
+  // retire rows past the cap with their OWN shrink-out transition instead
+  // of yanking them out of the DOM instantly - removing them in the same
+  // instant the new row starts growing in caused a visible "snap down,
+  // then animate back up" glitch, since one side of that swap was animated
+  // and the other wasn't.
+  while (dialogRows.length > DIALOG_HISTORY_MAX) {
+    const old = dialogRows.shift();
+    old.classList.remove('show');
+    old.querySelector('.dchat-bubble').style.opacity = '0';
+    setTimeout(() => old.remove(), 400);
+  }
+
+  // growing this row's grid track from 0fr->1fr is what visibly pushes the
+  // earlier rows above it upward (see .dchat-row in index.html); dim older
+  // rows a touch so the newest reads as "current" without making them hard
+  // to read - real chat apps keep history legible, not faded to a shadow
   requestAnimationFrame(() => {
+    row.classList.add('show');
     const n = dialogRows.length;
     dialogRows.forEach((r, i) => {
       const rank = n - 1 - i; // 0 = newest
-      const op = rank === 0 ? 1 : rank === 1 ? 0.5 : 0.25;
-      const b = r.querySelector('.dchat-bubble');
-      b.style.opacity = String(op);
-      b.style.transform = 'translateY(0)';
+      const op = rank === 0 ? 1 : rank === 1 ? 0.78 : 0.58;
+      r.querySelector('.dchat-bubble').style.opacity = String(op);
     });
   });
 }
@@ -2183,21 +2214,23 @@ function drawMinimap() {
     mmCtx.fill();
   }
 
-  // player marker always points straight up since the map rotates instead -
-  // bigger and pink to match the player's own outfit color, with a white
-  // outline so it stands out against any background tile underneath
+  mmCtx.restore();
+
+  // player marker always points straight up (screen space) since the map
+  // itself already rotates opposite to heading above - it must be drawn
+  // AFTER restore(), otherwise it inherits that same rotation and visibly
+  // spins with the map instead of staying fixed pointing "forward".
   mmCtx.fillStyle = '#ff2e88';
   mmCtx.beginPath();
-  mmCtx.moveTo(0, -12);
-  mmCtx.lineTo(8, 10);
-  mmCtx.lineTo(-8, 10);
+  mmCtx.moveTo(cx, cy - 12);
+  mmCtx.lineTo(cx + 8, cy + 10);
+  mmCtx.lineTo(cx - 8, cy + 10);
   mmCtx.closePath();
   mmCtx.fill();
   mmCtx.strokeStyle = '#ffffff';
   mmCtx.lineWidth = 1.5;
   mmCtx.stroke();
 
-  mmCtx.restore();
   mmCtx.strokeStyle = 'rgba(255,255,255,0.5)';
   mmCtx.lineWidth = 3;
   mmCtx.beginPath();

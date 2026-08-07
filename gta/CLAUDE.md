@@ -85,14 +85,26 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   hat ihre eigene feste Farbe (`SPEAKER_STYLE`-Map: Dragan Blau, Lena Lila,
   Vess Orange, unbekannte Sprecher Grau als Fallback) und sitzt links;
   namenlose Regie-/Erzählzeilen (`speaker: ""`) sind zentriert und ohne
-  Blasenhintergrund. Nur die letzten `DIALOG_HISTORY_MAX` (3) Zeilen bleiben
-  sichtbar, ältere werden entfernt; die zwei davor sichtbaren Zeilen dimmen
-  stufenweise (0.5 / 0.25 Opacity), sodass neue Nachrichten die alten optisch
-  nach oben verdrängen/ausfaden statt alle gleich hell nebeneinander stehen
-  zu lassen. Die Box bleibt mit `calc(100vw - 64px)` und `max-width:78%` je
-  Blase bewusst vom Bildschirmrand entfernt. Der "Weiter"-Text-Button ist
-  einem kleinen runden Pfeil-Button (`#dialogNextBtn`, reine CSS-Form)
-  gewichen, der als eigene Zeile immer unter der neuesten Nachricht sitzt.
+  Blasenhintergrund. Bubble-Hintergründe sind bewusst recht deckend
+  (0.22–0.34 Alpha, nicht 0.10–0.20) — zu transparent gegen eine belebte
+  3D-Szene macht den Text schwer lesbar. Nur die letzten
+  `DIALOG_HISTORY_MAX` (3) Zeilen bleiben sichtbar; die zwei davor
+  sichtbaren dimmen sanft (0.78 / 0.58 Opacity, bewusst hoch gehalten,
+  damit die Historie lesbar bleibt statt auszubleichen). `#dialogBox` ist
+  bewusst per `bottom` statt `top` positioniert und jede `.dchat-row`
+  animiert ihre Höhe von `grid-template-rows: 0fr` auf `1fr` beim
+  Einblenden (der Standard-Trick, um auf Inhaltshöhe zu animieren) — dank
+  des Bottom-Ankers schiebt das Wachsen der neuen Zeile alle darüber
+  liegenden sichtbar nach oben, statt die Box nur nach unten wachsen zu
+  lassen. Eine Zeile, die über das Limit hinaus verdrängt wird, bekommt
+  beim Entfernen dieselbe Transition rückwärts (`grid-template-rows`
+  zurück auf `0`, Opacity auf 0) statt sofort aus dem DOM zu verschwinden —
+  sonst gab es ein sichtbares "springt runter, animiert dann wieder hoch"
+  beim Erreichen der Zeilen-Obergrenze. Die Box bleibt mit
+  `calc(100vw - 64px)` und `max-width:78%` je Blase bewusst vom
+  Bildschirmrand entfernt. Der "Weiter"-Text-Button ist einem kleinen
+  runden Pfeil-Button (`#dialogNextBtn`, reine CSS-Form) gewichen, der als
+  eigene Zeile immer unter der neuesten Nachricht sitzt.
 - **Spielfigur-Farbe:** trägt ein einheitliches Outfit (Hemd/Hose/Schuhe
   alle in Pink, `PLAYER_PALETTE` in `main.js`) statt drei verschiedener
   Farbtöne — dadurch sofort von Passanten (`createPedMesh`, zufällige
@@ -100,11 +112,22 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   Palette) unterscheidbar, die weiterhin ihre eigenen, unveränderten
   Farbschemata behalten.
 - **Minimap:** Spieler-Pfeil ist größer, Pink statt Rot und mit weißem
-  Outline (zeigt dank "heading-up"-Rotation der ganzen Karte immer nach
-  oben = Fahrtrichtung). Streifenpolizei (`policeCars`) zeigt klar Blau
-  (`#3b7bff`) statt des vorherigen blassen Grau-Blau; aktive Fahndungs-Autos
-  (`chaseCops`) blinken durchgehend Rot/Blau im Takt (`Math.sin(elapsed*10)`)
-  wie ein echtes Blaulicht, statt einfarbig Blau zu stehen.
+  Outline und wird **nach** `mmCtx.restore()` in Schirm-Koordinaten
+  gezeichnet (`cx,cy`) statt davor in den lokalen Karten-Koordinaten — die
+  Karte selbst rotiert schon per `mmCtx.rotate(heading - Math.PI)`
+  ("heading-up") — stand der Pfeil INNERHALB dieses rotierten Blocks,
+  drehte er sich MIT der Karte statt fix nach oben zu zeigen (drehte sich
+  beim Lenken sichtbar mit statt in Fahrtrichtung zu bleiben). Streifen-
+  polizei (`policeCars`) zeigt klar Blau (`#3b7bff`) statt des vorherigen
+  blassen Grau-Blau; aktive Fahndungs-Autos (`chaseCops`) blinken
+  durchgehend Rot/Blau im Takt (`Math.sin(elapsed*10)`) wie ein echtes
+  Blaulicht, statt einfarbig Blau zu stehen.
+- **Vollbild:** `⛶ Vollbild`-Button im Einstellungs-Menü (Zahnrad) schaltet
+  per Fullscreen API auf `document.documentElement` um (Pattern aus
+  `starship-launch` übernommen) — blendet die Browser-eigene Adress-/
+  Tab-Leiste (oben) und Navigationsleiste (unten) aus, die sonst permanent
+  Spielfläche wegnehmen; blendet sich selbst aus, falls die Fullscreen API
+  im Browser fehlt.
 
 ## Fahrphysik & Polizei
 - **Gebäude-Kollision:** ein Treffer bremst nicht mehr pauschal auf 12%
