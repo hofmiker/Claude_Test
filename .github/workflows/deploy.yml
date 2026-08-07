@@ -40,9 +40,18 @@ jobs:
           # per-project build stamps (e.g. gta/index.html's {{DEPLOY_DATE}}/
           # {{DEPLOY_SHA}} settings-menu line) - a project opts in just by
           # using these placeholders somewhere in its own index.html.
+          # NOTE: `grep -q ... && sed ...` as a bare statement breaks under
+          # this shell's `bash -e` (errexit) - grep's normal "no match" exit
+          # code (1) for every project that DOESN'T use these placeholders
+          # aborts the whole step immediately. Must be a real `if`, which is
+          # an errexit-exempt context.
           for proj_index in */index.html; do
-            grep -q '{{DEPLOY_DATE}}' "$proj_index" 2>/dev/null && sed -i "s/{{DEPLOY_DATE}}/$DEPLOY_DATE/g" "$proj_index"
-            grep -q '{{DEPLOY_SHA}}' "$proj_index" 2>/dev/null && sed -i "s/{{DEPLOY_SHA}}/$DEPLOY_SHA/g" "$proj_index"
+            if grep -q '{{DEPLOY_DATE}}' "$proj_index" 2>/dev/null; then
+              sed -i "s/{{DEPLOY_DATE}}/$DEPLOY_DATE/g" "$proj_index"
+            fi
+            if grep -q '{{DEPLOY_SHA}}' "$proj_index" 2>/dev/null; then
+              sed -i "s/{{DEPLOY_SHA}}/$DEPLOY_SHA/g" "$proj_index"
+            fi
           done
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
