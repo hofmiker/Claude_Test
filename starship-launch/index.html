@@ -204,6 +204,23 @@ const fill = new THREE.AmbientLight(0x8899aa, 0.25);
 scene.add(fill);
 
 let zoomResetPending = false;
+// Defense in depth: the double-tap/pinch guards below cover every known
+// trigger, but mobile Safari's native double-tap-zoom heuristics have
+// proven to have more edge cases than any single guard reliably catches
+// (e.g. a double-tap landing partly on a button and partly just beside it).
+// Rather than chase each new trigger individually, self-correct on the
+// actual symptom -- checked continuously (not just reactively on resize/
+// scroll, which may not fire at all depending on what triggered the zoom)
+// so a drift can't persist unnoticed (resetZoom is declared further down
+// but hoisted, so it's callable from here).
+function checkZoomDrift(){
+  if (window.visualViewport && Math.abs(window.visualViewport.scale - 1) > 0.02 && !zoomResetPending){
+    zoomResetPending = true;
+    resetZoom();
+    setTimeout(() => { zoomResetPending = false; }, 400);
+  }
+}
+setInterval(checkZoomDrift, 800);
 function resize(){
   const w = window.visualViewport ? window.visualViewport.width  : innerWidth;
   const h = window.visualViewport ? window.visualViewport.height : innerHeight;
@@ -211,16 +228,7 @@ function resize(){
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  // Defense in depth: the double-tap/pinch guards below cover every known
-  // trigger, but if some interaction still slips past them and leaves the
-  // page pinch/double-tap zoomed in, self-correct here instead of leaving
-  // the player stuck with no in-game way back out (resetZoom is declared
-  // further down but hoisted, so it's callable from here).
-  if (window.visualViewport && Math.abs(window.visualViewport.scale - 1) > 0.02 && !zoomResetPending){
-    zoomResetPending = true;
-    resetZoom();
-    setTimeout(() => { zoomResetPending = false; }, 400);
-  }
+  checkZoomDrift();
 }
 let resizeQueued = false;
 function scheduleResize(){

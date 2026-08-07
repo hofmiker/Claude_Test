@@ -255,10 +255,15 @@ aus. Rein atmosphärisch, ohne Spielmechanik-Effekt.
   an Pointer-Events, nicht an `touchend`/`click`, lassen sich also gefahrlos
   mitschützen (nur `#skipBtn`/`#fullscreenBtn` sind ausgenommen, weil die
   wirklich auf synthetische `click`-Events angewiesen sind). Zusätzliche
-  Absicherung in `resize()`: weicht `visualViewport.scale` erkennbar von 1
-  ab, wird automatisch `resetZoom()` ausgelöst — falls doch einmal ein
-  Zoom-Trigger durchrutscht, korrigiert sich das Spiel selbst statt den
-  Spieler ohne Weg zurück dazustehen zu lassen.
+  Absicherung über `checkZoomDrift()`: weicht `visualViewport.scale`
+  erkennbar von 1 ab, wird automatisch `resetZoom()` ausgelöst — läuft
+  sowohl reaktiv in `resize()` als auch alle 800ms per `setInterval`, nicht
+  nur bei Resize-/Scroll-Events (die für manche Zoom-Auslöser gar nicht
+  feuern). Falls doch einmal ein Zoom-Trigger durchrutscht — mobile Safaris
+  Doppeltipp-Zoom-Heuristik hat mehr Sonderfälle erwischt als sich einzeln
+  über die Guard-Liste abdecken lassen —, korrigiert sich das Spiel
+  spätestens nach einer knappen Sekunde von selbst, statt den Spieler ohne
+  Weg zurück dazustehen zu lassen.
 
 ## Sound
 Rein prozedural über die Web Audio API (kein externes Audio-Asset), alle
