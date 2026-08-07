@@ -203,6 +203,7 @@ scene.add(sun);
 const fill = new THREE.AmbientLight(0x8899aa, 0.25);
 scene.add(fill);
 
+let zoomResetPending = false;
 function resize(){
   const w = window.visualViewport ? window.visualViewport.width  : innerWidth;
   const h = window.visualViewport ? window.visualViewport.height : innerHeight;
@@ -210,6 +211,16 @@ function resize(){
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  // Defense in depth: the double-tap/pinch guards below cover every known
+  // trigger, but if some interaction still slips past them and leaves the
+  // page pinch/double-tap zoomed in, self-correct here instead of leaving
+  // the player stuck with no in-game way back out (resetZoom is declared
+  // further down but hoisted, so it's callable from here).
+  if (window.visualViewport && Math.abs(window.visualViewport.scale - 1) > 0.02 && !zoomResetPending){
+    zoomResetPending = true;
+    resetZoom();
+    setTimeout(() => { zoomResetPending = false; }, 400);
+  }
 }
 let resizeQueued = false;
 function scheduleResize(){
@@ -236,14 +247,15 @@ addEventListener("keydown", e => {
 // is a separate gesture that touch-action:none doesn't reliably suppress on its
 // own, so block it explicitly by swallowing the second tap of a fast double-tap.
 // UI buttons that depend on synthetic click/touchend events are excluded so
-// those keep working. jumpBtn/actionBtn are NOT excluded: they're driven
-// entirely by pointerdown (which already calls preventDefault itself), so
-// guarding them too costs nothing -- and leaving them unguarded was the
-// actual bug: repeatedly tapping jump for the jetpack boost is exactly the
+// those keep working. jumpBtn/actionBtn/joystick are NOT excluded: all three
+// are driven entirely by pointer events (which already call preventDefault
+// themselves), so guarding them too costs nothing -- and leaving them
+// unguarded was the actual bug: repeatedly tapping jump for the jetpack
+// boost, or quick taps/drags on the joystick while steering, are exactly the
 // fast-double-tap pattern that used to trigger Safari's native page zoom,
 // leaving the whole game visibly zoomed in with no in-game way back out.
 let lastTouchEnd = 0;
-const NO_DBLTAP_GUARD = '#skipBtn,#fullscreenBtn,#joystick';
+const NO_DBLTAP_GUARD = '#skipBtn,#fullscreenBtn';
 addEventListener("touchend", e => {
   if (e.target.closest(NO_DBLTAP_GUARD)) return;
   const now = Date.now();
