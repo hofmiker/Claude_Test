@@ -2641,7 +2641,10 @@ let enterFromYaw = 0;
 // the rover's own state (roverX/roverAngle/etc, enterVehicle/exitVehicle,
 // the single inVehicle boolean) is all flat module-level variables with no
 // registry, so a second vehicle needs its own copy of the same shape.
-const BIGRIG_MAX_SPD = 36, BIGRIG_ACCEL = 4.5, BIGRIG_BRAKE = 14, BIGRIG_FRICTION = 4, BIGRIG_STEER_RATE = 1.1;
+// BIGRIG_ACCEL was 4.5 -- with BIGRIG_MAX_SPD=36 that's ~8s from a standstill
+// to top speed (vs. the rover's ~1.7s), which read as too sluggish rather
+// than just "heavier than the rover". 9.0 brings it down to ~4s.
+const BIGRIG_MAX_SPD = 36, BIGRIG_ACCEL = 9.0, BIGRIG_BRAKE = 14, BIGRIG_FRICTION = 4, BIGRIG_STEER_RATE = 1.1;
 const BIGRIG_REVERSE_FRAC = 0.3;
 const BIGRIG_COLLIDE_R = 15; // much bigger footprint than the rover
 const BIGRIG_POP_RADIUS = 7; // driving over a small stone crushes it -- deliberately smaller than
