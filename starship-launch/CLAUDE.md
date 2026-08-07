@@ -10,30 +10,35 @@ Mondlandung, die nahtlos in ein frei begehbares Mondoberflächen-Gameplay
 übergeht. Kein UI-Text während der Kinosequenz außer dem Countdown — alles
 läuft über Kamera, Timing und Partikel/Licht.
 
-**Ablauf:** Kurzer Cockpit-Innenraum-Closeup (Hände fahren über Bildschirme,
-Knöpfe und einen Hebel, Kamera schwenkt langsam über das Bedienpult, endet
-mit dem Ziehen des Hebels) → Schnitt nach außen → Countdown (große, zentriert
-im Bild stehende, kursive Monospace-Ziffern mit orangem Glow) → Zündung mit
-riesigen, teils feurig-gelben Wolkenbergen → langsam-dann-exponentiell
-beschleunigender Aufstieg durch zwei dichte, deutlich sichtbar durchstoßene
-Wolkendecks (darüber eine dritte, dünnere Hochnebel-Schicht) → Booster-
-Abtrennung mit komfortablem Zeitpolster vor dem Schnitt zum Mond, danach
-fliegt die Oberstufe mit unvermindertem Schub weiter, bis der Bildausschnitt
-schwarz wird — der Aufstieg ist zu diesem Zeitpunkt bewusst noch nicht am
-Kurvenmaximum angekommen, die Steigrate bleibt sichtbar positiv. Die Kamera
-verfolgt das Schiff dabei nicht endlos, sondern blendet in den letzten
-Sekunden vor dem Schnitt auf eine fixe Einstellung um, die auf einem
-platzierten, immer zur Kamera ausgerichteten Mond-Sprite hält — das Schiff
-fliegt dadurch sichtbar nach oben aus dem Bild, während der Mond mittig
-stehen bleibt → Himmel dunkelt ab, Sterne erscheinen → Schnitt zum Mond →
-Landeanflug mit sichtbarem Bremstriebwerk (dezenter oranger Screen-Glow,
-deutlich schwächer als beim Start) und seitlichen RCS-Steuerdüsen, die kurze,
-additiv geblendete Flammenstöße statt Rauch ausstoßen — zufällig, aber nie
-zweimal hintereinander an derselben Düse, wirkt also wie abwechselndes
-Feuern → Touchdown auf einer Landebasis → Rampe fährt aus, Kamera schneidet auf die
-sich öffnende Luke → Astronaut (weißer Anzug, schwarzes Visier) klettert
-raus und läuft die Rampe runter → Kamera schwenkt hinter ihn → Übergabe an
-freie Steuerung.
+**Ablauf:** Cockpit-Innenraum-Intro — Kamera von hinten/über die Schulter auf
+einen stehenden Astronauten (volles Charakter-Rig, nicht nur Hände), der sich
+zu einem Bedienpult mit Bildschirmen, Knopfreihe und Hebel vorbeugt und
+Einstellungen prüft (Arm reicht wiederholt zum Pult, am Ende Hebelzug); davor/
+darüber ein Sichtfenster mit Sternenhimmel-Textur, Kamera fährt währenddessen
+langsam näher heran → Schnitt nach außen → Countdown (große, zentriert im
+Bild stehende, kursive Monospace-Ziffern mit orangem Glow) → Zündung mit
+riesigen, teils feurig-gelben Wolkenbergen → spürbar zügiger, gleichmäßig
+beschleunigender Aufstieg (kein langes zähes Anfangsstück mehr) durch zwei
+dichte, deutlich sichtbar durchstoßene Wolkendecks (darüber eine dritte,
+dünnere Hochnebel-Schicht) → Booster-Abtrennung mit Zeitpolster vor dem
+Schnitt, danach fliegt die Oberstufe mit unvermindertem Schub weiter — die
+Steigrate bleibt bis zum Schnitt sichtbar positiv, die Kurve ist dort noch
+nicht am Maximum. Kein Überblenden zu Schwarz mehr am Ende: die Kamera hört
+in den letzten Sekunden auf, dem Schiff zu folgen, und hält stattdessen auf
+einem fest platzierten, immer zur Kamera ausgerichteten Mond-Sprite (der
+Übergang der Kameraposition dorthin ist selbst schon so gewählt, dass er
+exakt an der Position endet, an der die anschließende Mondphase ihre eigene
+Kamera beginnt — kein Kamera-Sprung beim Schnitt) — das Schiff fliegt
+dadurch sichtbar oben aus dem Bild, der Mond bleibt mittig als Ziel stehen,
+und der Schnitt zur Mondphase passiert direkt im selben Bildmoment (kein
+Wartefenster, kein Schwarzbild) → Landeanflug mit sichtbarem Bremstriebwerk
+(dezenter oranger Screen-Glow, deutlich schwächer als beim Start) und
+seitlichen RCS-Steuerdüsen, die kurze, additiv geblendete Flammenstöße statt
+Rauch ausstoßen — zufällig, aber nie zweimal hintereinander an derselben
+Düse, wirkt also wie abwechselndes Feuern → Touchdown auf einer Landebasis →
+Rampe fährt aus, Kamera schneidet auf die sich öffnende Luke → Astronaut
+(weißer Anzug, schwarzes Visier) klettert raus und läuft die Rampe runter →
+Kamera schwenkt hinter ihn → Übergabe an freie Steuerung.
 
 Ein "Überspringen"-Button (unten rechts, von Anfang an sichtbar) springt
 direkt zur freien Astronauten-Steuerung, ohne die komplette Kinosequenz
@@ -99,15 +104,17 @@ direkt zur freien Astronauten-Steuerung, ohne die komplette Kinosequenz
 - Tastatur: Pfeiltasten/WASD zum Laufen/Drehen, Leertaste zum Springen
   (Ausholen → Luft → Landung als Zustandsautomat, Impuls beim Absprung
   festgehalten)
+- Mondgravitation: gilt durchgehend, nicht nur während eines Boosts — die
+  Fallbeschleunigung liegt insgesamt bei der Hälfte des ursprünglichen
+  Erdwerts, thematisch passend für eine Mondoberfläche. Jeder Sprung (auch
+  ohne Boost) geht dadurch spürbar höher und dauert länger als mit
+  Erdschwerkraft.
 - Rucksack-Boost: erneutes Drücken der Sprung-Taste in der Luft löst einen
   Rückstoß aus (Flamme, Sound, Partikel), verkettbar durch mehrfaches
   Drücken — steigert sowohl Höhe als auch Geschwindigkeit, sodass wiederholtes
-  Drücken während des Aufstiegs stetiges Steigen ermöglicht. Solange der
-  Boost aktiv ist (bis zur Landung, nicht nur im Moment des Rückstoßes),
-  wirkt zusätzlich nur die halbe Schwerkraft — man fliegt dadurch spürbar
-  höher und sinkt am Ende auch entsprechend langsamer/schwebender zu Boden.
-  Kamera zoomt während des Boosts zusätzlich deutlich weiter heraus als beim
-  normalen Laufen, damit der Höhengewinn sichtbar bleibt.
+  Drücken während des Aufstiegs stetiges Steigen ermöglicht. Kamera zoomt
+  während des Boosts zusätzlich deutlich weiter heraus als beim normalen
+  Laufen, damit der Höhengewinn sichtbar bleibt.
 - Touch: virtueller 360°-Joystick unten links (analog, Pointer-Events mit
   `setPointerCapture`) + runder Sprung-Button unten rechts — Steuerschema
   1:1 von `toy-story/gameplay/player.js` übernommen, nur das Aussehen des
@@ -282,20 +289,42 @@ Der `AudioContext` wird lazy beim ersten Tastendruck/Touch erzeugt
   als komplett gleichmäßiger Rasen sichtbar künstlich.
 
 ## Tech-Notiz: Cockpit-Intro
-Der Spielstart zeigt vor dem Außen-Countdown einen kurzen Innenraum-Closeup
-(Konsole mit zwei Bildschirmen, Knopfreihe, Hebel; zwei einfache
-Low-Poly-Hände animieren darüber). Die komplette Szene (`cockpitIntro`-Gruppe
-inkl. Konsole/Hände) steht weit unterhalb des restigen Spiels (`COCKPIT_Y =
--3000`), damit sie garantiert nie versehentlich von einer anderen Kamera aus
-sichtbar wird — kein Sichtbarkeits-Toggle nötig. Die Zeitachse bekommt dafür
-eine zusätzliche Konstante `T_COCKPIT_INTRO` (Dauer der Intro-Phase): die
+Der Spielstart zeigt vor dem Außen-Countdown einen kurzen Innenraum-Shot: ein
+volles Astronauten-Rig (`buildAstronaut()`, dieselbe Funktion wie für den
+Gameplay-Charakter, aber eine eigene zweite Instanz `cockpitAstro`) steht vor
+einem Bedienpult (zwei Bildschirme, Knopfreihe, Hebel) unter einem
+Sichtfenster; die Kamera bleibt hinter/über der Schulter des Astronauten und
+fährt langsam näher heran. Statt separater schwebender Hand-Meshes wird die
+"Knöpfe prüfen"-Animation direkt über `rShoulder`/`rElbow`-Rotationen des
+Rigs getrieben (gleiches Muster wie die Reach-Pose beim Steinaufheben im
+Gameplay), der Hebelzug am Ende entsprechend über `lShoulder`/`lElbow`. Die
+komplette Szene (`cockpitIntro`-Gruppe inkl. Astronaut/Konsole/Fenster) steht
+weit unterhalb des restlichen Spiels (`COCKPIT_Y = -3000`), damit sie
+garantiert nie versehentlich von einer anderen Kamera aus sichtbar wird —
+kein Sichtbarkeits-Toggle nötig. Die Zeitachse bekommt dafür eine
+zusätzliche Konstante `T_COCKPIT_INTRO` (Dauer der Intro-Phase): die
 Spieluhr läuft ab `missionStart` unverändert als `rawT`, aber erst sobald
-`rawT >= T_COCKPIT_INTRO` beginnt die eigentliche, seit Runde 19 fein
-austarierte Außen-Zeitachse (`t = rawT - T_COCKPIT_INTRO`) — dadurch mussten
-Countdown/Zündung/Aufstieg/Trennung/Mondschnitt-Konstanten selbst nicht
-angefasst werden, sie verschieben sich einfach komplett nach hinten. Der
-"Überspringen"-Button umgeht `missionStart`/`t` ohnehin komplett und ist von
-alldem nicht betroffen.
+`rawT >= T_COCKPIT_INTRO` beginnt die eigentliche Außen-Zeitachse
+(`t = rawT - T_COCKPIT_INTRO`) — dadurch mussten Countdown/Zündung/Aufstieg/
+Trennung/Mondschnitt-Konstanten selbst nicht angefasst werden, sie
+verschieben sich einfach komplett nach hinten. Der "Überspringen"-Button
+umgeht `missionStart`/`t` ohnehin komplett und ist von alldem nicht
+betroffen.
+
+## Tech-Notiz: Launch-Kamera ohne Schwarzblende
+Der Schnitt von der Außenkamera zur Mondphase (`T_BLACK`) läuft ohne
+Überblenden zu Schwarz — das Schiff fliegt stattdessen sichtbar oben aus dem
+Bild, während die Kamera in den letzten Sekunden davor von "Schiff verfolgen"
+auf "fest auf dem Mond-Sprite halten" umschaltet. Damit der Schnitt selbst
+keinen sichtbaren Kamera-Sprung erzeugt, blendet `updateCameraLaunch` die
+Kameraposition (nicht nur den Blickpunkt) im selben Zeitfenster zusätzlich
+auf exakt die X/Z-Koordinaten, mit denen `updateCameraMoon` startet (150,200);
+beim Szenenwechsel wird `camState.y` außerdem auf `HOLD_CAM_Y` gesetzt statt
+auf einen eigens für die alte Schwarzblende berechneten Wert. `T_MOON_IN`
+entspricht jetzt exakt `T_BLACK` (die Mondszene wird im selben Frame wie der
+Schnitt sichtbar, kein Wartefenster mehr), und `overlayOpacity()` hat keinen
+eigenen Fade-Block für diesen Übergang mehr — nur die allererste Einblendung
+aus Schwarz zu Beginn der ganzen Kinosequenz bleibt bestehen.
 
 ## Tech-Notiz: Krater-Rendering
 Ursprünglich gab es zusätzlich zur detaillierten, krater-verschobenen
