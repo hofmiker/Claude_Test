@@ -2615,6 +2615,12 @@ const GRAVITY = -7.5, JUMP_VEL = 7.0;
 const JUMP_BOOST_VEL = 9.5, JUMP_BOOST_SPEED_MULT = 1.25;
 const SPEED_MAX = 5.94, ACCEL_RATE = 14.0, DECEL_RATE = 18.0, TURN_RATE = 0.90;
 let velY = 0, onGround = true, moveSpeed = 0;
+// Extra forward-only kick from a jetpack boost, tracked separately from
+// moveSpeed so it can never leak into backward/other-direction movement --
+// it used to bump moveSpeed itself, which is shared by both the forward and
+// backward branches below, making the astronaut run faster backward too
+// (or in whatever direction was pressed next) until it decayed.
+let jetKickSpeed = 0;
 let jetBoosting = false, jetPulseT = 0;
 let gameCamPos = new THREE.Vector3();
 let gameCamDist = 7.0;
@@ -2842,7 +2848,7 @@ function poseAstronautSeated(k){
 
 function enterVehicle(){
   inVehicle = true;
-  jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0;
+  jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0; jetKickSpeed = 0;
   jetBoosting = false; astro.jetFlame.grp.visible = false;
   enterHintEl.style.display = 'none';
   pickupHintEl.style.display = 'none';
@@ -2863,7 +2869,7 @@ function exitVehicle(){
   A.charRoot.position.set(ex, getMoonSurfaceY(ex,ez) + CHAR_BASE_Y, ez);
   charYaw = roverAngle;
   A.charRoot.rotation.y = charYaw;
-  moveSpeed = 0; velY = 0; onGround = true; jumpState = JWALK.NONE;
+  moveSpeed = 0; jetKickSpeed = 0; velY = 0; onGround = true; jumpState = JWALK.NONE;
   gameCamPos.copy(camera.position);
   actionEl.style.display = 'flex';
   stopEngineSound();
@@ -2871,7 +2877,7 @@ function exitVehicle(){
 
 function enterBigRig(){
   inBigRig = true;
-  jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0;
+  jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0; jetKickSpeed = 0;
   jetBoosting = false; astro.jetFlame.grp.visible = false;
   enterHintEl.style.display = 'none';
   pickupHintEl.style.display = 'none';
@@ -2908,7 +2914,7 @@ function exitBigRig(){
   A.charRoot.position.set(ex, getMoonSurfaceY(ex,ez) + CHAR_BASE_Y, ez);
   charYaw = bigRigAngle;
   A.charRoot.rotation.y = charYaw;
-  moveSpeed = 0; velY = 0; onGround = true; jumpState = JWALK.NONE;
+  moveSpeed = 0; jetKickSpeed = 0; velY = 0; onGround = true; jumpState = JWALK.NONE;
   gameCamPos.copy(camera.position);
   actionEl.style.display = 'flex';
   stopEngineSound();
@@ -3110,9 +3116,12 @@ function updateAstronautGameplay(dt){
   const mag = Math.max(curInput.fwd, curInput.back);
   if (mag > 0.02) moveSpeed = Math.min(moveSpeed + ACCEL_RATE*dt, SPEED_MAX*mag);
   else            moveSpeed = Math.max(moveSpeed - DECEL_RATE*dt, 0);
+  jetKickSpeed = Math.max(0, jetKickSpeed - DECEL_RATE*dt);
   const oldX = A.charRoot.position.x, oldZ = A.charRoot.position.z;
   let nx = oldX, nz = oldZ;
-  if (curInput.fwd  > curInput.back) { nx += fwdX*moveSpeed*dt; nz += fwdZ*moveSpeed*dt; }
+  // The kick only ever adds to forward motion -- a backpack thruster
+  // propels you forward, it shouldn't also speed up walking backward.
+  if (curInput.fwd  > curInput.back) { const spd = moveSpeed+jetKickSpeed; nx += fwdX*spd*dt; nz += fwdZ*spd*dt; }
   if (curInput.back > curInput.fwd)  { nx -= fwdX*moveSpeed*dt; nz -= fwdZ*moveSpeed*dt; }
   let resolvedPos = resolveSlide(oldX, oldZ, nx, nz, CHAR_RADIUS, moonCollidables);
   resolvedPos = resolveSlide(oldX, oldZ, resolvedPos.x, resolvedPos.z, CHAR_RADIUS, [{ x:roverX, z:roverZ, r:ROVER_COLLIDE_R }]);
@@ -3159,7 +3168,7 @@ function updateAstronautGameplay(dt){
     jetBoosting = true;
     jetPulseT = 0;
     velY = JUMP_BOOST_VEL;
-    moveSpeed = Math.min(moveSpeed * JUMP_BOOST_SPEED_MULT, SPEED_MAX * JUMP_BOOST_SPEED_MULT);
+    jetKickSpeed = SPEED_MAX * (JUMP_BOOST_SPEED_MULT - 1);
     A.jetFlame.grp.visible = true;
     playJetBoost();
     spawnPuff(new THREE.Vector3(A.charRoot.position.x, A.charRoot.position.y+0.9, A.charRoot.position.z), {
