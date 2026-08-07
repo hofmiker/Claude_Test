@@ -45,7 +45,14 @@
     pointer-events: none;
     color: #fff;
     text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    opacity: 1;
+    transition: opacity 0.4s ease;
   }
+  /* startup sequence: title card first (scene visible, no chrome at all),
+     then only the intro dialog once it's dismissed, and only once THAT
+     finishes does the regular HUD + touch controls fade in - see
+     dismissSplash()/advanceDialogLine() in main.js for the state changes. */
+  body.intro-active #hud { opacity: 0; pointer-events: none; }
 
   /* ---- top-left: objective + distance + dialog (grouped together) ---- */
   #objectivePanel {
@@ -98,7 +105,7 @@
     top: 14px;
     right: 16px;
     font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
-    font-size: 26px;
+    font-size: 15px;
     letter-spacing: 1px;
     font-weight: 400;
     color: #7CFC7A;
@@ -106,7 +113,7 @@
   }
   #minimapWrap {
     position: absolute;
-    top: 44px;
+    top: 30px;
     right: 16px;
     width: 130px;
     height: 130px;
@@ -251,40 +258,59 @@
   }
   #settingsMenu button:active { background: rgba(255,255,255,0.25); }
 
-  /* ---- dialog box: centered, clear of the top HUD row ---- */
+  /* ---- dialog: a real chat thread, centered below the top HUD row and
+     independent of #hud (see body.intro-active below) so it can be shown
+     on its own during the intro. Each line is its own row/bubble, newest
+     at the bottom; older ones stay visible but dim as new ones arrive,
+     instead of one box overwriting its own text each time. Marek (the
+     player) is pink and sits on the right; every other speaker gets their
+     own color (SPEAKER_STYLE in main.js) and sits on the left; narration
+     (no speaker) is centered and bubble-less. ---- */
   #dialogBox {
     position: absolute;
     left: 50%;
     top: 190px;
     transform: translateX(-50%);
-    width: min(460px, calc(100vw - 32px));
-    background: rgba(8,10,14,0.94);
-    border: 1px solid rgba(255,46,136,0.35);
-    border-radius: 12px;
-    padding: 12px 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-    opacity: 0;
+    width: min(440px, calc(100vw - 64px));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     pointer-events: none;
-    transition: opacity 0.25s ease;
   }
-  #dialogBox.show { opacity: 1; pointer-events: auto; }
-  #dialogSpeaker {
+  .dchat-row { display: flex; justify-content: flex-start; }
+  .dchat-row.me { justify-content: flex-end; }
+  .dchat-row.narration { justify-content: center; }
+  .dchat-bubble {
+    max-width: 78%;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    padding: 10px 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .dchat-row.me .dchat-bubble { border-radius: 16px; border-bottom-right-radius: 4px; }
+  .dchat-row.narration .dchat-bubble {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    font-style: italic;
+    text-align: center;
+    padding: 2px 10px;
+  }
+  .dchat-speaker {
     font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
-    font-size: 15px;
+    font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 2px;
-    color: #ff6fb3;
-    margin-bottom: 5px;
-    min-height: 16px;
+    margin-bottom: 4px;
   }
-  #dialogText {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 16px;
-    line-height: 1.45;
-  }
-  #dialogTextInner { flex: 1 1 auto; }
+  .dchat-text { font-size: 16px; line-height: 1.4; }
+  #dialogNextRow { display: flex; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+  #dialogNextRow.show { opacity: 1; pointer-events: auto; }
   #dialogNextBtn {
     flex: none;
     display: flex;
@@ -378,7 +404,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #000;
+    /* translucent scrim, not a solid cover - the running scene stays
+       visible underneath so the title card reads as an overlay on top of
+       the game rather than a separate blocking screen before it. */
+    background: rgba(4,4,8,0.6);
     color: #fff;
     z-index: 10;
   }
@@ -432,9 +461,12 @@
   }
   .ts-hint {
     margin-top: 26px;
-    font-size: 12px;
-    letter-spacing: 3px;
-    color: rgba(255,255,255,0.4);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    max-width: 80vw;
+    color: rgba(255,255,255,0.45);
     opacity: 0;
     animation: tsSubIn 1s ease-out 1.3s forwards, tsPulse 1.6s ease-in-out 1.3s infinite;
   }
@@ -446,6 +478,7 @@
   #mobileControls {
     display: none;
   }
+  body.intro-active #mobileControls { opacity: 0; pointer-events: none; }
   @media (pointer: coarse) {
     #controlsHint {
       display: none;
@@ -454,6 +487,8 @@
       display: block;
       position: absolute;
       inset: 0;
+      opacity: 1;
+      transition: opacity 0.4s ease;
       pointer-events: none;
     }
 
@@ -486,10 +521,18 @@
     }
 
     /* ---- jump / action pair, bottom-right (shared visual family) ---- */
+    /* jump + action are the exact same footprint (width/height/shape) so
+       they read as one deliberate pair - only the accent color and
+       icon-vs-label content differ. A plain circle can't fit longer
+       context labels like "Übergeben", so both use this pill shape. */
     #btnJump, #btnAction {
       position: absolute;
       pointer-events: auto;
       right: calc(20px + env(safe-area-inset-right));
+      min-width: 64px;
+      height: 56px;
+      padding: 0 16px;
+      border-radius: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -502,10 +545,7 @@
       transition: transform 0.08s ease, background 0.1s ease;
     }
     #btnJump {
-      bottom: calc(96px + env(safe-area-inset-bottom));
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
+      bottom: calc(106px + env(safe-area-inset-bottom));
       background: radial-gradient(circle at 35% 30%, rgba(255,225,120,0.4), rgba(255,204,0,0.18));
       border-color: rgba(255,204,0,0.75);
       box-shadow: 0 0 14px rgba(255,204,0,0.3);
@@ -519,10 +559,6 @@
     }
     #btnAction {
       bottom: calc(20px + env(safe-area-inset-bottom));
-      min-width: 64px;
-      height: 46px;
-      padding: 0 18px;
-      border-radius: 999px;
       background: radial-gradient(circle at 35% 30%, rgba(140,220,255,0.4), rgba(32,227,255,0.18));
       border-color: rgba(32,227,255,0.75);
       box-shadow: 0 0 14px rgba(32,227,255,0.3);
@@ -546,7 +582,7 @@
   }
 </style>
 </head>
-<body>
+<body class="intro-active">
 <div id="app">
   <canvas id="scene"></canvas>
 
@@ -555,7 +591,7 @@
       <span class="ts-word ts-word1">VICE</span>
       <span class="ts-word ts-word2">GRID</span>
       <span class="ts-sub">Der Kessel</span>
-      <span class="ts-hint">WIRD GELADEN…</span>
+      <span class="ts-hint">Taste oder Tipp zum Überspringen</span>
     </div>
   </div>
 
@@ -579,14 +615,6 @@
       <button id="btnCameraToggle">🎥 Kamera: Oben</button>
     </div>
 
-    <div id="dialogBox">
-      <div id="dialogSpeaker"></div>
-      <div id="dialogText">
-        <span id="dialogTextInner"></span>
-        <div id="dialogNextBtn" aria-label="Weiter"><span class="arrow"></span></div>
-      </div>
-    </div>
-
     <div id="endOverlay">
       <div id="endTitle"></div>
       <div id="endSubtitle"></div>
@@ -596,6 +624,12 @@
     <div id="controlsHint">
       <b>W/↑</b> Gas &nbsp; <b>S/↓</b> Bremse/Rückwärts &nbsp; <b>A/D ←/→</b> Lenken/Drehen &nbsp; <b>Space</b> Handbremse/Springen &nbsp; <b>F</b> Aktion/Ein-Aussteigen &nbsp; <b>C</b> Kamera
     </div>
+  </div>
+
+  <!-- independent of #hud on purpose: stays interactive/visible during the
+       intro phase where #hud is still hidden (see body.intro-active) -->
+  <div id="dialogBox">
+    <div id="dialogNextRow"><div id="dialogNextBtn" aria-label="Weiter"><span class="arrow"></span></div></div>
   </div>
 
   <div id="mobileControls">

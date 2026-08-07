@@ -448,7 +448,12 @@ function buildCity() {
 }
 buildCity();
 
-function collideWithBuildings(pos, radius) {
+const _wallNormal = { x: 0, z: 0 };
+// outNormal (optional): filled with the collision's push-out direction, so
+// a caller with an actual velocity (cars) can bleed off only the component
+// that drives INTO the wall and keep the rest as a sliding deflection,
+// instead of the caller only learning "yes/no" and having to guess.
+function collideWithBuildings(pos, radius, outNormal) {
   for (const b of buildingColliders) {
     const cx = clamp(pos.x, b.minX, b.maxX);
     const cz = clamp(pos.z, b.minZ, b.maxZ);
@@ -459,6 +464,7 @@ function collideWithBuildings(pos, radius) {
       const push = radius - dist;
       pos.x += (dx / dist) * push;
       pos.z += (dz / dist) * push;
+      if (outNormal) { outNormal.x = dx / dist; outNormal.z = dz / dist; }
       return true;
     }
   }
@@ -709,7 +715,7 @@ class Car {
     this.pos.addScaledVector(this.shove, dt);
     this.shove.multiplyScalar(Math.max(0, 1 - dt * 3.2));
     const preImpactSpeed = this.speed;
-    const hitWall = collideWithBuildings(this.pos, this.radius);
+    const hitWall = collideWithBuildings(this.pos, this.radius, _wallNormal);
     if (hitWall && Math.abs(preImpactSpeed) > 4) {
       if (this.crashCooldown <= 0) {
         triggerCrash(this.pos, Math.abs(preImpactSpeed), this === player.inCar);
@@ -717,7 +723,17 @@ class Car {
         applyCarDamage(this, dir.x * impactSign, dir.z * impactSign);
         this.crashCooldown = 0.35;
       }
-      this.speed *= 0.12;
+      // a head-on hit still bleeds real speed off, but a glancing graze
+      // along the wall keeps most of it and slides tangentially instead of
+      // just stalling in place - mirrors how car-vs-car collisions already
+      // only kill the velocity component driving into the other body.
+      const align = Math.abs(dir.x * _wallNormal.x + dir.z * _wallNormal.z);
+      this.speed *= 1 - 0.7 * align;
+      const tx = -_wallNormal.z, tz = _wallNormal.x;
+      const tangentSign = Math.sign(dir.x * tx + dir.z * tz) || 1;
+      const slideSpeed = Math.abs(preImpactSpeed) * 0.55 * (1 - align);
+      this.shove.x += tx * tangentSign * slideSpeed;
+      this.shove.z += tz * tangentSign * slideSpeed;
     }
     this.syncMesh();
   }
@@ -806,11 +822,22 @@ function resolveCarCollision(a, b) {
     applyCarDamage(b, -nx, -nz);
     a.crashCooldown = 0.35;
     b.crashCooldown = 0.35;
+
+    // ramming an on-duty patrol car (not already part of an active manhunt)
+    // hard enough starts a full chase, same as the scripted GRAB_ITEM alarm
+    if (!policeState.active && impactSpeed > 9) {
+      const involvesPlayerCar = a === player.inCar || b === player.inCar;
+      const rammedPatrolCop = (a.isPolice && !chaseCops.includes(a)) ? a
+        : (b.isPolice && !chaseCops.includes(b)) ? b : null;
+      if (involvesPlayerCar && rammedPatrolCop) startPolice();
+    }
   }
 }
 
 function updateCarCollisions(dt) {
-  const cars = [playerCar, ...trafficCars, ...policeCars, ...chaseCops];
+  // a chase cop who got out to run on foot shouldn't leave their parked
+  // car behind as an invisible obstacle for real traffic
+  const cars = [playerCar, ...trafficCars, ...policeCars, ...chaseCops.filter((c) => !c.onFoot)];
   if (player.inCar && !cars.includes(player.inCar)) cars.push(player.inCar);
   for (const car of cars) car.crashCooldown = Math.max(0, car.crashCooldown - dt);
   for (let i = 0; i < cars.length; i++) {
@@ -1291,6 +1318,11 @@ function updatePolice(dt) {
 const chaseCops = [];
 const policeState = { active: false, safeTimer: 0, lastRampTime: 0, surroundTimer: 0 };
 
+// dark navy uniform, distinct from both the player's pink outfit and any
+// NPC palette, used when a chase cop gets out to chase the player on foot
+const OFFICER_PALETTE = { shirt: 0x1c3a6e, pants: 0x14213d, shoes: 0x0c0c0c, hair: 0x0e0e0e };
+const OFFICER_SPEED = CHAR_SPEED_MAX * 1.08;
+
 function spawnChaseCop() {
   if (chaseCops.length >= POLICE.units.max) return;
   const focus = player.inCar ? player.inCar.pos : player.pos;
@@ -1301,6 +1333,10 @@ function spawnChaseCop() {
   const car = new Car({ isPolice: true });
   car.place(px, pz, angle);
   car.siren = Math.random() * Math.PI * 2;
+  car.onFoot = false;
+  car.officer = { mesh: createPlayerMesh(OFFICER_PALETTE), animT: 0, jumpState: 'none', idleTimer: 0, scratchPhase: 0 };
+  car.officer.mesh.visible = false;
+  scene.add(car.officer.mesh);
   chaseCops.push(car);
   scene.add(car.mesh);
 }
@@ -1316,13 +1352,17 @@ function startPolice() {
 function stopPolice() {
   policeState.active = false;
   policeState.surroundTimer = 0;
-  for (const car of chaseCops) scene.remove(car.mesh);
+  for (const car of chaseCops) {
+    scene.remove(car.mesh);
+    scene.remove(car.officer.mesh);
+  }
   chaseCops.length = 0;
 }
 
 function updatePoliceChase(dt) {
   if (!policeState.active) return;
   const focus = player.inCar ? player.inCar.pos : player.pos;
+  const playerOnFoot = !player.inCar;
   const playerMax = (player.inCar ? player.inCar.maxSpeed : playerCar.maxSpeed) || playerCar.baseMaxSpeed;
 
   if (elapsed - policeState.lastRampTime >= POLICE.units.rampEverySeconds && chaseCops.length < POLICE.units.max) {
@@ -1339,22 +1379,52 @@ function updatePoliceChase(dt) {
     if (dist < POLICE.ai.sightRadius) anyInSight = true;
     if (dist < SURROUND_RADIUS) nearAngles.push(Math.atan2(-toPlayer.x, -toPlayer.z));
 
-    car.maxSpeed = playerMax * POLICE.ai.speed;
-    const desiredHeading = Math.atan2(toPlayer.x, toPlayer.z);
-    const diff = wrapAngle(desiredHeading - car.heading);
-    const steer = clamp(diff * 1.4, -1, 1);
-    const throttle = dist > 6 ? 1 : 0.15;
-    car.physicsStep(dt, { throttle, steer, handbrake: false });
+    // player fled on foot: cops park their car and chase on foot too,
+    // instead of visibly tailing a runner with a parked-looking vehicle
+    if (playerOnFoot) {
+      if (!car.onFoot) {
+        car.onFoot = true;
+        car.mesh.visible = false;
+        car.officer.mesh.visible = true;
+        car.speed = 0;
+      }
+      const dirLen = dist || 1;
+      const stepDist = Math.min(dist, OFFICER_SPEED * dt);
+      const moving = dist > 0.5;
+      if (moving) {
+        car.pos.x += (toPlayer.x / dirLen) * stepDist;
+        car.pos.z += (toPlayer.z / dirLen) * stepDist;
+      }
+      car.heading = Math.atan2(toPlayer.x, toPlayer.z);
+      collideWithBuildings(car.pos, 0.5);
+      car.officer.mesh.position.set(car.pos.x, 0, car.pos.z);
+      car.officer.mesh.rotation.y = car.heading;
+      animateCharacter(car.officer, dt, { up: moving, down: false, left: false, right: false });
+    } else {
+      if (car.onFoot) {
+        car.onFoot = false;
+        car.mesh.visible = true;
+        car.officer.mesh.visible = false;
+        car.speed = 0;
+        car.syncMesh();
+      }
+      car.maxSpeed = playerMax * POLICE.ai.speed;
+      const desiredHeading = Math.atan2(toPlayer.x, toPlayer.z);
+      const diff = wrapAngle(desiredHeading - car.heading);
+      const steer = clamp(diff * 1.4, -1, 1);
+      const throttle = dist > 6 ? 1 : 0.15;
+      car.physicsStep(dt, { throttle, steer, handbrake: false });
 
-    car.siren += dt * 6;
-    if (car.mesh.userData.lights) {
-      const on = Math.sin(car.siren) > 0;
-      car.mesh.userData.lights[0].material.emissiveIntensity = on ? 2.4 : 0.15;
-      car.mesh.userData.lights[1].material.emissiveIntensity = !on ? 2.4 : 0.15;
-      const beacon = car.mesh.userData.beaconLight;
-      if (beacon) {
-        beacon.color.set(on ? 0xff2020 : 0x2050ff);
-        beacon.intensity = 24;
+      car.siren += dt * 6;
+      if (car.mesh.userData.lights) {
+        const on = Math.sin(car.siren) > 0;
+        car.mesh.userData.lights[0].material.emissiveIntensity = on ? 2.4 : 0.15;
+        car.mesh.userData.lights[1].material.emissiveIntensity = !on ? 2.4 : 0.15;
+        const beacon = car.mesh.userData.beaconLight;
+        if (beacon) {
+          beacon.color.set(on ? 0xff2020 : 0x2050ff);
+          beacon.intensity = 24;
+        }
       }
     }
 
@@ -1612,8 +1682,13 @@ function startDialog(key, onDone) {
 function advanceDialogLine() {
   missionState.dialogLineIndex++;
   if (missionState.dialogLineIndex >= missionState.dialogLines.length) {
-    dialogBox.classList.remove('show');
+    dialogNextRow.classList.remove('show');
+    clearDialogHistory();
     missionState.inDialog = false;
+    // the very first dialog finishing is also the cue to reveal the regular
+    // HUD + touch controls, which stay hidden through the title card and
+    // the intro call so nothing competes with them - see body.intro-active
+    document.body.classList.remove('intro-active');
     const onDone = missionState.dialogOnDone;
     missionState.dialogOnDone = null;
     if (onDone) onDone();
@@ -1846,7 +1921,8 @@ function restartMission() {
   endOverlay.classList.remove('show');
   missionState.gameOver = false;
   missionState.inDialog = false;
-  dialogBox.classList.remove('show');
+  dialogNextRow.classList.remove('show');
+  clearDialogHistory();
   clearMissionMarker();
   stopPolice();
   respawnAtStart();
@@ -1865,8 +1941,7 @@ const objectiveTextEl = document.getElementById('objectiveText');
 const objectiveDistanceEl = document.getElementById('objectiveDistance');
 const wantedBanner = document.getElementById('wantedBanner');
 const dialogBox = document.getElementById('dialogBox');
-const dialogSpeakerEl = document.getElementById('dialogSpeaker');
-const dialogTextEl = document.getElementById('dialogTextInner');
+const dialogNextRow = document.getElementById('dialogNextRow');
 const dialogNextBtn = document.getElementById('dialogNextBtn');
 const endOverlay = document.getElementById('endOverlay');
 const endTitleEl = document.getElementById('endTitle');
@@ -1885,11 +1960,75 @@ function showSub(text) {
 }
 subMsgOkBtn.addEventListener('click', hideSub);
 
+// one color per named speaker so the thread reads like a real group chat
+// instead of "pink for me, grey for everyone else" - Marek (the player)
+// always sits on the right and keeps the pink used across the rest of the
+// UI; every other character gets their own fixed color; narration (no
+// speaker) is centered, bubble-less italic text.
+const SPEAKER_STYLE = {
+  Marek: { bubble: 'rgba(255,46,136,0.20)', border: 'rgba(255,46,136,0.65)', name: '#ff6fb3' },
+  Dragan: { bubble: 'rgba(32,140,255,0.18)', border: 'rgba(32,140,255,0.55)', name: '#7cc0ff' },
+  Lena: { bubble: 'rgba(160,90,230,0.18)', border: 'rgba(160,90,230,0.55)', name: '#c9a3ff' },
+  Vess: { bubble: 'rgba(255,170,40,0.18)', border: 'rgba(255,170,40,0.55)', name: '#ffcf7a' },
+};
+const DEFAULT_SPEAKER_STYLE = { bubble: 'rgba(255,255,255,0.10)', border: 'rgba(255,255,255,0.28)', name: '#e6e8eb' };
+const DIALOG_HISTORY_MAX = 3;
+const dialogRows = [];
+
+function clearDialogHistory() {
+  for (const row of dialogRows) row.remove();
+  dialogRows.length = 0;
+}
+
+function pushDialogRow(line) {
+  const isMe = line.speaker === 'Marek';
+  const isNarration = !line.speaker;
+  const row = document.createElement('div');
+  row.className = 'dchat-row' + (isMe ? ' me' : '') + (isNarration ? ' narration' : '');
+
+  const bubble = document.createElement('div');
+  bubble.className = 'dchat-bubble';
+  if (!isNarration) {
+    const style = SPEAKER_STYLE[line.speaker] || DEFAULT_SPEAKER_STYLE;
+    bubble.style.background = style.bubble;
+    bubble.style.borderColor = style.border;
+    if (line.speaker) {
+      const nameEl = document.createElement('div');
+      nameEl.className = 'dchat-speaker';
+      nameEl.textContent = line.speaker;
+      nameEl.style.color = style.name;
+      bubble.appendChild(nameEl);
+    }
+  }
+  const textEl = document.createElement('div');
+  textEl.className = 'dchat-text';
+  textEl.textContent = line.text;
+  bubble.appendChild(textEl);
+  row.appendChild(bubble);
+
+  dialogBox.insertBefore(row, dialogNextRow);
+  dialogRows.push(row);
+  while (dialogRows.length > DIALOG_HISTORY_MAX) dialogRows.shift().remove();
+
+  // fade the entrance in, and dim older rows a beat later so they read as
+  // "pushed up/out" by the newest message instead of all sitting at full
+  // brightness like one static caption box
+  requestAnimationFrame(() => {
+    const n = dialogRows.length;
+    dialogRows.forEach((r, i) => {
+      const rank = n - 1 - i; // 0 = newest
+      const op = rank === 0 ? 1 : rank === 1 ? 0.5 : 0.25;
+      const b = r.querySelector('.dchat-bubble');
+      b.style.opacity = String(op);
+      b.style.transform = 'translateY(0)';
+    });
+  });
+}
+
 function showDialogLine() {
   const line = missionState.dialogLines[missionState.dialogLineIndex];
-  dialogSpeakerEl.textContent = line.speaker || '';
-  dialogTextEl.textContent = line.text;
-  dialogBox.classList.add('show');
+  pushDialogRow(line);
+  dialogNextRow.classList.add('show');
 }
 dialogNextBtn.addEventListener('click', advanceDialogLine);
 
@@ -2021,17 +2160,10 @@ function drawMinimap() {
     mmCtx.fill();
   }
 
-  mmCtx.fillStyle = '#7a8fae';
+  // ambient patrol: a clear, saturated blue so they read as police at a
+  // glance instead of blending into the grey traffic dots
+  mmCtx.fillStyle = '#3b7bff';
   for (const car of policeCars) {
-    const x = (car.pos.x - focus.x) * scale;
-    const y = (car.pos.z - focus.z) * scale;
-    mmCtx.beginPath();
-    mmCtx.arc(x, y, 3.2, 0, Math.PI * 2);
-    mmCtx.fill();
-  }
-
-  mmCtx.fillStyle = '#2050ff';
-  for (const car of chaseCops) {
     const x = (car.pos.x - focus.x) * scale;
     const y = (car.pos.z - focus.z) * scale;
     mmCtx.beginPath();
@@ -2039,14 +2171,31 @@ function drawMinimap() {
     mmCtx.fill();
   }
 
-  // player marker always points straight up since the map rotates instead
-  mmCtx.fillStyle = '#ff3b3b';
+  // active manhunt units flash red/blue like real light bars - they only
+  // exist while policeState.active, so this is always "during an alarm"
+  const alarmBlink = Math.sin(elapsed * 10) > 0;
+  mmCtx.fillStyle = alarmBlink ? '#ff2020' : '#2050ff';
+  for (const car of chaseCops) {
+    const x = (car.pos.x - focus.x) * scale;
+    const y = (car.pos.z - focus.z) * scale;
+    mmCtx.beginPath();
+    mmCtx.arc(x, y, 4.2, 0, Math.PI * 2);
+    mmCtx.fill();
+  }
+
+  // player marker always points straight up since the map rotates instead -
+  // bigger and pink to match the player's own outfit color, with a white
+  // outline so it stands out against any background tile underneath
+  mmCtx.fillStyle = '#ff2e88';
   mmCtx.beginPath();
-  mmCtx.moveTo(0, -6);
-  mmCtx.lineTo(4, 5);
-  mmCtx.lineTo(-4, 5);
+  mmCtx.moveTo(0, -12);
+  mmCtx.lineTo(8, 10);
+  mmCtx.lineTo(-8, 10);
   mmCtx.closePath();
   mmCtx.fill();
+  mmCtx.strokeStyle = '#ffffff';
+  mmCtx.lineWidth = 1.5;
+  mmCtx.stroke();
 
   mmCtx.restore();
   mmCtx.strokeStyle = 'rgba(255,255,255,0.5)';
@@ -2230,12 +2379,27 @@ window.visualViewport?.addEventListener('resize', onResize);
 onResize();
 
 // ---------- Boot -----------------------------------------------------
+// Title card sits as a translucent overlay directly on top of the already-
+// running/rendering game (see #loading's background) rather than blocking
+// it with a solid screen first, and any key press or tap skips it
+// immediately. The regular HUD + touch controls stay hidden (body's
+// initial "intro-active" class) through the whole title card AND the
+// intro call that follows it - only advanceDialogLine() finishing that
+// first dialog reveals them, so nothing competes with the intro beats.
 const loadingEl = document.getElementById('loading');
-setTimeout(() => {
-  loadingEl.style.transition = 'opacity 0.6s ease';
+let splashDone = false;
+function dismissSplash() {
+  if (splashDone) return;
+  splashDone = true;
+  loadingEl.style.transition = 'opacity 0.4s ease';
   loadingEl.style.opacity = '0';
-  setTimeout(() => loadingEl.remove(), 700);
-}, 2400);
+  setTimeout(() => loadingEl.remove(), 450);
+  startMission();
+}
+const splashTimer = setTimeout(dismissSplash, 2400);
+['pointerdown', 'keydown'].forEach((evt) => {
+  window.addEventListener(evt, () => { clearTimeout(splashTimer); dismissSplash(); }, { once: true });
+});
 
 // ---------- TEMP DEBUG: click/tap logs world [x,z] to console ----------
 // Used to fine-tune the placeholder pos values in mission.js. Remove once done.
@@ -2256,5 +2420,4 @@ if (DEBUG_LOG_COORDS) {
   canvas.addEventListener('pointerdown', (e) => logWorldPointAt(e.clientX, e.clientY));
 }
 
-startMission();
 animate();
