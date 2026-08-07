@@ -989,12 +989,23 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   const roadEnd   = [roadDirX*ROAD_PLAZA_DIST, roadDirZ*ROAD_PLAZA_DIST];
   const SOLAR_X = 380, SOLAR_Z = 220, SOLAR_EXCLUDE_R = 90;
   const TOWER_X = -300, TOWER_Z = 260, TOWER_EXCLUDE_R = 55;
+  // A straight line from the plaza to the solar park happens to pass almost
+  // exactly through the launch pad's center (the pad sits geographically
+  // between them) -- sampled terrain height would jump onto the pad's flat
+  // platform for one stretch and back to ground right after, and the coarse
+  // road mesh (built from just a few straight segments) smoothed that sharp
+  // step into a long gentle ramp that visibly floated above the real, much
+  // lower ground for most of its length. Routing the solar branch through a
+  // bend point well clear of the pad's 27-unit flat radius avoids the
+  // ground-height discontinuity in the first place, not just the symptom.
+  const SOLAR_BEND_X = -35, SOLAR_BEND_Z = 61;
   // A small network, not just one path: pad<->plaza (existing), then out to
   // the tower and the solar park from that same plaza hub.
   ROAD_SEGMENTS.push(
     [roadStart, roadEnd],
     [roadEnd, [TOWER_X, TOWER_Z]],
-    [roadEnd, [SOLAR_X, SOLAR_Z]],
+    [roadEnd, [SOLAR_BEND_X, SOLAR_BEND_Z]],
+    [[SOLAR_BEND_X, SOLAR_BEND_Z], [SOLAR_X, SOLAR_Z]],
   );
   function nearLandmark(px,pz){
     return distToRoad(px,pz) < 18
@@ -1383,7 +1394,8 @@ function resolveSlide(oldX, oldZ, x, z, radius, list){
   }
   buildRoadPath(roadStart, roadEnd, 6);
   buildRoadPath(roadEnd, [TOWER_X, TOWER_Z], 10);
-  buildRoadPath(roadEnd, [SOLAR_X, SOLAR_Z], 10);
+  buildRoadPath(roadEnd, [SOLAR_BEND_X, SOLAR_BEND_Z], 5);
+  buildRoadPath([SOLAR_BEND_X, SOLAR_BEND_Z], [SOLAR_X, SOLAR_Z], 8);
   moonScene.add(roadGroup);
   const plaza = new THREE.Mesh(new THREE.CylinderGeometry(20,20,0.3,20), MAT.asphalt);
   plaza.position.set(roadEnd[0], getMoonSurfaceY(roadEnd[0], roadEnd[1]) + 0.08, roadEnd[1]);
