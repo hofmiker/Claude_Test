@@ -10,20 +10,31 @@ Mondlandung, die nahtlos in ein frei begehbares Mondoberflächen-Gameplay
 übergeht. Kein UI-Text während der Kinosequenz außer dem Countdown — alles
 läuft über Kamera, Timing und Partikel/Licht.
 
-**Ablauf:** Countdown → Zündung mit riesigen, teils feurig-gelben
-Wolkenbergen → langsam-dann-exponentiell beschleunigender Aufstieg,
-Kamera bewegt sich parallel nach oben durch mehrere sich weiter verteilende,
-dünner werdende Wolkenschichten → Booster-Abtrennung hoch oben (fällt/
-trudelt zur Erde) → Himmel dunkelt ab, Sterne erscheinen → Schnitt zum
-Mond → Landeanflug mit sichtbarem Bremstriebwerk und seitlichen
-RCS-Steuerdüsen → Touchdown auf einer Landebasis → Rampe fährt aus,
-Kamera schneidet auf die sich öffnende Luke → Astronaut (weißer Anzug,
-schwarzes Visier) klettert raus und läuft die Rampe runter → Kamera
-schwenkt hinter ihn → Übergabe an freie Steuerung.
+**Ablauf:** Kurzer Cockpit-Innenraum-Closeup (Hände fahren über Bildschirme,
+Knöpfe und einen Hebel, Kamera schwenkt langsam über das Bedienpult, endet
+mit dem Ziehen des Hebels) → Schnitt nach außen → Countdown (große, zentriert
+im Bild stehende, kursive Monospace-Ziffern mit orangem Glow) → Zündung mit
+riesigen, teils feurig-gelben Wolkenbergen → langsam-dann-exponentiell
+beschleunigender Aufstieg durch zwei dichte, deutlich sichtbar durchstoßene
+Wolkendecks (darüber eine dritte, dünnere Hochnebel-Schicht) → Booster-
+Abtrennung mit komfortablem Zeitpolster vor dem Schnitt zum Mond, danach
+fliegt die Oberstufe mit unvermindertem Schub weiter, bis der Bildausschnitt
+schwarz wird — der Aufstieg ist zu diesem Zeitpunkt bewusst noch nicht am
+Kurvenmaximum angekommen, die Steigrate bleibt sichtbar positiv. Die Kamera
+verfolgt das Schiff dabei nicht endlos, sondern blendet in den letzten
+Sekunden vor dem Schnitt auf eine fixe Einstellung um, die auf einem
+platzierten, immer zur Kamera ausgerichteten Mond-Sprite hält — das Schiff
+fliegt dadurch sichtbar nach oben aus dem Bild, während der Mond mittig
+stehen bleibt → Himmel dunkelt ab, Sterne erscheinen → Schnitt zum Mond →
+Landeanflug mit sichtbarem Bremstriebwerk und seitlichen RCS-Steuerdüsen →
+Touchdown auf einer Landebasis → Rampe fährt aus, Kamera schneidet auf die
+sich öffnende Luke → Astronaut (weißer Anzug, schwarzes Visier) klettert
+raus und läuft die Rampe runter → Kamera schwenkt hinter ihn → Übergabe an
+freie Steuerung.
 
 Ein "Überspringen"-Button (unten rechts, von Anfang an sichtbar) springt
 direkt zur freien Astronauten-Steuerung, ohne die komplette Kinosequenz
-abzuwarten.
+(inkl. Cockpit-Intro) abzuwarten.
 
 ## Mondoberfläche & Gameplay
 - **Gelände:** Eine einzelne, großflächige vertex-verschobene Ebene
@@ -250,6 +261,26 @@ Der `AudioContext` wird lazy beim ersten Tastendruck/Touch erzeugt
   Krater-Mulden und Felsen-Erhebungen; wird sowohl für die
   Vertex-Verschiebung der sichtbaren Geometrie als auch für Lauf-/
   Fahrphysik und die Kollisionsauflösung (`resolvePush`) genutzt.
+- Das Gras der Startrampen-Landefläche ist keine flache Einheitsfarbe mehr,
+  sondern eine gekachelte Canvas-Rauschtextur mit mehreren Grüntönen
+  (`buildGrassTexture()`) — eine einzelne `MeshStandardMaterial`-Farbe wirkte
+  als komplett gleichmäßiger Rasen sichtbar künstlich.
+
+## Tech-Notiz: Cockpit-Intro
+Der Spielstart zeigt vor dem Außen-Countdown einen kurzen Innenraum-Closeup
+(Konsole mit zwei Bildschirmen, Knopfreihe, Hebel; zwei einfache
+Low-Poly-Hände animieren darüber). Die komplette Szene (`cockpitIntro`-Gruppe
+inkl. Konsole/Hände) steht weit unterhalb des restigen Spiels (`COCKPIT_Y =
+-3000`), damit sie garantiert nie versehentlich von einer anderen Kamera aus
+sichtbar wird — kein Sichtbarkeits-Toggle nötig. Die Zeitachse bekommt dafür
+eine zusätzliche Konstante `T_COCKPIT_INTRO` (Dauer der Intro-Phase): die
+Spieluhr läuft ab `missionStart` unverändert als `rawT`, aber erst sobald
+`rawT >= T_COCKPIT_INTRO` beginnt die eigentliche, seit Runde 19 fein
+austarierte Außen-Zeitachse (`t = rawT - T_COCKPIT_INTRO`) — dadurch mussten
+Countdown/Zündung/Aufstieg/Trennung/Mondschnitt-Konstanten selbst nicht
+angefasst werden, sie verschieben sich einfach komplett nach hinten. Der
+"Überspringen"-Button umgeht `missionStart`/`t` ohnehin komplett und ist von
+alldem nicht betroffen.
 
 ## Tech-Notiz: Krater-Rendering
 Ursprünglich gab es zusätzlich zur detaillierten, krater-verschobenen
