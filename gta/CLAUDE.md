@@ -127,7 +127,20 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   `starship-launch` übernommen) — blendet die Browser-eigene Adress-/
   Tab-Leiste (oben) und Navigationsleiste (unten) aus, die sonst permanent
   Spielfläche wegnehmen; blendet sich selbst aus, falls die Fullscreen API
-  im Browser fehlt.
+  im Browser komplett fehlt. Versucht sowohl die Standard- als auch die
+  ältere `webkit`-präfixte API (iOS Safaris Unterstützung dafür ist je nach
+  iOS-Version uneinheitlich) und meldet über den vorhandenen Toast
+  (`showSub()`), wenn beide Versuche scheitern, statt den Button ohne
+  jede Rückmeldung nichts tun zu lassen.
+- **Build-Stempel:** Einstellungs-Menü zeigt unten `Build {{DEPLOY_DATE}} ·
+  {{DEPLOY_SHA}}` — beide Platzhalter werden vom selben Deploy-Workflow
+  (`.github/workflows/deploy.yml`) befüllt, der schon `{{DEPLOY_DATE}}` /
+  `{{UPDATED:...}}` / `{{COMMITS:...}}` in der Root-`index.html` ersetzt
+  (dort um eine generische Schleife über `*/index.html` erweitert, die bei
+  jedem Projekt, das diese Platzhalter benutzt, automatisch mitläuft — kein
+  Hardcodieren eines Datums im Quelltext nötig). Gedacht, um bei einem
+  gemeldeten "sieht noch alt aus" sofort zu sehen, ob im Browser wirklich
+  der neueste Deploy geladen ist oder nur ein gecachter/alter Tab-Stand.
 
 ## Fahrphysik & Polizei
 - **Gebäude-Kollision:** ein Treffer bremst nicht mehr pauschal auf 12%

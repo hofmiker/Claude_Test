@@ -1833,21 +1833,39 @@ document.addEventListener('click', (e) => {
 
 // mobile browsers keep their own address/tab bar chrome unless the page is
 // actually in the Fullscreen API - lets players reclaim that space instead
-// of playing in a letterboxed strip between two browser toolbars
+// of playing in a letterboxed strip between two browser toolbars. iOS
+// Safari's support for this is inconsistent (varies by iOS version, and
+// silently rejects instead of erroring in some cases), so this tries both
+// the standard and the older webkit-prefixed API and actually tells the
+// player when it didn't work instead of the button just doing nothing.
 const fullscreenBtn = document.getElementById('btnFullscreen');
-function isFullscreen() { return !!document.fullscreenElement; }
+function isFullscreen() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
 function applyFullscreenLabel() {
   if (fullscreenBtn) fullscreenBtn.textContent = isFullscreen() ? '⛶ Vollbild aus' : '⛶ Vollbild';
 }
-function toggleFullscreen() {
-  if (!isFullscreen()) document.documentElement.requestFullscreen?.().catch(() => {});
-  else document.exitFullscreen?.();
+function requestFs(el) {
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  return fn ? Promise.resolve(fn.call(el)) : Promise.reject(new Error('unsupported'));
 }
-if (!document.documentElement.requestFullscreen) {
+function exitFs() {
+  const fn = document.exitFullscreen || document.webkitExitFullscreen;
+  return fn ? Promise.resolve(fn.call(document)) : Promise.reject(new Error('unsupported'));
+}
+function toggleFullscreen() {
+  if (!isFullscreen()) {
+    requestFs(document.documentElement).catch(() => {
+      showSub('Vollbild wird von diesem Browser nicht unterstützt');
+    });
+  } else {
+    exitFs().catch(() => {});
+  }
+}
+if (!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) {
   if (fullscreenBtn) fullscreenBtn.style.display = 'none';
 } else {
   fullscreenBtn?.addEventListener('click', toggleFullscreen);
   document.addEventListener('fullscreenchange', applyFullscreenLabel);
+  document.addEventListener('webkitfullscreenchange', applyFullscreenLabel);
   applyFullscreenLabel();
 }
 

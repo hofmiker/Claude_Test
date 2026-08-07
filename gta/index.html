@@ -257,6 +257,17 @@
     transition: background 0.1s ease;
   }
   #settingsMenu button:active { background: rgba(255,255,255,0.25); }
+  #buildInfo {
+    pointer-events: none;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.4);
+    padding: 2px 4px 0;
+    white-space: nowrap;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    margin-top: 2px;
+    padding-top: 6px;
+  }
 
   /* ---- dialog: a real chat thread, centered below the top HUD row and
      independent of #hud (see body.intro-active below) so it can be shown
@@ -636,6 +647,7 @@
     <div id="settingsMenu">
       <button id="btnCameraToggle">🎥 Kamera: Oben</button>
       <button id="btnFullscreen">⛶ Vollbild</button>
+      <div id="buildInfo">Build {{DEPLOY_DATE}} · {{DEPLOY_SHA}}</div>
     </div>
 
     <div id="endOverlay">
