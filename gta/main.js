@@ -1676,6 +1676,9 @@ function startDialog(key, onDone) {
   missionState.dialogLines = lines;
   missionState.dialogLineIndex = 0;
   missionState.dialogOnDone = onDone;
+  // hides HUD/touch controls and pauses the sim for every dialog, not just
+  // the intro one - see body.dialog-active and animate()'s paused branch
+  document.body.classList.add('dialog-active');
   showDialogLine();
 }
 
@@ -1685,10 +1688,9 @@ function advanceDialogLine() {
     dialogNextRow.classList.remove('show');
     clearDialogHistory();
     missionState.inDialog = false;
-    // the very first dialog finishing is also the cue to reveal the regular
-    // HUD + touch controls, which stay hidden through the title card and
-    // the intro call so nothing competes with them - see body.intro-active
-    document.body.classList.remove('intro-active');
+    // every dialog (not just the intro) hides HUD/touch controls and pauses
+    // the sim while it's on screen - reveal/resume again now it's done
+    document.body.classList.remove('dialog-active');
     const onDone = missionState.dialogOnDone;
     missionState.dialogOnDone = null;
     if (onDone) onDone();
@@ -1974,6 +1976,7 @@ function restartMission() {
   endOverlay.classList.remove('show');
   missionState.gameOver = false;
   missionState.inDialog = false;
+  document.body.classList.remove('dialog-active');
   dialogNextRow.classList.remove('show');
   clearDialogHistory();
   clearMissionMarker();
@@ -2018,13 +2021,17 @@ subMsgOkBtn.addEventListener('click', hideSub);
 // always sits on the right and keeps the pink used across the rest of the
 // UI; every other character gets their own fixed color; narration (no
 // speaker) is centered, bubble-less italic text.
+// near-opaque on purpose (0.75-0.85 alpha, not the 0.2-0.3 from earlier
+// rounds) - anything more see-through than that made the text hard to read
+// against a busy, moving 3D scene, which is the whole point of a bubble
+// background in the first place.
 const SPEAKER_STYLE = {
-  Marek: { bubble: 'rgba(255,46,136,0.34)', border: 'rgba(255,46,136,0.7)', name: '#ff6fb3' },
-  Dragan: { bubble: 'rgba(32,140,255,0.30)', border: 'rgba(32,140,255,0.6)', name: '#7cc0ff' },
-  Lena: { bubble: 'rgba(160,90,230,0.30)', border: 'rgba(160,90,230,0.6)', name: '#c9a3ff' },
-  Vess: { bubble: 'rgba(255,170,40,0.30)', border: 'rgba(255,170,40,0.6)', name: '#ffcf7a' },
+  Marek: { bubble: 'rgba(210,20,110,0.85)', border: 'rgba(255,46,136,0.9)', name: '#ffb3d9' },
+  Dragan: { bubble: 'rgba(18,70,150,0.85)', border: 'rgba(32,140,255,0.85)', name: '#a9d4ff' },
+  Lena: { bubble: 'rgba(85,40,140,0.85)', border: 'rgba(160,90,230,0.85)', name: '#dcc4ff' },
+  Vess: { bubble: 'rgba(150,90,10,0.85)', border: 'rgba(255,170,40,0.85)', name: '#ffdfa3' },
 };
-const DEFAULT_SPEAKER_STYLE = { bubble: 'rgba(255,255,255,0.22)', border: 'rgba(255,255,255,0.32)', name: '#e6e8eb' };
+const DEFAULT_SPEAKER_STYLE = { bubble: 'rgba(35,37,42,0.85)', border: 'rgba(255,255,255,0.35)', name: '#e6e8eb' };
 const DIALOG_HISTORY_MAX = 3;
 const dialogRows = [];
 
@@ -2225,14 +2232,18 @@ function drawMinimap() {
   }
 
   // ambient patrol: a clear, saturated blue so they read as police at a
-  // glance instead of blending into the grey traffic dots
+  // glance instead of blending into the grey traffic dots - sized/outlined
+  // like the player marker so they're easy to spot, not just tinted
   mmCtx.fillStyle = '#3b7bff';
+  mmCtx.strokeStyle = '#ffffff';
+  mmCtx.lineWidth = 1.2;
   for (const car of policeCars) {
     const x = (car.pos.x - focus.x) * scale;
     const y = (car.pos.z - focus.z) * scale;
     mmCtx.beginPath();
-    mmCtx.arc(x, y, 3.6, 0, Math.PI * 2);
+    mmCtx.arc(x, y, 5.5, 0, Math.PI * 2);
     mmCtx.fill();
+    mmCtx.stroke();
   }
 
   // active manhunt units flash red/blue like real light bars - they only
@@ -2243,8 +2254,24 @@ function drawMinimap() {
     const x = (car.pos.x - focus.x) * scale;
     const y = (car.pos.z - focus.z) * scale;
     mmCtx.beginPath();
-    mmCtx.arc(x, y, 4.2, 0, Math.PI * 2);
+    mmCtx.arc(x, y, 6.4, 0, Math.PI * 2);
     mmCtx.fill();
+    mmCtx.stroke();
+  }
+
+  // the player's own car, parked and empty while they're on foot, was
+  // invisible on the map before - it isn't in trafficCars (only OTHER cars
+  // the player has driven and left end up there), so it needs its own draw
+  if (!playerCar.occupied) {
+    const x = (playerCar.pos.x - focus.x) * scale;
+    const y = (playerCar.pos.z - focus.z) * scale;
+    mmCtx.fillStyle = '#ff2e88';
+    mmCtx.strokeStyle = '#ffffff';
+    mmCtx.lineWidth = 1.2;
+    mmCtx.beginPath();
+    mmCtx.arc(x, y, 4.6, 0, Math.PI * 2);
+    mmCtx.fill();
+    mmCtx.stroke();
   }
 
   mmCtx.restore();
@@ -2299,7 +2326,16 @@ function updateCamera(dt) {
   const forward = new THREE.Vector3(Math.sin(camHeading), 0, Math.cos(camHeading));
 
   let height, back, lookY;
-  if (cameraMode === 'third') {
+  if (missionState.inDialog) {
+    // conversation framing: a closer third-person shot regardless of the
+    // player's own camera preference, which the existing lerp below eases
+    // into and back out of on its own once the dialog ends (cameraMode
+    // itself is never touched, so it resumes exactly where it was - top-
+    // down by default).
+    height = (inCar ? CAM3_HEIGHT_CAR : CAM3_HEIGHT_FOOT) * 0.72;
+    back = (inCar ? CAM3_BACK_CAR : CAM3_BACK_FOOT) * 0.72;
+    lookY = inCar ? 1.1 : 1.3;
+  } else if (cameraMode === 'third') {
     height = (inCar ? CAM3_HEIGHT_CAR : CAM3_HEIGHT_FOOT) * (1 + spdFac * (inCar ? 0.85 : 0.5));
     back = (inCar ? CAM3_BACK_CAR : CAM3_BACK_FOOT) * (1 + spdFac * (inCar ? 0.85 : 0.5));
     lookY = inCar ? 1.1 : 1.3;
@@ -2414,19 +2450,25 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
   elapsed += dt;
 
-  const input = readInput();
-  updatePlayer(dt, input);
-  updateTraffic(dt);
-  for (const ped of pedestrians) ped.update(dt);
-  updatePolice(dt);
-  updatePoliceChase(dt);
-  updateCarCollisions(dt);
-  updatePickups(dt, elapsed);
-  updateMission(dt);
-  updateDebris(dt);
-  updateSparks(dt);
-  checkPedestrianHits();
-  updateHud(dt);
+  // a dialog freezes the whole simulation (traffic, police, physics, HUD
+  // numbers) - the camera still eases into its closer conversation framing
+  // and the scene keeps rendering, but nothing in the world moves or ticks
+  // while it's on screen
+  if (!missionState.inDialog) {
+    const input = readInput();
+    updatePlayer(dt, input);
+    updateTraffic(dt);
+    for (const ped of pedestrians) ped.update(dt);
+    updatePolice(dt);
+    updatePoliceChase(dt);
+    updateCarCollisions(dt);
+    updatePickups(dt, elapsed);
+    updateMission(dt);
+    updateDebris(dt);
+    updateSparks(dt);
+    checkPedestrianHits();
+    updateHud(dt);
+  }
   updateCamera(dt);
   drawMinimap();
 
@@ -2449,7 +2491,7 @@ onResize();
 // running/rendering game (see #loading's background) rather than blocking
 // it with a solid screen first, and any key press or tap skips it
 // immediately. The regular HUD + touch controls stay hidden (body's
-// initial "intro-active" class) through the whole title card AND the
+// initial "dialog-active" class) through the whole title card AND the
 // intro call that follows it - only advanceDialogLine() finishing that
 // first dialog reveals them, so nothing competes with the intro beats.
 const loadingEl = document.getElementById('loading');

@@ -36,17 +36,26 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   überspringt sie sofort (`main.js`: `dismissSplash()`, per `once`-Listener
   auf `pointerdown`/`keydown`).
 - **Startsequenz / HUD-Reveal:** `body` startet mit der Klasse
-  `intro-active` (in `index.html`), die `#hud` und `#mobileControls`
-  komplett unsichtbar hält (Opacity 0, keine Pointer-Events) — Titelkarte
-  und danach der Intro-Anruf (`call_dragan`) laufen also vor leerem HUD ab,
-  keine Tacho-/Geld-/Minimap-/Steuerungs-Elemente lenken ab. Sobald die
+  `dialog-active` (in `index.html`), die `#hud` und `#mobileControls`
+  komplett unsichtbar hält (Opacity 0, keine Pointer-Events). Sobald die
   Titelkarte weg ist, startet `dismissSplash()` die Mission sofort
-  (`startMission()`, keine künstliche Verzögerung mehr) — der Dialog blendet
-  also im selben Moment ein, in dem die Titel-Typo ausblendet. Erst wenn
-  dieser allererste Dialog zu Ende ist (`advanceDialogLine()` erreicht das
-  Ende), entfernt `main.js` die `intro-active`-Klasse wieder und HUD +
-  Touch-Steuerung blenden ein — spätere Dialoge im Spielverlauf lassen HUD/
-  Steuerung unangetastet, das Ausblenden ist nur ein Intro-Einmal-Effekt.
+  (`startMission()`, keine künstliche Verzögerung) — der Dialog blendet
+  also im selben Moment ein, in dem die Titel-Typo ausblendet.
+- **Jeder Dialog pausiert das Spiel:** nicht mehr nur ein Intro-Einmal-
+  Effekt — `startDialog()` setzt `dialog-active` bei JEDEM Dialog im
+  Spielverlauf (nicht nur dem ersten), `advanceDialogLine()` entfernt es
+  wieder, wenn die letzte Zeile bestätigt wurde. `animate()` überspringt
+  währenddessen die komplette Simulation (Spieler-/Autobewegung, Verkehr,
+  Polizei, Kollisionen, HUD-Zahlen) — Tasten/Joystick haben während eines
+  Dialogs also keinerlei Effekt, nur `renderer.render()` und die Kamera
+  laufen weiter, damit der Übergang nicht wie ein eingefrorenes Bild wirkt.
+  `updateCamera()` erzwingt währenddessen unabhängig vom eingestellten
+  `cameraMode` eine nähere Third-Person-Einstellung (0.72× der normalen
+  Third-Person-Distanz) fürs Gespräch; da nur die tatsächlich gerenderte
+  Kameraposition verändert wird (nicht die `cameraMode`-Variable selbst),
+  schwenkt die Kamera nach Dialogende von selbst zurück zur zuvor aktiven
+  Einstellung — standardmäßig Draufsicht (`cameraMode` fällt ohne
+  gespeicherte Präferenz in `localStorage` immer auf `'top'` zurück).
 - **Analoger Joystick:** ersetzt die vorherigen vier Einzel-Buttons
   (Links/Rechts/Gas/Bremse) sowie das vollflächige Wisch-Steuern —
   dasselbe Pointer-Events-Pattern (`setPointerCapture`,
@@ -85,9 +94,12 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   hat ihre eigene feste Farbe (`SPEAKER_STYLE`-Map: Dragan Blau, Lena Lila,
   Vess Orange, unbekannte Sprecher Grau als Fallback) und sitzt links;
   namenlose Regie-/Erzählzeilen (`speaker: ""`) sind zentriert und ohne
-  Blasenhintergrund. Bubble-Hintergründe sind bewusst recht deckend
-  (0.22–0.34 Alpha, nicht 0.10–0.20) — zu transparent gegen eine belebte
-  3D-Szene macht den Text schwer lesbar. Nur die letzten
+  Blasenhintergrund. Bubble-Hintergründe sind bewusst nahezu deckend
+  (0.85 Alpha, nach zwei Runden "immer noch zu transparent"-Feedback
+  deutlich höher als die ursprünglichen 0.10–0.34) — jede Blase ist ein
+  dunkel getönter, farbiger Kartenhintergrund statt eines durchsichtigen
+  Farbstichs, damit der Text auch über einer belebten 3D-Szene klar lesbar
+  bleibt. Nur die letzten
   `DIALOG_HISTORY_MAX` (3) Zeilen bleiben sichtbar; die zwei davor
   sichtbaren dimmen sanft (0.78 / 0.58 Opacity, bewusst hoch gehalten,
   damit die Historie lesbar bleibt statt auszubleichen). `#dialogBox` ist
@@ -118,10 +130,15 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   ("heading-up") — stand der Pfeil INNERHALB dieses rotierten Blocks,
   drehte er sich MIT der Karte statt fix nach oben zu zeigen (drehte sich
   beim Lenken sichtbar mit statt in Fahrtrichtung zu bleiben). Streifen-
-  polizei (`policeCars`) zeigt klar Blau (`#3b7bff`) statt des vorherigen
-  blassen Grau-Blau; aktive Fahndungs-Autos (`chaseCops`) blinken
-  durchgehend Rot/Blau im Takt (`Math.sin(elapsed*10)`) wie ein echtes
-  Blaulicht, statt einfarbig Blau zu stehen.
+  polizei (`policeCars`) und Fahndungs-Autos (`chaseCops`) sind jetzt
+  deutlich größer (5.5 / 6.4 statt 3.6 / 4.2 Radius) und mit weißem Outline
+  wie der Spieler-Pfeil, statt als kleine, kaum sichtbare Punkte;
+  `chaseCops` blinken weiterhin durchgehend Rot/Blau im Takt
+  (`Math.sin(elapsed*10)`) wie ein echtes Blaulicht. Das eigene, geparkte
+  Auto (`playerCar`, wenn `!occupied`) bekommt jetzt ebenfalls einen
+  Pink-Marker — vorher komplett unsichtbar auf der Karte, da es (anders als
+  Fahrzeuge, die man kommandiert und wieder verlässt) nie in `trafficCars`
+  landet.
 - **Vollbild:** `⛶ Vollbild`-Button im Einstellungs-Menü (Zahnrad) schaltet
   per Fullscreen API auf `document.documentElement` um (Pattern aus
   `starship-launch` übernommen), inkl. `webkit`-präfixtem Fallback und
