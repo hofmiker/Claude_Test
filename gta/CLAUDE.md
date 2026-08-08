@@ -82,8 +82,25 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   nur Akzentfarbe und Icon-vs-Text-Inhalt unterscheiden sie; eine reine
   Kreisform hätte längere Kontext-Labels wie "Übergeben" abgeschnitten.
 - **Geld-/Minimap-Ecke:** Geld-Anzeige ist deutlich kleiner (15px statt
-  26px), Minimap rückt dadurch enger an die obere rechte Ecke (`top: 30px`
-  statt `44px`).
+  26px), Minimap rückt dadurch enger an die obere rechte Ecke (`top: 40px`
+  statt `44px`) — der Abstand wurde nötig, weil beide sich bei den
+  ursprünglichen Werten auf schmalen Screens berührten.
+- **Minimap passt sich der Bildschirm-HÖHE an, nicht nur der Breite:**
+  `--minimap-size`s `clamp()` skaliert nur über `vw` — auf einem
+  Landschafts-Handy (breit, aber kurz, und durch die Browser-eigene
+  Adressleiste/Tableiste zusätzlich in der Höhe beschnitten) blieb die
+  Minimap dadurch bei voller, breiten-getriebener Größe und rutschte in die
+  unten rechts fixierten Sprung-/Aktion-Buttons hinein (per Screenshot vom
+  Nutzer bestätigt: iPhone Querformat). `fitMinimapToViewport()` in
+  `main.js` (aufgerufen in `onResize()`, also bei jedem Resize/
+  Orientierungswechsel) misst den tatsächlichen `getBoundingClientRect().top`
+  von `#btnJump` und setzt `--minimap-size` per Inline-Style so, dass die
+  Minimap garantiert vor dem Button endet — keine geratene
+  Landscape-Breakpoint-Zahl, sondern derselbe "tatsächlich gerenderte
+  Position nachmessen"-Ansatz wie beim `wantedBanner` unten. Auf
+  Nicht-Touch-Geräten (`#btnJump` hat dort `display:none`) wird der
+  Inline-Override wieder entfernt, damit der normale `clamp()` ungehindert
+  greift.
 - **Responsive obere HUD-Reihe:** Ziel-Text/-Distanz, Tacho, Geld,
   Fahndungs-Banner und die Minimap-Größe selbst nutzen `clamp()` statt
   fixer `px`-Werte (z. B. `#objectiveText`: `clamp(14px, 4.4vw, 19px)`,
@@ -209,6 +226,33 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   Hardcodieren eines Datums im Quelltext nötig). Gedacht, um bei einem
   gemeldeten "sieht noch alt aus" sofort zu sehen, ob im Browser wirklich
   der neueste Deploy geladen ist oder nur ein gecachter/alter Tab-Stand.
+- **Auto-Ausstieg für Gespräche von Angesicht zu Angesicht:** trifft
+  `startDialog()` auf einen Dialog mit echtem NPC-Gegenüber
+  (`missionState.npcMesh` gesetzt, z. B. `talk_sofia`/`grab_scene`) während
+  der Spieler noch im Auto sitzt, steigt die Figur zuerst aus (ruft intern
+  `tryToggleVehicle()`, exakt dieselbe Tür-Position wie der manuelle
+  Ausstieg) und dreht sich zur NPC-Position (`Math.atan2(dx, dz)`, dieselbe
+  Heading-Konvention wie überall sonst im Code). Vorher blieb die Figur im
+  Auto sitzen, obwohl direkt daneben ein Gesprächspartner stand. Das
+  verlassene Auto wird in `missionState.dialogExitedCar` gemerkt und in
+  `advanceDialogLine()` beim Gesprächsende automatisch wieder bestiegen
+  (nur falls es niemand in der Zwischenzeit belegt hat) — Telefonate ohne
+  sichtbares Gegenüber (`call_dragan`, `deliver_twist`) lösen das nicht aus,
+  da dort kein `npcMesh` existiert. Die Kamera bekommt für genau diesen Fall
+  einen eigenen, ganz am Anfang von `updateCamera()` geprüften Zweig: statt
+  der sonstigen Blickrichtungs-Verfolgung schwenkt sie seitlich auf den
+  Mittelpunkt zwischen Spieler und NPC (senkrecht zur Verbindungslinie
+  beider, `sideX/sideZ` als 90°-gedrehter Richtungsvektor) und hält beide
+  Figuren zusammen im Bild — ein klassisches Zweier-Bild statt der
+  Ich-Perspektive-artigen Verfolgungskamera. Höhe/Abstand orientieren sich
+  bewusst an der bereits vorhandenen Fuß-Gesprächskamera
+  (`CAM3_HEIGHT_FOOT * 0.72`) statt an einem neuen, niedrigeren Wert – bei
+  einem direkt daneben geparkten Auto reichte eine flachere Kamera nicht,
+  um darüber hinwegzusehen. Sobald `missionState.inDialog` wieder `false`
+  wird, greift dieser Zweig nicht mehr und der bestehende Lerp bringt die
+  Kamera von selbst zurück zur zuvor aktiven Einstellung (Top-Down per
+  Default) — exakt dasselbe Übergangsmuster wie bei der bereits
+  bestehenden Telefonat-Nahkamera.
 
 ## Fahrphysik & Polizei
 - **Gebäude-Kollision:** ein Treffer bremst nicht mehr pauschal auf 12%

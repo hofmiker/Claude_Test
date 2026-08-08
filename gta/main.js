@@ -1590,6 +1590,7 @@ const missionState = {
   dialogLines: null,
   dialogLineIndex: 0,
   dialogOnDone: null,
+  dialogExitedCar: null,
   gameOver: false,
 };
 
@@ -1701,6 +1702,20 @@ function startDialog(key, onDone) {
   // hides HUD/touch controls and pauses the sim for every dialog, not just
   // the intro one - see body.dialog-active and animate()'s paused branch
   document.body.classList.add('dialog-active');
+
+  // a face-to-face conversation (a real NPC standing there, not just a
+  // phone voice) looks wrong with the player still sitting in the car they
+  // drove up in - hop out for the duration, same door-exit placement as the
+  // manual exit key, and face the NPC; hopped back in again once the
+  // dialog ends (see advanceDialogLine below).
+  missionState.dialogExitedCar = null;
+  if (player.inCar && missionState.npcMesh) {
+    missionState.dialogExitedCar = player.inCar;
+    tryToggleVehicle(); // player.inCar is set, so this exits
+    const npc = missionState.npcMesh.position;
+    player.heading = Math.atan2(npc.x - player.pos.x, npc.z - player.pos.z);
+  }
+
   showDialogLine();
 }
 
@@ -1713,6 +1728,16 @@ function advanceDialogLine() {
     // every dialog (not just the intro) hides HUD/touch controls and pauses
     // the sim while it's on screen - reveal/resume again now it's done
     document.body.classList.remove('dialog-active');
+    // hop back into whatever car the player stepped out of to have this
+    // conversation, if any - guarded by !occupied in case something else
+    // already claimed it in the meantime
+    const exitedCar = missionState.dialogExitedCar;
+    missionState.dialogExitedCar = null;
+    if (exitedCar && !exitedCar.occupied) {
+      exitedCar.occupied = true;
+      player.inCar = exitedCar;
+      player.mesh.visible = false;
+    }
     const onDone = missionState.dialogOnDone;
     missionState.dialogOnDone = null;
     if (onDone) onDone();
@@ -2387,6 +2412,34 @@ function checkPedestrianHits() {
 function updateCamera(dt) {
   const inCar = !!player.inCar;
   const focus = inCar ? player.inCar.pos : player.pos;
+
+  // face-to-face conversation with a visible NPC: swing to a side two-shot
+  // instead of the usual forward-facing chase cam, so both characters sit
+  // together in frame like an actual dialogue scene - eases back to the
+  // normal camera on its own once missionState.inDialog flips off and this
+  // branch stops running, same lerp-based transition as everywhere else.
+  if (missionState.inDialog && missionState.npcMesh) {
+    const npc = missionState.npcMesh.position;
+    const midX = (focus.x + npc.x) / 2, midZ = (focus.z + npc.z) / 2;
+    let dirX = npc.x - focus.x, dirZ = npc.z - focus.z;
+    const pairDist = Math.hypot(dirX, dirZ) || 1;
+    dirX /= pairDist; dirZ /= pairDist;
+    const sideX = dirZ, sideZ = -dirX; // perpendicular to the player->NPC line
+    const sideBack = clamp(pairDist * 1.3 + 3.5, 5, 10);
+    camTarget.lerp(new THREE.Vector3(midX, 0, midZ), Math.min(1, dt * 4.5));
+    // matches the on-foot conversation camera's own height (CAM3_HEIGHT_FOOT
+    // * 0.72) rather than a lower guess - tall enough to clear a parked car
+    // between the camera and the two characters, which is the common case
+    // right after stepping out to talk (see the exit-car block above).
+    const desired = new THREE.Vector3(midX + sideX * sideBack, CAM3_HEIGHT_FOOT * 0.72, midZ + sideZ * sideBack);
+    camPos.lerp(desired, Math.min(1, dt * 5));
+    camera.position.copy(camPos);
+    camera.lookAt(camTarget.x, 1.3, camTarget.z);
+    sunTarget.position.copy(camTarget);
+    sun.position.set(camTarget.x - 60, 110, camTarget.z + 40);
+    return;
+  }
+
   const targetHeading = inCar ? player.inCar.heading : player.heading;
   const activeSpeed = inCar ? player.inCar.speed : player.moveSpeed;
   const maxSpeedRef = inCar ? player.inCar.maxSpeed : CHAR_SPEED_MAX;
@@ -2547,10 +2600,34 @@ function animate() {
 }
 
 // ---------- Resize -----------------------------------------------------
+// --minimap-size's CSS clamp() only scales off viewport WIDTH, so on a
+// landscape phone (wide but short, and further squeezed by the browser's
+// own address-bar/tab-bar chrome eating into that height) the minimap kept
+// its full width-driven size and ran into the bottom-right jump/action
+// buttons, which are anchored to the bottom edge independent of minimap
+// size. Re-measuring the actual gap at runtime (rather than guessing a
+// fixed landscape breakpoint) shrinks the minimap only exactly as much as
+// the current screen actually requires.
+function fitMinimapToViewport() {
+  const btnJumpEl = document.getElementById('btnJump');
+  if (!btnJumpEl || getComputedStyle(btnJumpEl).display === 'none') {
+    // desktop / non-touch: no bottom-right buttons to collide with
+    document.documentElement.style.removeProperty('--minimap-size');
+    return;
+  }
+  const natural = Math.min(130, Math.max(96, window.innerWidth * 0.26));
+  const minimapTop = 40;
+  const jumpTop = btnJumpEl.getBoundingClientRect().top;
+  const available = jumpTop - minimapTop - 12;
+  const size = Math.max(64, Math.min(natural, available));
+  document.documentElement.style.setProperty('--minimap-size', size + 'px');
+}
+
 function onResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  fitMinimapToViewport();
 }
 window.addEventListener('resize', onResize);
 window.addEventListener('orientationchange', onResize);
