@@ -2017,6 +2017,10 @@ const subMsgOkBtn = document.getElementById('subMsgOk');
 const controlsHint = document.getElementById('controlsHint');
 const objectiveTextEl = document.getElementById('objectiveText');
 const objectiveDistanceEl = document.getElementById('objectiveDistance');
+const objectivePanelEl = document.getElementById('objectivePanel');
+const speedWrapEl = document.getElementById('speedWrap');
+const minimapWrapEl = document.getElementById('minimapWrap');
+const moneyDisplayEl = document.getElementById('moneyDisplay');
 const wantedBanner = document.getElementById('wantedBanner');
 const dialogBox = document.getElementById('dialogBox');
 const dialogNextRow = document.getElementById('dialogNextRow');
@@ -2164,7 +2168,24 @@ function updateHud(dt) {
     : '';
 
   wantedBanner.classList.toggle('show', policeState.active);
-  if (policeState.active) wantedBanner.textContent = POLICE.hud.wantedLabel;
+  if (policeState.active) {
+    wantedBanner.textContent = POLICE.hud.wantedLabel;
+    // objective text wraps to a variable number of lines depending on
+    // string length and viewport width (narrow phones + a long objective
+    // like the escape step can push it several lines deep), and on narrow
+    // screens the centered banner can reach sideways into the money/minimap
+    // corner too - measuring the actual rendered bottom of every top-row
+    // element instead of a fixed CSS top offset is the only way to
+    // guarantee it never overlaps any of them regardless of screen size or
+    // text length.
+    const rowBottom = Math.max(
+      objectivePanelEl.getBoundingClientRect().bottom,
+      speedWrapEl.getBoundingClientRect().bottom,
+      moneyDisplayEl.getBoundingClientRect().bottom,
+      minimapWrapEl.getBoundingClientRect().bottom
+    );
+    wantedBanner.style.top = Math.max(14, rowBottom + 8) + 'px';
+  }
 
   if (btnActionEl) {
     btnActionEl.textContent = (missionState.inRange && missionState.targetAction)
