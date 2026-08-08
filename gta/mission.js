@@ -45,18 +45,18 @@ export const MISSION = {
       onComplete: "activateWaypoint", // main.js setzt Wegpunkt des nächsten Schritts
     },
 
-    // 1 — FIND_CONTACT: zu Lenas Werkstatt fahren, dann reden
+    // 1 — FIND_CONTACT: zu Sofias Werkstatt fahren, dann reden
     {
       id: "FIND_CONTACT",
-      objective: "Fahre zu Lenas Werkstatt",
+      objective: "Fahre zu Sofias Werkstatt",
       waypoint: {
         pos: [-40, 55],          // PLATZHALTER: Südblocks / Werkstatt-Ecke
-        label: "Lenas Werkstatt",
+        label: "Sofias Werkstatt",
         color: "#ffcc00",
       },
       triggerRadius: 6,
       action: ACTION.TALK,        // Kontext-Button "F" zeigt "Reden"
-      dialog: "talk_lena",        // startet beim Betreten + F
+      dialog: "talk_sofia",       // startet beim Betreten + F
     },
 
     // 2 — GO_TO_TARGET: zum Wohnblock am Kanal
@@ -114,7 +114,7 @@ export const MISSION = {
   // Endzustände
   win: {
     title: "Auftrag erfüllt",
-    subtitle: "+$300 — Willkommen zurück, Marek.",
+    subtitle: "+$300 — Willkommen zurück, Marco.",
     restartLabel: "Neue Nacht",
   },
   fail: {
@@ -130,41 +130,41 @@ export const DIALOGS = {
   call_dragan: {
     speaker: "Anruf",
     lines: [
-      { speaker: "Dragan", text: "Marek. Ein Kurier namens Vess ist mit einem Koffer abgehauen." },
-      { speaker: "Dragan", text: "Find ihn. Hol den Koffer. Keine Zeugen." },
-      { speaker: "Marek", text: "Und mein Schnitt?" },
-      { speaker: "Dragan", text: "Deine Schulden schrumpfen. Fahr los." },
+      { speaker: "Vincent", text: "Marco. Ein Kurier namens Jack ist mit einem Koffer abgehauen." },
+      { speaker: "Vincent", text: "Find ihn. Hol den Koffer. Keine Zeugen." },
+      { speaker: "Marco", text: "Und mein Schnitt?" },
+      { speaker: "Vincent", text: "Deine Schulden schrumpfen. Fahr los." },
     ],
   },
 
-  talk_lena: {
-    speaker: "Lena",
+  talk_sofia: {
+    speaker: "Sofia",
     lines: [
-      { speaker: "Lena", text: "Marek Sokol. Dachte, du fährst nicht mehr für Dragan." },
-      { speaker: "Marek", text: "Wo ist Vess?" },
-      { speaker: "Lena", text: "Alter Wohnblock am Kanal. Was ist im Koffer?" },
-      { speaker: "Marek", text: "Nichts, das dich was angeht." },
-      { speaker: "Lena", text: "Dann viel Glück. Du wirst es brauchen." },
+      { speaker: "Sofia", text: "Marco Reyes. Dachte, du fährst nicht mehr für Vincent." },
+      { speaker: "Marco", text: "Wo ist Jack?" },
+      { speaker: "Sofia", text: "Alter Wohnblock am Kanal. Was ist im Koffer?" },
+      { speaker: "Marco", text: "Nichts, das dich was angeht." },
+      { speaker: "Sofia", text: "Dann viel Glück. Du wirst es brauchen." },
     ],
   },
 
   grab_scene: {
     speaker: "",
     lines: [
-      { speaker: "Marek", text: "Da ist er." },
-      { speaker: "Vess", text: "Nicht der Koffer — du weißt nicht, was du da tust!" },
+      { speaker: "Marco", text: "Da ist er." },
+      { speaker: "Jack", text: "Nicht der Koffer — du weißt nicht, was du da tust!" },
       { speaker: "", text: "Alarm. Blaulicht springt an." },
     ],
   },
 
   deliver_twist: {
-    speaker: "Dragan",
+    speaker: "Vincent",
     lines: [
-      { speaker: "Dragan", text: "Sauber gefahren." },
+      { speaker: "Vincent", text: "Sauber gefahren." },
       { speaker: "", text: "Er öffnet den Koffer. Kein Geld." },
-      { speaker: "Dragan", text: "Namen. Eine Liste. Informanten." },
-      { speaker: "Marek", text: "Vess wollte aussteigen." },
-      { speaker: "Dragan", text: "Jetzt kann er das nicht mehr. Das war deine Bewerbung, Marek." },
+      { speaker: "Vincent", text: "Namen. Eine Liste. Informanten." },
+      { speaker: "Marco", text: "Jack wollte aussteigen." },
+      { speaker: "Vincent", text: "Jetzt kann er das nicht mehr. Das war deine Bewerbung, Marco." },
     ],
   },
 };

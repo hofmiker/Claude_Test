@@ -6,7 +6,10 @@ https://hofmiker.github.io/Claude_Test/gta/
 ## Dateien
 - `index.html` — Shell/UI
 - `main.js` — Fahrphysik, Kamera, Rendering, Input, HUD
-- `mission.js` — Missions-/Dialogsystem
+- `mission.js` — Missions-/Dialogsystem. Figuren: Marco (Spieler), Vincent
+  (Auftraggeber, nur per Anruf), Sofia (Werkstatt-Kontakt) und Jack (Kurier)
+  — bewusst europäisch/US-klingende Namen statt der ursprünglichen
+  Marek/Dragan/Lena/Vess.
 - `vendor/three.module.min.js` — Three.js, lokal vendored (ES-Modul)
 - `vendor/fonts/bebas-neue-400.woff2` — Bebas Neue, lokal vendored via
   `npm pack @fontsource/bebas-neue` (npm-Registry ist in der Sandbox
@@ -102,16 +105,16 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   oben) ist ein echter Nachrichtenverlauf statt einer einzelnen Box, die
   ihren Text überschreibt — jede Zeile ist eine eigene `.dchat-row` mit
   Sprechblase, per JS erzeugt (`pushDialogRow()` in `main.js`), neueste
-  unten. Marek (Spieler) sitzt rechts in Pink; jede andere benannte Figur
-  hat ihre eigene feste Farbe (`SPEAKER_STYLE`-Map: Dragan Blau, Lena Lila,
-  Vess Orange, unbekannte Sprecher Grau als Fallback) und sitzt links;
-  namenlose Regie-/Erzählzeilen (`speaker: ""`) sind zentriert und ohne
-  Blasenhintergrund. Bubble-Hintergründe sind bewusst nahezu deckend
-  (0.85 Alpha, nach zwei Runden "immer noch zu transparent"-Feedback
-  deutlich höher als die ursprünglichen 0.10–0.34) — jede Blase ist ein
-  dunkel getönter, farbiger Kartenhintergrund statt eines durchsichtigen
-  Farbstichs, damit der Text auch über einer belebten 3D-Szene klar lesbar
-  bleibt. Nur die letzten
+  unten. Marco (Spieler) sitzt rechts in Pink; jede andere benannte Figur
+  hat ihre eigene feste Farbe (`SPEAKER_STYLE`-Map: Vincent Blau, Sofia
+  Lila, Jack Orange, unbekannte Sprecher Grau als Fallback) und sitzt
+  links; namenlose Regie-/Erzählzeilen (`speaker: ""`) sind zentriert und
+  ohne Blasenhintergrund. Bubble-Hintergründe sind bewusst nahezu deckend
+  (0.95 Alpha, nach mehreren Runden "immer noch zu transparent"-Feedback
+  deutlich höher als die ursprünglichen 0.10–0.34, dann 0.75–0.85) — jede
+  Blase ist ein dunkel getönter, farbiger Kartenhintergrund statt eines
+  durchsichtigen Farbstichs, damit der Text auch über einer belebten
+  3D-Szene klar lesbar bleibt. Nur die letzten
   `DIALOG_HISTORY_MAX` (3) Zeilen bleiben sichtbar; die zwei davor
   sichtbaren dimmen sanft (0.78 / 0.58 Opacity, bewusst hoch gehalten,
   damit die Historie lesbar bleibt statt auszubleichen). `#dialogBox` ist
@@ -129,12 +132,35 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   Bildschirmrand entfernt. Der "Weiter"-Text-Button ist einem kleinen
   runden Pfeil-Button (`#dialogNextBtn`, reine CSS-Form) gewichen, der als
   eigene Zeile immer unter der neuesten Nachricht sitzt.
+- **Tippen zum Weiterblättern:** die ganze Box, nicht nur der 32px-Pfeil,
+  ist der Tap-Ziel-Bereich (`#dialogBox` hatte `pointer-events: none` mit
+  nur `#dialogNextRow.show` als Ausnahme — ein Tippen auf eine Sprechblase
+  fiel also wortlos durch zur Canvas darunter und tat nichts). Ein einzelner
+  `pointerdown`-Listener auf `dialogBox` selbst ruft jetzt `advanceDialogLine()`
+  auf, der alte separate Klick-Listener auf `#dialogNextBtn` wurde entfernt
+  (sonst hätte ein Tap auf den Pfeil doppelt ausgelöst — einmal per eigenem
+  Klick, einmal durchs Hochblubbern zur Box). Der Pfeil bleibt als optischer
+  Hinweis stehen, ist aber nicht mehr der einzige funktionierende Bereich —
+  wiederholtes Daneben-Tippen las sich vorher wie "der Pfeil geht nur ganz
+  am Ende" bzw. "der Chat läuft von allein durch", war aber ein zu kleines
+  Tap-Ziel plus tote Fläche drumherum.
 - **Spielfigur-Farbe:** trägt ein einheitliches Outfit (Hemd/Hose/Schuhe
   alle in Pink, `PLAYER_PALETTE` in `main.js`) statt drei verschiedener
   Farbtöne — dadurch sofort von Passanten (`createPedMesh`, zufällige
-  Hemdfarbe) und benannten Missions-NPCs (`NPC_BY_STEP`, jeweils eigene
-  Palette) unterscheidbar, die weiterhin ihre eigenen, unveränderten
-  Farbschemata behalten.
+  Hemdfarbe) und benannten Missions-NPCs (`NPC_BY_STEP`) unterscheidbar.
+  Jeder benannte NPC trägt jetzt die Akzentfarbe seines eigenen
+  `SPEAKER_STYLE`-Bordertons als Hemdfarbe (Sofia Lila `0xa05ae6`, Jack
+  Orange `0xffaa28`) — dieselbe Person hat dadurch überall (Chat-Blase,
+  Minimap-Tint, Charaktermodell) dieselbe Farbe statt einer beliebigen
+  eigenen Palette. Weiblich markierte Charaktere (`palette.female: true`,
+  aktuell Sofia) bekommen in `createPlayerMesh()` zwei zusätzliche
+  Silhouetten-Merkmale statt nur einer Farbänderung — ein langer Pferdeschwanz
+  (schmaler Kegel, der vom Hinterkopf den Rücken runterhängt) und einen
+  ausgestellten Rock anstelle der geraden Hüft-/Hosen-Form (gleicher
+  Taillen-Ansatzpunkt wie beim männlichen Zylinder, aber breiter werdend
+  nach unten statt gerade) — beide zusammen lesen sich auf dieser
+  Low-Poly-Auflösung eindeutig als weiblich, eine reine Farb- oder
+  Proportionsänderung allein wäre zu subtil gewesen.
 - **Minimap:** Spieler-Pfeil ist größer, Pink statt Rot und mit weißem
   Outline und wird **nach** `mmCtx.restore()` in Schirm-Koordinaten
   gezeichnet (`cx,cy`) statt davor in den lokalen Karten-Koordinaten — die
@@ -150,7 +176,16 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   Auto (`playerCar`, wenn `!occupied`) bekommt jetzt ebenfalls einen
   Pink-Marker — vorher komplett unsichtbar auf der Karte, da es (anders als
   Fahrzeuge, die man kommandiert und wieder verlässt) nie in `trafficCars`
-  landet.
+  landet. Das aktuelle Missionsziel sendet zusätzlich zwei auseinanderlaufende,
+  ausblassende Ring-Pulse aus (`hexToRgba()` + zwei phasenversetzte
+  `Math.arc`-Kreise in `drawMinimap()`) statt nur der vorherigen leichten
+  Grow/Shrink-Pulsierung des vollen Punkts — liest sich deutlich mehr als
+  "hier ist etwas" (Radar-Ping-Optik) als eine reine Größenänderung. Der
+  Zielpunkt selbst wird schon seit der vorigen Runde an den Kartenrand
+  geklemmt statt zu verschwinden, wenn er außerhalb der sichtbaren
+  90-Einheiten-Reichweite liegt (`edge = w/2 - 16`, Punkt gleitet am Rand
+  entlang in Zielrichtung) — das deckt die "Richtungsanzeige, wenn der Punkt
+  von der Karte verschwindet"-Anforderung bereits ab, ohne zusätzlichen Code.
 - **Vollbild:** `⛶ Vollbild`-Button im Einstellungs-Menü (Zahnrad) schaltet
   per Fullscreen API auf `document.documentElement` um (Pattern aus
   `starship-launch` übernommen), inkl. `webkit`-präfixtem Fallback und

@@ -286,7 +286,7 @@
      independent of #hud (see body.dialog-active below) so it can be shown
      on its own during the intro. Each line is its own row/bubble, newest
      at the bottom; older ones stay visible but dim as new ones arrive,
-     instead of one box overwriting its own text each time. Marek (the
+     instead of one box overwriting its own text each time. Marco (the
      player) is pink and sits on the right; every other speaker gets their
      own color (SPEAKER_STYLE in main.js) and sits on the left; narration
      (no speaker) is centered and bubble-less. Anchored by BOTTOM (not top)
@@ -303,7 +303,14 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    pointer-events: none;
+    /* the whole box (not just the tiny arrow button) is a tap target - see
+       main.js's dialogBox pointerdown listener. It used to be pointer-events:
+       none with only the 32px arrow opted back in, so a tap anywhere on a
+       chat bubble silently fell through to the canvas underneath and did
+       nothing - easy to miss on mobile, and repeated blind taps that
+       eventually landed on the tiny button read as "the arrow only works at
+       the very end" / "it plays through by itself". */
+    pointer-events: auto;
     /* #dialogBox is a sibling of #hud, not a child - it doesn't inherit
        #hud's color:#fff, so message text (which has no color of its own,
        unlike the explicitly-colored speaker name) was rendering in the
@@ -328,7 +335,7 @@
     min-height: 0;
     overflow: hidden;
     max-width: 78%;
-    background: rgba(35,37,42,0.85);
+    background: rgba(30,32,36,0.95);
     border: 1px solid rgba(255,255,255,0.35);
     border-radius: 16px;
     border-bottom-left-radius: 4px;

@@ -1073,6 +1073,17 @@ function createPlayerMesh(palette) {
   hSideL.scale.set(0.54, 0.72, 0.76); hSideL.position.set(-0.124, 0.042, -0.054); headJoint.add(hSideL);
   const hSideR = hSideL.clone(); hSideR.position.x = 0.124; headJoint.add(hSideR);
 
+  // female-flagged characters get one clear, unmistakable silhouette cue
+  // instead of relying on subtler proportion tweaks that would barely read
+  // at this low-poly scale: a long ponytail down the back, plus a flared
+  // skirt instead of straight hips/pants further below.
+  if (PC.female) {
+    const ponytail = charCyl(0.052, 0.020, 0.36, PC.hair, 6);
+    ponytail.position.set(0, -0.19, -0.150);
+    ponytail.rotation.x = 0.32;
+    headJoint.add(ponytail);
+  }
+
   function makeEye(side) {
     const e = new THREE.Mesh(new THREE.SphereGeometry(0.024, 5, 4), flatMat(0x1A0F08));
     e.scale.set(1.2, 0.9, 0.6); e.position.set(side * 0.067, 0.030, 0.148); return e;
@@ -1109,7 +1120,16 @@ function createPlayerMesh(palette) {
   const hipsGrp = new THREE.Group();
   hipsGrp.position.y = -0.34;
   torso.add(hipsGrp);
-  hipsGrp.add(charCyl(0.23, 0.21, 0.19, PC.pants));
+  if (PC.female) {
+    // flared skirt hem instead of straight hips/shorts - same waist anchor
+    // (top edge) as the male cylinder below so it attaches at the same
+    // height, just flaring outward and hanging lower over the thighs
+    const skirt = charCyl(0.20, 0.37, 0.34, PC.pants);
+    skirt.position.y = -0.075;
+    hipsGrp.add(skirt);
+  } else {
+    hipsGrp.add(charCyl(0.23, 0.21, 0.19, PC.pants));
+  }
 
   const lHip = charBone(hipsGrp, -0.13, -0.095, 0, 0.10, 0.088, 0.38, PC.pants);
   const lKnee = charBone(lHip, 0, -0.38, 0, 0.088, 0.075, 0.35, PC.pants);
@@ -1574,10 +1594,12 @@ const missionState = {
 };
 
 // people the story mentions are actually standing where the story happens -
-// keyed by step id since mission.js's own shape stays untouched
+// keyed by step id since mission.js's own shape stays untouched. Shirt colors
+// match each character's SPEAKER_STYLE border color so the same person reads
+// as the same color in the chat, on the minimap tint and on their model.
 const NPC_BY_STEP = {
-  FIND_CONTACT: { palette: { shirt: 0xb0405f, pants: 0x2b2116, hair: 0x241a14 }, offset: [1.7, -0.4] },
-  GRAB_ITEM: { palette: { shirt: 0x3a3a3a, pants: 0x1c1c1c, hair: 0x100c0a }, offset: [-1.3, -0.9] },
+  FIND_CONTACT: { palette: { shirt: 0xa05ae6, pants: 0x2b2116, hair: 0x241a14, female: true }, offset: [1.7, -0.4] },
+  GRAB_ITEM: { palette: { shirt: 0xffaa28, pants: 0x1c1c1c, hair: 0x100c0a }, offset: [-1.3, -0.9] },
 };
 
 function clearMissionMarker() {
@@ -2017,21 +2039,24 @@ function showSub(text) {
 subMsgOkBtn.addEventListener('click', hideSub);
 
 // one color per named speaker so the thread reads like a real group chat
-// instead of "pink for me, grey for everyone else" - Marek (the player)
+// instead of "pink for me, grey for everyone else" - Marco (the player)
 // always sits on the right and keeps the pink used across the rest of the
-// UI; every other character gets their own fixed color; narration (no
+// UI; every other character gets their own fixed color (also used to tint
+// their in-world character mesh, see NPC_BY_STEP) so the same color means
+// the same person on the map, on their model and in the chat; narration (no
 // speaker) is centered, bubble-less italic text.
-// near-opaque on purpose (0.75-0.85 alpha, not the 0.2-0.3 from earlier
-// rounds) - anything more see-through than that made the text hard to read
-// against a busy, moving 3D scene, which is the whole point of a bubble
-// background in the first place.
+// near-opaque on purpose (0.95 alpha, up from 0.75-0.85 after repeated
+// "still too transparent" feedback across several rounds) - anything more
+// see-through than that made the text hard to read against a busy, moving
+// 3D scene, which is the whole point of a bubble background in the first
+// place.
 const SPEAKER_STYLE = {
-  Marek: { bubble: 'rgba(210,20,110,0.85)', border: 'rgba(255,46,136,0.9)', name: '#ffb3d9' },
-  Dragan: { bubble: 'rgba(18,70,150,0.85)', border: 'rgba(32,140,255,0.85)', name: '#a9d4ff' },
-  Lena: { bubble: 'rgba(85,40,140,0.85)', border: 'rgba(160,90,230,0.85)', name: '#dcc4ff' },
-  Vess: { bubble: 'rgba(150,90,10,0.85)', border: 'rgba(255,170,40,0.85)', name: '#ffdfa3' },
+  Marco: { bubble: 'rgba(200,15,105,0.95)', border: 'rgba(255,46,136,0.95)', name: '#ffb3d9' },
+  Vincent: { bubble: 'rgba(15,60,135,0.95)', border: 'rgba(32,140,255,0.95)', name: '#a9d4ff' },
+  Sofia: { bubble: 'rgba(80,35,135,0.95)', border: 'rgba(160,90,230,0.95)', name: '#dcc4ff' },
+  Jack: { bubble: 'rgba(140,80,5,0.95)', border: 'rgba(255,170,40,0.95)', name: '#ffdfa3' },
 };
-const DEFAULT_SPEAKER_STYLE = { bubble: 'rgba(35,37,42,0.85)', border: 'rgba(255,255,255,0.35)', name: '#e6e8eb' };
+const DEFAULT_SPEAKER_STYLE = { bubble: 'rgba(30,32,36,0.95)', border: 'rgba(255,255,255,0.35)', name: '#e6e8eb' };
 const DIALOG_HISTORY_MAX = 3;
 const dialogRows = [];
 
@@ -2041,7 +2066,7 @@ function clearDialogHistory() {
 }
 
 function pushDialogRow(line) {
-  const isMe = line.speaker === 'Marek';
+  const isMe = line.speaker === 'Marco';
   const isNarration = !line.speaker;
   const row = document.createElement('div');
   row.className = 'dchat-row' + (isMe ? ' me' : '') + (isNarration ? ' narration' : '');
@@ -2101,7 +2126,14 @@ function showDialogLine() {
   pushDialogRow(line);
   dialogNextRow.classList.add('show');
 }
-dialogNextBtn.addEventListener('click', advanceDialogLine);
+// tap-anywhere-to-continue: bound to the whole box (bubbles included, not
+// just the 32px arrow) so a miss on the small button doesn't read as "the
+// dialog is stuck/broken". A single listener here instead of one on
+// dialogNextBtn too - the button click would otherwise bubble up and fire
+// this same handler a second time for one tap.
+dialogBox.addEventListener('pointerdown', () => {
+  if (missionState.inDialog) advanceDialogLine();
+});
 
 function showEndOverlay(title, subtitle, restartLabel, isWin) {
   endTitleEl.textContent = title;
@@ -2153,6 +2185,11 @@ function resizeMinimap() {
 }
 resizeMinimap();
 
+function hexToRgba(hex, alpha) {
+  const c = new THREE.Color(hex);
+  return `rgba(${Math.round(c.r * 255)}, ${Math.round(c.g * 255)}, ${Math.round(c.b * 255)}, ${alpha})`;
+}
+
 function drawMinimap() {
   const w = minimapCanvas.width, h = minimapCanvas.height;
   mmCtx.clearRect(0, 0, w, h);
@@ -2203,19 +2240,32 @@ function drawMinimap() {
   if (missionState.targetPos) {
     let x = (missionState.targetPos.x - focus.x) * scale;
     let y = (missionState.targetPos.z - focus.z) * scale;
-    // clamp to the rim so far-away targets still show up as a radar blip
+    // clamp to the rim so far-away targets still show up as a radar blip -
+    // this doubles as the "still points the right way once it's off the
+    // map" indicator: the dot never actually leaves the visible circle, it
+    // just slides along the rim in the target's direction.
     const edge = w / 2 - 16;
     const d = Math.hypot(x, y);
     if (d > edge) {
       x = (x / d) * edge;
       y = (y / d) * edge;
     }
-    // big, pulsing marker -- this is the one thing on the map you must not miss
-    const pulse = 1 + Math.sin(elapsed * 4) * 0.18;
     const step = missionState.step;
-    mmCtx.fillStyle = step?.waypoint ? step.waypoint.color : '#ffcc00';
+    const targetColor = step?.waypoint ? step.waypoint.color : '#ffcc00';
+    // radar-ping: two expanding, fading rings looping out from the marker -
+    // reads as "something is here" far more clearly than the previous
+    // plain grow/shrink pulse on the solid dot alone.
+    for (let i = 0; i < 2; i++) {
+      const phase = (elapsed * 0.8 + i * 0.5) % 1;
+      mmCtx.beginPath();
+      mmCtx.arc(x, y, 13 + phase * 24, 0, Math.PI * 2);
+      mmCtx.strokeStyle = hexToRgba(targetColor, (1 - phase) * 0.55);
+      mmCtx.lineWidth = 2;
+      mmCtx.stroke();
+    }
+    mmCtx.fillStyle = targetColor;
     mmCtx.beginPath();
-    mmCtx.arc(x, y, 14 * pulse, 0, Math.PI * 2);
+    mmCtx.arc(x, y, 13, 0, Math.PI * 2);
     mmCtx.fill();
     mmCtx.strokeStyle = '#ffffff';
     mmCtx.lineWidth = 3;
@@ -2511,7 +2561,7 @@ const splashTimer = setTimeout(dismissSplash, 2400);
 
 // ---------- TEMP DEBUG: click/tap logs world [x,z] to console ----------
 // Used to fine-tune the placeholder pos values in mission.js. Remove once done.
-const DEBUG_LOG_COORDS = true;
+const DEBUG_LOG_COORDS = false;
 if (DEBUG_LOG_COORDS) {
   const dbgRay = new THREE.Raycaster();
   const dbgPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
