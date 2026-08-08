@@ -13,6 +13,12 @@
 <style>
   :root {
     color-scheme: dark;
+    /* top-right HUD scales down together on narrow phones instead of the
+       fixed px sizes just getting proportionally more cramped - clamp()
+       keeps a readable floor and caps out at today's sizes on wider
+       screens, so nothing shrinks below legibility or grows past what it
+       already looked like on a tablet/desktop. */
+    --minimap-size: clamp(96px, 26vw, 130px);
   }
   @font-face {
     font-family: 'ViceDisplay';
@@ -69,14 +75,14 @@
   }
   #objectiveText {
     font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
-    font-size: 19px;
+    font-size: clamp(14px, 4.4vw, 19px);
     font-weight: 400;
     letter-spacing: 0.5px;
     line-height: 1.25;
     text-transform: uppercase;
   }
   #objectiveDistance {
-    font-size: 11px;
+    font-size: clamp(9px, 2.6vw, 11px);
     opacity: 0.7;
     margin-top: 2px;
     letter-spacing: 0.5px;
@@ -86,23 +92,24 @@
   #speedWrap {
     position: absolute;
     top: 12px;
-    right: 156px;
+    /* tracks --minimap-size so it never overlaps/gaps as the map scales */
+    right: calc(var(--minimap-size) + 26px);
     text-align: right;
   }
   #speed {
     font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
-    font-size: 32px;
+    font-size: clamp(22px, 7vw, 32px);
     font-weight: 400;
     line-height: 1;
   }
   #speedUnit {
     font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
-    font-size: 12px;
+    font-size: clamp(9px, 2.8vw, 12px);
     opacity: 0.75;
     letter-spacing: 3px;
   }
   #gear {
-    font-size: 11px;
+    font-size: clamp(9px, 2.6vw, 11px);
     opacity: 0.8;
     margin-top: 2px;
   }
@@ -111,7 +118,7 @@
     top: 14px;
     right: 16px;
     font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
-    font-size: 15px;
+    font-size: clamp(12px, 3.5vw, 15px);
     letter-spacing: 1px;
     font-weight: 400;
     color: #7CFC7A;
@@ -121,8 +128,8 @@
     position: absolute;
     top: 30px;
     right: 16px;
-    width: 130px;
-    height: 130px;
+    width: var(--minimap-size);
+    height: var(--minimap-size);
     border-radius: 50%;
     border: 2px solid rgba(255,255,255,0.55);
     box-shadow: 0 0 0 3px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.6);
@@ -142,8 +149,8 @@
     left: 50%;
     transform: translateX(-50%);
     font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
-    font-size: 26px;
-    letter-spacing: 6px;
+    font-size: clamp(18px, 6vw, 26px);
+    letter-spacing: clamp(2px, 1.4vw, 6px);
     color: #ff3b3b;
     background: rgba(20,0,4,0.55);
     border: 1px solid rgba(255,59,59,0.55);

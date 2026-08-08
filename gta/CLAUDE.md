@@ -81,6 +81,18 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
 - **Geld-/Minimap-Ecke:** Geld-Anzeige ist deutlich kleiner (15px statt
   26px), Minimap rückt dadurch enger an die obere rechte Ecke (`top: 30px`
   statt `44px`).
+- **Responsive obere HUD-Reihe:** Ziel-Text/-Distanz, Tacho, Geld,
+  Fahndungs-Banner und die Minimap-Größe selbst nutzen `clamp()` statt
+  fixer `px`-Werte (z. B. `#objectiveText`: `clamp(14px, 4.4vw, 19px)`,
+  Minimap-Durchmesser über `--minimap-size: clamp(96px, 26vw, 130px)` als
+  CSS-Custom-Property in `:root`). Auf schmalen Phones (320–390px) skaliert
+  die ganze obere Reihe spürbar enger, auf Tablets/Desktop bleibt sie exakt
+  bei den bisherigen (Max-)Werten — kein Wert unterschreitet die
+  `clamp()`-Untergrenze, also bleibt alles lesbar statt nur proportional
+  gegen den schmaleren Screen zu schrumpfen. `#speedWrap`s `right`-Position
+  ist an `--minimap-size` gekoppelt (`calc(var(--minimap-size) + 26px)`),
+  damit Tacho und Minimap bei jeder Bildschirmbreite densselben Abstand
+  behalten, statt sich zu überlappen oder auseinanderzudriften.
 - **Notifications:** Fahndungs-Banner hat jetzt einen Hintergrund-Chip statt
   nur Text mit Schatten (deutlich lesbarer über der Szene); die Sub-Toast-
   Meldung (`#subMsg`, z. B. "Eingestiegen") ist größer, hat eine eigene
