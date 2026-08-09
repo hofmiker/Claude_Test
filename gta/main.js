@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import { DISTRICT, ACTION, MISSION, DIALOGS, POLICE, PLAYER_NAME, CITY_STYLE } from './mission.js';
+import { DISTRICT, ACTION, MISSION, DIALOGS, POLICE, PLAYER_NAME, CITY_STYLE, LEVEL_ID } from './mission.js';
 
 /* ------------------------------------------------------------------ *
  * Vice Grid — a GTA1-inspired top-down city driver in simple 3D.
@@ -318,13 +318,12 @@ function blockCenter(i, j) {
 // looked like a workshop or a canal. These cells are skipped in buildBlock()
 // and built by buildLandmarks() instead, at exact coordinates mission.js's
 // waypoints now point at directly.
-// Level 1 landmarks: workshop(2,4), waterfront(5,6), garage(1,1). Level 2
-// ("Coastal Courier") adds villa(5,1), harbor(0,5), pier2(6,2) - both
-// levels' landmarks exist in the shared city at all times regardless of
-// which level is active (they're just scenery; only the active MISSION's
-// waypoints determine which ones actually get visited in a given
-// playthrough), so no per-level conditional world-gen is needed.
-const LANDMARK_CELLS = new Set(['2,4', '5,6', '1,1', '5,1', '0,5', '6,2']);
+// Only Level 1 ("Der Kessel") uses this grid at all - Level 2 ("Coastal
+// Courier") is a completely separate, hand-placed world (see
+// buildCoastalTown() below) with its own roads/buildings/beach, not a
+// re-skin of this grid. buildCity() branches on LEVEL_ID before any of
+// this runs.
+const LANDMARK_CELLS = new Set(['2,4', '5,6', '1,1']);
 
 function buildGround() {
   const groundSize = CITY_SIZE + ROAD_WIDTH * 6;
@@ -367,6 +366,31 @@ function addTree(x, z) {
   leaves.position.set(x, 3.1, z);
   leaves.castShadow = true;
   cityRoot.add(trunk, leaves);
+}
+
+// a distinct palm silhouette for the Coastal Courier beach - tall slender
+// leaning trunk + a radial cluster of flattened frond wedges, same flat-
+// shaded box/cylinder primitives as everywhere else, just a new arrangement
+function addPalm(x, z) {
+  const group = new THREE.Group();
+  const lean = rand(-0.12, 0.12);
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.34, 5.2, 6), flatMat(0x8a6b45));
+  trunk.position.y = 2.6;
+  trunk.rotation.z = lean;
+  trunk.castShadow = true;
+  group.add(trunk);
+  const frondCount = 6;
+  for (let i = 0; i < frondCount; i++) {
+    const angle = (i / frondCount) * Math.PI * 2;
+    const frond = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.6, 4), flatMat(0x3f8f3a));
+    frond.position.set(Math.sin(lean) * 5.2 + Math.cos(angle) * 1.1, 5.2, Math.sin(angle) * 1.1);
+    frond.rotation.x = Math.PI / 2.1;
+    frond.rotation.z = angle;
+    frond.castShadow = true;
+    group.add(frond);
+  }
+  group.position.set(x, 0, z);
+  cityRoot.add(group);
 }
 
 function buildBlock(i, j) {
@@ -476,9 +500,16 @@ const LANDMARK_POS = {
   workshop: blockCenter(2, 4),
   waterfront: blockCenter(5, 6),
   garage: blockCenter(1, 1),
-  villa: blockCenter(5, 1),
-  harbor: blockCenter(0, 5),
-  pier2: blockCenter(6, 2),
+};
+
+// Coastal Courier's own hand-placed world - fixed absolute coordinates, no
+// grid math at all (see buildCoastalTown() below). mission.js's Level 2
+// waypoints are set to these same numbers.
+const COASTAL_POS = {
+  villa: { x: -70, z: -110 },
+  harbor: { x: -145, z: 90 },
+  garage: { x: 10, z: -50 },
+  pierBase: { x: 110, z: 87 }, // where the finale pier deck starts, at the promenade edge
 };
 
 function buildWorkshop({ x, z }) {
@@ -708,73 +739,215 @@ function buildHarbor({ x, z }) {
   cityRoot.add(craneArm);
 }
 
-function buildPier2({ x, z }) {
-  // small art-deco gallery, offset to one side of the reserved cell
-  const gx = x - 10, gz = z - 5;
-  const gw = 14, gd = 10, gh = 8;
-  const gallery = new THREE.Mesh(new THREE.BoxGeometry(gw, gh, gd), flatMat(0xe8ddc0));
-  gallery.position.set(gx, gh / 2, gz);
-  gallery.castShadow = true;
-  gallery.receiveShadow = true;
-  cityRoot.add(gallery);
-  const galleryRoof = new THREE.Mesh(new THREE.BoxGeometry(gw * 1.03, 0.5, gd * 1.03), flatMat(0xc9a24b));
-  galleryRoof.position.set(gx, gh + 0.25, gz);
-  cityRoot.add(galleryRoof);
-  buildingColliders.push({ minX: gx - gw / 2, maxX: gx + gw / 2, minZ: gz - gd / 2, maxZ: gz + gd / 2 });
-  sidewalkCells.push({ x: gx, z: gz, half: (gw + gd) / 4 });
-
-  // a small, fully local pool + pier (unlike the Level 1 canal, this one
-  // doesn't need to reach the city edge, so no WORLD_BOUND involvement)
-  const px = x + 7, pz = z + 5;
-  const waterMat = new THREE.MeshStandardMaterial({ color: 0x2a6a86, roughness: 0.3, metalness: 0.15, flatShading: true });
-  const poolMinX = px - 9, poolMaxX = px + 9, poolMinZ = pz - 7, poolMaxZ = pz + 7;
-  const pool = new THREE.Mesh(new THREE.PlaneGeometry(poolMaxX - poolMinX, poolMaxZ - poolMinZ), waterMat);
-  pool.rotation.x = -Math.PI / 2;
-  pool.position.set(px, 0.05, pz);
-  pool.receiveShadow = true;
-  cityRoot.add(pool);
-
-  const pierW = 4, pierNearZ = poolMinZ, pierFarZ = poolMinZ + 11;
-  const deckLen = pierFarZ - pierNearZ;
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(pierW, 0.35, deckLen), flatMat(0x8a6a48));
-  deck.position.set(px, 0.28, pierNearZ + deckLen / 2);
-  deck.receiveShadow = true;
-  cityRoot.add(deck);
-  for (let p = 0; p <= 3; p++) {
-    const pzPost = pierNearZ + (deckLen / 3) * p;
-    for (const side of [-1, 1]) {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.4, 6), flatMat(0x6b4a30));
-      post.position.set(px + side * (pierW / 2 - 0.25), -0.25, pzPost);
-      cityRoot.add(post);
-    }
-  }
-  for (const side of [-1, 1]) {
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, deckLen), flatMat(0x5a3f28));
-    rail.position.set(px + side * (pierW / 2 - 0.08), 0.75, pierNearZ + deckLen / 2);
-    cityRoot.add(rail);
-  }
-  waterColliders.push(
-    { minX: poolMinX, maxX: px - pierW / 2, minZ: poolMinZ, maxZ: poolMaxZ },
-    { minX: px + pierW / 2, maxX: poolMaxX, minZ: poolMinZ, maxZ: poolMaxZ },
-    { minX: poolMinX, maxX: poolMaxX, minZ: pierFarZ, maxZ: poolMaxZ }
-  );
-}
-
 function buildLandmarks() {
   buildWorkshop(LANDMARK_POS.workshop);
   buildWaterfront(LANDMARK_POS.waterfront);
   buildParkingGarage(LANDMARK_POS.garage);
-  buildVilla(LANDMARK_POS.villa);
-  buildHarbor(LANDMARK_POS.harbor);
-  buildPier2(LANDMARK_POS.pier2);
+}
+
+// ============================================================================
+// Level 2 ("Coastal Courier") — a completely separate, hand-placed world,
+// not a re-skin of the grid above. Every road/building/tree/umbrella below
+// sits at an explicit, chosen coordinate (no Math.random() driving layout
+// decisions, no loop over a uniform grid) so the town is the same every
+// time you play it, the way a real level would be authored. It still runs
+// on the exact same ground-plane/collision/traffic/pedestrian/minimap code
+// as Level 1 - only the data fed into that code is bespoke.
+// ============================================================================
+
+const COASTAL_ROADS = { x: [-120, -20, 80], z: [-130, -90, -10, 70] };
+// full water body along the south edge; OCEAN_NEAR_Z..FAR_Z is solid
+// (impassable) everywhere except the gap the finale pier carves out
+const OCEAN_NEAR_Z = 130, OCEAN_FAR_Z = 175, OCEAN_MIN_X = -170, OCEAN_MAX_X = 170;
+const BEACH_NEAR_Z = 100, BEACH_FAR_Z = OCEAN_NEAR_Z;
+// the nice boardwalk only runs along the beach/cafe stretch, not past the
+// harbor's industrial patch further west
+const PROMENADE_NEAR_Z = 87, PROMENADE_FAR_Z = BEACH_NEAR_Z;
+const PROMENADE_MIN_X = -60, PROMENADE_MAX_X = OCEAN_MAX_X;
+
+function buildCoastalGround() {
+  const groundSize = CITY_SIZE + ROAD_WIDTH * 6;
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(groundSize, groundSize), flatMat(COLORS.road));
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  cityRoot.add(ground);
+
+  // hand-picked street centerlines instead of a uniform grid loop - same
+  // stripe rendering as buildGround(), just fed COASTAL_ROADS' coordinates
+  for (const coord of COASTAL_ROADS.z) {
+    roadLines.z.push(coord);
+    const stripe = new THREE.Mesh(new THREE.PlaneGeometry(groundSize, 0.35), flatMat(COLORS.roadLine));
+    stripe.rotation.x = -Math.PI / 2;
+    stripe.position.set(0, 0.02, coord);
+    cityRoot.add(stripe);
+  }
+  for (const coord of COASTAL_ROADS.x) {
+    roadLines.x.push(coord);
+    const stripe = new THREE.Mesh(new THREE.PlaneGeometry(0.35, groundSize), flatMat(COLORS.roadLine));
+    stripe.rotation.x = -Math.PI / 2;
+    stripe.position.set(coord, 0.02, 0);
+    cityRoot.add(stripe);
+  }
+}
+
+function buildOceanAndBeach() {
+  const sand = new THREE.Mesh(
+    new THREE.PlaneGeometry(OCEAN_MAX_X - OCEAN_MIN_X, BEACH_FAR_Z - BEACH_NEAR_Z),
+    flatMat(0xe8d19a)
+  );
+  sand.rotation.x = -Math.PI / 2;
+  sand.position.set(0, 0.015, (BEACH_NEAR_Z + BEACH_FAR_Z) / 2);
+  sand.receiveShadow = true;
+  cityRoot.add(sand);
+  sidewalkCells.push({ x: -60, z: (BEACH_NEAR_Z + BEACH_FAR_Z) / 2, half: 55 });
+  sidewalkCells.push({ x: 60, z: (BEACH_NEAR_Z + BEACH_FAR_Z) / 2, half: 55 });
+
+  const promenade = new THREE.Mesh(
+    new THREE.PlaneGeometry(PROMENADE_MAX_X - PROMENADE_MIN_X, PROMENADE_FAR_Z - PROMENADE_NEAR_Z),
+    flatMat(0xd8cdb8)
+  );
+  promenade.rotation.x = -Math.PI / 2;
+  promenade.position.set((PROMENADE_MIN_X + PROMENADE_MAX_X) / 2, 0.02, (PROMENADE_NEAR_Z + PROMENADE_FAR_Z) / 2);
+  promenade.receiveShadow = true;
+  cityRoot.add(promenade);
+  sidewalkCells.push({ x: (PROMENADE_MIN_X + PROMENADE_MAX_X) / 2, z: (PROMENADE_NEAR_Z + PROMENADE_FAR_Z) / 2, half: (PROMENADE_MAX_X - PROMENADE_MIN_X) / 2 });
+
+  const waterMat = new THREE.MeshStandardMaterial({ color: 0x2a6a86, roughness: 0.3, metalness: 0.15, flatShading: true });
+  const ocean = new THREE.Mesh(
+    new THREE.PlaneGeometry(OCEAN_MAX_X - OCEAN_MIN_X, OCEAN_FAR_Z - OCEAN_NEAR_Z),
+    waterMat
+  );
+  ocean.rotation.x = -Math.PI / 2;
+  ocean.position.set(0, 0.05, (OCEAN_NEAR_Z + OCEAN_FAR_Z) / 2);
+  ocean.receiveShadow = true;
+  cityRoot.add(ocean);
+}
+
+// the finale pier: a long deck reaching from the promenade out into open
+// ocean, carving its own gap into the otherwise solid water collider -
+// same "deck bridges the water, open water on either side blocks movement"
+// pattern as Level 1's canal pier, just much longer for a proper "walk out
+// over the sea" finale beat instead of a small local pond.
+function buildBeachPier({ x, z }) {
+  const pierW = 6, pierFarZ = 145;
+  const deckLen = pierFarZ - z;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(pierW, 0.4, deckLen), flatMat(0x8a6a48));
+  deck.position.set(x, 0.3, z + deckLen / 2);
+  deck.receiveShadow = true;
+  cityRoot.add(deck);
+  const postCount = 6;
+  for (let p = 0; p <= postCount; p++) {
+    const pz = z + (deckLen / postCount) * p;
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 2.2, 6), flatMat(0x5a3f28));
+      post.position.set(x + side * (pierW / 2 - 0.3), -0.4, pz);
+      cityRoot.add(post);
+    }
+  }
+  for (const side of [-1, 1]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.75, deckLen), flatMat(0x4a3320));
+    rail.position.set(x + side * (pierW / 2 - 0.1), 0.85, z + deckLen / 2);
+    cityRoot.add(rail);
+  }
+  waterColliders.push(
+    { minX: OCEAN_MIN_X, maxX: x - pierW / 2, minZ: OCEAN_NEAR_Z, maxZ: OCEAN_FAR_Z },
+    { minX: x + pierW / 2, maxX: OCEAN_MAX_X, minZ: OCEAN_NEAR_Z, maxZ: OCEAN_FAR_Z }
+  );
+}
+
+function buildCafe({ x, z }) {
+  const w = 10, d = 8, h = 6;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), flatMat(0xf2e6cf));
+  body.position.set(x, h / 2, z);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  cityRoot.add(body);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 1.05, 0.4, d * 1.05), flatMat(0xb35a2e));
+  roof.position.set(x, h + 0.2, z);
+  cityRoot.add(roof);
+  buildingColliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  sidewalkCells.push({ x, z, half: (w + d) / 4 });
+
+  // outdoor seating facing the promenade/beach (+z side)
+  for (const dx of [-2.5, 2.5]) {
+    const table = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.7, 8), flatMat(0x3a2f28));
+    table.position.set(x + dx, 0.35, z + d / 2 + 2.5);
+    table.castShadow = true;
+    cityRoot.add(table);
+    addBeachUmbrella(x + dx, z + d / 2 + 2.5, 0xdedede, 2.0);
+  }
+}
+
+function addBeachUmbrella(x, z, color, scale = 1) {
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06 * scale, 0.06 * scale, 2.0 * scale, 6), flatMat(0xdedede));
+  pole.position.set(x, 1.0 * scale, z);
+  pole.castShadow = true;
+  cityRoot.add(pole);
+  const canopy = new THREE.Mesh(new THREE.ConeGeometry(1.3 * scale, 0.7 * scale, 8), flatMat(color));
+  canopy.position.set(x, 2.1 * scale, z);
+  canopy.castShadow = true;
+  cityRoot.add(canopy);
+}
+
+// purely decorative horizon landmark, sitting well past the ocean collider
+// (never physically reachable) - two towers + a suspension-cable silhouette
+// in International Orange, unmistakable even at this low-poly scale
+function buildGoldenGateBridge() {
+  const deckY = 22, towerH = 42, spanHalf = 62, z = 168;
+  const color = 0xc1440e;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(spanHalf * 2 + 20, 1.2, 6), flatMat(color));
+  deck.position.set(0, deckY, z);
+  cityRoot.add(deck);
+  for (const side of [-1, 1]) {
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(2.2, towerH, 4), flatMat(color));
+    tower.position.set(side * spanHalf, towerH / 2, z);
+    cityRoot.add(tower);
+    const crossbeam = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.2, 4.4), flatMat(color));
+    crossbeam.position.set(side * spanHalf, towerH * 0.7, z);
+    cityRoot.add(crossbeam);
+    // cable silhouette: a shallow V of thin boxes from tower top down to the
+    // deck at mid-span and back up to the next tower
+    const cableSeg = new THREE.Mesh(new THREE.BoxGeometry(0.35, spanHalf * 0.9, 0.35), flatMat(0x8a8a8a));
+    cableSeg.position.set(side * spanHalf * 0.5, deckY + spanHalf * 0.22, z);
+    cableSeg.rotation.z = side * 0.62;
+    cityRoot.add(cableSeg);
+  }
+}
+
+function buildCoastalTown() {
+  buildCoastalGround();
+  buildOceanAndBeach();
+
+  buildVilla(COASTAL_POS.villa);
+  buildHarbor(COASTAL_POS.harbor);
+  buildParkingGarage(COASTAL_POS.garage);
+  buildBeachPier(COASTAL_POS.pierBase);
+  buildGoldenGateBridge();
+
+  buildCafe({ x: 40, z: 80 });
+  buildCafe({ x: 150, z: 80 });
+
+  const palmSpots = [
+    [-40, 110], [0, 116], [50, 108], [90, 119], [130, 105], [20, 126], [70, 121], [140, 115],
+  ];
+  for (const [x, z] of palmSpots) addPalm(x, z);
+
+  const umbrellaSpots = [
+    [10, 112], [16, 110], [60, 116], [66, 113], [100, 109], [105, 112],
+  ];
+  for (const [x, z] of umbrellaSpots) addBeachUmbrella(x, z, pick([0xd6473c, 0xf0c53a, 0x3a8fd6]));
 }
 
 function buildCity() {
-  buildGround();
-  for (let i = 0; i < GRID_COUNT; i++) {
-    for (let j = 0; j < GRID_COUNT; j++) buildBlock(i, j);
+  if (LEVEL_ID === 'der_kessel') {
+    buildGround();
+    for (let i = 0; i < GRID_COUNT; i++) {
+      for (let j = 0; j < GRID_COUNT; j++) buildBlock(i, j);
+    }
+    buildLandmarks();
+  } else {
+    buildCoastalTown();
   }
-  buildLandmarks();
   addStreetLamps();
 }
 buildCity();
@@ -1950,7 +2123,7 @@ const NPC_BY_STEP = {
   // so both can share this one dict without collisions.
   L2_VILLA: { palette: { shirt: 0x28be96, pants: 0x1c2b28, hair: 0x2a2018 }, offset: [1.5, -0.5] },
   L2_HARBOR: { palette: { shirt: 0xffaa28, pants: 0x2a2a2a, hair: 0x100c0a }, offset: [-1.3, -0.9] },
-  L2_PIER: { palette: { shirt: 0xffe6bf, pants: 0xffe6bf, hair: 0x5c3a22, female: true }, offset: [0, 9] },
+  L2_PIER: { palette: { shirt: 0xffe6bf, pants: 0xffe6bf, hair: 0x5c3a22, female: true }, offset: [0, 52] },
 };
 
 function clearMissionMarker() {

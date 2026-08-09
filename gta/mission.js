@@ -5,11 +5,13 @@
 // WICHTIG — KOORDINATEN:
 //   Alle "pos"-Werte sind [x, z] in Weltkoordinaten (Boden-Ebene, y kommt aus deinem Terrain).
 //   Keine Platzhalter — jeder Wegpunkt zeigt exakt auf eines der handgebauten
-//   Wahrzeichen in main.js (LANDMARK_POS), damit "Sofias Werkstatt"/"Villa
-//   Malibu"/etc. auch wirklich wie die beschriebene Location aussehen statt
-//   auf einem zufälligen Standardgebäude zu landen. Ändert sich main.js'
-//   LANDMARK_CELLS/blockCenter()-Geometrie, müssen diese Zahlen neu
-//   berechnet werden.
+//   Wahrzeichen in main.js, damit "Sofias Werkstatt"/"Villa Malibu"/etc.
+//   auch wirklich wie die beschriebene Location aussehen statt auf einem
+//   zufälligen Standardgebäude zu landen. Level 1 nutzt main.js'
+//   LANDMARK_POS (Positionen aus dem Grid via blockCenter()); Level 2 hat
+//   sein eigenes COASTAL_POS mit fest gewählten, grid-unabhängigen
+//   Koordinaten (siehe buildCoastalTown() in main.js). Ändert sich die
+//   jeweilige Geometrie, müssen diese Zahlen neu berechnet werden.
 //   triggerRadius ist der Radius in Weltmetern, ab dem die Zone auslöst.
 //
 // MEHRERE LEVEL:
@@ -238,7 +240,10 @@ const DISTRICT_COASTAL = {
   weather: "clear",
   fogColor: "#e8b573",        // warmes Sonnenuntergangs-Orange statt Nacht-Navy
   fogNear: 30,
-  fogFar: 170,
+  // höher als Level 1s 140 - die Golden Gate Bridge steht als Horizont-
+  // Landmark bei z=168 (main.js: buildGoldenGateBridge()), bei 170 wäre sie
+  // fast komplett im Nebel verschwunden.
+  fogFar: 220,
 };
 
 // Helle, niedrige Villen-Palette statt Level 1s dunkler, bunter Downtown-
@@ -278,7 +283,7 @@ const MISSION_COASTAL = {
       id: "L2_VILLA",
       objective: "Fahre zur Villa in Malibu",
       waypoint: {
-        pos: [90, -103],          // 4m vor der Glasfront (LANDMARK_POS.villa)
+        pos: [-70, -123],         // 4m vor der Glasfront (COASTAL_POS.villa)
         label: "Villa Malibu",
         color: "#ffcc00",
       },
@@ -292,7 +297,7 @@ const MISSION_COASTAL = {
       id: "L2_HARBOR",
       objective: "Bring das Paket zum Hafen",
       waypoint: {
-        pos: [-135, 78],          // 4m vor dem Lagerhaus-Tor (LANDMARK_POS.harbor)
+        pos: [-145, 78],          // 4m vor dem Lagerhaus-Tor (COASTAL_POS.harbor)
         label: "Der Hafen",
         color: "#ffcc00",
       },
@@ -302,13 +307,14 @@ const MISSION_COASTAL = {
       onComplete: "startPolice",  // main.js aktiviert POLICE + "GESUCHT"-Anzeige
     },
 
-    // 3 — L2_ESCAPE: Polizei abhängen, Abholpunkt erreichen (gleiche Garage
-    // wie Level 1 - andere Story, gleicher "sicherer Rückzugsort"-Beat)
+    // 3 — L2_ESCAPE: Polizei abhängen, Abholpunkt erreichen (eigene
+    // Parkgarage der Küstenstadt, gleiches "sicherer Rückzugsort"-Prinzip
+    // wie Level 1s Garage, aber eigene Koordinate in der eigenen Stadt)
     {
       id: "L2_ESCAPE",
       objective: "Häng die Polizei ab und erreiche den Abholpunkt",
       waypoint: {
-        pos: [-90, -108],         // LANDMARK_POS.garage, wie in Level 1
+        pos: [10, -68],           // 5m vor der Einfahrt (COASTAL_POS.garage)
         label: "Abholpunkt",
         color: "#ff3b30",
       },
@@ -321,7 +327,7 @@ const MISSION_COASTAL = {
       id: "L2_PIER",
       objective: "Erreiche die Pier in Sausalito",
       waypoint: {
-        pos: [142, -46],          // Einstieg auf den Steg (LANDMARK_POS.pier2)
+        pos: [110, 88],           // Einstieg auf den Steg (COASTAL_POS.pierBase)
         label: "Sausalito Pier",
         color: "#ffcc00",
       },
@@ -414,6 +420,10 @@ export const MISSION = ACTIVE.mission;
 export const DIALOGS = ACTIVE.dialogs;
 export const PLAYER_NAME = ACTIVE.playerName;
 export const CITY_STYLE = ACTIVE.cityStyle;
+// which level is active - main.js uses this to pick between two entirely
+// separate, hand-built world layouts (buildCity() branches on it) instead
+// of reusing one procedural grid for both.
+export const LEVEL_ID = activeLevelId;
 
 // Polizei / Fahndung — binär statt Sterne. Level-unabhängig, gleiche
 // Fahndungsmechanik für jede Story.
