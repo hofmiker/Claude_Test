@@ -6,13 +6,17 @@ https://hofmiker.github.io/Claude_Test/gta/
 ## Dateien
 - `index.html` — Shell/UI
 - `main.js` — Fahrphysik, Kamera, Rendering, Input, HUD
-- `mission.js` — Missions-/Dialogsystem, jetzt mit zwei Leveln (siehe
+- `mission.js` — Missions-/Dialogsystem, jetzt mit drei Leveln (siehe
   "Level-System" unten). Level 1 "Der Kessel": Marco (Spieler), Vincent
   (Auftraggeber, nur per Anruf), Sofia (Werkstatt-Kontakt) und Jack (Kurier)
   — bewusst europäisch/US-klingende Namen statt der ursprünglichen
   Marek/Dragan/Lena/Vess. Level 2 "Coastal Courier": Marcus (Spieler),
   Dante (Auftraggeber), Viktor (Villa-Kontakt), Mechaniker (Hafen) und
-  Elaine (finaler Dialog an der Pier).
+  Elaine (finaler Dialog an der Pier). Level 3 "Golden Gate Run": dieselben
+  fünf Figuren/Namen wie Level 2 (bewusste Nutzerentscheidung, siehe
+  "Level 3" unten) in der "Director's Cut"-Fassung derselben Geschichte —
+  jetzt mit Boot, Fußlauf über die Brücke und einer automatisch fahrenden
+  Limo statt der auf Level 2 zusammengestrichenen Fassung.
 - `vendor/three.module.min.js` — Three.js, lokal vendored (ES-Modul)
 - `vendor/fonts/bebas-neue-400.woff2` — Bebas Neue, lokal vendored via
   `npm pack @fontsource/bebas-neue` (npm-Registry ist in der Sandbox
@@ -257,15 +261,15 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   Default) — exakt dasselbe Übergangsmuster wie bei der bereits
   bestehenden Telefonat-Nahkamera.
 - **Level-Auswahl:** unter dem Titel-Untertitel sitzt eine `.ts-levels`-Reihe
-  mit drei Chips: "1 · Der Kessel" und "2 · Coastal Courier" sind spielbar
-  (`data-level`-Attribut = Schlüssel in `mission.js`s `LEVEL_DATA`), "3 · ???"
-  bleibt sichtbar gesperrt (gestrichelter Rahmen, gedämpfte Farbe) als
-  Platzhalter für ein zukünftiges drittes Level. Tippen auf den gesperrten
-  Chip ruft `e.stopPropagation()` auf, damit es sich wirklich wie "gesperrt,
-  passiert nichts" anfühlt statt die Intro zu überspringen. Der aktuell
-  aktive Chip bekommt zusätzlich `.current` (hellerer Rand/Glow). Klick auf
-  den JEWEILS AKTIVEN Chip startet wie gehabt sofort die Mission; Klick auf
-  den ANDEREN spielbaren Chip schreibt dessen `data-level` nach
+  mit drei Chips, alle drei spielbar (`data-level`-Attribut = Schlüssel in
+  `mission.js`s `LEVEL_DATA`: `der_kessel`/`coastal_courier`/
+  `golden_gate_run`) — die frühere `.locked`-Sperre für Chip 3 ("3 · ???",
+  gestrichelter Platzhalter-Rahmen) ist mit Level 3s Fertigstellung entfernt
+  worden; main.js' `.ts-level.locked`-Handling (stumpfes `e.stopPropagation()`)
+  bleibt im Code für ein mögliches zukünftiges viertes Level erhalten. Der
+  aktuell aktive Chip bekommt zusätzlich `.current` (hellerer Rand/Glow).
+  Klick auf den JEWEILS AKTIVEN Chip startet wie gehabt sofort die Mission;
+  Klick auf einen ANDEREN spielbaren Chip schreibt dessen `data-level` nach
   `localStorage['viceGridLevel']` und lädt die Seite neu — siehe
   "Level-System" unten für den Grund, warum ein Neuladen nötig ist.
 
@@ -343,6 +347,129 @@ keine Cutscene-Kameras und kein Ausdauersystem mit, sondern läuft komplett
   Tag) — keine neue Grafik-Funktionalität, nur ein schon unterstützter
   Konfigurationswert, der die beiden Level trotzdem klar unterscheidbar
   macht (warmes Orange-Fog `#e8b573` statt Nacht-Navy).
+
+## Level 3 — "Golden Gate Run" (komplett andere Stadtplan-Engine)
+Nutzerauftrag: ein drittes Level, das die bisherigen Stadtplanregeln komplett
+verwirft und eine neue Stadt baut, die der Story gerecht wird — nicht nur
+neue `CITY_STYLE`-Werte wie beim Sprung von Level 1 zu Level 2. Story/Figuren
+(Marcus, Dante, Viktor, Mechaniker, Elaine) sind bewusst identisch zu
+Level 2 — explizite Nutzerentscheidung nach Rückfrage, nicht versehentliche
+Dopplung: Level 3 ist die "Director's Cut"-Fassung derselben Geschichte mit
+den Beats, die Level 2 aus Scope-Gründen ausgespart hat (Boot, Fußlauf über
+die Brücke, automatische Limo-Fahrt). Der Story-Prompt dafür stammte
+ursprünglich aus einem älteren, nie umgesetzten Konzept für Level 2 selbst.
+
+- **Eigener Stadtaufbau-Algorithmus, keine Grid-Wiederverwendung:**
+  Level 1/2 teilen sich EIN prozedurales NxN-Blockraster (`buildBlock()`/
+  `buildGround()`, nur `CITY_STYLE`-Werte unterscheiden sich — siehe
+  "Level-System" oben). Level 3 aktiviert stattdessen `buildCoastalRoute()`
+  (main.js), ausgewählt über `CITY_STYLE.layout === "route"`: eine lineare
+  Route durch handplatzierte Zonen (Villa → kurvige Küstenstraße → Hafen →
+  offene Bucht → Brücke → Limo-Straße → Pier) statt eines Blockrasters.
+  `ROUTE3` (main.js) hält alle Wegpunkt-Koordinaten der Route als einfache
+  `[x,z]`-Paare, `addRoadSegment()` zeichnet die kurvige PCH/Limo-Straße als
+  Kette gerader, gegeneinander verdrehter Asphalt-/Linien-Segmente (kein
+  echtes Spline-Meshing). Eine einzelne große Bodenebene (auf `WORLD_BOUND`
+  zugeschnitten, nicht auf die Routen-Punkte selbst — sonst fährt man am
+  Rand ins Nichts) ersetzt `buildGround()`s Grid-Bodenplatte samt
+  Kreuzstreifen-Muster, das auf einer organischen Küstenstraße falsch
+  ausgesehen hätte. Die drei Level-1/2-Landmark-Baufunktionen
+  `buildVilla()`/`buildHarbor()`/`buildPier2()` werden UNVERÄNDERT
+  wiederverwendet (sie nehmen ohnehin beliebige `{x,z}`, nichts Grid-
+  Spezifisches), nur an den neuen Routen-Koordinaten statt einer reservierten
+  Grid-Zelle platziert.
+- **Bucht + Brücke:** `waterColliders` bekommt zwei Rechtecke mit einer
+  Lücke dazwischen genau an der Stelle, wo `buildBridge()`s begehbares Deck
+  sitzt — sonst würde die eigene Wasser-Kollision der Bucht den Fußweg über
+  die Brücke blockieren, da dieses Spiel keine echte Höhen-/Ebenen-Trennung
+  kennt (die Brücke "schwebt" nicht wirklich über dem Wasser, sie ist ein
+  flaches, begehbares Deck wie jeder andere Steg im Spiel — das Boot "fährt
+  darunter durch" ist rein narrativ, nicht geometrisch). Zwei Türme (Boxen +
+  Zylinder-Pfeiler + Querbalken, International-Orange-Farbton) plus ein paar
+  vertikale Hänger-Boxen als Kabel-Stellvertreter, keine echte
+  Hängebrücken-Katenoide.
+- **Boot (`VEHICLE_SPECS.boat`, neuer Mesh-Zweig in `createCarMesh()`):**
+  spielergesteuert (manuelle Verfolgungsjagd über die Bucht, wie im
+  Story-Prompt gefordert). Eigene Kollision `collideBoat()` — das Gegenteil
+  von `collideWithBuildings()`: Land (Gebäude, Brückentürme) ist das
+  Hindernis, die Bucht selbst ist frei befahrbar (`waterColliders` wird für
+  das Boot komplett ignoriert), stattdessen an `BAY_BOUNDS` geklemmt. Land-
+  Fahrzeuge/Fußgänger nutzen weiterhin ganz normal `collideWithBuildings()`
+  und werden von genau denselben `waterColliders` blockiert — dieselben
+  Objekte, zwei gegensätzliche Kollisionsregeln je nach Fortbewegungsart.
+- **Limo (`VEHICLE_SPECS.limo`):** fällt mesh-seitig durch denselben
+  generischen "PKW"-Zweig wie `type: "car"` (nur andere `halfW/halfL` aus
+  `VEHICLE_SPECS`, cremeweiß eingefärbt) — fährt aber NICHT manuell, sondern
+  automatisch (`missionState.autoDrive`, `updateAutoDrive()` in main.js):
+  sucht sich per einfachem Steer-zum-Wegpunkt-Verhalten (dieselbe Formel wie
+  die Verfolgungspolizei-KI, nur gegen eine feste Punktliste statt gegen den
+  Spieler) selbst den Weg zum nächsten `autoDrivePath`-Punkt, während
+  `updatePlayer()` echten Tasten-/Touch-Input für dieses Fahrzeug ignoriert.
+  Die Mission selbst merkt vom Autopiloten nichts — der normale
+  Wegpunkt-/`triggerRadius`-Mechanismus (`updateMission()`) erkennt die
+  Ankunft ganz normal per Distanz und schaltet weiter, sobald die Limo nah
+  genug herangefahren ist.
+- **Fahrzeugwechsel als Story-Beat, nicht als Spieleraktion:**
+  `step.vehicleAfter` (neues, optionales Feld in `mission.js`s Schritten,
+  ausgewertet in `runStepOnComplete()`) setzt den Spieler beim Abschluss
+  eines Schritts automatisch in ein frisches Fahrzeug (`boardVehicle()`) —
+  am Hafen ins Boot, am Brückenende in die Limo (dort zusätzlich mit
+  `autoDrivePath`, was automatisch `stopPolice()` auslöst — sobald Marcus in
+  der Limo sitzt, ist die Verfolgung laut Story vorbei). `step.
+  exitVehicleOnComplete` (`forceExitVehicle()`) erzwingt umgekehrt den
+  Ausstieg — an der Anlegestelle (Boot → zu Fuß für den Brückenlauf) und am
+  Limo-Ziel (Limo → zu Fuß zur Pier). Beides ist bewusst vom normalen
+  `tryToggleVehicle()` (manuelles Ein-/Aussteigen per F) getrennt gehalten,
+  um dessen bestehendes Verhalten für Level 1/2 nicht anzufassen.
+- **Fußlauf über die Brücke braucht KEINE neue Verfolgungs-Logik:** der
+  Schritt `L3_BRIDGE` ist einfach ein normaler, weit entfernter Wegpunkt
+  während eine aktive Fahndung läuft — main.js' bereits vorhandene "Polizei
+  zu Fuß"-Logik (siehe "Fahrphysik & Polizei" oben, unverändert seit Level
+  1/2) übernimmt automatisch, sobald der Spieler ohne Auto unterwegs ist.
+- **Bust-Ausnahme für das Boot:** `updatePoliceChase()`s beide Bust-Prüfungen
+  (Einzelkollision UND Umzingelung) sind jetzt explizit deaktiviert, solange
+  `player.inCar?.type === "boat"` — ein landgebundenes Streifenauto kann ein
+  Boot auf offenem Wasser nie wirklich berühren, aber die Distanzmessung
+  läuft VOR dem eigentlichen Kollisions-Clamp dieses Frames, sodass ein am
+  Ufer feststeckender Cop nahe am Boot sonst fälschlich einen Bust auslösen
+  konnte, obwohl er das Wasser gar nicht betreten kann.
+- **HUD-Uhr (`MISSION.clock`, `#missionClock`):** rein atmosphärisch — tickt
+  echte Spielzeit gegen ein konfiguriertes Zeitfenster (13:30–16:00 Uhr laut
+  Story-Prompt), hat aber KEINEN eigenen Fail-Zustand. Die einzige
+  Niederlage bleibt "von der Polizei geschnappt", wie in jedem Level; ein
+  echtes Countdown-Fail-System war für den Prompt-Umfang nicht vorgesehen
+  und hätte einen komplett neuen Fail-Pfad gebraucht. Nur sichtbar, wenn
+  `MISSION.clock` gesetzt ist (Level 1/2 zeigen nichts).
+- **Handy-Benachrichtigung:** `step.notify` (optionales Feld, ausgewertet in
+  `activateStep()`) zeigt beim Aktivieren eines Schritts den bestehenden
+  Toast (`showSub()`) — genutzt für "3 verpasste Anrufe — Elaine" beim Start
+  der Limo-Fahrt, statt eines neuen Benachrichtigungssystems.
+- **Bewusst NICHT gebaut** (Scope-Kürzungen gegenüber dem vollen
+  Story-Prompt, analog zu Level 2s eigenen Kürzungen):
+  - Keine echten Polizeiboote — Streifen-Cops bleiben landgebunden und
+    verfolgen bis ans Ufer, wo sie stehen bleiben (matcht durch
+    `spawnChaseCop()`s fehlende Wasser-Klärung optisch fast zufällig wie ein
+    improvisiertes Polizeiboot, siehe Kommentar dort).
+  - Kein Andock-Quicktime-Event — Anlegen läuft über denselben
+    Distanz-Trigger wie jeder andere Wegpunkt.
+  - Keine echte Ausdauer-/Puls-Anzeige beim Brückenlauf, kein Hubschrauber.
+  - Keine Speicherstände, kein Voice-Acting, kein komponierter Soundtrack —
+    Level 1/2 haben davon ebenfalls nichts (nur der bestehende Sound-Synth
+    für Crashes/Sirenen).
+  - **Ambient-Verkehr/Streifenpolizei sind für dieses Level komplett
+    deaktiviert** (`spawnTraffic()`/`spawnPolicePatrol()` geben früh
+    zurück, wenn `CITY_STYLE.layout === "route"`): ihre Fahrspur-KI
+    (`stepLaneCar()`) fährt stur entlang `roadLines.x`/`roadLines.z`
+    (den geraden Grid-Linien) und hätte auf der kurvigen Route entweder
+    quer durch die Landschaft gefahren oder (leeres `roadLines`) mit
+    `NaN`-Positionen abgestürzt. Die eigentliche Missions-Verfolgung
+    (`chaseCops`) ist davon nicht betroffen — sie sucht den Spieler direkt
+    und braucht `roadLines` nie.
+- **Levelstart:** `DISTRICT.spawn` (optional, main.js liest es per
+  `DISTRICT.spawn?.pos ?? [4, 2]`) lässt ein Level einen eigenen Startpunkt
+  setzen, statt hart auf die Grid-Plaza bei `(4, 2)` — Level 3 startet auf
+  der Küstenstraße nördlich der Villa. Level 1/2 setzen das Feld nicht und
+  verhalten sich dadurch exakt wie zuvor.
 
 ## Wahrzeichen (Missions-Locations)
 Wegpunkte in `mission.js` waren ursprünglich reine `[x,z]`-Platzhalter, die

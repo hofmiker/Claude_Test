@@ -32,6 +32,7 @@ export const ACTION = {
   TAKE: "Nehmen",
   ENTER: "Einsteigen",
   DELIVER: "Übergeben",
+  DOCK: "Anlegen", // Level 3: mooring the boat
 };
 
 // ============================================================================
@@ -390,6 +391,233 @@ const DIALOGS_COASTAL = {
 };
 
 // ============================================================================
+// LEVEL 3 — "Golden Gate Run" (Sonnenuntergang, Malibu -> Golden Gate -> Sausalito)
+// Anders als Level 1->2 (gleiches Grid, andere CITY_STYLE-Werte) verwirft
+// dieses Level die Grid-Engine komplett: main.js' buildCoastalRoute()
+// (aktiviert über CITY_STYLE.layout === "route" unten) baut eine lineare
+// Route durch handplatzierte Zonen - Villa, Küstenstraße, Hafen, eine
+// offene Bucht für eine Boots-Verfolgung, eine Golden-Gate-Brücke zu Fuß,
+// eine automatisch fahrende Limo, Pier - statt eines NxN-Blockrasters.
+// Landmark-GEBÄUDE (buildVilla/buildHarbor/buildPier2) sind trotzdem
+// wiederverwendet, nur an neuen Koordinaten - siehe main.js' "Level 3 world"
+// Abschnitt für die volle Begründung.
+//
+// Story/Dialoge/Figuren (Marcus/Dante/Viktor/Mechaniker/Elaine) sind
+// bewusst identisch zu Level 2 ("Coastal Courier") - das war eine explizite
+// Nutzerentscheidung (nicht neu erfunden), Level 3 ist die "Director's Cut"-
+// Fassung derselben Geschichte mit den Beats, die Level 2 aus Scope-Gründen
+// aussparte (Boot, Fußlauf über die Brücke, Limo).
+const DISTRICT_GOLDENGATE = {
+  name: "Golden Gate Run",
+  timeOfDay: "day",            // main.js' Tag-Beleuchtungspfad, wie Level 2
+  weather: "clear",
+  fogColor: "#f2a35a",         // warmes Golden-Hour-Orange
+  fogNear: 35,
+  fogFar: 230,
+  // Level 3 startet nicht in der Grid-Plaza (die es hier nicht gibt),
+  // sondern auf der Küstenstraße kurz nördlich der Villa, mit Blick nach
+  // Süden (Math.PI, dieselbe "geradeaus = -z"-Konvention wie jeder andere
+  // Spawn im Spiel) - main.js liest das optional (DISTRICT.spawn?.pos),
+  // Level 1/2 bleiben beim alten (4,2).
+  spawn: { pos: [40, 172], heading: Math.PI },
+};
+
+// main.js' buildBlock()/buildGround() werden für dieses Level gar nicht
+// aufgerufen (siehe CITY_STYLE.layout unten) - die meisten Felder hier
+// dienen nur als sicherer Fallback, falls irgendein geteilter Codepfad sie
+// trotzdem liest (z. B. addTree() für die Villa-Palmen: COLORS.trunk/leaves).
+const CITY_STYLE_GOLDENGATE = {
+  layout: "route",             // main.js' buildCity(): Route statt Grid
+  buildingPalette: [0xd8b98a, 0xc9a56a, 0xe0c9a0],
+  heightMin: 4, heightMax: 9, tallChance: 0.02, tallMul: 1.2, parkChance: 0.3,
+  colors: {
+    ground: 0xd8b98a, road: 0x5a534a, roadLine: 0xffffff,
+    sidewalk: 0xe6d9b8, park: 0x7fae5c, trunk: 0x6b4a2a, leaves: 0x4a8f3d,
+    water: 0x2f6f86, bridge: 0xc1440e, // "International Orange"
+  },
+};
+
+const MISSION_GOLDENGATE = {
+  id: "golden_gate_run_01",
+  title: "Golden Gate Run",
+  reward: 500,
+  // rein atmosphärisch (HUD-Uhr in main.js' updateHud()) - tickt echte
+  // Spielzeit gegen dieses Fenster, hat aber KEINEN eigenen Fail-Zustand;
+  // "erwischt werden" bleibt die einzige Niederlage, wie in jedem Level.
+  clock: { startMinutes: 13 * 60 + 30, endMinutes: 16 * 60, realSecondsForFullRun: 600 },
+
+  steps: [
+    // 0 — L3_INTRO: Anruf von Dante
+    {
+      id: "L3_INTRO",
+      objective: "Nimm den Anruf an",
+      dialog: "call_dante",
+      autoStart: true,
+      onComplete: "activateWaypoint",
+    },
+
+    // 1 — L3_VILLA: zur Villa in Malibu fahren, Viktor trifft, Kunstwerke übernehmen
+    {
+      id: "L3_VILLA",
+      objective: "Fahre zur Villa in Malibu",
+      waypoint: { pos: [0, 127], label: "Villa Malibu", color: "#ffcc00" },
+      triggerRadius: 7,
+      action: ACTION.TALK,
+      dialog: "talk_viktor",
+    },
+
+    // 2 — L3_HARBOR: zum Hafen fahren, Mechaniker trifft -> Polizei startet,
+    // danach direkt ins Boot (vehicleAfter, main.js' boardVehicle())
+    {
+      id: "L3_HARBOR",
+      objective: "Bring die Kunstwerke zum Hafen",
+      waypoint: { pos: [40, -27], label: "Der Hafen", color: "#ffcc00" },
+      triggerRadius: 7,
+      action: ACTION.DELIVER,
+      dialog: "talk_mechanic",
+      onComplete: "startPolice",
+      vehicleAfter: { type: "boat", pos: [35, -34], heading: Math.PI },
+    },
+
+    // 3 — L3_BAY: Boot durch die Bucht zur Anlegestelle an der Brücke, dann
+    // zwingend aussteigen (exitVehicleOnComplete) - der Fußlauf danach
+    // braucht den Spieler zu Fuß.
+    {
+      id: "L3_BAY",
+      objective: "Fahre das Boot unter die Brücke",
+      waypoint: { pos: [-45, -72], label: "Anlegestelle", color: "#ff3b30" },
+      triggerRadius: 7,
+      action: ACTION.DOCK,
+      exitVehicleOnComplete: true,
+    },
+
+    // 4 — L3_BRIDGE: zu Fuß über die Golden Gate Bridge, verfolgt von
+    // Fußpolizei (main.js' bereits vorhandene "Polizei zu Fuß"-Logik greift
+    // hier automatisch, keine neue Chase-Mechanik nötig). Am Ende wartet die
+    // Limo (vehicleAfter mit autoDrivePath -> main.js' updateAutoDrive()).
+    {
+      id: "L3_BRIDGE",
+      objective: "Häng die Polizei ab — lauf über die Brücke",
+      waypoint: { pos: [58, -78], label: "Brückenende", color: "#ff3b30" },
+      triggerRadius: 8,
+      action: ACTION.ENTER,
+      vehicleAfter: {
+        type: "limo",
+        pos: [58, -95],
+        heading: Math.PI,
+        autoDrivePath: [[30, -125], [0, -148], [0, -150]],
+      },
+    },
+
+    // 5 — L3_LIMO: automatische Fahrt nach Sausalito (main.js fährt, Spieler
+    // sitzt nur - siehe updateAutoDrive()); löst wie jeder andere Wegpunkt
+    // per Distanz aus, sobald die Limo dort ankommt.
+    {
+      id: "L3_LIMO",
+      objective: "Unterwegs nach Sausalito …",
+      waypoint: { pos: [0, -150], label: "Sausalito", color: "#ffcc00" },
+      triggerRadius: 9,
+      action: ACTION.ENTER,
+      exitVehicleOnComplete: true,
+      notify: "📱 3 verpasste Anrufe — Elaine",
+    },
+
+    // 6 — L3_PIER: finaler Dialog mit Elaine, Sieg
+    {
+      id: "L3_PIER",
+      objective: "Erreiche die Pier in Sausalito",
+      waypoint: { pos: [0, -160], label: "Sausalito Pier", color: "#ffcc00" },
+      triggerRadius: 7,
+      action: ACTION.TALK,
+      dialog: "elaine_pier",
+      onComplete: "win",
+    },
+  ],
+
+  win: {
+    title: "Pünktlich genug",
+    subtitle: "+$500 — Nächste Woche. Ein echtes Date.",
+    restartLabel: "Nochmal",
+  },
+  fail: {
+    title: "Geschnappt",
+    subtitle: "Manche Dinge lassen sich nicht outfahren.",
+    restartLabel: "Nochmal",
+  },
+};
+
+const DIALOGS_GOLDENGATE = {
+  call_dante: {
+    speaker: "Anruf",
+    lines: [
+      { speaker: "Dante", text: "Du bist bereit?" },
+      { speaker: "Marcus", text: "Immer bereit, D. Was ist der Auftrag?" },
+      { speaker: "Dante", text: "Abholen in Malibu. Villa. Ein Typ namens Viktor. Er hat was für dich." },
+      { speaker: "Dante", text: "Bringst es zum Hafen. Leicht. Schnell. Keine Probleme." },
+      { speaker: "Marcus", text: "Wie lange?" },
+      { speaker: "Dante", text: "45 Minuten. Komplett." },
+      { speaker: "Marcus", text: "Kein Problem. Ich bin hinterher frei, ja?" },
+      { speaker: "Dante", text: "Ja. Das ist dein letzter Job für mich." },
+      { speaker: "Marcus", text: "Perfekt. Ich bin in 20." },
+      { speaker: "Dante", text: "Und Marcus … keine Fehler." },
+      { speaker: "Marcus", text: "Verstanden, D. Immer sauber." },
+    ],
+  },
+
+  talk_viktor: {
+    speaker: "Viktor",
+    lines: [
+      { speaker: "Viktor", text: "Du bist Marcus?" },
+      { speaker: "Marcus", text: "Der bin ich. Was hast du für mich?" },
+      { speaker: "Viktor", text: "Kunstwerke. Sehr teuer. Sehr heiß geklaut." },
+      { speaker: "Marcus", text: "Kunstzeug? Ich dachte, das ist—" },
+      { speaker: "Viktor", text: "Nicht denken. Fahren. Die Polizei wurde schon gerufen." },
+      { speaker: "Viktor", text: "Du hast vielleicht 30 Minuten, bevor sie hier sind." },
+      { speaker: "Marcus", text: "Keine Panik. Ich hab das. Bin weg in 2 Minuten." },
+      { speaker: "Viktor", text: "Das ist alles. Es ist wertvoll. Pass auf." },
+      { speaker: "", text: "Sirenen in der Ferne — noch weit weg, aber näher werdend." },
+    ],
+  },
+
+  talk_mechanic: {
+    speaker: "Mechaniker",
+    lines: [
+      { speaker: "Mechaniker", text: "Polizei kommt. Du musst raus aufs Wasser." },
+      { speaker: "Marcus", text: "Wie weit?" },
+      { speaker: "Mechaniker", text: "Golden Gate Bridge. Dante hat da einen Kontakt." },
+      { speaker: "Mechaniker", text: "Boot unter der Brücke parken, zu Fuß rüber, er holt dich mit der Limo ab." },
+      { speaker: "Marcus", text: "Und wenn die Polizei verfolgt?" },
+      { speaker: "Mechaniker", text: "Boot ist schneller. Aber bleib auf dem Wasser." },
+      { speaker: "Marcus", text: "Danke, Mann." },
+      { speaker: "Mechaniker", text: "Viel Glück." },
+      { speaker: "", text: "Sirenen. Blaulicht springt an." },
+    ],
+  },
+
+  elaine_pier: {
+    speaker: "Elaine",
+    lines: [
+      { speaker: "Elaine", text: "Marcus?" },
+      { speaker: "Marcus", text: "Hey … ja, hey." },
+      { speaker: "Elaine", text: "Du bist gekommen. Du bist eine Stunde zu spät." },
+      { speaker: "Marcus", text: "Ich weiß. Das tut mir leid — es gab Verkehr, und—" },
+      { speaker: "Elaine", text: "Marcus. Du siehst aus, als würdest du gerade von einer Bank fliehen." },
+      { speaker: "Marcus", text: "…Ich bin einfach verzögert. Das tut mir echt weh." },
+      { speaker: "Elaine", text: "Ich mag dich. Deinen Charme, deinen Humor, wie du fährst." },
+      { speaker: "Elaine", text: "Aber ich sehe etwas in dir, das nicht hier ist. Du bist woanders." },
+      { speaker: "Marcus", text: "Das stimmt nicht. Ich bin hier. Jetzt. Mit dir." },
+      { speaker: "Elaine", text: "Ist es? Dein Handy ist aus. Das sagt mir, du hast gerade etwas Falsches gemacht." },
+      { speaker: "Marcus", text: "…Ich bin kein guter Mensch. Nicht jetzt. Vielleicht nie." },
+      { speaker: "Marcus", text: "Aber wenn du mir eine Chance gibst, kann ich besser werden. Mit dir." },
+      { speaker: "Elaine", text: "Das ist das erste Echte, was du mir heute sagst." },
+      { speaker: "Elaine", text: "Also — eine zweite Chance? Ein echtes Date? Nächste Woche?" },
+      { speaker: "Marcus", text: "Nächste Woche. Und ich schwöre — pünktlich. Früher sogar." },
+      { speaker: "Elaine", text: "Wir werden sehen." },
+    ],
+  },
+};
+
+// ============================================================================
 // Level-Auswahl
 // ============================================================================
 
@@ -399,11 +627,13 @@ const DIALOGS_COASTAL = {
 export const LEVELS = [
   { id: "der_kessel", title: "Der Kessel", locked: false },
   { id: "coastal_courier", title: "Coastal Courier", locked: false },
+  { id: "golden_gate_run", title: "Golden Gate Run", locked: false },
 ];
 
 const LEVEL_DATA = {
   der_kessel: { district: DISTRICT_KESSEL, mission: MISSION_KESSEL, dialogs: DIALOGS_KESSEL, playerName: "Marco", cityStyle: CITY_STYLE_KESSEL },
   coastal_courier: { district: DISTRICT_COASTAL, mission: MISSION_COASTAL, dialogs: DIALOGS_COASTAL, playerName: "Marcus", cityStyle: CITY_STYLE_COASTAL },
+  golden_gate_run: { district: DISTRICT_GOLDENGATE, mission: MISSION_GOLDENGATE, dialogs: DIALOGS_GOLDENGATE, playerName: "Marcus", cityStyle: CITY_STYLE_GOLDENGATE },
 };
 
 const activeLevelId = (typeof localStorage !== "undefined" && localStorage.getItem("viceGridLevel")) || "der_kessel";

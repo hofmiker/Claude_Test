@@ -87,6 +87,19 @@
     margin-top: 2px;
     letter-spacing: 0.5px;
   }
+  /* Level 3 only ("Golden Gate Run") - atmospheric race-the-clock readout,
+     see MISSION.clock in mission.js / updateHud() in main.js. Hidden by
+     default so Levels 1/2 (no MISSION.clock) never show an empty line. */
+  #missionClock {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(9px, 2.6vw, 11px);
+    color: #ffd9a0;
+    opacity: 0.85;
+    margin-top: 3px;
+    letter-spacing: 1px;
+    display: none;
+  }
+  #missionClock.show { display: block; }
 
   /* ---- top-right: speed + money + minimap ---- */
   #speedWrap {
@@ -683,7 +696,7 @@
       <div class="ts-levels">
         <div class="ts-level" data-level="der_kessel">1 · Der Kessel</div>
         <div class="ts-level" data-level="coastal_courier">2 · Coastal Courier</div>
-        <div class="ts-level locked">3 · ???</div>
+        <div class="ts-level" data-level="golden_gate_run">3 · Golden Gate</div>
       </div>
       <span class="ts-hint">Taste oder Tipp zum Überspringen</span>
     </div>
@@ -693,6 +706,7 @@
     <div id="objectivePanel">
       <div id="objectiveText"></div>
       <div id="objectiveDistance"></div>
+      <div id="missionClock"></div>
     </div>
     <div id="wantedBanner"></div>
     <div id="subMsg"><span id="subMsgText"></span><button id="subMsgOk" type="button">OK</button></div>
