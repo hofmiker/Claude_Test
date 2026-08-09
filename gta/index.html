@@ -512,6 +512,36 @@
     0% { opacity: 0; transform: translateY(6px); }
     100% { opacity: 0.9; transform: translateY(0); }
   }
+  /* placeholder level-select row, filled in as more levels ship - only
+     "Der Kessel" is real today, the rest are visibly locked stubs rather
+     than nothing at all, so the game reads as "more is coming" instead of
+     a dead end. */
+  .ts-levels {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 84vw;
+    opacity: 0;
+    animation: tsSubIn 1s ease-out 1.05s forwards;
+  }
+  .ts-level {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(10px, 2.6vw, 13px);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 6px 13px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,46,136,0.55);
+    background: rgba(255,46,136,0.14);
+    color: #ffb3d9;
+  }
+  .ts-level.locked {
+    border: 1px dashed rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.32);
+  }
   .ts-hint {
     margin-top: 26px;
     font-size: 11px;
@@ -644,6 +674,11 @@
       <span class="ts-word ts-word1">VICE</span>
       <span class="ts-word ts-word2">GRID</span>
       <span class="ts-sub">Der Kessel</span>
+      <div class="ts-levels">
+        <div class="ts-level">1 · Der Kessel</div>
+        <div class="ts-level locked">2 · ???</div>
+        <div class="ts-level locked">3 · ???</div>
+      </div>
       <span class="ts-hint">Taste oder Tipp zum Überspringen</span>
     </div>
   </div>

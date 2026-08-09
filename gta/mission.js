@@ -4,8 +4,13 @@
 //
 // WICHTIG — KOORDINATEN:
 //   Alle "pos"-Werte sind [x, z] in Weltkoordinaten (Boden-Ebene, y kommt aus deinem Terrain).
-//   Die Zahlen unten sind PLATZHALTER. Setz sie auf echte Punkte deiner Karte
-//   (z.B. per Klick eine Koordinate loggen und hier eintragen).
+//   Keine Platzhalter mehr - jeder Wegpunkt unten zeigt exakt auf eines der
+//   drei handgebauten Wahrzeichen in main.js (LANDMARK_POS: workshop,
+//   waterfront, garage), damit "Sofias Werkstatt"/"Wohnblock am Kanal"/
+//   "Parkgarage" auch wirklich wie eine Werkstatt/ein Kanal mit Steg/eine
+//   Parkgarage aussehen statt auf einem zufälligen Standardgebäude zu landen.
+//   Ändert sich main.js' LANDMARK_CELLS/blockCenter()-Geometrie, müssen diese
+//   Zahlen neu berechnet werden.
 //   triggerRadius ist der Radius in Weltmetern, ab dem die Zone auslöst.
 
 export const DISTRICT = {
@@ -50,7 +55,7 @@ export const MISSION = {
       id: "FIND_CONTACT",
       objective: "Fahre zu Sofias Werkstatt",
       waypoint: {
-        pos: [-40, 55],          // PLATZHALTER: Südblocks / Werkstatt-Ecke
+        pos: [-45, 32],          // 4m vor dem Rolltor der Werkstatt (LANDMARK_POS.workshop)
         label: "Sofias Werkstatt",
         color: "#ffcc00",
       },
@@ -64,7 +69,7 @@ export const MISSION = {
       id: "GO_TO_TARGET",
       objective: "Fahre zum Wohnblock am Kanal",
       waypoint: {
-        pos: [70, 90],           // PLATZHALTER: Süden, nahe Kanal
+        pos: [90, 161],          // Einstieg auf den Steg, direkt am Kanal (LANDMARK_POS.waterfront)
         label: "Wohnblock",
         color: "#ffcc00",
       },
@@ -78,7 +83,7 @@ export const MISSION = {
       objective: "Hol den Koffer",
       // Gleiche Zone wie oben; hier zählt das Aufsammeln.
       pickup: {
-        pos: [72, 92],           // PLATZHALTER: exakte Koffer-Position
+        pos: [90, 178],          // äußeres Ende des Stegs, über dem Wasser
         label: "Koffer",
         action: ACTION.TAKE,
       },
@@ -92,7 +97,7 @@ export const MISSION = {
       id: "ESCAPE",
       objective: "Häng die Polizei ab und erreiche die Parkgarage",
       waypoint: {
-        pos: [-85, -70],         // PLATZHALTER: Norden, unter Hochstraße
+        pos: [-90, -108],        // 5m vor der Einfahrt der Parkgarage (LANDMARK_POS.garage)
         label: "Parkgarage",
         color: "#ff3b30",         // rot: heißes Ziel während Verfolgung
       },

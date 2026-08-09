@@ -253,6 +253,61 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   Kamera von selbst zurück zur zuvor aktiven Einstellung (Top-Down per
   Default) — exakt dasselbe Übergangsmuster wie bei der bereits
   bestehenden Telefonat-Nahkamera.
+- **Level-Auswahl (Platzhalter):** unter dem "Der Kessel"-Untertitel der
+  Titelkarte sitzt eine kleine `.ts-levels`-Reihe mit drei Chips: "1 · Der
+  Kessel" (pink, aktiv — jeder Tap/Taste startet wie gehabt sofort die
+  Mission, keine Sonderbehandlung nötig, da das schon der bestehende
+  globale Dismiss-Listener übernimmt) und zwei sichtbar gesperrte "2 · ???"
+  / "3 · ???"-Platzhalter (gestrichelter Rahmen, gedämpfte Farbe). Tippen
+  auf einen gesperrten Chip ruft `e.stopPropagation()` auf (siehe
+  `main.js`, direkt neben der `dismissSplash()`-Registrierung), damit es
+  sich wirklich wie "gesperrt, passiert nichts" anfühlt statt trotzdem die
+  Intro zu überspringen. Rein visuelles Gerüst für kommende Level — sobald
+  ein zweites Level existiert, braucht es eine eigene `MISSION`-Auswahl in
+  `mission.js`/`main.js` statt der fest verdrahteten `MISSION`-Konstante.
+
+## Wahrzeichen (Missions-Locations)
+Wegpunkte in `mission.js` waren ursprünglich reine `[x,z]`-Platzhalter, die
+irgendwo auf einem zufällig generierten Standardgebäude landeten — "Sofias
+Werkstatt" sah aus wie jedes andere Gebäude, der "Kanal" existierte
+überhaupt nicht. Drei Rasterzellen sind jetzt fest für handgebaute
+Wahrzeichen reserviert (`LANDMARK_CELLS` in `main.js`, per `i,j`-Schlüssel
+aus `buildBlock()` ausgenommen) und werden nach dem normalen Grid-Aufbau
+von `buildLandmarks()` bebaut; `mission.js`s Wegpunkt-Koordinaten zeigen
+jetzt exakt auf `LANDMARK_POS.<name>` (siehe Kommentar dort) statt auf
+geschätzte Platzhalterzahlen.
+- **Sofias Werkstatt** (`buildWorkshop`, Zelle `2,4`): niedrige Industrie-
+  halle mit dunklem Rolltor (samt ein paar Lamellen-Streifen), leuchtendem
+  Schild darüber und einem geparkten Projekt-Auto davor (einfache Box-Form
+  statt der vollen `createCarMesh()`-Fabrik — die hängt von `VEHICLE_SPECS`
+  ab, einer `const`, die erst nach `buildCity()`s Aufruf im Datei-Fluss
+  initialisiert wird, hätte also einen Temporal-Dead-Zone-Fehler ausgelöst).
+- **Wohnblock am Kanal + Steg** (`buildWaterfront`, Zelle `5,6`): ein hohes
+  Wohnhaus mit horizontalen Fensterband-Streifen (gleicher Trick wie die
+  Bus-Fensterfront in `createCarMesh`), dahinter ein echter Kanal (eigenes
+  `waterMat` mit niedrigerer Rauheit als die übrige Palette, damit es nass
+  wirkt) und ein hölzerner Steg, der über das Wasser hinausragt (Geländer +
+  Pfosten). Der Koffer (`GRAB_ITEM`-Pickup) liegt am äußeren Stegende.
+  Kollision: `waterColliders` (eigenes Array, gleiche Push-out-Logik wie
+  `buildingColliders`, aber separat gehalten, damit die Minimap sie blau
+  statt grau einfärben kann) deckt das offene Wasser links und rechts des
+  Stegs sowie den Streifen jenseits des Stegendes ab — nur der Steg selbst
+  hat keinen Collider und ist so der einzige Weg hinaus aufs Wasser. Der
+  Spieler-/Kollisions-Weltrand (`WORLD_BOUND` in `main.js`, ersetzt die
+  alten verstreuten `CITY_HALF + ROAD_WIDTH * 1.2/1.5`-Werte in
+  `collideWithBuildings()`/`resolveWorldPoint()`) musste dafür angehoben
+  werden, exakt auf die Kante von `buildGround()`s Bodenebene — sonst hätte
+  die alte, engere Grenze den Spieler schon vor dem Kanal aufgehalten.
+- **Parkgarage** (`buildParkingGarage`, Zelle `1,1`): drei offene Ebenen
+  (dünne Boden-/Deckenplatten übereinander) mit Eckpfeilern statt
+  durchgehender Wände, damit sie sich von einem normalen Bürogebäude
+  abhebt, plus ein leuchtendes "P"-Schild (zwei Boxen als Stamm + Kopf,
+  keine echte Buchstaben-Geometrie) an der Straßenseite. Kollision bleibt
+  ein einzelner Bounding-Box-Collider über den ganzen Grundriss, wie bei
+  normalen Gebäuden — die offenen Ebenen sind rein optisch.
+- **Minimap:** `waterColliders` werden nach den grauen `buildingColliders`
+  zusätzlich in einem eigenen Blau (`#1f5a78`) gezeichnet, damit Wasser auf
+  der Karte erkennbar anders aussieht als Gebäude.
 
 ## Fahrphysik & Polizei
 - **Gebäude-Kollision:** ein Treffer bremst nicht mehr pauschal auf 12%

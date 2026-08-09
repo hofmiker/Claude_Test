@@ -18,6 +18,11 @@ const CITY_SIZE = GRID_COUNT * CELL;
 const CITY_HALF = CITY_SIZE / 2;
 const SIDEWALK_MARGIN = 3.2;
 const LANE_OFFSET = ROAD_WIDTH * 0.27;
+// matches buildGround()'s ground plane edge exactly, so the movement bound
+// below never lets anything wander past the point where geometry actually
+// stops rendering. Needed some room past the old CITY_HALF+ROAD_WIDTH*1.5 -
+// the waterfront landmark's canal/pier reach out to CITY_HALF+30.
+const WORLD_BOUND = CITY_HALF + ROAD_WIDTH * 3;
 
 const COLORS = {
   ground: 0x2b2d31,
@@ -298,7 +303,8 @@ function applyCarDamage(car, worldDirX = Math.sin(car.heading), worldDirZ = Math
 }
 
 // ---------- City generation ---------------------------------------------
-const buildingColliders = []; // {minX,maxX,minZ,maxZ}
+const buildingColliders = []; // {minX,maxX,minZ,maxZ} - solid, blocks movement
+const waterColliders = [];    // same shape, also solid but drawn blue on the minimap
 const roadLines = { x: [], z: [] }; // coordinate of every through-street centerline
 const sidewalkCells = []; // block centers that are NOT parks (walkable + car free)
 const parkCells = [];
@@ -311,6 +317,15 @@ function blockCenter(i, j) {
     z: -CITY_HALF + CELL * j + BLOCK_SIZE / 2 + ROAD_WIDTH / 2,
   };
 }
+
+// grid cells reserved for hand-built mission landmarks instead of the usual
+// random building/park roll - mission.js's waypoints used to be plain
+// placeholder coordinates that landed wherever the procedural city happened
+// to put a generic box, so "Sofias Werkstatt" or "der Kanal" never actually
+// looked like a workshop or a canal. These cells are skipped in buildBlock()
+// and built by buildLandmarks() instead, at exact coordinates mission.js's
+// waypoints now point at directly.
+const LANDMARK_CELLS = new Set(['2,4', '5,6', '1,1']);
 
 function buildGround() {
   const groundSize = CITY_SIZE + ROAD_WIDTH * 6;
@@ -359,6 +374,21 @@ function buildBlock(i, j) {
   const { x, z } = blockCenter(i, j);
   const isPark = Math.random() < 0.22;
   const isPlaza = i === Math.floor(GRID_COUNT / 2) && j === Math.floor(GRID_COUNT / 2);
+
+  if (LANDMARK_CELLS.has(`${i},${j}`)) {
+    // plain walkable/driveable ground only - buildLandmarks() puts the
+    // actual hand-built structure here after the whole grid exists
+    const plainSidewalk = new THREE.Mesh(
+      new THREE.PlaneGeometry(BLOCK_SIZE, BLOCK_SIZE),
+      flatMat(COLORS.sidewalk)
+    );
+    plainSidewalk.rotation.x = -Math.PI / 2;
+    plainSidewalk.position.set(x, 0.01, z);
+    plainSidewalk.receiveShadow = true;
+    cityRoot.add(plainSidewalk);
+    sidewalkCells.push({ x, z, half: BLOCK_SIZE / 2 - SIDEWALK_MARGIN });
+    return;
+  }
 
   const sidewalk = new THREE.Mesh(
     new THREE.PlaneGeometry(BLOCK_SIZE, BLOCK_SIZE),
@@ -439,11 +469,175 @@ function addStreetLamps() {
   }
 }
 
+// ---------- Mission landmarks --------------------------------------------
+// exact world coordinates for the three LANDMARK_CELLS above - mission.js's
+// waypoints are set to these same numbers, so "Sofias Werkstatt" etc. are
+// no longer arbitrary placeholders that happen to land on a random box.
+const LANDMARK_POS = {
+  workshop: blockCenter(2, 4),
+  waterfront: blockCenter(5, 6),
+  garage: blockCenter(1, 1),
+};
+
+function buildWorkshop({ x, z }) {
+  const w = 24, d = 18, h = 9;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), flatMat(0x4a5a5e));
+  body.position.set(x, h / 2, z);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  cityRoot.add(body);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 1.02, 0.6, d * 1.02), flatMat(0x1c1c1c));
+  roof.position.set(x, h + 0.3, z);
+  cityRoot.add(roof);
+  buildingColliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  sidewalkCells.push({ x, z, half: (w + d) / 4 });
+
+  const frontZ = z - d / 2 - 0.16;
+  const door = new THREE.Mesh(new THREE.BoxGeometry(10, 6, 0.3), flatMat(0x131313));
+  door.position.set(x, 3, frontZ);
+  cityRoot.add(door);
+  for (let s = 0; s < 4; s++) {
+    const slat = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.12, 0.06), flatMat(0x2a2a2a));
+    slat.position.set(x, 1 + s * 1.3, frontZ - 0.2);
+    cityRoot.add(slat);
+  }
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(12, 1.6, 0.3), glowMat(0xffcc00, 0.7));
+  sign.position.set(x, h - 0.5, frontZ);
+  cityRoot.add(sign);
+
+  // a parked project car out front, in for repairs - sells "workshop" at a
+  // glance even before the player is close enough to read the sign. A plain
+  // box silhouette rather than the full createCarMesh() factory, which
+  // depends on VEHICLE_SPECS - a const declared further down the file than
+  // buildCity()'s call site, so calling it from here would hit VEHICLE_SPECS
+  // before its temporal-dead-zone initialization.
+  const projectCarGroup = new THREE.Group();
+  const carBody = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.9, 4.1), flatMat(0xd6a13a));
+  carBody.position.y = 0.55;
+  carBody.castShadow = true;
+  const carCabin = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 1.9), flatMat(0x2a2f3a));
+  carCabin.position.set(0, 1.15, -0.2);
+  projectCarGroup.add(carBody, carCabin);
+  projectCarGroup.position.set(x + w / 2 - 3, 0, z + d / 2 + 3.5);
+  projectCarGroup.rotation.y = Math.PI * 0.5;
+  cityRoot.add(projectCarGroup);
+}
+
+function buildWaterfront({ x, z }) {
+  const w = 24, d = 24, h = 28;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), flatMat(0xa9666b));
+  body.position.set(x, h / 2, z);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  cityRoot.add(body);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 1.02, 0.6, d * 1.02), flatMat(0x1c1c1c));
+  roof.position.set(x, h + 0.3, z);
+  cityRoot.add(roof);
+  // window bands, same trick as the bus windshield strip - a few darker
+  // insets read as floors of windows without modeling individual panes
+  for (let f = 0; f < 5; f++) {
+    const band = new THREE.Mesh(new THREE.BoxGeometry(w * 0.94, 0.9, d * 1.01), flatMat(0x2a2f3a));
+    band.position.set(x, 4 + f * 5, z);
+    cityRoot.add(band);
+  }
+  buildingColliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  sidewalkCells.push({ x, z, half: (w + d) / 4 });
+
+  // the canal runs along the far edge of this row - a dedicated water
+  // material (lower roughness than the flat city palette) so it reads as
+  // wet even under simple lighting
+  const waterMat = new THREE.MeshStandardMaterial({ color: 0x1b3a4a, roughness: 0.35, metalness: 0.15, flatShading: true });
+  const canalNearZ = CITY_HALF + 2, canalFarZ = CITY_HALF + 30;
+  const canalMinX = -CITY_HALF - 5, canalMaxX = CITY_HALF + 5;
+  const water = new THREE.Mesh(
+    new THREE.PlaneGeometry(canalMaxX - canalMinX, canalFarZ - canalNearZ),
+    waterMat
+  );
+  water.rotation.x = -Math.PI / 2;
+  water.position.set((canalMinX + canalMaxX) / 2, 0.05, (canalNearZ + canalFarZ) / 2);
+  water.receiveShadow = true;
+  cityRoot.add(water);
+
+  // pier: a solid deck bridging the water (no collider under it, unlike the
+  // open water on either side, so the player can actually walk/drive out
+  // onto it to reach the briefcase at the far end)
+  const pierW = 7, pierFarZ = CITY_HALF + 24;
+  const deckLen = pierFarZ - canalNearZ;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(pierW, 0.4, deckLen), flatMat(0x6b4a30));
+  deck.position.set(x, 0.3, canalNearZ + deckLen / 2);
+  deck.receiveShadow = true;
+  cityRoot.add(deck);
+  for (let p = 0; p <= 4; p++) {
+    const pz = canalNearZ + (deckLen / 4) * p;
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 1.6, 6), flatMat(0x4a3320));
+      post.position.set(x + side * (pierW / 2 - 0.3), -0.3, pz);
+      cityRoot.add(post);
+    }
+  }
+  for (const side of [-1, 1]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, deckLen), flatMat(0x3a2a1a));
+    rail.position.set(x + side * (pierW / 2 - 0.1), 0.85, canalNearZ + deckLen / 2);
+    cityRoot.add(rail);
+  }
+
+  // water collision: open water on both sides of the pier, plus the strip
+  // beyond its far end, so the pier itself is the only way out onto the canal
+  waterColliders.push(
+    { minX: canalMinX, maxX: x - pierW / 2, minZ: canalNearZ, maxZ: canalFarZ },
+    { minX: x + pierW / 2, maxX: canalMaxX, minZ: canalNearZ, maxZ: canalFarZ },
+    { minX: canalMinX, maxX: canalMaxX, minZ: pierFarZ, maxZ: canalFarZ }
+  );
+}
+
+function buildParkingGarage({ x, z }) {
+  const w = 26, d = 26, levelH = 5, levels = 3;
+  const h = levelH * levels;
+  buildingColliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  sidewalkCells.push({ x, z, half: (w + d) / 4 });
+
+  for (let lvl = 0; lvl <= levels; lvl++) {
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(w, 0.5, d), flatMat(0x6b6f73));
+    slab.position.set(x, lvl * levelH, z);
+    slab.receiveShadow = true;
+    slab.castShadow = true;
+    cityRoot.add(slab);
+  }
+  const corners = [
+    [-1, -1], [1, -1], [-1, 1], [1, 1],
+    [0, -1], [0, 1], // extra mid-span pillars front/back for a busier silhouette
+  ];
+  for (const [cx, cz] of corners) {
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(1.2, h, 1.2), flatMat(0x555a5e));
+    pillar.position.set(x + cx * (w / 2 - 0.6), h / 2, z + cz * (d / 2 - 0.6));
+    pillar.castShadow = true;
+    cityRoot.add(pillar);
+  }
+
+  // illuminated "P" sign facing the street the player approaches from - two
+  // boxes read as a blocky glyph at this low-poly scale without needing
+  // actual text geometry
+  const signZ = z - d / 2 - 0.3;
+  const stem = new THREE.Mesh(new THREE.BoxGeometry(0.8, 5, 0.4), glowMat(0x2255ee, 1.2));
+  stem.position.set(x - w / 2 + 2, h + 3, signZ);
+  cityRoot.add(stem);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.0, 0.4), glowMat(0x2255ee, 1.2));
+  head.position.set(x - w / 2 + 2.9, h + 4.6, signZ);
+  cityRoot.add(head);
+}
+
+function buildLandmarks() {
+  buildWorkshop(LANDMARK_POS.workshop);
+  buildWaterfront(LANDMARK_POS.waterfront);
+  buildParkingGarage(LANDMARK_POS.garage);
+}
+
 function buildCity() {
   buildGround();
   for (let i = 0; i < GRID_COUNT; i++) {
     for (let j = 0; j < GRID_COUNT; j++) buildBlock(i, j);
   }
+  buildLandmarks();
   addStreetLamps();
 }
 buildCity();
@@ -468,9 +662,24 @@ function collideWithBuildings(pos, radius, outNormal) {
       return true;
     }
   }
-  const bound = CITY_HALF + ROAD_WIDTH * 1.5;
-  pos.x = clamp(pos.x, -bound, bound);
-  pos.z = clamp(pos.z, -bound, bound);
+  // open water (either side of the waterfront's pier) is impassable too,
+  // same push-out behavior as a building
+  for (const b of waterColliders) {
+    const cx = clamp(pos.x, b.minX, b.maxX);
+    const cz = clamp(pos.z, b.minZ, b.maxZ);
+    const dx = pos.x - cx, dz = pos.z - cz;
+    const distSq = dx * dx + dz * dz;
+    if (distSq < radius * radius) {
+      const dist = Math.sqrt(distSq) || 0.001;
+      const push = radius - dist;
+      pos.x += (dx / dist) * push;
+      pos.z += (dz / dist) * push;
+      if (outNormal) { outNormal.x = dx / dist; outNormal.z = dz / dist; }
+      return true;
+    }
+  }
+  pos.x = clamp(pos.x, -WORLD_BOUND, WORLD_BOUND);
+  pos.z = clamp(pos.z, -WORLD_BOUND, WORLD_BOUND);
   return false;
 }
 
@@ -1569,9 +1778,8 @@ function createBriefcaseMesh(color) {
 function resolveWorldPoint([x, z]) {
   const v = new THREE.Vector3(x, 0, z);
   pushClearOfBuildings(v, 4);
-  const bound = CITY_HALF + ROAD_WIDTH * 1.2;
-  v.x = clamp(v.x, -bound, bound);
-  v.z = clamp(v.z, -bound, bound);
+  v.x = clamp(v.x, -WORLD_BOUND, WORLD_BOUND);
+  v.z = clamp(v.z, -WORLD_BOUND, WORLD_BOUND);
   return v;
 }
 
@@ -2266,6 +2474,15 @@ function drawMinimap() {
     mmCtx.fillRect(x1, y1, x2 - x1, y2 - y1);
   }
 
+  mmCtx.fillStyle = '#1f5a78';
+  for (const b of waterColliders) {
+    const x1 = (b.minX - focus.x) * scale;
+    const y1 = (b.minZ - focus.z) * scale;
+    const x2 = (b.maxX - focus.x) * scale;
+    const y2 = (b.maxZ - focus.z) * scale;
+    mmCtx.fillRect(x1, y1, x2 - x1, y2 - y1);
+  }
+
   mmCtx.fillStyle = '#2f6b34';
   for (const p of parkCells) {
     const x = (p.x - focus.x) * scale;
@@ -2655,6 +2872,13 @@ function dismissSplash() {
 const splashTimer = setTimeout(dismissSplash, 2400);
 ['pointerdown', 'keydown'].forEach((evt) => {
   window.addEventListener(evt, () => { clearTimeout(splashTimer); dismissSplash(); }, { once: true });
+});
+// locked level-select stubs shouldn't skip the intro when tapped - stopping
+// propagation here keeps the window-level dismiss listener above from ever
+// seeing the event, same "locked, nothing happens" feel a real gated level
+// will need later.
+document.querySelectorAll('.ts-level.locked').forEach((el) => {
+  el.addEventListener('pointerdown', (e) => e.stopPropagation());
 });
 
 // ---------- TEMP DEBUG: click/tap logs world [x,z] to console ----------
