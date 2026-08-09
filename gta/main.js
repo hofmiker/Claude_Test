@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import { DISTRICT, ACTION, MISSION, DIALOGS, POLICE, PLAYER_NAME } from './mission.js';
+import { DISTRICT, ACTION, MISSION, DIALOGS, POLICE, PLAYER_NAME, CITY_STYLE } from './mission.js';
 
 /* ------------------------------------------------------------------ *
  * Vice Grid — a GTA1-inspired top-down city driver in simple 3D.
@@ -24,20 +24,13 @@ const LANE_OFFSET = ROAD_WIDTH * 0.27;
 // the waterfront landmark's canal/pier reach out to CITY_HALF+30.
 const WORLD_BOUND = CITY_HALF + ROAD_WIDTH * 3;
 
-const COLORS = {
-  ground: 0x2b2d31,
-  road: 0x35373b,
-  roadLine: 0xd8c246,
-  sidewalk: 0x8d8f92,
-  park: 0x3f7d43,
-  trunk: 0x5b3a22,
-  leaves: 0x2f6b34,
-};
-
-const BUILDING_PALETTE = [
-  0xb5533c, 0x7a8ba6, 0xc9a24b, 0x8a7ca8, 0x5f9ea0,
-  0xa9666b, 0x6b8f71, 0xba8a55, 0x94736b, 0x77869c,
-];
+// same grid/road/collision engine for every level, but CITY_STYLE (from
+// mission.js, chosen per active level) drives what actually gets built -
+// dense, colorful night blocks for "Der Kessel" vs. low, pale, park-heavy
+// villa streets for "Coastal Courier". Nothing below this line needs to
+// know which level is active; it just reads CITY_STYLE.
+const COLORS = CITY_STYLE.colors;
+const BUILDING_PALETTE = CITY_STYLE.buildingPalette;
 
 const CAR_PALETTE = [0xd64545, 0x3a6bd6, 0xe0c23a, 0x3ab08a, 0xb35fd6, 0xe08a2e, 0x8f8f8f];
 const POLICE_COLOR = 0x1c3fbf;
@@ -378,7 +371,7 @@ function addTree(x, z) {
 
 function buildBlock(i, j) {
   const { x, z } = blockCenter(i, j);
-  const isPark = Math.random() < 0.22;
+  const isPark = Math.random() < CITY_STYLE.parkChance;
   const isPlaza = i === Math.floor(GRID_COUNT / 2) && j === Math.floor(GRID_COUNT / 2);
 
   if (LANDMARK_CELLS.has(`${i},${j}`)) {
@@ -421,7 +414,7 @@ function buildBlock(i, j) {
   }
 
   const footprint = BLOCK_SIZE - SIDEWALK_MARGIN * 2;
-  const height = rand(6, 34) * (Math.random() < 0.18 ? 1.9 : 1);
+  const height = rand(CITY_STYLE.heightMin, CITY_STYLE.heightMax) * (Math.random() < CITY_STYLE.tallChance ? CITY_STYLE.tallMul : 1);
   const w = footprint * rand(0.72, 1);
   const d = footprint * rand(0.72, 1);
   const color = pick(BUILDING_PALETTE);

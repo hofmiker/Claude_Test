@@ -1,6 +1,6 @@
 // mission.js — Story-, Wegpunkt- und Dialog-Config für Vice Grid.
 // Reines Datenmodul, keine Three.js-Abhängigkeit. In main.js importieren:
-//   import { MISSION, POLICE, DISTRICT, PLAYER_NAME } from "./mission.js";
+//   import { MISSION, POLICE, DISTRICT, PLAYER_NAME, CITY_STYLE } from "./mission.js";
 //
 // WICHTIG — KOORDINATEN:
 //   Alle "pos"-Werte sind [x, z] in Weltkoordinaten (Boden-Ebene, y kommt aus deinem Terrain).
@@ -14,14 +14,18 @@
 //
 // MEHRERE LEVEL:
 //   Jedes Level ist ein eigenständiges { district, mission, dialogs,
-//   playerName }-Bundle in LEVELS unten. Welches Level main.js tatsächlich
-//   lädt, wird EINMALIG beim Modul-Laden aus localStorage gelesen (siehe
-//   ganz unten) - main.js selbst importiert weiterhin nur die schlichten
-//   Namen DISTRICT/MISSION/DIALOGS/PLAYER_NAME, ganz ohne Level-Auswahl-
-//   Logik im Spielcode. Landmarks (main.js: LANDMARK_CELLS/buildLandmarks)
-//   existieren dagegen IMMER alle gleichzeitig in der Stadt, unabhängig vom
-//   gewählten Level - nur welche Wegpunkte ein Level tatsächlich ansteuert,
-//   unterscheidet sich.
+//   playerName, cityStyle }-Bundle in LEVEL_DATA unten. Welches Level
+//   main.js tatsächlich lädt, wird EINMALIG beim Modul-Laden aus
+//   localStorage gelesen (siehe ganz unten) - main.js selbst importiert
+//   weiterhin nur die schlichten Namen DISTRICT/MISSION/DIALOGS/
+//   PLAYER_NAME/CITY_STYLE, ganz ohne Level-Auswahl-Logik im Spielcode.
+//   CITY_STYLE bestimmt, wie main.js' buildBlock()/buildGround() dieselbe
+//   Grid-Engine mit komplett anderen Werten (Palette, Gebäudehöhen,
+//   Park-Anteil, Boden-/Straßenfarben) befüllen - dieselbe Interaktion,
+//   aber eine spürbar andere Stadt und Atmosphäre pro Level. Landmarks
+//   (main.js: LANDMARK_CELLS/buildLandmarks) existieren dagegen IMMER alle
+//   gleichzeitig in der Stadt, unabhängig vom gewählten Level - nur welche
+//   Wegpunkte ein Level tatsächlich ansteuert, unterscheidet sich.
 
 export const ACTION = {
   TALK: "Reden",
@@ -42,6 +46,28 @@ const DISTRICT_KESSEL = {
   fogNear: 20,
   fogFar: 140,
   ambientLoop: "sfx/rain_city_loop.ogg", // optional
+};
+
+// Steuert, wie main.js' buildBlock()/buildGround() die Stadt tatsächlich
+// aussehen lassen - dieselbe Grid-/Straßen-/Kollisions-Engine für jedes
+// Level (siehe "Level-System" in CLAUDE.md), aber mit komplett anderen
+// Werten: dichte, bunte Häuserzeilen bei Nacht für "Der Kessel" gegen
+// niedrige, helle Villen-Zeilen mit viel mehr Grünflächen für "Coastal
+// Courier" - das allein macht schon einen Großteil des "andere Stadt,
+// andere Atmosphäre"-Unterschieds aus, ganz ohne die Straßen-/Kollisions-
+// Interaktion selbst anzufassen.
+const CITY_STYLE_KESSEL = {
+  buildingPalette: [
+    0xb5533c, 0x7a8ba6, 0xc9a24b, 0x8a7ca8, 0x5f9ea0,
+    0xa9666b, 0x6b8f71, 0xba8a55, 0x94736b, 0x77869c,
+  ],
+  heightMin: 6, heightMax: 34,
+  tallChance: 0.18, tallMul: 1.9,   // Anteil/Faktor für vereinzelte Hochhäuser
+  parkChance: 0.22,
+  colors: {
+    ground: 0x2b2d31, road: 0x35373b, roadLine: 0xd8c246,
+    sidewalk: 0x8d8f92, park: 0x3f7d43, trunk: 0x5b3a22, leaves: 0x2f6b34,
+  },
 };
 
 // Die Mission ist eine geordnete Liste von Schritten (State Machine).
@@ -189,15 +215,22 @@ const DIALOGS_KESSEL = {
 
 // ============================================================================
 // LEVEL 2 — "The Coastal Courier" (Sonniger Tag/Sunset, Malibu -> Sausalito)
-// Gleiche Engine, gleiche Interaktion (Fahren/Laufen/Dialog/Fahndung) wie
-// Level 1 - nur Story, Dialoge und Wegpunkte sind neu eingewoben. Bewusst
-// KEINE neuen Fahrzeugtypen (Boot/Limousine), keine Cutscene-Kameras, kein
-// Ausdauersystem - der ursprüngliche Prompt beschrieb das, aber die Vorgabe
-// war "Grafik und Interaktion unverändert". Die Schrittfolge ist deshalb
-// identisch zu Level 1 aufgebaut: Anruf -> Ziel anfahren + reden -> Ziel
-// anfahren + reden (löst Fahndung aus) -> Fluchtpunkt erreichen -> finaler
-// Dialog (Sieg). `timeOfDay: "day"` nutzt main.js' bereits vorhandenen
-// Tag-Beleuchtungspfad (siehe `isNight`-Verzweigungen) - keine neue Grafik,
+// Gleiche ENGINE, gleiche INTERAKTION (Fahren/Laufen/Dialog/Fahndung,
+// dieselbe buildBlock()/Kollisions-/Traffic-/Minimap-Logik) wie Level 1 -
+// bewusst KEINE neuen Fahrzeugtypen (Boot/Limousine), keine Cutscene-
+// Kameras, kein Ausdauersystem, wie im ursprünglichen Story-Prompt
+// beschrieben. Aber: "visuell sehr ähnlich" hieß NICHT "dieselbe Stadt
+// wiederverwendet" - eine erste Fassung hat Level 2 einfach in Level 1s
+// fertige Rasterstadt gesetzt und nur 3 Gebäude ausgetauscht, was sich wie
+// dieselbe Stadt mit ein paar neuen Häusern anfühlte statt wie ein
+// eigener Ort. CITY_STYLE_COASTAL unten (heller, niedriger, viel grüner)
+// sorgt jetzt dafür, dass main.js dieselbe Grid-Engine mit komplett
+// anderen Werten befüllt - andere Stadt, andere Atmosphäre, ohne die
+// Interaktion selbst zu ändern. Die Schrittfolge ist trotzdem identisch zu
+// Level 1 aufgebaut: Anruf -> Ziel anfahren + reden -> Ziel anfahren +
+// reden (löst Fahndung aus) -> Fluchtpunkt erreichen -> finaler Dialog
+// (Sieg). `timeOfDay: "day"` nutzt main.js' bereits vorhandenen Tag-
+// Beleuchtungspfad (siehe `isNight`-Verzweigungen) - keine neue Grafik,
 // nur ein bereits unterstützter Konfigurationswert.
 const DISTRICT_COASTAL = {
   name: "The Coastal Courier",
@@ -206,6 +239,23 @@ const DISTRICT_COASTAL = {
   fogColor: "#e8b573",        // warmes Sonnenuntergangs-Orange statt Nacht-Navy
   fogNear: 30,
   fogFar: 170,
+};
+
+// Helle, niedrige Villen-Palette statt Level 1s dunkler, bunter Downtown-
+// Palette; viel mehr Parkzellen (0.45 statt 0.22) für einen aufgelockerten,
+// grünen Vorort-Eindruck statt dichter Blockbebauung; kaum Hochhäuser
+// (tallChance nur 0.04, und selbst die "hohen" Ausreißer bleiben niedrig).
+const CITY_STYLE_COASTAL = {
+  buildingPalette: [
+    0xede8dc, 0xe0d8c0, 0xd8cba8, 0xc9bfa0, 0xe8dfc8, 0xdcd0b0, 0xd0c6a0, 0xe5dcc0,
+  ],
+  heightMin: 4, heightMax: 9,
+  tallChance: 0.04, tallMul: 1.4,
+  parkChance: 0.45,
+  colors: {
+    ground: 0xd9c9a0, road: 0xc7b98f, roadLine: 0xffffff,
+    sidewalk: 0xe6ddc4, park: 0x8fae5c, trunk: 0x6b4a2a, leaves: 0x4a8f3d,
+  },
 };
 
 const MISSION_COASTAL = {
@@ -352,8 +402,8 @@ export const LEVELS = [
 ];
 
 const LEVEL_DATA = {
-  der_kessel: { district: DISTRICT_KESSEL, mission: MISSION_KESSEL, dialogs: DIALOGS_KESSEL, playerName: "Marco" },
-  coastal_courier: { district: DISTRICT_COASTAL, mission: MISSION_COASTAL, dialogs: DIALOGS_COASTAL, playerName: "Marcus" },
+  der_kessel: { district: DISTRICT_KESSEL, mission: MISSION_KESSEL, dialogs: DIALOGS_KESSEL, playerName: "Marco", cityStyle: CITY_STYLE_KESSEL },
+  coastal_courier: { district: DISTRICT_COASTAL, mission: MISSION_COASTAL, dialogs: DIALOGS_COASTAL, playerName: "Marcus", cityStyle: CITY_STYLE_COASTAL },
 };
 
 const activeLevelId = (typeof localStorage !== "undefined" && localStorage.getItem("viceGridLevel")) || "der_kessel";
@@ -363,6 +413,7 @@ export const DISTRICT = ACTIVE.district;
 export const MISSION = ACTIVE.mission;
 export const DIALOGS = ACTIVE.dialogs;
 export const PLAYER_NAME = ACTIVE.playerName;
+export const CITY_STYLE = ACTIVE.cityStyle;
 
 // Polizei / Fahndung — binär statt Sterne. Level-unabhängig, gleiche
 // Fahndungsmechanik für jede Story.

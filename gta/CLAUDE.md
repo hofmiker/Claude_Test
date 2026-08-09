@@ -270,26 +270,53 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   "Level-System" unten für den Grund, warum ein Neuladen nötig ist.
 
 ## Level-System
-Zwei komplette, aber strukturell identische Level: "Der Kessel" (Marco,
-Noir-Nacht, Original) und "The Coastal Courier" (Marcus, sonniger
-Tag/Sunset, Malibu → Sausalito). Nutzerauftrag dazu: *"Grafik und
-Interaktion sollen unverändert sein, nur das Level und Story neu
-einweben"* — die zweite Story bringt deshalb bewusst KEINE neuen
-Fahrzeugtypen (kein Boot/Limousine aus der ursprünglichen Idee), keine
-Cutscene-Kameras und kein Ausdauersystem mit, sondern läuft komplett über
-die schon vorhandene Fahr-/Lauf-/Dialog-/Fahndungs-Mechanik.
+Zwei komplette Level mit derselben ENGINE, aber bewusst unterschiedlicher
+Stadt und Atmosphäre: "Der Kessel" (Marco, dichte Noir-Nacht-Downtown) und
+"The Coastal Courier" (Marcus, helle, aufgelockerte Sonnentag-Villenstadt,
+Malibu → Sausalito). Nutzerauftrag dazu, in zwei Schritten: zuerst *"Grafik
+und Interaktion sollen unverändert sein, nur das Level und Story neu
+einweben"*, dann die Korrektur *"Das soll eine ganz andere Stadt und
+Atmosphäre sein [...] nicht etwas aus Level 1 nachbauen"* — die erste
+Fassung hatte Level 2 einfach in Level 1s fertige Rasterstadt gesetzt und
+nur 3 Landmarks ausgetauscht, was sich wie dieselbe Stadt mit ein paar
+neuen Häusern anfühlte. Die Auflösung: dieselbe Grid-/Kollisions-/Traffic-
+Engine (`buildBlock()`/`buildGround()` unverändert in ihrer Struktur), aber
+mit `CITY_STYLE` (siehe unten) komplett anders parametrisiert befüllt —
+"Interaktion unverändert" heißt hier "gleicher Code, andere Werte", nicht
+"gleiche Stadt wiederverwendet". Level 2 bringt außerdem bewusst KEINE
+neuen Fahrzeugtypen (kein Boot/Limousine aus der ursprünglichen Idee),
+keine Cutscene-Kameras und kein Ausdauersystem mit, sondern läuft komplett
+über die schon vorhandene Fahr-/Lauf-/Dialog-/Fahndungs-Mechanik.
 - **Datenmodell (`mission.js`):** zwei vollständige Bundles
-  (`DISTRICT_KESSEL`/`MISSION_KESSEL`/`DIALOGS_KESSEL` und die
-  `_COASTAL`-Pendants) liegen nebeneinander in `LEVEL_DATA`, keyed per
-  Level-`id`. Ganz am Ende der Datei wird EINMALIG beim Modul-Laden
+  (`DISTRICT_KESSEL`/`MISSION_KESSEL`/`DIALOGS_KESSEL`/`CITY_STYLE_KESSEL`
+  und die `_COASTAL`-Pendants) liegen nebeneinander in `LEVEL_DATA`, keyed
+  per Level-`id`. Ganz am Ende der Datei wird EINMALIG beim Modul-Laden
   `localStorage.getItem('viceGridLevel')` gelesen und das passende Bundle
   unter den ursprünglichen Namen `DISTRICT`/`MISSION`/`DIALOGS` (plus neu
-  `PLAYER_NAME`) exportiert — `main.js` importiert weiterhin nur diese vier
-  schlichten Namen und enthält selbst keinerlei Level-Auswahl-Logik im
-  Spielcode, nur der Klick-Handler für die Titel-Chips (siehe UI oben)
-  schreibt in `localStorage`. Ein Level-Wechsel braucht deshalb ein
-  `location.reload()` (Stadt/Mission werden synchron beim Modul-Laden
-  gebaut, mitten im laufenden Spiel lässt sich das nicht umschalten).
+  `PLAYER_NAME`/`CITY_STYLE`) exportiert — `main.js` importiert weiterhin
+  nur diese fünf schlichten Namen und enthält selbst keinerlei Level-
+  Auswahl-Logik im Spielcode, nur der Klick-Handler für die Titel-Chips
+  (siehe UI oben) schreibt in `localStorage`. Ein Level-Wechsel braucht
+  deshalb ein `location.reload()` (Stadt/Mission werden synchron beim
+  Modul-Laden gebaut, mitten im laufenden Spiel lässt sich das nicht
+  umschalten).
+- **`CITY_STYLE`:** `main.js`s `COLORS`/`BUILDING_PALETTE`-Konstanten
+  lesen jetzt direkt aus `CITY_STYLE.colors`/`.buildingPalette` statt
+  eigene Werte zu hardcoden, und `buildBlock()`s Zufallslogik nutzt
+  `CITY_STYLE.parkChance`/`.heightMin`/`.heightMax`/`.tallChance`/
+  `.tallMul` statt der alten festen Zahlen (`0.22`, `rand(6,34)`, `0.18`,
+  `1.9`). `CITY_STYLE_KESSEL` übernimmt exakt die ursprünglichen Werte
+  (keine Änderung für Level 1); `CITY_STYLE_COASTAL` ist bewusst
+  gegensätzlich: helle Cremetöne statt bunter Downtown-Palette, niedrige
+  Gebäude (4–9 statt 6–34 Einheiten, kaum "Hochhaus"-Ausreißer) statt
+  dichter Blockbebauung, doppelt so hohe Park-Wahrscheinlichkeit (0.45
+  statt 0.22) für einen aufgelockerten grünen Vorort-Eindruck, plus helle
+  sandfarbene Boden-/Straßentöne mit weißen (statt gelben) Fahrbahn-
+  markierungen. Die Grid-Größe/Blockmaße/Straßenbreite selbst
+  (`GRID_COUNT`/`BLOCK_SIZE`/`ROAD_WIDTH`) bleiben für beide Level gleich,
+  da `WORLD_BOUND`, Minimap-Reichweite, Kamera-Tuning und die
+  Landmark-Zellkoordinaten alle darauf aufbauen — die Änderung würde weit
+  über eine reine Stil-Anpassung hinausgehen.
 - **`PLAYER_NAME`:** `pushDialogRow()`s "ist das der Spieler?"-Check
   (rechts, Pink, `isMe`) prüfte früher hart gegen `'Marco'` — mit zwei
   Leveln und unterschiedlichen Spielernamen (Marco/Marcus) ist das jetzt
