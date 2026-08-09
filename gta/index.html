@@ -542,6 +542,12 @@
     background: rgba(255,255,255,0.04);
     color: rgba(255,255,255,0.32);
   }
+  .ts-level[data-level] { cursor: pointer; }
+  .ts-level.current {
+    border-color: rgba(255,46,136,0.95);
+    background: rgba(255,46,136,0.28);
+    box-shadow: 0 0 10px rgba(255,46,136,0.4);
+  }
   .ts-hint {
     margin-top: 26px;
     font-size: 11px;
@@ -673,10 +679,10 @@
     <div id="titleSplash">
       <span class="ts-word ts-word1">VICE</span>
       <span class="ts-word ts-word2">GRID</span>
-      <span class="ts-sub">Der Kessel</span>
+      <span class="ts-sub" id="titleSub">Der Kessel</span>
       <div class="ts-levels">
-        <div class="ts-level">1 · Der Kessel</div>
-        <div class="ts-level locked">2 · ???</div>
+        <div class="ts-level" data-level="der_kessel">1 · Der Kessel</div>
+        <div class="ts-level" data-level="coastal_courier">2 · Coastal Courier</div>
         <div class="ts-level locked">3 · ???</div>
       </div>
       <span class="ts-hint">Taste oder Tipp zum Überspringen</span>

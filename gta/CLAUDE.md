@@ -6,10 +6,13 @@ https://hofmiker.github.io/Claude_Test/gta/
 ## Dateien
 - `index.html` — Shell/UI
 - `main.js` — Fahrphysik, Kamera, Rendering, Input, HUD
-- `mission.js` — Missions-/Dialogsystem. Figuren: Marco (Spieler), Vincent
+- `mission.js` — Missions-/Dialogsystem, jetzt mit zwei Leveln (siehe
+  "Level-System" unten). Level 1 "Der Kessel": Marco (Spieler), Vincent
   (Auftraggeber, nur per Anruf), Sofia (Werkstatt-Kontakt) und Jack (Kurier)
   — bewusst europäisch/US-klingende Namen statt der ursprünglichen
-  Marek/Dragan/Lena/Vess.
+  Marek/Dragan/Lena/Vess. Level 2 "Coastal Courier": Marcus (Spieler),
+  Dante (Auftraggeber), Viktor (Villa-Kontakt), Mechaniker (Hafen) und
+  Elaine (finaler Dialog an der Pier).
 - `vendor/three.module.min.js` — Three.js, lokal vendored (ES-Modul)
 - `vendor/fonts/bebas-neue-400.woff2` — Bebas Neue, lokal vendored via
   `npm pack @fontsource/bebas-neue` (npm-Registry ist in der Sandbox
@@ -253,18 +256,66 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   Kamera von selbst zurück zur zuvor aktiven Einstellung (Top-Down per
   Default) — exakt dasselbe Übergangsmuster wie bei der bereits
   bestehenden Telefonat-Nahkamera.
-- **Level-Auswahl (Platzhalter):** unter dem "Der Kessel"-Untertitel der
-  Titelkarte sitzt eine kleine `.ts-levels`-Reihe mit drei Chips: "1 · Der
-  Kessel" (pink, aktiv — jeder Tap/Taste startet wie gehabt sofort die
-  Mission, keine Sonderbehandlung nötig, da das schon der bestehende
-  globale Dismiss-Listener übernimmt) und zwei sichtbar gesperrte "2 · ???"
-  / "3 · ???"-Platzhalter (gestrichelter Rahmen, gedämpfte Farbe). Tippen
-  auf einen gesperrten Chip ruft `e.stopPropagation()` auf (siehe
-  `main.js`, direkt neben der `dismissSplash()`-Registrierung), damit es
-  sich wirklich wie "gesperrt, passiert nichts" anfühlt statt trotzdem die
-  Intro zu überspringen. Rein visuelles Gerüst für kommende Level — sobald
-  ein zweites Level existiert, braucht es eine eigene `MISSION`-Auswahl in
-  `mission.js`/`main.js` statt der fest verdrahteten `MISSION`-Konstante.
+- **Level-Auswahl:** unter dem Titel-Untertitel sitzt eine `.ts-levels`-Reihe
+  mit drei Chips: "1 · Der Kessel" und "2 · Coastal Courier" sind spielbar
+  (`data-level`-Attribut = Schlüssel in `mission.js`s `LEVEL_DATA`), "3 · ???"
+  bleibt sichtbar gesperrt (gestrichelter Rahmen, gedämpfte Farbe) als
+  Platzhalter für ein zukünftiges drittes Level. Tippen auf den gesperrten
+  Chip ruft `e.stopPropagation()` auf, damit es sich wirklich wie "gesperrt,
+  passiert nichts" anfühlt statt die Intro zu überspringen. Der aktuell
+  aktive Chip bekommt zusätzlich `.current` (hellerer Rand/Glow). Klick auf
+  den JEWEILS AKTIVEN Chip startet wie gehabt sofort die Mission; Klick auf
+  den ANDEREN spielbaren Chip schreibt dessen `data-level` nach
+  `localStorage['viceGridLevel']` und lädt die Seite neu — siehe
+  "Level-System" unten für den Grund, warum ein Neuladen nötig ist.
+
+## Level-System
+Zwei komplette, aber strukturell identische Level: "Der Kessel" (Marco,
+Noir-Nacht, Original) und "The Coastal Courier" (Marcus, sonniger
+Tag/Sunset, Malibu → Sausalito). Nutzerauftrag dazu: *"Grafik und
+Interaktion sollen unverändert sein, nur das Level und Story neu
+einweben"* — die zweite Story bringt deshalb bewusst KEINE neuen
+Fahrzeugtypen (kein Boot/Limousine aus der ursprünglichen Idee), keine
+Cutscene-Kameras und kein Ausdauersystem mit, sondern läuft komplett über
+die schon vorhandene Fahr-/Lauf-/Dialog-/Fahndungs-Mechanik.
+- **Datenmodell (`mission.js`):** zwei vollständige Bundles
+  (`DISTRICT_KESSEL`/`MISSION_KESSEL`/`DIALOGS_KESSEL` und die
+  `_COASTAL`-Pendants) liegen nebeneinander in `LEVEL_DATA`, keyed per
+  Level-`id`. Ganz am Ende der Datei wird EINMALIG beim Modul-Laden
+  `localStorage.getItem('viceGridLevel')` gelesen und das passende Bundle
+  unter den ursprünglichen Namen `DISTRICT`/`MISSION`/`DIALOGS` (plus neu
+  `PLAYER_NAME`) exportiert — `main.js` importiert weiterhin nur diese vier
+  schlichten Namen und enthält selbst keinerlei Level-Auswahl-Logik im
+  Spielcode, nur der Klick-Handler für die Titel-Chips (siehe UI oben)
+  schreibt in `localStorage`. Ein Level-Wechsel braucht deshalb ein
+  `location.reload()` (Stadt/Mission werden synchron beim Modul-Laden
+  gebaut, mitten im laufenden Spiel lässt sich das nicht umschalten).
+- **`PLAYER_NAME`:** `pushDialogRow()`s "ist das der Spieler?"-Check
+  (rechts, Pink, `isMe`) prüfte früher hart gegen `'Marco'` — mit zwei
+  Leveln und unterschiedlichen Spielernamen (Marco/Marcus) ist das jetzt
+  `line.speaker === PLAYER_NAME`, importiert aus `mission.js`. Gleiches
+  Verhalten, nur parametrisiert statt hartkodiert.
+- **`SPEAKER_STYLE`/`NPC_BY_STEP`:** beide Level teilen sich je EIN
+  gemeinsames Objekt in `main.js` — da beide Level komplett unterschiedliche
+  Sprecher-Namen bzw. Schritt-IDs verwenden (`L2_VILLA` statt
+  `FIND_CONTACT` usw.), gibt es keine Namenskollisionen, ein Umschalten pro
+  Level war nicht nötig.
+- **Schrittfolge identisch zu Level 1:** Anruf (`L2_INTRO`) → Ziel anfahren
+  + reden (`L2_VILLA`, Viktor übergibt das Paket) → Ziel anfahren + reden,
+  löst Fahndung aus (`L2_HARBOR`, Mechaniker warnt vor der Polizei,
+  `onComplete: "startPolice"`) → Fluchtpunkt erreichen (`L2_ESCAPE`,
+  **dieselbe** Parkgarage-Koordinate wie Level 1 — ein Rückzugsort passt
+  thematisch zu beiden Geschichten, kein Grund für ein weiteres Wahrzeichen)
+  → finaler Dialog + Sieg (`L2_PIER`, Elaine an der Sausalito-Pier). Das
+  ursprüngliche Boot/Brücken/Limousinen-Konzept aus dem Story-Prompt wurde
+  bewusst auf diese Schrittform verdichtet statt neue Interaktionsarten zu
+  bauen.
+- **Tageslicht statt Nacht:** `DISTRICT_COASTAL.timeOfDay: "day"` nutzt
+  main.js' bereits vorhandene Tag/Nacht-Verzweigung (`isNight`-Fälle bei
+  Hemisphere-Light-Farben, `addStreetLamps()` überspringt sich selbst bei
+  Tag) — keine neue Grafik-Funktionalität, nur ein schon unterstützter
+  Konfigurationswert, der die beiden Level trotzdem klar unterscheidbar
+  macht (warmes Orange-Fog `#e8b573` statt Nacht-Navy).
 
 ## Wahrzeichen (Missions-Locations)
 Wegpunkte in `mission.js` waren ursprünglich reine `[x,z]`-Platzhalter, die
@@ -308,6 +359,31 @@ geschätzte Platzhalterzahlen.
 - **Minimap:** `waterColliders` werden nach den grauen `buildingColliders`
   zusätzlich in einem eigenen Blau (`#1f5a78`) gezeichnet, damit Wasser auf
   der Karte erkennbar anders aussieht als Gebäude.
+
+Drei weitere Wahrzeichen für Level 2 ("Coastal Courier") — existieren
+IMMER in der Stadt, unabhängig vom aktiven Level (siehe "Level-System"
+oben), sind nur reine Kulisse solange das jeweils andere Level läuft:
+- **Villa Malibu** (`buildVilla`, Zelle `5,1`): niedriges, flaches
+  Cremeweiß-Haus mit großer getönter Glasfront (`glowMat` für einen
+  leichten Schimmer) und einem kleinen, kollisionslosen Pool davor (reine
+  eingefärbte Plane, wie eine Straßenmarkierung — kein neues
+  Kollisions-Feature). Palmen-Flair über zwei ganz normale `addTree()`-
+  Aufrufe (dieselbe Park-Baum-Mesh wie überall sonst in der Stadt, keine
+  neue Geometrie).
+- **Der Hafen** (`buildHarbor`, Zelle `0,5`): rostrotes Lagerhaus (gleiche
+  Bauweise wie `buildWorkshop`, andere Farbe/Größe) plus drei
+  Schiffscontainer (eigene, kleinere Collider) und ein Kran (Pfosten +
+  Arm, gleiche Technik wie `createStreetLampMesh`). Bewusst OHNE eigenes
+  Kanal/Steg-Feature — der Missionsschritt hier braucht nur eine
+  Annäherungs-Zone für den Mechaniker-Dialog, keine Steg-Navigation wie
+  bei Level 1s Koffer-Übergabe.
+- **Sausalito Pier** (`buildPier2`, Zelle `6,2`): kleine Art-Deco-Galerie
+  plus ein komplett lokaler Pool+Steg (im Gegensatz zum Level-1-Kanal muss
+  dieser nicht bis zum Stadtrand reichen, bleibt einfach innerhalb/neben
+  der reservierten Zelle — braucht deshalb keine `WORLD_BOUND`-Anpassung).
+  Gleiches Steg-Muster wie beim Level-1-Kanal (Deck + Geländer + Pfosten,
+  `waterColliders` links/rechts/hinterm Stegende). Elaine (`NPC_BY_STEP.
+  L2_PIER`, `female: true`) steht am äußeren Stegende, wie Jack in Level 1.
 
 ## Fahrphysik & Polizei
 - **Gebäude-Kollision:** ein Treffer bremst nicht mehr pauschal auf 12%

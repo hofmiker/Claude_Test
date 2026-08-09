@@ -1,19 +1,40 @@
-// mission.js — Story-, Wegpunkt- und Dialog-Config für "Vice Grid: Der Kessel"
+// mission.js — Story-, Wegpunkt- und Dialog-Config für Vice Grid.
 // Reines Datenmodul, keine Three.js-Abhängigkeit. In main.js importieren:
-//   import { MISSION, POLICE, DISTRICT } from "./mission.js";
+//   import { MISSION, POLICE, DISTRICT, PLAYER_NAME } from "./mission.js";
 //
 // WICHTIG — KOORDINATEN:
 //   Alle "pos"-Werte sind [x, z] in Weltkoordinaten (Boden-Ebene, y kommt aus deinem Terrain).
-//   Keine Platzhalter mehr - jeder Wegpunkt unten zeigt exakt auf eines der
-//   drei handgebauten Wahrzeichen in main.js (LANDMARK_POS: workshop,
-//   waterfront, garage), damit "Sofias Werkstatt"/"Wohnblock am Kanal"/
-//   "Parkgarage" auch wirklich wie eine Werkstatt/ein Kanal mit Steg/eine
-//   Parkgarage aussehen statt auf einem zufälligen Standardgebäude zu landen.
-//   Ändert sich main.js' LANDMARK_CELLS/blockCenter()-Geometrie, müssen diese
-//   Zahlen neu berechnet werden.
+//   Keine Platzhalter — jeder Wegpunkt zeigt exakt auf eines der handgebauten
+//   Wahrzeichen in main.js (LANDMARK_POS), damit "Sofias Werkstatt"/"Villa
+//   Malibu"/etc. auch wirklich wie die beschriebene Location aussehen statt
+//   auf einem zufälligen Standardgebäude zu landen. Ändert sich main.js'
+//   LANDMARK_CELLS/blockCenter()-Geometrie, müssen diese Zahlen neu
+//   berechnet werden.
 //   triggerRadius ist der Radius in Weltmetern, ab dem die Zone auslöst.
+//
+// MEHRERE LEVEL:
+//   Jedes Level ist ein eigenständiges { district, mission, dialogs,
+//   playerName }-Bundle in LEVELS unten. Welches Level main.js tatsächlich
+//   lädt, wird EINMALIG beim Modul-Laden aus localStorage gelesen (siehe
+//   ganz unten) - main.js selbst importiert weiterhin nur die schlichten
+//   Namen DISTRICT/MISSION/DIALOGS/PLAYER_NAME, ganz ohne Level-Auswahl-
+//   Logik im Spielcode. Landmarks (main.js: LANDMARK_CELLS/buildLandmarks)
+//   existieren dagegen IMMER alle gleichzeitig in der Stadt, unabhängig vom
+//   gewählten Level - nur welche Wegpunkte ein Level tatsächlich ansteuert,
+//   unterscheidet sich.
 
-export const DISTRICT = {
+export const ACTION = {
+  TALK: "Reden",
+  TAKE: "Nehmen",
+  ENTER: "Einsteigen",
+  DELIVER: "Übergeben",
+};
+
+// ============================================================================
+// LEVEL 1 — "Der Kessel" (Noir-Heist, Nacht/Regen)
+// ============================================================================
+
+const DISTRICT_KESSEL = {
   name: "Der Kessel",
   timeOfDay: "night",        // Nacht, Regen, Neon-Noir
   weather: "rain",
@@ -23,18 +44,10 @@ export const DISTRICT = {
   ambientLoop: "sfx/rain_city_loop.ogg", // optional
 };
 
-// Kleine Helfer-Konstanten, damit main.js Zonen-Labels konsistent halten kann
-export const ACTION = {
-  TALK: "Reden",
-  TAKE: "Nehmen",
-  ENTER: "Einsteigen",
-  DELIVER: "Übergeben",
-};
-
 // Die Mission ist eine geordnete Liste von Schritten (State Machine).
 // main.js hält einen Index "currentStep". Ist die Bedingung eines Schritts
 // erfüllt (Zone erreicht / Item genommen), wird advance() aufgerufen.
-export const MISSION = {
+const MISSION_KESSEL = {
   id: "der_kessel_01",
   title: "Der Kessel",
   reward: 300,
@@ -92,7 +105,7 @@ export const MISSION = {
       onComplete: "startPolice",  // main.js aktiviert POLICE + "GESUCHT"-Anzeige
     },
 
-    // 4 — ESCAPE: zur Parkgarage unter der Hochstraße, Polizei jagt
+    // 4 — ESCAPE: zur Parkgarage, Polizei jagt
     {
       id: "ESCAPE",
       objective: "Häng die Polizei ab und erreiche die Parkgarage",
@@ -131,7 +144,7 @@ export const MISSION = {
 
 // Dialoge — je Eintrag eine Sequenz von Zeilen {speaker, text}.
 // Kurze Zeilen für Mobile. Ton: knapp, kalt, Noir.
-export const DIALOGS = {
+const DIALOGS_KESSEL = {
   call_dragan: {
     speaker: "Anruf",
     lines: [
@@ -174,11 +187,186 @@ export const DIALOGS = {
   },
 };
 
-// Polizei / Fahndung — binär statt Sterne.
-export const POLICE = {
-  // Startet, wenn Schritt GRAB_ITEM abgeschlossen ist (onComplete: "startPolice").
-  startAtStep: "GRAB_ITEM",
+// ============================================================================
+// LEVEL 2 — "The Coastal Courier" (Sonniger Tag/Sunset, Malibu -> Sausalito)
+// Gleiche Engine, gleiche Interaktion (Fahren/Laufen/Dialog/Fahndung) wie
+// Level 1 - nur Story, Dialoge und Wegpunkte sind neu eingewoben. Bewusst
+// KEINE neuen Fahrzeugtypen (Boot/Limousine), keine Cutscene-Kameras, kein
+// Ausdauersystem - der ursprüngliche Prompt beschrieb das, aber die Vorgabe
+// war "Grafik und Interaktion unverändert". Die Schrittfolge ist deshalb
+// identisch zu Level 1 aufgebaut: Anruf -> Ziel anfahren + reden -> Ziel
+// anfahren + reden (löst Fahndung aus) -> Fluchtpunkt erreichen -> finaler
+// Dialog (Sieg). `timeOfDay: "day"` nutzt main.js' bereits vorhandenen
+// Tag-Beleuchtungspfad (siehe `isNight`-Verzweigungen) - keine neue Grafik,
+// nur ein bereits unterstützter Konfigurationswert.
+const DISTRICT_COASTAL = {
+  name: "The Coastal Courier",
+  timeOfDay: "day",
+  weather: "clear",
+  fogColor: "#e8b573",        // warmes Sonnenuntergangs-Orange statt Nacht-Navy
+  fogNear: 30,
+  fogFar: 170,
+};
 
+const MISSION_COASTAL = {
+  id: "coastal_courier_01",
+  title: "The Coastal Courier",
+  reward: 350,
+
+  steps: [
+    // 0 — L2_INTRO: Anruf von Dante
+    {
+      id: "L2_INTRO",
+      objective: "Nimm den Anruf an",
+      dialog: "call_dante",
+      autoStart: true,
+      onComplete: "activateWaypoint",
+    },
+
+    // 1 — L2_VILLA: zur Villa in Malibu fahren, Viktor trifft, Paket übernehmen
+    {
+      id: "L2_VILLA",
+      objective: "Fahre zur Villa in Malibu",
+      waypoint: {
+        pos: [90, -103],          // 4m vor der Glasfront (LANDMARK_POS.villa)
+        label: "Villa Malibu",
+        color: "#ffcc00",
+      },
+      triggerRadius: 6,
+      action: ACTION.TALK,
+      dialog: "talk_viktor",
+    },
+
+    // 2 — L2_HARBOR: zum Hafen fahren, Mechaniker trifft -> Polizei startet
+    {
+      id: "L2_HARBOR",
+      objective: "Bring das Paket zum Hafen",
+      waypoint: {
+        pos: [-135, 78],          // 4m vor dem Lagerhaus-Tor (LANDMARK_POS.harbor)
+        label: "Der Hafen",
+        color: "#ffcc00",
+      },
+      triggerRadius: 7,
+      action: ACTION.DELIVER,
+      dialog: "talk_mechanic",    // startet beim Betreten + F
+      onComplete: "startPolice",  // main.js aktiviert POLICE + "GESUCHT"-Anzeige
+    },
+
+    // 3 — L2_ESCAPE: Polizei abhängen, Abholpunkt erreichen (gleiche Garage
+    // wie Level 1 - andere Story, gleicher "sicherer Rückzugsort"-Beat)
+    {
+      id: "L2_ESCAPE",
+      objective: "Häng die Polizei ab und erreiche den Abholpunkt",
+      waypoint: {
+        pos: [-90, -108],         // LANDMARK_POS.garage, wie in Level 1
+        label: "Abholpunkt",
+        color: "#ff3b30",
+      },
+      triggerRadius: 9,
+      action: ACTION.ENTER,
+    },
+
+    // 4 — L2_PIER: Sausalito Pier, finaler Dialog mit Elaine, Sieg
+    {
+      id: "L2_PIER",
+      objective: "Erreiche die Pier in Sausalito",
+      waypoint: {
+        pos: [142, -46],          // Einstieg auf den Steg (LANDMARK_POS.pier2)
+        label: "Sausalito Pier",
+        color: "#ffcc00",
+      },
+      triggerRadius: 6,
+      action: ACTION.TALK,
+      dialog: "elaine_pier",
+      onComplete: "win",
+    },
+  ],
+
+  win: {
+    title: "Zweite Chance",
+    subtitle: "+$350 — Nächste Woche. Pünktlich, versprochen.",
+    restartLabel: "Nochmal",
+  },
+  fail: {
+    title: "Geschnappt",
+    subtitle: "Manche Dinge lassen sich nicht outfahren.",
+    restartLabel: "Nochmal",
+  },
+};
+
+const DIALOGS_COASTAL = {
+  call_dante: {
+    speaker: "Anruf",
+    lines: [
+      { speaker: "Dante", text: "Marcus. Ein Job in Malibu. Eine Villa, ein Typ namens Viktor." },
+      { speaker: "Dante", text: "Bring das Paket zum Hafen. 45 Minuten, sauber." },
+      { speaker: "Marcus", text: "Bin doch immer sauber, D." },
+      { speaker: "Dante", text: "Und Marcus — das ist dein letzter Job für mich." },
+    ],
+  },
+
+  talk_viktor: {
+    speaker: "Viktor",
+    lines: [
+      { speaker: "Viktor", text: "Du bist Marcus?" },
+      { speaker: "Marcus", text: "Der bin ich. Was hast du für mich?" },
+      { speaker: "Viktor", text: "Kunstwerke. Sehr heiß. Die Polizei wurde schon gerufen." },
+      { speaker: "Marcus", text: "Keine Panik. Ich bin weg." },
+    ],
+  },
+
+  talk_mechanic: {
+    speaker: "Mechaniker",
+    lines: [
+      { speaker: "Mechaniker", text: "Polizei kommt näher. Gib mir das Paket, ich mach den Rest." },
+      { speaker: "Marcus", text: "Wie schnell können die hier sein?" },
+      { speaker: "Mechaniker", text: "Zu schnell. Lauf." },
+      { speaker: "", text: "Sirenen. Blaulicht springt an." },
+    ],
+  },
+
+  elaine_pier: {
+    speaker: "Elaine",
+    lines: [
+      { speaker: "Elaine", text: "Marcus? Du bist eine Stunde zu spät." },
+      { speaker: "Marcus", text: "Ich weiß. Es tut mir leid." },
+      { speaker: "Elaine", text: "Du siehst aus, als kämst du gerade von einem Raub." },
+      { speaker: "Marcus", text: "...Ich bin einfach kein guter Mensch. Aber ich will's besser machen. Mit dir." },
+      { speaker: "Elaine", text: "Das ist das erste Ehrliche, was du mir heute sagst." },
+      { speaker: "Elaine", text: "Nächste Woche. Ein echtes Date. Pünktlich." },
+      { speaker: "Marcus", text: "Pünktlich. Versprochen." },
+    ],
+  },
+};
+
+// ============================================================================
+// Level-Auswahl
+// ============================================================================
+
+// Reihenfolge/Metadaten für die Level-Auswahl-Chips im Titelbildschirm
+// (main.js/index.html) - main.js braucht davon nur `id`, um den gewählten
+// Chip in main.js' Klick-Handler in localStorage zu schreiben.
+export const LEVELS = [
+  { id: "der_kessel", title: "Der Kessel", locked: false },
+  { id: "coastal_courier", title: "Coastal Courier", locked: false },
+];
+
+const LEVEL_DATA = {
+  der_kessel: { district: DISTRICT_KESSEL, mission: MISSION_KESSEL, dialogs: DIALOGS_KESSEL, playerName: "Marco" },
+  coastal_courier: { district: DISTRICT_COASTAL, mission: MISSION_COASTAL, dialogs: DIALOGS_COASTAL, playerName: "Marcus" },
+};
+
+const activeLevelId = (typeof localStorage !== "undefined" && localStorage.getItem("viceGridLevel")) || "der_kessel";
+const ACTIVE = LEVEL_DATA[activeLevelId] || LEVEL_DATA.der_kessel;
+
+export const DISTRICT = ACTIVE.district;
+export const MISSION = ACTIVE.mission;
+export const DIALOGS = ACTIVE.dialogs;
+export const PLAYER_NAME = ACTIVE.playerName;
+
+// Polizei / Fahndung — binär statt Sterne. Level-unabhängig, gleiche
+// Fahndungsmechanik für jede Story.
+export const POLICE = {
   units: {
     initial: 1,          // Zahl der Cop-Autos beim Start
     max: 3,              // rampt hoch, solange du gesehen wirst

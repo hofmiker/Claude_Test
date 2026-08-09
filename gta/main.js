@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import { DISTRICT, ACTION, MISSION, DIALOGS, POLICE } from './mission.js';
+import { DISTRICT, ACTION, MISSION, DIALOGS, POLICE, PLAYER_NAME } from './mission.js';
 
 /* ------------------------------------------------------------------ *
  * Vice Grid — a GTA1-inspired top-down city driver in simple 3D.
@@ -325,7 +325,13 @@ function blockCenter(i, j) {
 // looked like a workshop or a canal. These cells are skipped in buildBlock()
 // and built by buildLandmarks() instead, at exact coordinates mission.js's
 // waypoints now point at directly.
-const LANDMARK_CELLS = new Set(['2,4', '5,6', '1,1']);
+// Level 1 landmarks: workshop(2,4), waterfront(5,6), garage(1,1). Level 2
+// ("Coastal Courier") adds villa(5,1), harbor(0,5), pier2(6,2) - both
+// levels' landmarks exist in the shared city at all times regardless of
+// which level is active (they're just scenery; only the active MISSION's
+// waypoints determine which ones actually get visited in a given
+// playthrough), so no per-level conditional world-gen is needed.
+const LANDMARK_CELLS = new Set(['2,4', '5,6', '1,1', '5,1', '0,5', '6,2']);
 
 function buildGround() {
   const groundSize = CITY_SIZE + ROAD_WIDTH * 6;
@@ -470,13 +476,16 @@ function addStreetLamps() {
 }
 
 // ---------- Mission landmarks --------------------------------------------
-// exact world coordinates for the three LANDMARK_CELLS above - mission.js's
+// exact world coordinates for the LANDMARK_CELLS above - mission.js's
 // waypoints are set to these same numbers, so "Sofias Werkstatt" etc. are
 // no longer arbitrary placeholders that happen to land on a random box.
 const LANDMARK_POS = {
   workshop: blockCenter(2, 4),
   waterfront: blockCenter(5, 6),
   garage: blockCenter(1, 1),
+  villa: blockCenter(5, 1),
+  harbor: blockCenter(0, 5),
+  pier2: blockCenter(6, 2),
 };
 
 function buildWorkshop({ x, z }) {
@@ -626,10 +635,145 @@ function buildParkingGarage({ x, z }) {
   cityRoot.add(head);
 }
 
+// ---------- Level 2 ("Coastal Courier") landmarks -------------------------
+// same construction technique as the Level 1 landmarks above (box bodies,
+// flat/glow materials, a front-face detail, a collider) - Level 2 reuses
+// the exact same engine and interaction, only the story/location dressing
+// changes.
+function buildVilla({ x, z }) {
+  const w = 22, d = 18, h = 7;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), flatMat(0xede8dc));
+  body.position.set(x, h / 2, z);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  cityRoot.add(body);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 1.04, 0.5, d * 1.04), flatMat(0xd8d2c0));
+  roof.position.set(x, h + 0.25, z);
+  cityRoot.add(roof);
+  buildingColliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  sidewalkCells.push({ x, z, half: (w + d) / 4 });
+
+  const frontZ = z - d / 2 - 0.16;
+  const glassWall = new THREE.Mesh(new THREE.BoxGeometry(14, 4, 0.25), glowMat(0x9fc9d9, 0.35));
+  glassWall.position.set(x, 3, frontZ);
+  cityRoot.add(glassWall);
+
+  // small pool out front, purely decorative (no collider) - a flat tinted
+  // plane like the road markings elsewhere, not a new collision feature
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(8, 5), flatMat(0x2ab8d9));
+  pool.rotation.x = -Math.PI / 2;
+  pool.position.set(x, 0.03, frontZ - 6);
+  cityRoot.add(pool);
+
+  // palm-flavor via the existing park tree mesh - no new geometry, just
+  // reused decoration placed for a Malibu feel
+  addTree(x - w / 2 - 2, z + 2);
+  addTree(x + w / 2 + 2, z - 3);
+}
+
+function buildHarbor({ x, z }) {
+  const w = 20, d = 16, h = 8;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), flatMat(0x8a4a3a));
+  body.position.set(x, h / 2, z);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  cityRoot.add(body);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 1.02, 0.6, d * 1.02), flatMat(0x1c1c1c));
+  roof.position.set(x, h + 0.3, z);
+  cityRoot.add(roof);
+  buildingColliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  sidewalkCells.push({ x, z, half: (w + d) / 4 });
+
+  const frontZ = z - d / 2 - 0.16;
+  const door = new THREE.Mesh(new THREE.BoxGeometry(8, 5, 0.3), flatMat(0x131313));
+  door.position.set(x, 2.5, frontZ);
+  cityRoot.add(door);
+
+  // shipping containers + a crane sell "harbor" even from a distance
+  const containerSpots = [
+    { dx: -w / 2 - 4, dz: 3, rot: 0.2, color: 0xb35a2e },
+    { dx: -w / 2 - 4, dz: -3.5, rot: -0.15, color: 0x2e7d6b },
+    { dx: w / 2 + 4, dz: 2, rot: 0.1, color: 0xb35a2e },
+  ];
+  for (const c of containerSpots) {
+    const container = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 6), flatMat(c.color));
+    container.position.set(x + c.dx, 1.2, z + c.dz);
+    container.rotation.y = c.rot;
+    container.castShadow = true;
+    cityRoot.add(container);
+    buildingColliders.push({
+      minX: x + c.dx - 3.2, maxX: x + c.dx + 3.2,
+      minZ: z + c.dz - 1.3, maxZ: z + c.dz + 1.3,
+    });
+  }
+  const cranePole = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 11, 6), flatMat(0xb8a23a));
+  cranePole.position.set(x + w / 2 + 4, 5.5, z + d / 2 + 3);
+  cranePole.castShadow = true;
+  cityRoot.add(cranePole);
+  const craneArm = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 9), flatMat(0xb8a23a));
+  craneArm.position.set(x + w / 2 + 4, 10.5, z + d / 2 + 3 - 3.5);
+  cityRoot.add(craneArm);
+}
+
+function buildPier2({ x, z }) {
+  // small art-deco gallery, offset to one side of the reserved cell
+  const gx = x - 10, gz = z - 5;
+  const gw = 14, gd = 10, gh = 8;
+  const gallery = new THREE.Mesh(new THREE.BoxGeometry(gw, gh, gd), flatMat(0xe8ddc0));
+  gallery.position.set(gx, gh / 2, gz);
+  gallery.castShadow = true;
+  gallery.receiveShadow = true;
+  cityRoot.add(gallery);
+  const galleryRoof = new THREE.Mesh(new THREE.BoxGeometry(gw * 1.03, 0.5, gd * 1.03), flatMat(0xc9a24b));
+  galleryRoof.position.set(gx, gh + 0.25, gz);
+  cityRoot.add(galleryRoof);
+  buildingColliders.push({ minX: gx - gw / 2, maxX: gx + gw / 2, minZ: gz - gd / 2, maxZ: gz + gd / 2 });
+  sidewalkCells.push({ x: gx, z: gz, half: (gw + gd) / 4 });
+
+  // a small, fully local pool + pier (unlike the Level 1 canal, this one
+  // doesn't need to reach the city edge, so no WORLD_BOUND involvement)
+  const px = x + 7, pz = z + 5;
+  const waterMat = new THREE.MeshStandardMaterial({ color: 0x2a6a86, roughness: 0.3, metalness: 0.15, flatShading: true });
+  const poolMinX = px - 9, poolMaxX = px + 9, poolMinZ = pz - 7, poolMaxZ = pz + 7;
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(poolMaxX - poolMinX, poolMaxZ - poolMinZ), waterMat);
+  pool.rotation.x = -Math.PI / 2;
+  pool.position.set(px, 0.05, pz);
+  pool.receiveShadow = true;
+  cityRoot.add(pool);
+
+  const pierW = 4, pierNearZ = poolMinZ, pierFarZ = poolMinZ + 11;
+  const deckLen = pierFarZ - pierNearZ;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(pierW, 0.35, deckLen), flatMat(0x8a6a48));
+  deck.position.set(px, 0.28, pierNearZ + deckLen / 2);
+  deck.receiveShadow = true;
+  cityRoot.add(deck);
+  for (let p = 0; p <= 3; p++) {
+    const pzPost = pierNearZ + (deckLen / 3) * p;
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.4, 6), flatMat(0x6b4a30));
+      post.position.set(px + side * (pierW / 2 - 0.25), -0.25, pzPost);
+      cityRoot.add(post);
+    }
+  }
+  for (const side of [-1, 1]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, deckLen), flatMat(0x5a3f28));
+    rail.position.set(px + side * (pierW / 2 - 0.08), 0.75, pierNearZ + deckLen / 2);
+    cityRoot.add(rail);
+  }
+  waterColliders.push(
+    { minX: poolMinX, maxX: px - pierW / 2, minZ: poolMinZ, maxZ: poolMaxZ },
+    { minX: px + pierW / 2, maxX: poolMaxX, minZ: poolMinZ, maxZ: poolMaxZ },
+    { minX: poolMinX, maxX: poolMaxX, minZ: pierFarZ, maxZ: poolMaxZ }
+  );
+}
+
 function buildLandmarks() {
   buildWorkshop(LANDMARK_POS.workshop);
   buildWaterfront(LANDMARK_POS.waterfront);
   buildParkingGarage(LANDMARK_POS.garage);
+  buildVilla(LANDMARK_POS.villa);
+  buildHarbor(LANDMARK_POS.harbor);
+  buildPier2(LANDMARK_POS.pier2);
 }
 
 function buildCity() {
@@ -1809,6 +1953,11 @@ const missionState = {
 const NPC_BY_STEP = {
   FIND_CONTACT: { palette: { shirt: 0xa05ae6, pants: 0x2b2116, hair: 0x241a14, female: true }, offset: [1.7, -0.4] },
   GRAB_ITEM: { palette: { shirt: 0xffaa28, pants: 0x1c1c1c, hair: 0x100c0a }, offset: [-1.3, -0.9] },
+  // Level 2 ("Coastal Courier") - step ids are distinct strings from Level 1's,
+  // so both can share this one dict without collisions.
+  L2_VILLA: { palette: { shirt: 0x28be96, pants: 0x1c2b28, hair: 0x2a2018 }, offset: [1.5, -0.5] },
+  L2_HARBOR: { palette: { shirt: 0xffaa28, pants: 0x2a2a2a, hair: 0x100c0a }, offset: [-1.3, -0.9] },
+  L2_PIER: { palette: { shirt: 0xffe6bf, pants: 0xffe6bf, hair: 0x5c3a22, female: true }, offset: [0, 9] },
 };
 
 function clearMissionMarker() {
@@ -2292,6 +2441,14 @@ const SPEAKER_STYLE = {
   Vincent: { bubble: 'rgba(15,60,135,0.95)', border: 'rgba(32,140,255,0.95)', name: '#a9d4ff' },
   Sofia: { bubble: 'rgba(80,35,135,0.95)', border: 'rgba(160,90,230,0.95)', name: '#dcc4ff' },
   Jack: { bubble: 'rgba(140,80,5,0.95)', border: 'rgba(255,170,40,0.95)', name: '#ffdfa3' },
+  // Level 2 ("Coastal Courier") cast - Marcus keeps the same pink-and-right
+  // player treatment as Marco (isMe checks PLAYER_NAME, not a hardcoded
+  // name), every other character gets its own fixed color same as Level 1.
+  Marcus: { bubble: 'rgba(200,15,105,0.95)', border: 'rgba(255,46,136,0.95)', name: '#ffb3d9' },
+  Dante: { bubble: 'rgba(15,60,135,0.95)', border: 'rgba(32,140,255,0.95)', name: '#a9d4ff' },
+  Viktor: { bubble: 'rgba(20,95,80,0.95)', border: 'rgba(40,190,150,0.95)', name: '#b8f2dd' },
+  Mechaniker: { bubble: 'rgba(140,80,5,0.95)', border: 'rgba(255,170,40,0.95)', name: '#ffdfa3' },
+  Elaine: { bubble: 'rgba(150,95,15,0.95)', border: 'rgba(255,195,90,0.95)', name: '#ffe6bf' },
 };
 const DEFAULT_SPEAKER_STYLE = { bubble: 'rgba(30,32,36,0.95)', border: 'rgba(255,255,255,0.35)', name: '#e6e8eb' };
 const DIALOG_HISTORY_MAX = 3;
@@ -2303,7 +2460,7 @@ function clearDialogHistory() {
 }
 
 function pushDialogRow(line) {
-  const isMe = line.speaker === 'Marco';
+  const isMe = line.speaker === PLAYER_NAME;
   const isNarration = !line.speaker;
   const row = document.createElement('div');
   row.className = 'dchat-row' + (isMe ? ' me' : '') + (isNarration ? ' narration' : '');
@@ -2880,6 +3037,22 @@ const splashTimer = setTimeout(dismissSplash, 2400);
 document.querySelectorAll('.ts-level.locked').forEach((el) => {
   el.addEventListener('pointerdown', (e) => e.stopPropagation());
 });
+// playable level chips: mission.js reads its active level from
+// localStorage once at module load, so switching levels needs a fresh
+// page load - clicking the already-active chip just starts it like normal
+// (no pointless reload), clicking the other one persists the choice first.
+const activeLevelId = localStorage.getItem('viceGridLevel') || 'der_kessel';
+document.querySelectorAll('.ts-level[data-level]').forEach((el) => {
+  if (el.dataset.level === activeLevelId) el.classList.add('current');
+  el.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    if (el.dataset.level === activeLevelId) { clearTimeout(splashTimer); dismissSplash(); return; }
+    localStorage.setItem('viceGridLevel', el.dataset.level);
+    location.reload();
+  });
+});
+const titleSubEl = document.getElementById('titleSub');
+if (titleSubEl) titleSubEl.textContent = MISSION.title;
 
 // ---------- TEMP DEBUG: click/tap logs world [x,z] to console ----------
 // Used to fine-tune the placeholder pos values in mission.js. Remove once done.
