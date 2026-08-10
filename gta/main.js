@@ -368,6 +368,27 @@ function addTree(x, z) {
   cityRoot.add(trunk, leaves);
 }
 
+// straight decorative road ribbon between two points (asphalt strip or a
+// thin centerline stripe on top of one, reusing the same "flatten a plane,
+// then yaw the whole group" trick as every other rotated-strip mesh in this
+// file) - used by buildCoastalRoute() below instead of the grid's fixed
+// horizontal/vertical stripes, since Level 3's road isn't on a grid at all.
+function addRoadSegment(x1, z1, x2, z2, width, colorHex, y = 0.02) {
+  const dx = x2 - x1, dz = z2 - z1;
+  const len = Math.hypot(dx, dz);
+  if (len < 0.01) return;
+  const angle = Math.atan2(dx, dz);
+  const group = new THREE.Group();
+  group.position.set((x1 + x2) / 2, 0, (z1 + z2) / 2);
+  group.rotation.y = angle;
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, len), flatMat(colorHex));
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.y = y;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+  cityRoot.add(group);
+}
+
 // a distinct palm silhouette for the Coastal Courier beach - tall slender
 // leaning trunk + a radial cluster of flattened frond wedges, same flat-
 // shaded box/cylinder primitives as everywhere else, just a new arrangement
@@ -938,6 +959,231 @@ function buildCoastalTown() {
   for (const [x, z] of umbrellaSpots) addBeachUmbrella(x, z, pick([0xd6473c, 0xf0c53a, 0x3a8fd6]));
 }
 
+// ---------- Level 3 ("Golden Gate Run") world -----------------------------
+// Levels 1 and 2 each already got their own from-scratch city builder
+// (buildBlock()'s procedural grid for "Der Kessel"; buildCoastalTown()'s
+// fully hand-authored beach town above for "Coastal Courier" - see that
+// section's own header comment). Level 3's story - Malibu villa -> coast
+// road -> harbor -> a boat chase across an open bay, under a bridge, on
+// foot across that bridge, then an auto-driven limo to a pier - doesn't fit
+// either shape: it's a linear route through a few hand-placed zones, not a
+// grid and not a single town footprint. This is a third, genuinely
+// different city builder, selected by LEVEL_ID === 'golden_gate_run' in
+// buildCity() below. It still reuses everything level-agnostic: the
+// collision arrays (buildingColliders/waterColliders), the landmark
+// builders that take arbitrary {x,z} rather than grid cells (buildVilla/
+// buildHarbor, reused unchanged from Level 1/2), pedestrians, pickups, the
+// full mission/dialog/police-chase system. NOTE: buildPier2() (the old
+// Level 1/2 Sausalito-style pier+gallery) no longer exists upstream - Level
+// 2's pier was rebuilt into buildBeachPier(), which is tied to Level 2's
+// own OCEAN_*/COASTAL_POS constants and isn't reusable here. Level 3 has
+// its own buildSausalitoPier() below instead (ported from that old
+// function), intentionally NOT shared with Level 2's landmarks - sharing a
+// pier builder across two levels is exactly what broke this merge once
+// already, see git history around this section.
+const ROUTE3 = {
+  villa: [0, 140],
+  rp1: [30, 95],
+  rp2: [-15, 55],
+  rp3: [20, 15],
+  harbor: [40, -20],
+  harborDock: [35, -34],
+  mooring: [-45, -72],
+  bridgeWest: [-58, -78],
+  bridgeEast: [58, -78],
+  eastShore: [58, -95],
+  limoP1: [30, -125],
+  limoP2: [0, -148],
+  pierRoad: [0, -150],
+  pier: [0, -160],
+};
+
+// the bay is two water rectangles with a gap between them at the bridge's
+// own z-span - the gap is where buildBridge()'s deck sits, so the crossing
+// itself is walkable ground rather than fighting its own water collider.
+// Land movers (pedestrians, cars, the on-foot player) are blocked by these
+// exactly like any other waterCollider; the boat instead uses collideBoat()
+// below, which ignores this array entirely and clamps to BAY_BOUNDS.
+const BAY_BOUNDS = { minX: -50, maxX: 50, minZ: -118, maxZ: -30 };
+
+function buildBridge() {
+  const [wx, wz] = ROUTE3.bridgeWest;
+  const [ex, ez] = ROUTE3.bridgeEast;
+  const deckZ = (wz + ez) / 2;
+  const deckLen = ex - wx + 12;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(deckLen, 0.4, 8), flatMat(COLORS.bridge));
+  deck.position.set((wx + ex) / 2, 0.3, deckZ);
+  deck.receiveShadow = true;
+  deck.castShadow = true;
+  cityRoot.add(deck);
+  for (const side of [-1, 1]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(deckLen, 0.9, 0.25), flatMat(0x8a2c10));
+    rail.position.set((wx + ex) / 2, 0.9, deckZ + side * 3.9);
+    cityRoot.add(rail);
+  }
+  // two towers (base + twin pillars + crossbar), plus a handful of vertical
+  // hangers along the span - a cosmetic stand-in for suspension cables, not
+  // a real catenary curve
+  for (const [tx, tz] of [ROUTE3.bridgeWest, ROUTE3.bridgeEast]) {
+    const towerBase = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 4), flatMat(0x8a2c10));
+    towerBase.position.set(tx, 0.25, tz);
+    cityRoot.add(towerBase);
+    for (const side of [-1, 1]) {
+      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 42, 8), flatMat(COLORS.bridge));
+      pillar.position.set(tx, 21, tz + side * 3.4);
+      pillar.castShadow = true;
+      cityRoot.add(pillar);
+    }
+    const crossbar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 8), flatMat(COLORS.bridge));
+    crossbar.position.set(tx, 40, tz);
+    cityRoot.add(crossbar);
+    buildingColliders.push({ minX: tx - 2.2, maxX: tx + 2.2, minZ: tz - 2.2, maxZ: tz + 2.2 });
+  }
+  for (let i = 1; i < 7; i++) {
+    const x = wx + (ex - wx) * (i / 7);
+    const hanger = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 14, 5), flatMat(0x3a3a3a));
+    hanger.position.set(x, 33, deckZ);
+    cityRoot.add(hanger);
+  }
+}
+
+// Sausalito pier + small art-deco gallery for Level 3's finale - ported
+// from the old (now-removed) buildPier2(), kept as Level 3's own function
+// rather than shared, see the "Level 3 world" header comment above.
+function buildSausalitoPier({ x, z }) {
+  const gx = x - 10, gz = z - 5;
+  const gw = 14, gd = 10, gh = 8;
+  const gallery = new THREE.Mesh(new THREE.BoxGeometry(gw, gh, gd), flatMat(0xe8ddc0));
+  gallery.position.set(gx, gh / 2, gz);
+  gallery.castShadow = true;
+  gallery.receiveShadow = true;
+  cityRoot.add(gallery);
+  const galleryRoof = new THREE.Mesh(new THREE.BoxGeometry(gw * 1.03, 0.5, gd * 1.03), flatMat(0xc9a24b));
+  galleryRoof.position.set(gx, gh + 0.25, gz);
+  cityRoot.add(galleryRoof);
+  buildingColliders.push({ minX: gx - gw / 2, maxX: gx + gw / 2, minZ: gz - gd / 2, maxZ: gz + gd / 2 });
+  sidewalkCells.push({ x: gx, z: gz, half: (gw + gd) / 4 });
+
+  // small, fully local pool + pier (separate from the main bay further
+  // north - ROUTE3.pier sits well south of BAY_BOUNDS, no overlap)
+  const px = x + 7, pz = z + 5;
+  const waterMat = new THREE.MeshStandardMaterial({ color: 0x2a6a86, roughness: 0.3, metalness: 0.15, flatShading: true });
+  const poolMinX = px - 9, poolMaxX = px + 9, poolMinZ = pz - 7, poolMaxZ = pz + 7;
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(poolMaxX - poolMinX, poolMaxZ - poolMinZ), waterMat);
+  pool.rotation.x = -Math.PI / 2;
+  pool.position.set(px, 0.05, pz);
+  pool.receiveShadow = true;
+  cityRoot.add(pool);
+
+  const pierW = 4, pierNearZ = poolMinZ, pierFarZ = poolMinZ + 11;
+  const deckLen = pierFarZ - pierNearZ;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(pierW, 0.35, deckLen), flatMat(0x8a6a48));
+  deck.position.set(px, 0.28, pierNearZ + deckLen / 2);
+  deck.receiveShadow = true;
+  cityRoot.add(deck);
+  for (let p = 0; p <= 3; p++) {
+    const pzPost = pierNearZ + (deckLen / 3) * p;
+    for (const side of [-1, 1]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.4, 6), flatMat(0x6b4a30));
+      post.position.set(px + side * (pierW / 2 - 0.25), -0.25, pzPost);
+      cityRoot.add(post);
+    }
+  }
+  for (const side of [-1, 1]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.6, deckLen), flatMat(0x5a3f28));
+    rail.position.set(px + side * (pierW / 2 - 0.08), 0.75, pierNearZ + deckLen / 2);
+    cityRoot.add(rail);
+  }
+  waterColliders.push(
+    { minX: poolMinX, maxX: px - pierW / 2, minZ: poolMinZ, maxZ: poolMaxZ },
+    { minX: px + pierW / 2, maxX: poolMaxX, minZ: poolMinZ, maxZ: poolMaxZ },
+    { minX: poolMinX, maxX: poolMaxX, minZ: pierFarZ, maxZ: poolMaxZ }
+  );
+}
+
+// short walkable dock bridging the boat's mooring point (open water) to the
+// bridge's west tower landing - same "no collider on the deck itself"
+// pattern as buildWaterfront/buildSausalitoPier's piers, purely visual/walkable
+function buildMooringDock() {
+  const [dx, dz] = ROUTE3.mooring;
+  const [wx, wz] = ROUTE3.bridgeWest;
+  const deckLen = Math.hypot(wx - dx, wz - dz);
+  const group = new THREE.Group();
+  group.position.set((dx + wx) / 2, 0, (dz + wz) / 2);
+  group.rotation.y = Math.atan2(wx - dx, wz - dz);
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(4, 0.35, deckLen), flatMat(0x6b4a30));
+  deck.position.y = 0.28;
+  deck.receiveShadow = true;
+  group.add(deck);
+  for (const side of [-1, 1]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, deckLen), flatMat(0x3a2a1a));
+    rail.position.set(side * 1.9, 0.85, 0);
+    group.add(rail);
+  }
+  cityRoot.add(group);
+}
+
+function buildCoastalRoute() {
+  // one big ground plane under the whole route (villa hill down to the
+  // pier), instead of the grid's tiled ground + crosshatch stripe pattern -
+  // a winding coast road doesn't look like a city grid and shouldn't read
+  // as one. Sized to fully cover WORLD_BOUND (the hard movement clamp every
+  // level shares) with margin, not just the route's own waypoints, so
+  // nothing can ever drive/walk past the plane's edge into the void.
+  const groundSpan = WORLD_BOUND * 2 + 20;
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(groundSpan, groundSpan), flatMat(COLORS.ground));
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set(0, 0, 0);
+  ground.receiveShadow = true;
+  cityRoot.add(ground);
+
+  const pchPts = [ROUTE3.villa, ROUTE3.rp1, ROUTE3.rp2, ROUTE3.rp3, ROUTE3.harbor];
+  for (let i = 0; i < pchPts.length - 1; i++) {
+    const [x1, z1] = pchPts[i], [x2, z2] = pchPts[i + 1];
+    addRoadSegment(x1, z1, x2, z2, 12, COLORS.road, 0.02);
+    addRoadSegment(x1, z1, x2, z2, 0.4, COLORS.roadLine, 0.03);
+  }
+  const limoPts = [ROUTE3.eastShore, ROUTE3.limoP1, ROUTE3.limoP2, ROUTE3.pierRoad];
+  for (let i = 0; i < limoPts.length - 1; i++) {
+    const [x1, z1] = limoPts[i], [x2, z2] = limoPts[i + 1];
+    addRoadSegment(x1, z1, x2, z2, 11, COLORS.road, 0.02);
+    addRoadSegment(x1, z1, x2, z2, 0.4, COLORS.roadLine, 0.03);
+  }
+
+  waterColliders.push(
+    { minX: BAY_BOUNDS.minX, maxX: BAY_BOUNDS.maxX, minZ: -74, maxZ: BAY_BOUNDS.maxZ },
+    { minX: BAY_BOUNDS.minX, maxX: BAY_BOUNDS.maxX, minZ: BAY_BOUNDS.minZ, maxZ: -82 }
+  );
+  const bayWaterMat = new THREE.MeshStandardMaterial({ color: COLORS.water, roughness: 0.28, metalness: 0.2, flatShading: true });
+  const waterMesh = new THREE.Mesh(new THREE.PlaneGeometry(120, 96), bayWaterMat);
+  waterMesh.rotation.x = -Math.PI / 2;
+  waterMesh.position.set(0, 0.05, -74);
+  waterMesh.receiveShadow = true;
+  cityRoot.add(waterMesh);
+
+  buildBridge();
+  buildMooringDock();
+
+  // hand-built landmarks, reused as-is from Level 1/2 (they already take
+  // arbitrary {x,z}, nothing grid-specific in them) - just placed along
+  // this route instead of a reserved grid cell
+  buildVilla({ x: ROUTE3.villa[0], z: ROUTE3.villa[1] });
+  buildHarbor({ x: ROUTE3.harbor[0], z: ROUTE3.harbor[1] });
+  buildSausalitoPier({ x: ROUTE3.pier[0], z: ROUTE3.pier[1] });
+
+  // walkable/spawn cells so spawnPedestrians()/spawnPickup() (which run
+  // unconditionally at module load) have somewhere to place things - ambient
+  // traffic/police patrol are skipped entirely for this level instead (see
+  // spawnTraffic()/spawnPolicePatrol() below), since their lane-following
+  // logic assumes the grid's straight roadLines.x/z, which a winding route
+  // doesn't have
+  sidewalkCells.push(
+    { x: ROUTE3.villa[0], z: ROUTE3.villa[1] + 14, half: 16 },
+    { x: ROUTE3.harbor[0] - 4, z: ROUTE3.harbor[1] + 10, half: 14 },
+    { x: ROUTE3.pier[0], z: ROUTE3.pier[1] + 12, half: 14 }
+  );
+}
+
 function buildCity() {
   if (LEVEL_ID === 'der_kessel') {
     buildGround();
@@ -945,6 +1191,8 @@ function buildCity() {
       for (let j = 0; j < GRID_COUNT; j++) buildBlock(i, j);
     }
     buildLandmarks();
+  } else if (LEVEL_ID === 'golden_gate_run') {
+    buildCoastalRoute();
   } else {
     buildCoastalTown();
   }
@@ -993,6 +1241,34 @@ function collideWithBuildings(pos, radius, outNormal) {
   return false;
 }
 
+// boat collision: the inverse of collideWithBuildings. Land (buildings,
+// bridge towers) is the obstacle; the bay's own waterColliders are NOT
+// checked at all (that array exists to keep *land* movers out of the water,
+// not to fence the boat in) - instead the boat is clamped to BAY_BOUNDS,
+// the open-water rectangle it's actually allowed to roam.
+function collideBoat(pos, radius, outNormal) {
+  for (const b of buildingColliders) {
+    const cx = clamp(pos.x, b.minX, b.maxX);
+    const cz = clamp(pos.z, b.minZ, b.maxZ);
+    const dx = pos.x - cx, dz = pos.z - cz;
+    const distSq = dx * dx + dz * dz;
+    if (distSq < radius * radius) {
+      const dist = Math.sqrt(distSq) || 0.001;
+      const push = radius - dist;
+      pos.x += (dx / dist) * push;
+      pos.z += (dz / dist) * push;
+      if (outNormal) { outNormal.x = dx / dist; outNormal.z = dz / dist; }
+      return true;
+    }
+  }
+  const clampedX = clamp(pos.x, BAY_BOUNDS.minX, BAY_BOUNDS.maxX);
+  const clampedZ = clamp(pos.z, BAY_BOUNDS.minZ, BAY_BOUNDS.maxZ);
+  const hitBound = clampedX !== pos.x || clampedZ !== pos.z;
+  pos.x = clampedX;
+  pos.z = clampedZ;
+  return hitBound;
+}
+
 // unlike collideWithBuildings (tuned for agents grazing a building edge from
 // outside), this pushes a point out to the NEAREST edge even if it landed
 // deep inside the footprint -- needed for random spawn points, since a
@@ -1024,6 +1300,13 @@ const VEHICLE_SPECS = {
   car: { halfW: 1.075, halfL: 2.15, wheelR: 0.42, maxSpeedMul: 1.0, accelMul: 1.0, mass: 1 },
   bus: { halfW: 1.25, halfL: 4.6, wheelR: 0.5, maxSpeedMul: 0.6, accelMul: 0.45, mass: 2.4 },
   truck: { halfW: 1.2, halfL: 3.7, wheelR: 0.48, maxSpeedMul: 0.68, accelMul: 0.5, mass: 1.9 },
+  // Level 3 ("Golden Gate Run") vehicles - boat is player-driven (manual
+  // chase across the bay), limo is scripted/auto-driven (see
+  // missionState.autoDrive) so its handling numbers barely matter beyond
+  // "not twitchy"; both get turnMul < 1 so they feel looser/heavier to turn
+  // than the base car, reusing the exact same physicsStep() formula.
+  boat: { halfW: 1.3, halfL: 3.0, wheelR: 0, maxSpeedMul: 1.35, accelMul: 0.8, mass: 1.6, turnMul: 0.7 },
+  limo: { halfW: 1.15, halfL: 3.2, wheelR: 0.42, maxSpeedMul: 0.85, accelMul: 0.6, mass: 2.0, turnMul: 0.75 },
 };
 
 function addAxle(group, frontWheels, side, x, y, z, wheelR, isFront) {
@@ -1076,6 +1359,31 @@ function createCarMesh(color, isPolice, type, isPlayer) {
     const taillight = new THREE.Mesh(new THREE.BoxGeometry(w * 0.85, 0.22, 0.08), glowMat(0xaa2020, 0.8));
     taillight.position.set(0, 0.55, -spec.halfL - 0.02);
     group.add(taillight);
+  } else if (type === 'boat') {
+    // hull + angled bow (a scaled/rotated box instead of a proper tapered
+    // shape - reads fine as a speedboat at this low-poly scale) + a small
+    // cabin, no wheels at all
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(spec.halfW * 2, 0.7, spec.halfL * 1.5), flatMat(color));
+    hull.position.set(0, 0.42, -spec.halfL * 0.25);
+    hull.castShadow = true;
+    group.add(hull);
+    group.userData.bodyMesh = hull;
+    group.userData.bodyHalfExtents = { x: spec.halfW, y: 0.35, z: spec.halfL * 0.75 };
+    const bow = new THREE.Mesh(new THREE.BoxGeometry(spec.halfW * 1.7, 0.62, spec.halfL * 1.1), flatMat(color));
+    bow.position.set(0, 0.4, spec.halfL * 0.55);
+    bow.rotation.x = -0.28;
+    bow.castShadow = true;
+    group.add(bow);
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.6, 1.3), flatMat(0x1c1f24));
+    cabin.position.set(0, 1.05, -0.5);
+    cabin.castShadow = true;
+    group.add(cabin);
+    const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.36, 0.1), glowMat(0x9fd9e8, 0.15));
+    windshield.position.set(0, 1.15, 0.15);
+    group.add(windshield);
+    const wake = new THREE.PointLight(0xbfe8ff, 0.6, 5);
+    wake.position.set(0, 0.4, -spec.halfL);
+    group.add(wake);
   } else if (type === 'truck') {
     const w = spec.halfW * 2;
     const cabLen = 2.1, cargoLen = spec.halfL * 2 - cabLen - 0.25;
@@ -1218,7 +1526,8 @@ class Car {
     if (Math.abs(this.speed) > 0.15) {
       const speedFactor = clamp(Math.abs(this.speed) / this.maxSpeed, 0.25, 1);
       const sdir = this.speed >= 0 ? 1 : -1;
-      const turnRate = steer * 2.1 * speedFactor * sdir;
+      const turnMul = VEHICLE_SPECS[this.type].turnMul ?? 1;
+      const turnRate = steer * 2.1 * speedFactor * sdir * turnMul;
       this.heading += turnRate * dt * (handbrake ? 1.6 : 1);
       steerTgt = steer * 0.5;
     }
@@ -1234,7 +1543,9 @@ class Car {
     this.pos.addScaledVector(this.shove, dt);
     this.shove.multiplyScalar(Math.max(0, 1 - dt * 3.2));
     const preImpactSpeed = this.speed;
-    const hitWall = collideWithBuildings(this.pos, this.radius, _wallNormal);
+    const hitWall = this.type === 'boat'
+      ? collideBoat(this.pos, this.radius, _wallNormal)
+      : collideWithBuildings(this.pos, this.radius, _wallNormal);
     if (hitWall && Math.abs(preImpactSpeed) > 4) {
       if (this.crashCooldown <= 0) {
         triggerCrash(this.pos, Math.abs(preImpactSpeed), this === player.inCar);
@@ -1446,6 +1757,13 @@ function pickVehicleType() {
 }
 
 function spawnTraffic() {
+  // ambient lane traffic drives along the grid's straight roadLines.x/z;
+  // Level 3's winding coastal route has no such lines (see buildCoastalRoute
+  // above) - rather than have cars drive straight through the scenery,
+  // ambient traffic is simply skipped for this level. The mission-critical
+  // police chase (chaseCops) is unaffected - it seeks the player directly
+  // and never touches roadLines.
+  if (LEVEL_ID === 'golden_gate_run') return;
   const count = 14;
   for (let i = 0; i < count; i++) {
     const type = pickVehicleType();
@@ -1803,9 +2121,13 @@ const player = {
 scene.add(player.mesh);
 player.mesh.position.copy(player.pos);
 
-// spawn the player's own car in the plaza
+// spawn the player's own car - the grid levels start in the plaza; a level
+// can override this via DISTRICT.spawn (Level 3 starts near the villa
+// instead, since there's no plaza on a linear coastal route)
+const SPAWN_POS = DISTRICT.spawn?.pos || [4, 2];
+const SPAWN_HEADING = DISTRICT.spawn?.heading ?? Math.PI;
 const playerCar = new Car({ color: 0xe0e0e0, isPlayer: true });
-playerCar.place(4, 2, Math.PI);
+playerCar.place(SPAWN_POS[0], SPAWN_POS[1], SPAWN_HEADING);
 player.inCar = playerCar;
 playerCar.occupied = true;
 player.mesh.visible = false;
@@ -1829,6 +2151,7 @@ const POLICE_PATROL_COUNT = 5;
 const policeCars = [];
 
 function spawnPolicePatrol() {
+  if (LEVEL_ID === 'golden_gate_run') return; // see spawnTraffic() above
   for (let i = 0; i < POLICE_PATROL_COUNT; i++) {
     const car = new Car({ isPolice: true });
     const horizontal = Math.random() < 0.5;
@@ -1967,15 +2290,23 @@ function updatePoliceChase(dt) {
       }
     }
 
-    if (POLICE.bust.onCollision && dist < 3.2 && !missionState.gameOver) {
+    // a land-bound chase cop can never actually touch a boat out on the
+    // bay - without this, "dist" (measured straight-line, before this
+    // frame's own collideBoat/collideWithBuildings clamp) could dip under
+    // the bust threshold whenever the boat hugs the shoreline a cop is
+    // stuck at, busting the player through solid water.
+    const playerOnBoat = player.inCar && player.inCar.type === 'boat';
+    if (POLICE.bust.onCollision && dist < 3.2 && !missionState.gameOver && !playerOnBoat) {
       failMission();
       return;
     }
   }
 
   // encircled: cops spread across most of the compass around the player,
-  // all close by, held continuously for POLICE.bust.surroundSeconds
-  if (POLICE.bust.surroundSeconds && nearAngles.length >= 2) {
+  // all close by, held continuously for POLICE.bust.surroundSeconds - same
+  // "cops can't actually reach a boat" exemption as the single-collision
+  // bust check above
+  if (POLICE.bust.surroundSeconds && nearAngles.length >= 2 && !(player.inCar && player.inCar.type === 'boat')) {
     nearAngles.sort((a, b) => a - b);
     let maxGap = 0;
     for (let i = 0; i < nearAngles.length; i++) {
@@ -2124,6 +2455,12 @@ const NPC_BY_STEP = {
   L2_VILLA: { palette: { shirt: 0x28be96, pants: 0x1c2b28, hair: 0x2a2018 }, offset: [1.5, -0.5] },
   L2_HARBOR: { palette: { shirt: 0xffaa28, pants: 0x2a2a2a, hair: 0x100c0a }, offset: [-1.3, -0.9] },
   L2_PIER: { palette: { shirt: 0xffe6bf, pants: 0xffe6bf, hair: 0x5c3a22, female: true }, offset: [0, 52] },
+  // Level 3 ("Golden Gate Run") - same cast/palettes as Level 2's Viktor/
+  // Mechaniker/Elaine (deliberate, see mission.js's Level 3 header comment),
+  // distinct step ids so this shares the one dict without collisions.
+  L3_VILLA: { palette: { shirt: 0x28be96, pants: 0x1c2b28, hair: 0x2a2018 }, offset: [1.5, -0.5] },
+  L3_HARBOR: { palette: { shirt: 0xffaa28, pants: 0x2a2a2a, hair: 0x100c0a }, offset: [-1.3, -0.9] },
+  L3_PIER: { palette: { shirt: 0xffe6bf, pants: 0xffe6bf, hair: 0x5c3a22, female: true }, offset: [7, 9] },
 };
 
 function clearMissionMarker() {
@@ -2175,6 +2512,11 @@ function activateStep(index) {
     missionState.triggerRadius = 0;
   }
 
+  // optional flavor toast on activation (e.g. Level 3's "missed call from
+  // Elaine" beat during the limo ride) - reuses the existing toast, not a
+  // new notification system
+  if (step.notify) showSub(step.notify);
+
   // steps with no world target (nothing to walk/drive up to) resolve as soon
   // as they become active: play their dialog immediately, or just chain on
   if (!step.waypoint && !step.pickup) {
@@ -2183,11 +2525,83 @@ function activateStep(index) {
   }
 }
 
+// Level 3 only: puts the player into a fresh scripted vehicle (boat or
+// limo) instead of the usual "walk up and press F" boarding. Whatever the
+// player was in before gets cleanly released first (occupied=false) so it
+// doesn't linger as a phantom "still occupied" car - it just becomes an
+// inert prop, same as any other car left parked mid-level.
+// cfg: { type, pos: [x,z], heading, color?, autoDrivePath?: [[x,z], ...] }
+// autoDrivePath present -> the vehicle drives itself (see updateAutoDrive()
+// below) and stopPolice() fires immediately (matches the story beat: once
+// Marcus is in the getaway limo, the chase is over). Absent -> normal
+// player-controlled vehicle (the boat is manually driven).
+function boardVehicle(cfg) {
+  if (player.inCar) player.inCar.occupied = false;
+  const spot = resolveWorldPoint(cfg.pos);
+  const car = new Car({ type: cfg.type, isPlayer: true, color: cfg.color ?? (cfg.type === 'limo' ? 0xf2f2f2 : undefined) });
+  car.place(spot.x, spot.z, cfg.heading || 0);
+  car.occupied = true;
+  player.inCar = car;
+  player.mesh.visible = false;
+  if (cfg.autoDrivePath && cfg.autoDrivePath.length) {
+    stopPolice();
+    missionState.autoDrive = { car, path: cfg.autoDrivePath.map(resolveWorldPoint), index: 0 };
+  } else {
+    missionState.autoDrive = null;
+  }
+}
+
+// mirrors tryToggleVehicle()'s exit branch, but silent (no "Zu Fuß
+// unterwegs" toast) and never returns the vehicle to trafficCars - used for
+// scripted transitions (leaving the boat at the mooring, stepping out of
+// the limo at the pier), not a manual player action
+function forceExitVehicle() {
+  const car = player.inCar;
+  if (!car) return;
+  car.occupied = false;
+  const exitDir = new THREE.Vector3(Math.cos(car.heading), 0, -Math.sin(car.heading));
+  player.pos.copy(car.pos).addScaledVector(exitDir, 2.6);
+  player.heading = car.heading;
+  player.mesh.visible = true;
+  player.inCar = null;
+  if (missionState.autoDrive && missionState.autoDrive.car === car) missionState.autoDrive = null;
+}
+
+// drives an autoDrive vehicle (the Level 3 limo) toward each point of its
+// path in turn using the same seek-and-steer approach as the police chase
+// AI, just aimed at waypoints instead of the player. The mission's own
+// waypoint/triggerRadius system (updateMission()) independently detects
+// arrival at the step's real target and advances the story - this function
+// only has to move the car, not know anything about missions.
+function updateAutoDrive(dt) {
+  const ad = missionState.autoDrive;
+  if (!ad || !ad.car) return;
+  const target = ad.path[ad.index];
+  if (!target) { missionState.autoDrive = null; return; }
+  const dx = target.x - ad.car.pos.x, dz = target.z - ad.car.pos.z;
+  const dist = Math.hypot(dx, dz);
+  if (dist < 5) {
+    ad.index++;
+    if (ad.index >= ad.path.length) { missionState.autoDrive = null; return; }
+  }
+  const desiredHeading = Math.atan2(dx, dz);
+  const diff = wrapAngle(desiredHeading - ad.car.heading);
+  const steer = clamp(diff * 1.4, -1, 1);
+  const throttle = dist > 8 ? 1 : 0.4;
+  ad.car.physicsStep(dt, { throttle, steer, handbrake: false });
+}
+
 function advanceStep() {
   activateStep(missionState.stepIndex + 1);
 }
 
 function runStepOnComplete(step) {
+  // Level 3 only: board a scripted vehicle (boat/limo) and/or force the
+  // player out of whatever they were in, as part of completing this step -
+  // see boardVehicle()/forceExitVehicle() above
+  if (step.vehicleAfter) boardVehicle(step.vehicleAfter);
+  if (step.exitVehicleOnComplete && player.inCar) forceExitVehicle();
+
   const oc = step.onComplete;
   if (oc === 'startPolice') {
     advanceStep();
@@ -2530,14 +2944,14 @@ function respawnAtStart() {
   if (player.inCar) player.inCar.occupied = false;
   player.health = 100;
   player.mesh.visible = false;
-  player.pos.set(4, 0, 2);
-  player.heading = Math.PI;
+  player.pos.set(SPAWN_POS[0], 0, SPAWN_POS[1]);
+  player.heading = SPAWN_HEADING;
   player.moveSpeed = 0;
   player.velY = 0;
   player.onGround = true;
   player.jumpState = 'none';
   player.jumpBuf = false;
-  playerCar.place(4, 2, Math.PI);
+  playerCar.place(SPAWN_POS[0], SPAWN_POS[1], SPAWN_HEADING);
   playerCar.occupied = true;
   player.inCar = playerCar;
 }
@@ -2565,6 +2979,7 @@ const subMsgOkBtn = document.getElementById('subMsgOk');
 const controlsHint = document.getElementById('controlsHint');
 const objectiveTextEl = document.getElementById('objectiveText');
 const objectiveDistanceEl = document.getElementById('objectiveDistance');
+const missionClockEl = document.getElementById('missionClock');
 const objectivePanelEl = document.getElementById('objectivePanel');
 const speedWrapEl = document.getElementById('speedWrap');
 const minimapWrapEl = document.getElementById('minimapWrap');
@@ -2722,6 +3137,23 @@ function updateHud(dt) {
   objectiveDistanceEl.textContent = (step && missionState.targetPos)
     ? `${Math.round(missionState.distance)} m — ${missionState.targetLabel || ''}`
     : '';
+
+  // Level 3's atmospheric race-the-clock readout - cosmetic only (ticks off
+  // real elapsed play time against MISSION.clock's configured window, no
+  // separate fail state tied to it - the actual fail condition stays purely
+  // "caught by police", same as every other level)
+  if (missionClockEl) {
+    if (MISSION.clock && !missionState.gameOver) {
+      const { startMinutes, endMinutes, realSecondsForFullRun } = MISSION.clock;
+      const totalMin = startMinutes + Math.min(1, elapsed / realSecondsForFullRun) * (endMinutes - startMinutes);
+      const hh = Math.floor(totalMin / 60) % 24;
+      const mm = Math.floor(totalMin % 60);
+      missionClockEl.textContent = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} Uhr`;
+      missionClockEl.classList.add('show');
+    } else {
+      missionClockEl.classList.remove('show');
+    }
+  }
 
   wantedBanner.classList.toggle('show', policeState.active);
   if (policeState.active) {
@@ -3038,6 +3470,9 @@ let elapsed = 0;
 function updatePlayer(dt, input) {
   if (missionState.gameOver) return;
   if (player.inCar) {
+    // Level 3's limo drives itself (see updateAutoDrive()) - the player
+    // sits in it but real input is ignored while that's active
+    if (missionState.autoDrive && player.inCar === missionState.autoDrive.car) return;
     if (player.inCar.occupied) player.inCar.physicsStep(dt, input);
     return;
   }
@@ -3121,6 +3556,7 @@ function animate() {
   if (!missionState.inDialog) {
     const input = readInput();
     updatePlayer(dt, input);
+    updateAutoDrive(dt);
     updateTraffic(dt);
     for (const ped of pedestrians) ped.update(dt);
     updatePolice(dt);
