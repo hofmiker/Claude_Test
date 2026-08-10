@@ -392,6 +392,21 @@ function addRoadSegment(x1, z1, x2, z2, width, colorHex, y = 0.02) {
 // a distinct palm silhouette for the Coastal Courier beach - tall slender
 // leaning trunk + a radial cluster of flattened frond wedges, same flat-
 // shaded box/cylinder primitives as everywhere else, just a new arrangement
+// places a palm safely beyond a road segment's shoulder instead of
+// jittering near its centerline (which regularly dropped trees ON the
+// road) - offsets perpendicular to the segment's own direction rather than
+// a fixed x/z jitter, so it clears the road regardless of which way that
+// particular segment happens to run.
+function addPalmBesideRoad(x1, z1, x2, z2, roadHalfWidth) {
+  const dx = x2 - x1, dz = z2 - z1;
+  const len = Math.hypot(dx, dz) || 1;
+  const px = -dz / len, pz = dx / len;
+  const side = Math.random() < 0.5 ? -1 : 1;
+  const offset = roadHalfWidth + rand(6, 12);
+  const along = rand(0.15, 0.85);
+  addPalm(x1 + dx * along + px * offset * side, z1 + dz * along + pz * offset * side);
+}
+
 function addPalm(x, z) {
   const group = new THREE.Group();
   const lean = rand(-0.12, 0.12);
@@ -987,10 +1002,10 @@ const ROUTE3 = {
   villaC: [-32, 96],
   harbor: [40, -20],
   harborDock: [35, -34],
-  mooring: [-45, -72],
-  bridgeWest: [-58, -78],
-  bridgeEast: [58, -78],
-  eastShore: [58, -95],
+  mooring: [-45, -78],
+  bridgeWest: [-20, -78],
+  bridgeEast: [20, -78],
+  eastShore: [50, -82],
   limoP1: [30, -125],
   limoP2: [0, -148],
   pierRoad: [0, -150],
@@ -1046,14 +1061,58 @@ const NORTH_BEACH = { minX: -70, maxX: -46, minZ: 88, maxZ: 150 };
 // Vehicles (the boat, briefly the limo) are deliberately NOT run through
 // this - the boat must stay at water level to pass "under" the bridge.
 const BRIDGE_DECK_Y = 18;
+// horizontal run of each approach ramp (buildRamp() below) - shared with
+// terrainY() so the visual slope a player walks on and the height they're
+// actually rendered at always agree exactly, by construction, instead of
+// two separately hand-tuned numbers drifting apart.
+const BRIDGE_RAMP_RUN = 25;
 function terrainY(x, z) {
   if (LEVEL_ID !== 'golden_gate_run') return 0;
-  if (Math.abs(z - ROUTE3.bridgeWest[1]) > 10) return 0;
-  const RS = -45, RTS = -15, RTE = 25, RE = 58; // ramp-start/top-start/top-end/ramp-end
+  const [wx, zc] = ROUTE3.bridgeWest;
+  if (Math.abs(z - zc) > 10) return 0;
+  const [ex] = ROUTE3.bridgeEast;
+  const RS = wx - BRIDGE_RAMP_RUN, RE = ex + BRIDGE_RAMP_RUN;
   if (x <= RS || x >= RE) return 0;
-  if (x < RTS) return BRIDGE_DECK_Y * clamp((x - RS) / (RTS - RS), 0, 1);
-  if (x > RTE) return BRIDGE_DECK_Y * clamp((RE - x) / (RE - RTE), 0, 1);
+  if (x < wx) return BRIDGE_DECK_Y * clamp((x - RS) / (wx - RS), 0, 1);
+  if (x > ex) return BRIDGE_DECK_Y * clamp((RE - x) / (RE - ex), 0, 1);
   return BRIDGE_DECK_Y;
+}
+
+// a sloped approach connecting ground/water level up to the bridge deck's
+// height - literal "echtes Gelände" (real terrain) instead of the deck's
+// flat box just ending in mid-air with nothing underneath. A tilted road
+// surface (rotated around Z so its length rises from (x1,y1) to (x2,y2),
+// always along a single z - this bridge doesn't skew diagonally) plus a
+// stepped solid embankment fill underneath, so the slope reads as a real
+// hillside/on-ramp instead of a ramp floating over open ground.
+function buildRamp(x1, x2, z, width, y1, y2) {
+  const len = x2 - x1;
+  const angle = Math.atan2(y2 - y1, len);
+  const hypot = Math.hypot(len, y2 - y1);
+  const group = new THREE.Group();
+  group.position.set((x1 + x2) / 2, (y1 + y2) / 2, z);
+  group.rotation.z = angle;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(hypot, 1.2, width), flatMat(0x3a3d42));
+  deck.castShadow = true;
+  deck.receiveShadow = true;
+  group.add(deck);
+  for (const side of [-1, 1]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(hypot, 0.7, 0.25), flatMat(0x555555));
+    rail.position.set(0, 0.9, side * width / 2);
+    group.add(rail);
+  }
+  cityRoot.add(group);
+
+  const steps = 8;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = lerp(x1, x2, t);
+    const y = lerp(y1, y2, t);
+    if (y < 0.6) continue;
+    const fill = new THREE.Mesh(new THREE.BoxGeometry(Math.abs(len) / steps + 0.8, y, width * 0.82), flatMat(0x8a7a5c));
+    fill.position.set(x, y / 2, z);
+    cityRoot.add(fill);
+  }
 }
 
 // much bigger than the old version - real multi-lane deck width with
@@ -1164,6 +1223,13 @@ function buildBridge() {
       prevX = x; prevY = y;
     }
   }
+
+  // approach ramps on real ground on both sides, so the deck connects to
+  // solid land instead of ending in mid-air (see buildRamp() above) -
+  // west: mooring/water level up to the west tower; east: the east tower
+  // back down to the shore where the getaway limo waits.
+  buildRamp(wx - BRIDGE_RAMP_RUN, wx, wz, 10, 0, BRIDGE_DECK_Y);
+  buildRamp(ex, ex + BRIDGE_RAMP_RUN, ez, 10, BRIDGE_DECK_Y, 0);
 }
 
 // Sausalito pier + small art-deco gallery for Level 3's finale - ported
@@ -1218,28 +1284,6 @@ function buildSausalitoPier({ x, z }) {
     { minX: px + pierW / 2, maxX: poolMaxX, minZ: poolMinZ, maxZ: poolMaxZ },
     { minX: poolMinX, maxX: poolMaxX, minZ: pierFarZ, maxZ: poolMaxZ }
   );
-}
-
-// short walkable dock bridging the boat's mooring point (open water) to the
-// bridge's west tower landing - same "no collider on the deck itself"
-// pattern as buildWaterfront/buildSausalitoPier's piers, purely visual/walkable
-function buildMooringDock() {
-  const [dx, dz] = ROUTE3.mooring;
-  const [wx, wz] = ROUTE3.bridgeWest;
-  const deckLen = Math.hypot(wx - dx, wz - dz);
-  const group = new THREE.Group();
-  group.position.set((dx + wx) / 2, 0, (dz + wz) / 2);
-  group.rotation.y = Math.atan2(wx - dx, wz - dz);
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(4, 0.35, deckLen), flatMat(0x6b4a30));
-  deck.position.y = 0.28;
-  deck.receiveShadow = true;
-  group.add(deck);
-  for (const side of [-1, 1]) {
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, deckLen), flatMat(0x3a2a1a));
-    rail.position.set(side * 1.9, 0.85, 0);
-    group.add(rail);
-  }
-  cityRoot.add(group);
 }
 
 // small residential house - a smaller, cheaper-looking sibling of
@@ -1356,8 +1400,7 @@ function buildCoastalRoute() {
   waterMesh.receiveShadow = true;
   cityRoot.add(waterMesh);
 
-  buildBridge();
-  buildMooringDock();
+  buildBridge(); // includes both approach ramps, see buildRamp() calls inside
 
   // hand-built landmarks, reused as-is from Level 1/2 (they already take
   // arbitrary {x,z}, nothing grid-specific in them) - just placed along
@@ -1381,7 +1424,8 @@ function buildCoastalRoute() {
     addRoadSegment(roadX, z, eastX, z, 6, COLORS.road, 0.02);
     buildHouse({ x: westX, z: z + rand(-2, 2) });
     buildHouse({ x: eastX, z: z + rand(-2, 2) });
-    if (Math.random() < 0.6) addPalm(roadX + rand(-5, 5), z + 10);
+    // beside the east house, clear of both the driveway stub and the road
+    if (Math.random() < 0.6) addPalm(eastX + 6, z + rand(-3, 3));
   }
 
   // a couple of extra warehouse buildings so the harbor reads as a small
@@ -1393,11 +1437,17 @@ function buildCoastalRoute() {
   // via the beach-edge loop above already) and a couple more buildings near
   // the Sausalito pier so the finale doesn't feel like a single isolated
   // gallery
-  for (const [x, z] of pchPts) {
-    if (Math.random() < 0.35) addPalm(x + rand(-9, 9), z + rand(-9, 9));
+  for (let i = 0; i < pchPts.length - 1; i++) {
+    if (Math.random() < 0.35) {
+      const [x1, z1] = pchPts[i], [x2, z2] = pchPts[i + 1];
+      addPalmBesideRoad(x1, z1, x2, z2, z1 > 88 ? 11 : 6);
+    }
   }
-  for (const [x, z] of limoPts) {
-    if (Math.random() < 0.5) addPalm(x + rand(-8, 8), z + rand(-8, 8));
+  for (let i = 0; i < limoPts.length - 1; i++) {
+    if (Math.random() < 0.5) {
+      const [x1, z1] = limoPts[i], [x2, z2] = limoPts[i + 1];
+      addPalmBesideRoad(x1, z1, x2, z2, 6);
+    }
   }
   buildHouse({ x: ROUTE3.pier[0] - 26, z: ROUTE3.pier[1] + 4, color: 0xf0e6d0 });
   buildHouse({ x: ROUTE3.pier[0] + 22, z: ROUTE3.pier[1] - 8, color: 0xe6dcc8 });

@@ -446,9 +446,20 @@ ursprünglich aus einem älteren, nie umgesetzten Konzept für Level 2 selbst.
     jedes andere Gewässer im Spiel). Überschneidet sich in z nicht mit der
     Bucht weiter südlich (endet bei z=88, die Bucht beginnt erst bei
     z=-30) — zwei unabhängige Gewässer, kein gemeinsamer Collider.
-  - **Palmen:** `addPalm()` (aus Level 2 übernommen) säumt den Strandrand
-    dicht und ist zusätzlich mit ~35 % Wahrscheinlichkeit an jedem
-    abgetasteten Straßenpunkt sowie an der Limo-Straße gestreut.
+  - **Palmen, seitlich vom Asphalt statt zufällig darauf:** `addPalm()`
+    (aus Level 2 übernommen) säumt den Strandrand dicht und ist zusätzlich
+    mit ~35 % Wahrscheinlichkeit an jedem abgetasteten Straßenpunkt sowie an
+    der Limo-Straße gestreut. Die erste Fassung jitterte dafür einfach
+    `x/z ± 8-9` um jeden Straßenpunkt — bei den 12-22 Einheiten breiten
+    Straßen landete das regelmäßig MITTEN auf der Fahrbahn (Nutzerfeedback:
+    "Bäume nicht auf Straßen setzen"). `addPalmBesideRoad(x1, z1, x2, z2,
+    roadHalfWidth)` (main.js) ersetzt das: berechnet die Senkrechte zur
+    tatsächlichen Segment-Richtung und versetzt die Palme entlang DIESER
+    Achse um `roadHalfWidth + 6..12` — garantiert jenseits des
+    Straßenrands, unabhängig davon, in welche Richtung das Segment gerade
+    verläuft (die alte Methode nahm einen festen x/z-Jitter unabhängig von
+    der Straßenausrichtung, was bei einer kurvigen Straße zwangsläufig mal
+    "seitlich" und mal "der Länge nach" – also mitten drauf – lag).
   - **Wohnstraßen mit mehreren Hausreihen:** vier Querstraßen-Stationen
     (z=82/62/42/22) zwischen Villenviertel und Hafen, an jeder je ein
     `buildHouse()` links UND rechts der (an dieser Stelle über
@@ -488,18 +499,18 @@ ursprünglich aus einem älteren, nie umgesetzten Konzept für Level 2 selbst.
     bisher gar nicht simuliert, das Deck war nur eine optische Attrappe auf
     Bodenhöhe, daher der Eindruck "liegt auf dem Wasser". `terrainY(x, z)`
     (main.js) behebt das gezielt für diesen einen Übergang: eine reine
-    Höhen-NACHSCHLAGE-Funktion (keine echte Physik), die für x zwischen der
-    Anlegestelle (-45) und dem Ostufer (58) — begrenzt auf den Brücken-
-    Z-Streifen — von 0 auf `BRIDGE_DECK_Y` hochrampt, mittig flach bleibt
-    und wieder auf 0 herunterrampt. Angewendet auf drei Stellen: die
-    gerenderte Spielerfigur (`updatePlayer()`), die Fußpolizei-Officer-Mesh
-    (`updatePoliceChase()`s Onfoot-Zweig) und das Kamera-Rig
-    (`updateCamera()`, hebt `height`/`lookY` um denselben Betrag an, damit
-    die Kamera mit hochsteigt statt am Wasser zurückzubleiben). Bewusst
-    NICHT auf Fahrzeuge angewendet (`Car.syncMesh()` bleibt unverändert bei
-    `y=0`) — das Boot muss weiterhin auf Wasserhöhe bleiben, um sichtbar
-    "unter" der Brücke hindurchzufahren; nur wer zu Fuß über die Brücke
-    läuft, steigt tatsächlich auf.
+    Höhen-NACHSCHLAGE-Funktion (keine echte Physik), die zwischen den beiden
+    Rampen-Außenkanten (Turm-x ∓ `BRIDGE_RAMP_RUN`) — begrenzt auf den
+    Brücken-Z-Streifen — von 0 auf `BRIDGE_DECK_Y` hochrampt, zwischen den
+    Türmen flach bleibt und wieder auf 0 herunterrampt. Angewendet auf drei
+    Stellen: die gerenderte Spielerfigur (`updatePlayer()`), die
+    Fußpolizei-Officer-Mesh (`updatePoliceChase()`s Onfoot-Zweig) und das
+    Kamera-Rig (`updateCamera()`, hebt `height`/`lookY` um denselben Betrag
+    an, damit die Kamera mit hochsteigt statt am Wasser zurückzubleiben).
+    Bewusst NICHT auf Fahrzeuge angewendet (`Car.syncMesh()` bleibt
+    unverändert bei `y=0`) — das Boot muss weiterhin auf Wasserhöhe bleiben,
+    um sichtbar "unter" der Brücke hindurchzufahren; nur wer zu Fuß über die
+    Brücke läuft, steigt tatsächlich auf.
   - **Turm-Kollision mit echter Lücke:** die erste Fassung dieser Änderung
     registrierte pro Turm EINE zusammengefasste Collider-Box über beide
     Pfeiler hinweg — beim gleichzeitig vergrößerten Turm-Fußabdruck
@@ -510,6 +521,30 @@ ursprünglich aus einem älteren, nie umgesetzten Konzept für Level 2 selbst.
     schmalen Collider (`tx±1.6`) mit echter Lücke dazwischen, wie bei einem
     echten Hängebrücken-Turm, durch den die Fahrbahn hindurchläuft — das
     Deck/der Gehweg passiert die Lücke ungehindert.
+  - **Echte Rampen statt Deck im Nichts** — Nutzerfeedback nach dem
+    Brücken-Umbau: "Die Brücke sollte an beiden Enden nicht ins Leere
+    führen. […] Erzeuge echtes Gelände um eine Steigung zu erzeugen." Das
+    breite/hohe Deck aus dem vorigen Umbau spannte nur zwischen den Türmen
+    (`ROUTE3.bridgeWest`/`bridgeEast`, jetzt bei x=∓20 statt x=∓58) und
+    endete dort abrupt in der Luft — kein sichtbarer Übergang zur Anlege-
+    stelle bzw. zum Ostufer. `buildRamp(x1, x2, z, width, y1, y2)`
+    (main.js) baut jetzt auf beiden Seiten eine echte geneigte Rampe: eine
+    um die Z-Achse gekippte Fahrbahnbox von (x1,y1) nach (x2,y2), PLUS eine
+    gestufte, massive "Böschung" darunter (mehrere Boxen wachsender Höhe
+    entlang der Rampe) statt einer über dem Boden schwebenden Fläche — liest
+    sich als echter Hügel/Damm, nicht als Rampen-Attrappe. `BRIDGE_RAMP_RUN`
+    (main.js, = 25) ist die EINZIGE Quelle für die Rampenlänge — sowohl
+    `terrainY()` als auch `buildRamp()`s Aufrufe in `buildBridge()` leiten
+    ihre Start-/Endpunkte davon ab, damit die begehbare Höhe und die
+    sichtbare Rampen-Geometrie nie auseinanderlaufen können. Die Anlegestelle
+    (`ROUTE3.mooring`) liegt jetzt exakt auf der Z-Koordinate der Brücke
+    (vorher 6 Einheiten versetzt) und exakt am unteren Ende der West-Rampe —
+    das eigenständige `buildMooringDock()` (ein flacher, nicht geneigter
+    Steg) ist dadurch überflüssig geworden und wurde entfernt; die Rampe
+    selbst ist jetzt gleichzeitig Anlegesteg UND Auffahrt. Die `L3_BRIDGE`-
+    Wegpunktkoordinate in `mission.js` sowie die Limo-Spawnposition
+    (`vehicleAfter.pos`) wurden auf die neuen, kürzeren Turm-Koordinaten
+    nachgezogen.
 - **Boot (`VEHICLE_SPECS.boat`, neuer Mesh-Zweig in `createCarMesh()`):**
   spielergesteuert (manuelle Verfolgungsjagd über die Bucht, wie im
   Story-Prompt gefordert). Eigene Kollision `collideBoat()` — das Gegenteil

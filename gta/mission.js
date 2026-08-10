@@ -497,7 +497,7 @@ const MISSION_GOLDENGATE = {
     {
       id: "L3_BAY",
       objective: "Fahre das Boot unter die Brücke",
-      waypoint: { pos: [-45, -72], label: "Anlegestelle", color: "#ff3b30" },
+      waypoint: { pos: [-45, -78], label: "Anlegestelle", color: "#ff3b30" },
       triggerRadius: 7,
       action: ACTION.DOCK,
       exitVehicleOnComplete: true,
@@ -505,17 +505,20 @@ const MISSION_GOLDENGATE = {
 
     // 4 — L3_BRIDGE: zu Fuß über die Golden Gate Bridge, verfolgt von
     // Fußpolizei (main.js' bereits vorhandene "Polizei zu Fuß"-Logik greift
-    // hier automatisch, keine neue Chase-Mechanik nötig). Am Ende wartet die
-    // Limo (vehicleAfter mit autoDrivePath -> main.js' updateAutoDrive()).
+    // hier automatisch, keine neue Chase-Mechanik nötig). Wegpunkt liegt am
+    // Fuß der Ost-Rampe (main.js: ROUTE3.bridgeEast[0]=20 + BRIDGE_RAMP_RUN=25),
+    // nicht mehr am Turm selbst - Spieler ist beim Auslösen schon wieder auf
+    // Bodenhöhe. Am Ende wartet die Limo (vehicleAfter mit autoDrivePath ->
+    // main.js' updateAutoDrive()).
     {
       id: "L3_BRIDGE",
       objective: "Häng die Polizei ab — lauf über die Brücke",
-      waypoint: { pos: [58, -78], label: "Brückenende", color: "#ff3b30" },
+      waypoint: { pos: [40, -78], label: "Brückenende", color: "#ff3b30" },
       triggerRadius: 8,
       action: ACTION.ENTER,
       vehicleAfter: {
         type: "limo",
-        pos: [58, -95],
+        pos: [50, -82],
         heading: Math.PI,
         autoDrivePath: [[30, -125], [0, -148], [0, -150]],
       },
