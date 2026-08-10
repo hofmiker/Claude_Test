@@ -274,79 +274,107 @@ Kontext-Aktion-Button (Cyan, zeigt "Reden"/"Nehmen"/"Einsteigen"/
   "Level-System" unten für den Grund, warum ein Neuladen nötig ist.
 
 ## Level-System
-Zwei komplette Level mit derselben ENGINE, aber bewusst unterschiedlicher
-Stadt und Atmosphäre: "Der Kessel" (Marco, dichte Noir-Nacht-Downtown) und
-"The Coastal Courier" (Marcus, helle, aufgelockerte Sonnentag-Villenstadt,
-Malibu → Sausalito). Nutzerauftrag dazu, in zwei Schritten: zuerst *"Grafik
-und Interaktion sollen unverändert sein, nur das Level und Story neu
-einweben"*, dann die Korrektur *"Das soll eine ganz andere Stadt und
-Atmosphäre sein [...] nicht etwas aus Level 1 nachbauen"* — die erste
-Fassung hatte Level 2 einfach in Level 1s fertige Rasterstadt gesetzt und
-nur 3 Landmarks ausgetauscht, was sich wie dieselbe Stadt mit ein paar
-neuen Häusern anfühlte. Die Auflösung: dieselbe Grid-/Kollisions-/Traffic-
-Engine (`buildBlock()`/`buildGround()` unverändert in ihrer Struktur), aber
-mit `CITY_STYLE` (siehe unten) komplett anders parametrisiert befüllt —
-"Interaktion unverändert" heißt hier "gleicher Code, andere Werte", nicht
-"gleiche Stadt wiederverwendet". Level 2 bringt außerdem bewusst KEINE
-neuen Fahrzeugtypen (kein Boot/Limousine aus der ursprünglichen Idee),
-keine Cutscene-Kameras und kein Ausdauersystem mit, sondern läuft komplett
-über die schon vorhandene Fahr-/Lauf-/Dialog-/Fahndungs-Mechanik.
-- **Datenmodell (`mission.js`):** zwei vollständige Bundles
-  (`DISTRICT_KESSEL`/`MISSION_KESSEL`/`DIALOGS_KESSEL`/`CITY_STYLE_KESSEL`
-  und die `_COASTAL`-Pendants) liegen nebeneinander in `LEVEL_DATA`, keyed
-  per Level-`id`. Ganz am Ende der Datei wird EINMALIG beim Modul-Laden
-  `localStorage.getItem('viceGridLevel')` gelesen und das passende Bundle
-  unter den ursprünglichen Namen `DISTRICT`/`MISSION`/`DIALOGS` (plus neu
-  `PLAYER_NAME`/`CITY_STYLE`) exportiert — `main.js` importiert weiterhin
-  nur diese fünf schlichten Namen und enthält selbst keinerlei Level-
-  Auswahl-Logik im Spielcode, nur der Klick-Handler für die Titel-Chips
-  (siehe UI oben) schreibt in `localStorage`. Ein Level-Wechsel braucht
-  deshalb ein `location.reload()` (Stadt/Mission werden synchron beim
-  Modul-Laden gebaut, mitten im laufenden Spiel lässt sich das nicht
-  umschalten).
-- **`CITY_STYLE`:** `main.js`s `COLORS`/`BUILDING_PALETTE`-Konstanten
-  lesen jetzt direkt aus `CITY_STYLE.colors`/`.buildingPalette` statt
-  eigene Werte zu hardcoden, und `buildBlock()`s Zufallslogik nutzt
-  `CITY_STYLE.parkChance`/`.heightMin`/`.heightMax`/`.tallChance`/
-  `.tallMul` statt der alten festen Zahlen (`0.22`, `rand(6,34)`, `0.18`,
-  `1.9`). `CITY_STYLE_KESSEL` übernimmt exakt die ursprünglichen Werte
-  (keine Änderung für Level 1); `CITY_STYLE_COASTAL` ist bewusst
-  gegensätzlich: helle Cremetöne statt bunter Downtown-Palette, niedrige
-  Gebäude (4–9 statt 6–34 Einheiten, kaum "Hochhaus"-Ausreißer) statt
-  dichter Blockbebauung, doppelt so hohe Park-Wahrscheinlichkeit (0.45
-  statt 0.22) für einen aufgelockerten grünen Vorort-Eindruck, plus helle
-  sandfarbene Boden-/Straßentöne mit weißen (statt gelben) Fahrbahn-
-  markierungen. Die Grid-Größe/Blockmaße/Straßenbreite selbst
-  (`GRID_COUNT`/`BLOCK_SIZE`/`ROAD_WIDTH`) bleiben für beide Level gleich,
-  da `WORLD_BOUND`, Minimap-Reichweite, Kamera-Tuning und die
-  Landmark-Zellkoordinaten alle darauf aufbauen — die Änderung würde weit
-  über eine reine Stil-Anpassung hinausgehen.
+Zwei komplette Level mit derselben ENGINE (Fahr-/Lauf-/Kollisions-/
+Traffic-/Dialog-/Fahndungs-Code, 1:1 identisch), aber zwei komplett
+eigenständigen, von Grund auf verschiedenen Welten: "Der Kessel" (Marco,
+dichte Noir-Nacht-Rasterstadt) und "The Coastal Courier" (Marcus, helle
+Küstenstadt mit Strand, Palmen, Sonnenschirmen, Strandpromenade, Cafés und
+der Golden Gate Bridge am Horizont). Das brauchte zwei Anläufe:
+1. Erste Fassung: Level 2 einfach in Level 1s fertige Rasterstadt gesetzt,
+   nur 3 Landmarks ausgetauscht — fühlte sich wie dieselbe Stadt mit ein
+   paar neuen Häusern an.
+2. Zweite Fassung: dieselbe Grid-Engine, aber mit anderer Farbpalette/
+   Gebäudehöhe/Park-Dichte befüllt (`CITY_STYLE`) — spürbar anderes Bild,
+   aber laut Feedback immer noch zu sehr "dasselbe Grid, andere Farben"
+   statt einer wirklich eigenen, von Hand entworfenen Stadt.
+3. Diese Fassung: Level 2 nutzt das Grid (`buildBlock()`/`GRID_COUNT`-Loop)
+   überhaupt nicht mehr. `buildCoastalTown()` in `main.js` platziert jedes
+   Gebäude, jeden Baum, jeden Sonnenschirm an einer fest gewählten
+   Koordinate (kein `Math.random()` für Layout-Entscheidungen) — eine
+   handentworfene, jedes Mal identische Stadt statt eines parametrisierten
+   Zufallsgitters. Nur die darunterliegende Physik/Kollision/KI ist
+   identisch mit Level 1.
+- **`LEVEL_ID` (`mission.js`):** `buildCity()` in `main.js` verzweigt ganz
+  am Anfang komplett: `der_kessel` baut wie bisher das Raster
+  (`buildBlock()`-Schleife + `buildLandmarks()`); jedes andere Level ruft
+  stattdessen `buildCoastalTown()` auf. Die beiden Welten existieren nie
+  gleichzeitig — es gibt nur eine Stadt pro Seitenaufruf, je nachdem, was
+  `localStorage.getItem('viceGridLevel')` beim Modul-Laden sagt (Default
+  `der_kessel`). Ein Level-Wechsel braucht deshalb ein `location.reload()`.
+- **`buildCoastalTown()` — die Küstenstadt von Grund auf:**
+  - **Straßen:** `COASTAL_ROADS = { x: [-120,-20,80], z: [-130,-90,-10,70] }`
+    — drei Nord-Süd- und vier Ost-West-Straßen an von Hand gewählten
+    Koordinaten statt eines gleichmäßigen `GRID_COUNT`×`GRID_COUNT`-Rasters.
+    `buildCoastalGround()` zeichnet dieselben Fahrbahnstreifen wie
+    `buildGround()`, nur an diesen Koordinaten statt an einer Schleife über
+    `-CITY_HALF + CELL*k`. Traffic-KI/Ampel-Logik bleiben unverändert (sie
+    lesen nur `roadLines.x`/`.z`, ihnen ist egal, ob die Koordinaten aus
+    einer Schleife oder einer Handliste stammen).
+  - **Strand/Ozean:** `buildOceanAndBeach()` legt drei Flächen übereinander
+    (Süden nach Norden): offener Ozean (`OCEAN_NEAR_Z`–`OCEAN_FAR_Z`, als
+    `waterColliders` undurchdringlich wie eine Wand — siehe unten), Sand
+    (Strand, begehbar, in `sidewalkCells` für Fußgänger-/NPC-Wanderziele),
+    Strandpromenade (helles Pflaster, ebenfalls begehbar). Die Promenade
+    endet bei `x=-60`, deckt also nicht den industriellen Hafen-Abschnitt
+    weiter westlich ab.
+  - **Der Steg/die finale Pier:** `buildBeachPier()` — eine ~58 Einheiten
+    lange Holzbohlen-Konstruktion (Geländer + Pfosten alle paar Meter,
+    gleiche Bauweise wie Level 1s Kanal-Steg), die von der Promenade
+    hinaus in den offenen Ozean führt. Sie zerteilt den sonst
+    durchgehenden `waterColliders`-Streifen in zwei Hälften links/rechts
+    der Bohlen — exakt dasselbe "Deck hat keinen Collider, Wasser daneben
+    schon"-Prinzip wie beim Level-1-Kanal, nur über eine viel größere
+    Distanz. Elaine (`NPC_BY_STEP.L2_PIER`) steht nahe dem äußeren Ende.
+  - **Palmen/Sonnenschirme:** `addPalm()` (neue, eigene Funktion — schräger
+    schlanker Stamm + 6 kegelförmige Wedel im Kreis, andere Silhouette als
+    der normale Park-Baum `addTree()`) und `addBeachUmbrella()` (Mast +
+    Kegel-Dach) sitzen an acht bzw. sechs fest gewählten Sandkoordinaten.
+  - **Cafés:** `buildCafe()` — kleines Gebäude mit rotem Dach, davor zwei
+    Tische mit hellen Sonnenschirmen (`addBeachUmbrella()` wiederverwendet,
+    andere Farbe/Größe), zwei Stück an der Promenade.
+  - **Golden Gate Bridge:** `buildGoldenGateBridge()` — zwei "International
+    Orange" Pylonen mit Querbalken, schräge Kabel-Silhouette (dünne
+    gedrehte Boxen), eine Fahrbahnbox dazwischen. Sitzt bei `z=168`, klar
+    jenseits des durchgehenden Ozean-Colliders (`OCEAN_FAR_Z=175`) — vom
+    Spieler nie physisch erreichbar, rein als Horizont-Landmark gedacht,
+    bekommt deshalb auch keinen eigenen Collider.
+    `DISTRICT_COASTAL.fogFar` wurde dafür von 170 auf 220 angehoben, sonst
+    wäre die Brücke fast komplett im Nebel verschwunden.
+  - **Villa/Hafen/Garage:** dieselben `buildVilla()`/`buildHarbor()`/
+    `buildParkingGarage()`-Funktionen wie zuvor (unverändert), jetzt aber
+    an eigenen, handgewählten `COASTAL_POS`-Koordinaten statt an
+    Grid-Zellen aus `blockCenter()` — Level 2 hat dadurch seine eigene,
+    von Level 1 komplett unabhängige Parkgarage statt sich (wie in der
+    Vorversion) eine Koordinate mit Level 1 zu teilen.
 - **`PLAYER_NAME`:** `pushDialogRow()`s "ist das der Spieler?"-Check
   (rechts, Pink, `isMe`) prüfte früher hart gegen `'Marco'` — mit zwei
   Leveln und unterschiedlichen Spielernamen (Marco/Marcus) ist das jetzt
-  `line.speaker === PLAYER_NAME`, importiert aus `mission.js`. Gleiches
-  Verhalten, nur parametrisiert statt hartkodiert.
+  `line.speaker === PLAYER_NAME`, importiert aus `mission.js`.
 - **`SPEAKER_STYLE`/`NPC_BY_STEP`:** beide Level teilen sich je EIN
   gemeinsames Objekt in `main.js` — da beide Level komplett unterschiedliche
   Sprecher-Namen bzw. Schritt-IDs verwenden (`L2_VILLA` statt
-  `FIND_CONTACT` usw.), gibt es keine Namenskollisionen, ein Umschalten pro
-  Level war nicht nötig.
+  `FIND_CONTACT` usw.), gibt es keine Namenskollisionen.
 - **Schrittfolge identisch zu Level 1:** Anruf (`L2_INTRO`) → Ziel anfahren
   + reden (`L2_VILLA`, Viktor übergibt das Paket) → Ziel anfahren + reden,
   löst Fahndung aus (`L2_HARBOR`, Mechaniker warnt vor der Polizei,
-  `onComplete: "startPolice"`) → Fluchtpunkt erreichen (`L2_ESCAPE`,
-  **dieselbe** Parkgarage-Koordinate wie Level 1 — ein Rückzugsort passt
-  thematisch zu beiden Geschichten, kein Grund für ein weiteres Wahrzeichen)
-  → finaler Dialog + Sieg (`L2_PIER`, Elaine an der Sausalito-Pier). Das
-  ursprüngliche Boot/Brücken/Limousinen-Konzept aus dem Story-Prompt wurde
-  bewusst auf diese Schrittform verdichtet statt neue Interaktionsarten zu
-  bauen.
+  `onComplete: "startPolice"`) → Fluchtpunkt erreichen (`L2_ESCAPE`, eigene
+  Parkgarage) → finaler Dialog + Sieg (`L2_PIER`, Elaine an der
+  Sausalito-Pier). Das ursprüngliche Boot/Brücken-Lauf/Limousinen-Konzept
+  aus dem Story-Prompt wurde bewusst auf diese Schrittform verdichtet statt
+  neue Interaktionsarten (Wasserfahrzeug, Ausdauersystem, Cutscene-Kamera)
+  zu bauen — "Interaktion unverändert" gilt weiterhin uneingeschränkt,
+  auch wenn die WELT jetzt komplett eigenständig ist.
 - **Tageslicht statt Nacht:** `DISTRICT_COASTAL.timeOfDay: "day"` nutzt
   main.js' bereits vorhandene Tag/Nacht-Verzweigung (`isNight`-Fälle bei
   Hemisphere-Light-Farben, `addStreetLamps()` überspringt sich selbst bei
   Tag) — keine neue Grafik-Funktionalität, nur ein schon unterstützter
-  Konfigurationswert, der die beiden Level trotzdem klar unterscheidbar
-  macht (warmes Orange-Fog `#e8b573` statt Nacht-Navy).
+  Konfigurationswert.
+- **`CITY_STYLE`:** bleibt für Level 1 unverändert in Kraft
+  (`buildBlock()`s Höhen-/Park-/Palettenwerte). Level 2 nutzt daraus nur
+  noch `colors.ground`/`.road`/`.roadLine` für `buildCoastalGround()`s
+  Basis-Ebene und Fahrbahnstreifen — `buildingPalette`/`heightMin`/
+  `parkChance` etc. sind für den coastal Pfad ungenutzt, da er gar keine
+  `buildBlock()`-Zufallsgebäude mehr hat.
 
 ## Level 3 — "Golden Gate Run" (komplett andere Stadtplan-Engine)
 Nutzerauftrag: ein drittes Level, das die bisherigen Stadtplanregeln komplett
@@ -359,25 +387,34 @@ den Beats, die Level 2 aus Scope-Gründen ausgespart hat (Boot, Fußlauf über
 die Brücke, automatische Limo-Fahrt). Der Story-Prompt dafür stammte
 ursprünglich aus einem älteren, nie umgesetzten Konzept für Level 2 selbst.
 
-- **Eigener Stadtaufbau-Algorithmus, keine Grid-Wiederverwendung:**
-  Level 1/2 teilen sich EIN prozedurales NxN-Blockraster (`buildBlock()`/
-  `buildGround()`, nur `CITY_STYLE`-Werte unterscheiden sich — siehe
-  "Level-System" oben). Level 3 aktiviert stattdessen `buildCoastalRoute()`
-  (main.js), ausgewählt über `CITY_STYLE.layout === "route"`: eine lineare
-  Route durch handplatzierte Zonen (Villa → kurvige Küstenstraße → Hafen →
-  offene Bucht → Brücke → Limo-Straße → Pier) statt eines Blockrasters.
-  `ROUTE3` (main.js) hält alle Wegpunkt-Koordinaten der Route als einfache
-  `[x,z]`-Paare, `addRoadSegment()` zeichnet die kurvige PCH/Limo-Straße als
-  Kette gerader, gegeneinander verdrehter Asphalt-/Linien-Segmente (kein
-  echtes Spline-Meshing). Eine einzelne große Bodenebene (auf `WORLD_BOUND`
-  zugeschnitten, nicht auf die Routen-Punkte selbst — sonst fährt man am
-  Rand ins Nichts) ersetzt `buildGround()`s Grid-Bodenplatte samt
-  Kreuzstreifen-Muster, das auf einer organischen Küstenstraße falsch
-  ausgesehen hätte. Die drei Level-1/2-Landmark-Baufunktionen
-  `buildVilla()`/`buildHarbor()`/`buildPier2()` werden UNVERÄNDERT
-  wiederverwendet (sie nehmen ohnehin beliebige `{x,z}`, nichts Grid-
-  Spezifisches), nur an den neuen Routen-Koordinaten statt einer reservierten
-  Grid-Zelle platziert.
+- **Eigener Stadtaufbau-Algorithmus, keine Wiederverwendung von Grid ODER
+  Küstenstadt:** Level 1 hat sein prozedurales NxN-Blockraster
+  (`buildBlock()`/`buildGround()`), Level 2 seine eigene, komplett
+  handplatzierte Küstenstadt (`buildCoastalTown()`, siehe "Level-System"
+  oben) — Level 3 teilt sich keine der beiden Welten, sondern aktiviert eine
+  dritte, eigene Funktion `buildCoastalRoute()` (main.js), ausgewählt über
+  `LEVEL_ID === "golden_gate_run"` in `buildCity()`: eine lineare Route
+  durch handplatzierte Zonen (Villa → kurvige Küstenstraße → Hafen → offene
+  Bucht → Brücke → Limo-Straße → Pier) statt eines Blockrasters oder eines
+  einzelnen Stadt-Footprints. `ROUTE3` (main.js) hält alle Wegpunkt-
+  Koordinaten der Route als einfache `[x,z]`-Paare, `addRoadSegment()`
+  zeichnet die kurvige PCH/Limo-Straße als Kette gerader, gegeneinander
+  verdrehter Asphalt-/Linien-Segmente (kein echtes Spline-Meshing). Eine
+  einzelne große Bodenebene (auf `WORLD_BOUND` zugeschnitten, nicht auf die
+  Routen-Punkte selbst — sonst fährt man am Rand ins Nichts) ersetzt
+  `buildGround()`s Grid-Bodenplatte samt Kreuzstreifen-Muster, das auf einer
+  organischen Küstenstraße falsch ausgesehen hätte. `buildVilla()`/
+  `buildHarbor()` werden UNVERÄNDERT wiederverwendet (sie nehmen ohnehin
+  beliebige `{x,z}`, nichts Grid-Spezifisches), nur an den neuen Routen-
+  Koordinaten statt einer reservierten Grid-Zelle platziert. Der Pier hat
+  dagegen eine eigene, bewusst NICHT geteilte Funktion
+  (`buildSausalitoPier()`, main.js) — die alte gemeinsame `buildPier2()`
+  wurde im Zuge von Level 2s eigenem Stadt-Rebuild durch das Level-2-eigene
+  `buildBeachPier()` ersetzt (an `OCEAN_*`/`COASTAL_POS`-Konstanten
+  gebunden, nicht wiederverwendbar); Level 3 portiert seitdem die alte
+  Pier-Logik als eigene Funktion, statt sich erneut eine mit Level 2 zu
+  teilen — genau das Teilen einer Landmark-Funktion über zwei Level hinweg
+  hatte diesen Merge einmal aufgebrochen.
 - **Bucht + Brücke:** `waterColliders` bekommt zwei Rechtecke mit einer
   Lücke dazwischen genau an der Stelle, wo `buildBridge()`s begehbares Deck
   sitzt — sonst würde die eigene Wasser-Kollision der Bucht den Fußweg über
@@ -458,7 +495,7 @@ ursprünglich aus einem älteren, nie umgesetzten Konzept für Level 2 selbst.
     für Crashes/Sirenen).
   - **Ambient-Verkehr/Streifenpolizei sind für dieses Level komplett
     deaktiviert** (`spawnTraffic()`/`spawnPolicePatrol()` geben früh
-    zurück, wenn `CITY_STYLE.layout === "route"`): ihre Fahrspur-KI
+    zurück, wenn `LEVEL_ID === "golden_gate_run"`): ihre Fahrspur-KI
     (`stepLaneCar()`) fährt stur entlang `roadLines.x`/`roadLines.z`
     (den geraden Grid-Linien) und hätte auf der kurvigen Route entweder
     quer durch die Landschaft gefahren oder (leeres `roadLines`) mit
@@ -471,7 +508,7 @@ ursprünglich aus einem älteren, nie umgesetzten Konzept für Level 2 selbst.
   der Küstenstraße nördlich der Villa. Level 1/2 setzen das Feld nicht und
   verhalten sich dadurch exakt wie zuvor.
 
-## Wahrzeichen (Missions-Locations)
+## Wahrzeichen (Missions-Locations, Level 1 "Der Kessel")
 Wegpunkte in `mission.js` waren ursprünglich reine `[x,z]`-Platzhalter, die
 irgendwo auf einem zufällig generierten Standardgebäude landeten — "Sofias
 Werkstatt" sah aus wie jedes andere Gebäude, der "Kanal" existierte
@@ -480,7 +517,9 @@ Wahrzeichen reserviert (`LANDMARK_CELLS` in `main.js`, per `i,j`-Schlüssel
 aus `buildBlock()` ausgenommen) und werden nach dem normalen Grid-Aufbau
 von `buildLandmarks()` bebaut; `mission.js`s Wegpunkt-Koordinaten zeigen
 jetzt exakt auf `LANDMARK_POS.<name>` (siehe Kommentar dort) statt auf
-geschätzte Platzhalterzahlen.
+geschätzte Platzhalterzahlen. Level 2s eigene Landmarks (Villa/Hafen/Pier)
+werden separat unter "Level-System" oben beschrieben, in
+`buildCoastalTown()` statt in diesem Grid-Aufbau.
 - **Sofias Werkstatt** (`buildWorkshop`, Zelle `2,4`): niedrige Industrie-
   halle mit dunklem Rolltor (samt ein paar Lamellen-Streifen), leuchtendem
   Schild darüber und einem geparkten Projekt-Auto davor (einfache Box-Form
@@ -514,30 +553,9 @@ geschätzte Platzhalterzahlen.
   zusätzlich in einem eigenen Blau (`#1f5a78`) gezeichnet, damit Wasser auf
   der Karte erkennbar anders aussieht als Gebäude.
 
-Drei weitere Wahrzeichen für Level 2 ("Coastal Courier") — existieren
-IMMER in der Stadt, unabhängig vom aktiven Level (siehe "Level-System"
-oben), sind nur reine Kulisse solange das jeweils andere Level läuft:
-- **Villa Malibu** (`buildVilla`, Zelle `5,1`): niedriges, flaches
-  Cremeweiß-Haus mit großer getönter Glasfront (`glowMat` für einen
-  leichten Schimmer) und einem kleinen, kollisionslosen Pool davor (reine
-  eingefärbte Plane, wie eine Straßenmarkierung — kein neues
-  Kollisions-Feature). Palmen-Flair über zwei ganz normale `addTree()`-
-  Aufrufe (dieselbe Park-Baum-Mesh wie überall sonst in der Stadt, keine
-  neue Geometrie).
-- **Der Hafen** (`buildHarbor`, Zelle `0,5`): rostrotes Lagerhaus (gleiche
-  Bauweise wie `buildWorkshop`, andere Farbe/Größe) plus drei
-  Schiffscontainer (eigene, kleinere Collider) und ein Kran (Pfosten +
-  Arm, gleiche Technik wie `createStreetLampMesh`). Bewusst OHNE eigenes
-  Kanal/Steg-Feature — der Missionsschritt hier braucht nur eine
-  Annäherungs-Zone für den Mechaniker-Dialog, keine Steg-Navigation wie
-  bei Level 1s Koffer-Übergabe.
-- **Sausalito Pier** (`buildPier2`, Zelle `6,2`): kleine Art-Deco-Galerie
-  plus ein komplett lokaler Pool+Steg (im Gegensatz zum Level-1-Kanal muss
-  dieser nicht bis zum Stadtrand reichen, bleibt einfach innerhalb/neben
-  der reservierten Zelle — braucht deshalb keine `WORLD_BOUND`-Anpassung).
-  Gleiches Steg-Muster wie beim Level-1-Kanal (Deck + Geländer + Pfosten,
-  `waterColliders` links/rechts/hinterm Stegende). Elaine (`NPC_BY_STEP.
-  L2_PIER`, `female: true`) steht am äußeren Stegende, wie Jack in Level 1.
+Level 2s Villa/Hafen/Garage/Pier stehen dagegen NICHT im Grid — siehe
+"Level-System" → `buildCoastalTown()` oben für ihre eigene, handplatzierte
+Welt (`COASTAL_POS`-Koordinaten statt `blockCenter()`-Zellen).
 
 ## Fahrphysik & Polizei
 - **Gebäude-Kollision:** ein Treffer bremst nicht mehr pauschal auf 12%
