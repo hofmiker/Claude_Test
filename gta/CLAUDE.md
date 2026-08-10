@@ -394,37 +394,122 @@ ursprünglich aus einem älteren, nie umgesetzten Konzept für Level 2 selbst.
   oben) — Level 3 teilt sich keine der beiden Welten, sondern aktiviert eine
   dritte, eigene Funktion `buildCoastalRoute()` (main.js), ausgewählt über
   `LEVEL_ID === "golden_gate_run"` in `buildCity()`: eine lineare Route
-  durch handplatzierte Zonen (Villa → kurvige Küstenstraße → Hafen → offene
-  Bucht → Brücke → Limo-Straße → Pier) statt eines Blockrasters oder eines
-  einzelnen Stadt-Footprints. `ROUTE3` (main.js) hält alle Wegpunkt-
-  Koordinaten der Route als einfache `[x,z]`-Paare, `addRoadSegment()`
-  zeichnet die kurvige PCH/Limo-Straße als Kette gerader, gegeneinander
-  verdrehter Asphalt-/Linien-Segmente (kein echtes Spline-Meshing). Eine
-  einzelne große Bodenebene (auf `WORLD_BOUND` zugeschnitten, nicht auf die
-  Routen-Punkte selbst — sonst fährt man am Rand ins Nichts) ersetzt
-  `buildGround()`s Grid-Bodenplatte samt Kreuzstreifen-Muster, das auf einer
-  organischen Küstenstraße falsch ausgesehen hätte. `buildVilla()`/
-  `buildHarbor()` werden UNVERÄNDERT wiederverwendet (sie nehmen ohnehin
-  beliebige `{x,z}`, nichts Grid-Spezifisches), nur an den neuen Routen-
-  Koordinaten statt einer reservierten Grid-Zelle platziert. Der Pier hat
-  dagegen eine eigene, bewusst NICHT geteilte Funktion
-  (`buildSausalitoPier()`, main.js) — die alte gemeinsame `buildPier2()`
-  wurde im Zuge von Level 2s eigenem Stadt-Rebuild durch das Level-2-eigene
-  `buildBeachPier()` ersetzt (an `OCEAN_*`/`COASTAL_POS`-Konstanten
-  gebunden, nicht wiederverwendbar); Level 3 portiert seitdem die alte
-  Pier-Logik als eigene Funktion, statt sich erneut eine mit Level 2 zu
-  teilen — genau das Teilen einer Landmark-Funktion über zwei Level hinweg
-  hatte diesen Merge einmal aufgebrochen.
-- **Bucht + Brücke:** `waterColliders` bekommt zwei Rechtecke mit einer
-  Lücke dazwischen genau an der Stelle, wo `buildBridge()`s begehbares Deck
-  sitzt — sonst würde die eigene Wasser-Kollision der Bucht den Fußweg über
-  die Brücke blockieren, da dieses Spiel keine echte Höhen-/Ebenen-Trennung
-  kennt (die Brücke "schwebt" nicht wirklich über dem Wasser, sie ist ein
-  flaches, begehbares Deck wie jeder andere Steg im Spiel — das Boot "fährt
-  darunter durch" ist rein narrativ, nicht geometrisch). Zwei Türme (Boxen +
-  Zylinder-Pfeiler + Querbalken, International-Orange-Farbton) plus ein paar
-  vertikale Hänger-Boxen als Kabel-Stellvertreter, keine echte
-  Hängebrücken-Katenoide.
+  durch handplatzierte Zonen (Villenviertel → kurvige Küstenstraße mit
+  Wohnstraßen → Hafenviertel → offene Bucht → Brücke → Limo-Straße →
+  Pier-Ort) statt eines Blockrasters oder eines einzelnen Stadt-Footprints.
+  `ROUTE3` (main.js) hält die Kern-Wegpunkte der Route als einfache
+  `[x,z]`-Paare. Eine einzelne große Bodenebene (auf `WORLD_BOUND`
+  zugeschnitten, nicht auf die Routen-Punkte selbst — sonst fährt man am
+  Rand ins Nichts) ersetzt `buildGround()`s Grid-Bodenplatte samt
+  Kreuzstreifen-Muster, das auf einer organischen Küstenstraße falsch
+  ausgesehen hätte. `buildVilla()`/`buildHarbor()` werden UNVERÄNDERT
+  wiederverwendet (sie nehmen ohnehin beliebige `{x,z}`, nichts
+  Grid-Spezifisches), nur an den neuen Routen-Koordinaten statt einer
+  reservierten Grid-Zelle platziert. Der Pier hat dagegen eine eigene,
+  bewusst NICHT geteilte Funktion (`buildSausalitoPier()`, main.js) — die
+  alte gemeinsame `buildPier2()` wurde im Zuge von Level 2s eigenem
+  Stadt-Rebuild durch das Level-2-eigene `buildBeachPier()` ersetzt (an
+  `OCEAN_*`/`COASTAL_POS`-Konstanten gebunden, nicht wiederverwendbar);
+  Level 3 portiert seitdem die alte Pier-Logik als eigene Funktion, statt
+  sich erneut eine mit Level 2 zu teilen — genau das Teilen einer
+  Landmark-Funktion über zwei Level hinweg hatte diesen Merge einmal
+  aufgebrochen.
+- **Kurvige Straße statt Zickzack:** die erste Fassung reihte drei
+  handgewählte Punkte aneinander (u. a. x=30 → x=-15 → x=20), was sich wie
+  ein Zickzack statt einer echten Küstenstraße anfühlte — Nutzerfeedback:
+  "wo sind Kurven die Sinn machen". `coastCurveX(z)` (main.js) ersetzt das
+  durch eine einzelne, glatte Sinus-Ausbuchtung von der Villa (t=0) zum
+  Hafen (t=1): `lerp(villaX, harborX, t) + sin(t*π) * 14` — die Straße
+  schwingt einmal sanft seeward aus und wieder zurück, keine Richtungs-
+  umkehr. `samplePchPoints(n)` tastet diese Kurve dicht ab (16 Punkte statt
+  3), `addRoadSegment()` reiht sie zu vielen kurzen, nur leicht
+  gegeneinander verdrehten Segmenten — liest sich als durchgehende Kurve,
+  nicht als Kette scharfer Knicke. Dieselbe Funktion `coastCurveX(z)`
+  bestimmt auch, wo die Häuserreihen/Querstraßen relativ zur Straße sitzen
+  (siehe "Eine echte Stadt statt drei Häuser" unten) — die Bebauung folgt
+  der Kurve automatisch mit, statt an fixen Koordinaten zu kleben, die bei
+  einer Kurvenänderung nicht mehr passen würden.
+- **Eine echte Stadt statt drei Häuser:** Nutzerfeedback nach dem ersten
+  Wurf: "Der Rest ist brache. Wo ist das Meer, die Palmen, der Boulevard,
+  die Villen und mehrere Hausreihen." Die Route ist jetzt durchgängig
+  bebaut, nicht nur an den drei Missions-Landmarks:
+  - **Villenviertel:** drei `buildVilla()`-Gebäude statt einem (`villa` —
+    das Missionsziel, unverändert — plus `villaB`/`villaC` als reine
+    Kulisse in der Nähe).
+  - **Boulevard:** der Straßenabschnitt nördlich von z=88 (Villen-/
+    Strandbereich) bekommt eine breitere Fahrbahn (22 statt 12 Einheiten)
+    mit begrüntem Mittelstreifen (`COLORS.park`-Farbton) und zusätzlichen
+    Fahrbahnmarkierungen statt nur einer Mittellinie.
+  - **Meer + Strand:** `NORTH_OCEAN`/`NORTH_BEACH` (main.js) — ein zweiter,
+    rein küstennaher Ozean-/Sandstreifen entlang des Villenviertels, mit
+    echtem `waterColliders`-Eintrag (blockiert Fahren/Laufen hinein, wie
+    jedes andere Gewässer im Spiel). Überschneidet sich in z nicht mit der
+    Bucht weiter südlich (endet bei z=88, die Bucht beginnt erst bei
+    z=-30) — zwei unabhängige Gewässer, kein gemeinsamer Collider.
+  - **Palmen:** `addPalm()` (aus Level 2 übernommen) säumt den Strandrand
+    dicht und ist zusätzlich mit ~35 % Wahrscheinlichkeit an jedem
+    abgetasteten Straßenpunkt sowie an der Limo-Straße gestreut.
+  - **Wohnstraßen mit mehreren Hausreihen:** vier Querstraßen-Stationen
+    (z=82/62/42/22) zwischen Villenviertel und Hafen, an jeder je ein
+    `buildHouse()` links UND rechts der (an dieser Stelle über
+    `coastCurveX(z)` berechneten) Straßenmitte, verbunden mit einem
+    kurzen, sichtbaren Straßenstück (`addRoadSegment()`) zur Hauptstraße —
+    das beantwortet sowohl "mehrere Hausreihen" als auch "wo sind die
+    normalen Straßen". `buildHouse()` ist bewusst kleiner/einfacher als
+    `buildVilla()` (kein Glas/Pool, nur Baukörper + Überstand-Dach in
+    einer von sieben Pastellfarben aus `HOUSE_PALETTE`), damit eine Straße
+    voller Häuser nicht wie dieselbe Villa mehrfach aussieht.
+  - **Hafenviertel:** zwei `buildWarehouseFiller()`-Gebäude (gedeckte
+    Industriefarben) neben dem eigentlichen `buildHarbor()`, statt eines
+    isolierten Einzelgebäudes.
+  - **Sausalito:** zwei zusätzliche `buildHouse()`-Gebäude neben der
+    Galerie, damit der Pier-Ort nicht wie ein einzelnes Gebäude in der
+    Leere wirkt.
+- **Bucht + Brücke — komplett überarbeitet nach Nutzerfeedback** ("Das ist
+  keine Brücke sondern liegt auf dem Wasser. Die Brücke ist mehrspurig und
+  viel größer und viel höher"): die erste Fassung hatte ein 8 Einheiten
+  breites, fast auf Wasserhöhe liegendes Deck (y=0.3) mit 42 Einheiten
+  hohen Türmen. Jetzt:
+  - **Deck:** 20 Einheiten breit (statt 8), sitzt auf `BRIDGE_DECK_Y = 18`
+    (main.js) — sechsspurige Fahrbahnmarkierung (Doppel-Gelb-Mittellinie +
+    vier weiße Spurlinien), ein abgesetzter heller Gehweg-Streifen an einer
+    Kante (dort läuft die Mission tatsächlich entlang), ein sichtbarer
+    dunkler Trog/Truss unter dem Deck für echte strukturelle Tiefe.
+  - **Türme:** 96 Einheiten hoch (statt 42) mit je zwei Pfeilern und drei
+    Querstreben übereinander statt einer — eine massive Gitterturm-
+    Silhouette statt zweier dünner Zylinder.
+  - **Kabel:** eine echte (angenäherte) Durchhang-Kurve aus 14
+    Kettengliedern pro Seite zwischen den Türmen (parabolisch simuliert,
+    keine echte Kettenlinie) statt gerader Vertikalen, mit Hängern zum Deck
+    an jedem zweiten Segment.
+  - **Wirklich erhöht, nicht nur optisch größer:** dieses Spiel kennt keine
+    echte Terrain-Höhe (jede Figur/jedes Auto rendert immer auf `y=0` plus
+    ggf. Sprung-Offset) — "auf einer hohen Brücke laufen" wurde deshalb
+    bisher gar nicht simuliert, das Deck war nur eine optische Attrappe auf
+    Bodenhöhe, daher der Eindruck "liegt auf dem Wasser". `terrainY(x, z)`
+    (main.js) behebt das gezielt für diesen einen Übergang: eine reine
+    Höhen-NACHSCHLAGE-Funktion (keine echte Physik), die für x zwischen der
+    Anlegestelle (-45) und dem Ostufer (58) — begrenzt auf den Brücken-
+    Z-Streifen — von 0 auf `BRIDGE_DECK_Y` hochrampt, mittig flach bleibt
+    und wieder auf 0 herunterrampt. Angewendet auf drei Stellen: die
+    gerenderte Spielerfigur (`updatePlayer()`), die Fußpolizei-Officer-Mesh
+    (`updatePoliceChase()`s Onfoot-Zweig) und das Kamera-Rig
+    (`updateCamera()`, hebt `height`/`lookY` um denselben Betrag an, damit
+    die Kamera mit hochsteigt statt am Wasser zurückzubleiben). Bewusst
+    NICHT auf Fahrzeuge angewendet (`Car.syncMesh()` bleibt unverändert bei
+    `y=0`) — das Boot muss weiterhin auf Wasserhöhe bleiben, um sichtbar
+    "unter" der Brücke hindurchzufahren; nur wer zu Fuß über die Brücke
+    läuft, steigt tatsächlich auf.
+  - **Turm-Kollision mit echter Lücke:** die erste Fassung dieser Änderung
+    registrierte pro Turm EINE zusammengefasste Collider-Box über beide
+    Pfeiler hinweg — beim gleichzeitig vergrößerten Turm-Fußabdruck
+    blockierte das den direkten Weg zum `L3_BRIDGE`-Wegpunkt komplett
+    (reproduzierbar per Playwright-Test: Spieler blieb exakt am
+    Turm-Rand hängen, `dist` fror bei genau `triggerRadius` ein, Polizei
+    holte ihn dort ein). Jeder Pfeiler bekommt jetzt seinen EIGENEN,
+    schmalen Collider (`tx±1.6`) mit echter Lücke dazwischen, wie bei einem
+    echten Hängebrücken-Turm, durch den die Fahrbahn hindurchläuft — das
+    Deck/der Gehweg passiert die Lücke ungehindert.
 - **Boot (`VEHICLE_SPECS.boat`, neuer Mesh-Zweig in `createCarMesh()`):**
   spielergesteuert (manuelle Verfolgungsjagd über die Bucht, wie im
   Story-Prompt gefordert). Eigene Kollision `collideBoat()` — das Gegenteil

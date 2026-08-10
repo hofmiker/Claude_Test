@@ -983,9 +983,8 @@ function buildCoastalTown() {
 // already, see git history around this section.
 const ROUTE3 = {
   villa: [0, 140],
-  rp1: [30, 95],
-  rp2: [-15, 55],
-  rp3: [20, 15],
+  villaB: [34, 118],
+  villaC: [-32, 96],
   harbor: [40, -20],
   harborDock: [35, -34],
   mooring: [-45, -72],
@@ -998,6 +997,29 @@ const ROUTE3 = {
   pier: [0, -160],
 };
 
+// smooth single-hump curve from the villa (t=0) to the harbor (t=1) instead
+// of a hand-picked zigzag - a real coast road bulges gently seaward and
+// back rather than reversing direction sharply. Sampled at regular
+// intervals below to build both the visual road ribbon and to place
+// buildings a fixed lateral distance from wherever the road actually is at
+// that z, instead of at arbitrary fixed coordinates that might land ON it.
+function coastCurveX(z) {
+  const [vx, vz] = ROUTE3.villa;
+  const [hx, hz] = ROUTE3.harbor;
+  const t = clamp((vz - z) / (vz - hz), 0, 1);
+  return lerp(vx, hx, t) + Math.sin(t * Math.PI) * 14;
+}
+function samplePchPoints(count) {
+  const [, vz] = ROUTE3.villa;
+  const [, hz] = ROUTE3.harbor;
+  const pts = [];
+  for (let i = 0; i <= count; i++) {
+    const z = lerp(vz, hz, i / count);
+    pts.push([coastCurveX(z), z]);
+  }
+  return pts;
+}
+
 // the bay is two water rectangles with a gap between them at the bridge's
 // own z-span - the gap is where buildBridge()'s deck sits, so the crossing
 // itself is walkable ground rather than fighting its own water collider.
@@ -1006,44 +1028,141 @@ const ROUTE3 = {
 // below, which ignores this array entirely and clamps to BAY_BOUNDS.
 const BAY_BOUNDS = { minX: -50, maxX: 50, minZ: -118, maxZ: -30 };
 
+// a second, purely coastal ocean strip along the villa/boulevard stretch,
+// well north of the bay/bridge (no z-overlap: this ends at z=90, the bay
+// starts at z=-30) - answers "wo ist das Meer" for the part of the route
+// that isn't the harbor bay. Real water collider (blocks driving/walking
+// into it, like every other water body in this game), not just decoration.
+const NORTH_OCEAN = { minX: -140, maxX: -70, minZ: 88, maxZ: 150 };
+const NORTH_BEACH = { minX: -70, maxX: -46, minZ: 88, maxZ: 150 };
+
+// how far above the water the Golden Gate Bridge's deck actually sits, and
+// where a pedestrian crossing it visually rises onto / off of that height -
+// this game has no real terrain-following (every character/car always
+// renders at world y=0 plus a fixed jump arc), so "walking up onto a tall
+// bridge" is faked as a per-position height LOOKUP applied only to the
+// on-foot player/officer meshes and the camera rig, not to actual movement
+// math (collision stays purely 2D in x/z, completely unaffected by this).
+// Vehicles (the boat, briefly the limo) are deliberately NOT run through
+// this - the boat must stay at water level to pass "under" the bridge.
+const BRIDGE_DECK_Y = 18;
+function terrainY(x, z) {
+  if (LEVEL_ID !== 'golden_gate_run') return 0;
+  if (Math.abs(z - ROUTE3.bridgeWest[1]) > 10) return 0;
+  const RS = -45, RTS = -15, RTE = 25, RE = 58; // ramp-start/top-start/top-end/ramp-end
+  if (x <= RS || x >= RE) return 0;
+  if (x < RTS) return BRIDGE_DECK_Y * clamp((x - RS) / (RTS - RS), 0, 1);
+  if (x > RTE) return BRIDGE_DECK_Y * clamp((RE - x) / (RE - RTE), 0, 1);
+  return BRIDGE_DECK_Y;
+}
+
+// much bigger than the old version - real multi-lane deck width with
+// painted lane stripes, towers roughly the height of the rest of the scene
+// put together, and cables that actually sag in a shallow catenary-ish
+// curve instead of straight verticals. The deck sits at BRIDGE_DECK_Y, not
+// just above the water, so it reads as a real elevated crossing instead of
+// "a plank floating on the bay" - see terrainY() above for how a walking
+// player actually rises up to meet it.
 function buildBridge() {
   const [wx, wz] = ROUTE3.bridgeWest;
   const [ex, ez] = ROUTE3.bridgeEast;
   const deckZ = (wz + ez) / 2;
-  const deckLen = ex - wx + 12;
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(deckLen, 0.4, 8), flatMat(COLORS.bridge));
-  deck.position.set((wx + ex) / 2, 0.3, deckZ);
+  const deckLen = ex - wx + 16;
+  const deckW = 20;
+  const towerH = 96, deckToTowerTop = towerH - BRIDGE_DECK_Y;
+
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(deckLen, 1.4, deckW), flatMat(0x3a3d42));
+  deck.position.set((wx + ex) / 2, BRIDGE_DECK_Y, deckZ);
   deck.receiveShadow = true;
   deck.castShadow = true;
   cityRoot.add(deck);
+
+  // multi-lane paint: a center double-yellow plus white lane dividers each
+  // side - six lanes' worth of markings so "mehrspurig" reads at a glance
+  // even from the default top-down camera
+  for (const dz of [-0.35, 0.35]) {
+    const line = new THREE.Mesh(new THREE.PlaneGeometry(deckLen * 0.98, 0.3), flatMat(0xd8c246));
+    line.rotation.x = -Math.PI / 2;
+    line.position.set((wx + ex) / 2, BRIDGE_DECK_Y + 0.71, deckZ + dz);
+    cityRoot.add(line);
+  }
+  for (const dz of [-6.2, -3.1, 3.1, 6.2]) {
+    const line = new THREE.Mesh(new THREE.PlaneGeometry(deckLen * 0.98, 0.22), flatMat(0xe8e8e8));
+    line.rotation.x = -Math.PI / 2;
+    line.position.set((wx + ex) / 2, BRIDGE_DECK_Y + 0.71, deckZ + dz);
+    cityRoot.add(line);
+  }
+  // sidewalk strip along the far edge, visually distinct from the roadway -
+  // this is the lane the mission actually expects the player to run along
+  const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(deckLen, 1.5, 2.4), flatMat(0x8a8f96));
+  sidewalk.position.set((wx + ex) / 2, BRIDGE_DECK_Y + 0.05, deckZ + deckW / 2 - 1.2);
+  cityRoot.add(sidewalk);
   for (const side of [-1, 1]) {
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(deckLen, 0.9, 0.25), flatMat(0x8a2c10));
-    rail.position.set((wx + ex) / 2, 0.9, deckZ + side * 3.9);
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(deckLen, 1.3, 0.3), flatMat(0x8a2c10));
+    rail.position.set((wx + ex) / 2, BRIDGE_DECK_Y + 1.4, deckZ + side * deckW / 2);
     cityRoot.add(rail);
   }
-  // two towers (base + twin pillars + crossbar), plus a handful of vertical
-  // hangers along the span - a cosmetic stand-in for suspension cables, not
-  // a real catenary curve
+  // deep box-truss underside so the deck reads as a real structure with
+  // mass, not a thin plank hovering at height - visible from the boat's
+  // low vantage point passing underneath
+  const truss = new THREE.Mesh(new THREE.BoxGeometry(deckLen, 3.2, deckW * 0.7), flatMat(0x24262a));
+  truss.position.set((wx + ex) / 2, BRIDGE_DECK_Y - 2.2, deckZ);
+  cityRoot.add(truss);
+
   for (const [tx, tz] of [ROUTE3.bridgeWest, ROUTE3.bridgeEast]) {
-    const towerBase = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 4), flatMat(0x8a2c10));
-    towerBase.position.set(tx, 0.25, tz);
-    cityRoot.add(towerBase);
+    // twin pillars with a real gap between them, like an actual suspension
+    // tower - the deck/walkway passes THROUGH that gap, not around the
+    // whole tower footprint, so each pillar gets its own narrow collider
+    // (not one merged box spanning both) and the base plate is two
+    // separate pads under each pillar instead of one solid slab that would
+    // visually (and physically) seal the gap shut.
     for (const side of [-1, 1]) {
-      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 42, 8), flatMat(COLORS.bridge));
-      pillar.position.set(tx, 21, tz + side * 3.4);
+      const legZ = tz + side * 4.6;
+      const base = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1, 3.4), flatMat(0x6b2418));
+      base.position.set(tx, 0.5, legZ);
+      cityRoot.add(base);
+      const pillar = new THREE.Mesh(new THREE.BoxGeometry(2.4, towerH, 2.4), flatMat(COLORS.bridge));
+      pillar.position.set(tx, towerH / 2, legZ);
       pillar.castShadow = true;
       cityRoot.add(pillar);
+      buildingColliders.push({ minX: tx - 1.6, maxX: tx + 1.6, minZ: legZ - 1.6, maxZ: legZ + 1.6 });
     }
-    const crossbar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 8), flatMat(COLORS.bridge));
-    crossbar.position.set(tx, 40, tz);
-    cityRoot.add(crossbar);
-    buildingColliders.push({ minX: tx - 2.2, maxX: tx + 2.2, minZ: tz - 2.2, maxZ: tz + 2.2 });
+    // three crossbars up the tower's height instead of one, for a properly
+    // massive lattice-tower silhouette at this scale - these sit well above
+    // head height, so they aren't (and don't need to be) real colliders
+    for (const frac of [0.34, 0.62, 0.94]) {
+      const crossbar = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 10), flatMat(COLORS.bridge));
+      crossbar.position.set(tx, towerH * frac, tz);
+      cityRoot.add(crossbar);
+    }
   }
-  for (let i = 1; i < 7; i++) {
-    const x = wx + (ex - wx) * (i / 7);
-    const hanger = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 14, 5), flatMat(0x3a3a3a));
-    hanger.position.set(x, 33, deckZ);
-    cityRoot.add(hanger);
+
+  // main suspension cable: a shallow sag from tower-top to tower-top,
+  // approximated as a chain of short straight segments along a parabola
+  // (cheap "catenary" - a real hyperbolic cosine isn't worth it at this
+  // poly count) instead of the old dead-straight verticals-only look, plus
+  // regularly spaced vertical hangers down to the deck.
+  const SAG = 26, SEGMENTS = 14;
+  for (const side of [-1, 1]) {
+    let prevX = wx, prevY = towerH - 4;
+    for (let i = 1; i <= SEGMENTS; i++) {
+      const t = i / SEGMENTS;
+      const x = lerp(wx, ex, t);
+      const sagT = (t - 0.5) * 2; // -1..1
+      const y = (towerH - 4) - SAG * (1 - sagT * sagT);
+      const dx = x - prevX, dy = y - prevY;
+      const len = Math.hypot(dx, dy);
+      const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, len, 5), flatMat(0x8a8a8a));
+      cable.position.set((x + prevX) / 2, (y + prevY) / 2, deckZ + side * (deckW / 2 - 0.4));
+      cable.rotation.z = Math.PI / 2 - Math.atan2(dy, dx);
+      cityRoot.add(cable);
+      if (i % 2 === 0 && y > BRIDGE_DECK_Y + 1) {
+        const hanger = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, y - BRIDGE_DECK_Y, 5), flatMat(0x4a4a4a));
+        hanger.position.set(x, (y + BRIDGE_DECK_Y) / 2, deckZ + side * (deckW / 2 - 0.4));
+        cityRoot.add(hanger);
+      }
+      prevX = x; prevY = y;
+    }
   }
 }
 
@@ -1123,6 +1242,43 @@ function buildMooringDock() {
   cityRoot.add(group);
 }
 
+// small residential house - a smaller, cheaper-looking sibling of
+// buildVilla (no glass front/pool, plain pastel body + a plain overhang
+// roof like every other building in this game) so a street full of them
+// reads as an actual block of homes instead of repeating the one villa
+const HOUSE_PALETTE = [0xe8d9c0, 0xd9c9a8, 0xc9d9c0, 0xd0c0d9, 0xe0cdb0, 0xc0d0d9, 0xdcc9b8];
+function buildHouse({ x, z, color }) {
+  const w = 9, d = 8, h = 4.4;
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), flatMat(color ?? pick(HOUSE_PALETTE)));
+  body.position.set(x, h / 2, z);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  cityRoot.add(body);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 1.18, 0.5, d * 1.18), flatMat(0x8a4a3a));
+  roof.position.set(x, h + 0.25, z);
+  cityRoot.add(roof);
+  buildingColliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  sidewalkCells.push({ x, z, half: (w + d) / 4 });
+}
+
+// a small industrial filler building for the harbor district - same
+// construction as buildHouse but larger and in dull warehouse tones, so the
+// harbor reads as a small district instead of one isolated building
+function buildWarehouseFiller({ x, z }) {
+  const w = 13, d = 11, h = 6;
+  const color = pick([0x6b6258, 0x5a5650, 0x726a5e]);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), flatMat(color));
+  body.position.set(x, h / 2, z);
+  body.castShadow = true;
+  body.receiveShadow = true;
+  cityRoot.add(body);
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(w * 1.03, 0.5, d * 1.03), flatMat(0x1c1c1c));
+  roof.position.set(x, h + 0.25, z);
+  cityRoot.add(roof);
+  buildingColliders.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+  sidewalkCells.push({ x, z, half: (w + d) / 4 });
+}
+
 function buildCoastalRoute() {
   // one big ground plane under the whole route (villa hill down to the
   // pier), instead of the grid's tiled ground + crosshatch stripe pattern -
@@ -1137,17 +1293,56 @@ function buildCoastalRoute() {
   ground.receiveShadow = true;
   cityRoot.add(ground);
 
-  const pchPts = [ROUTE3.villa, ROUTE3.rp1, ROUTE3.rp2, ROUTE3.rp3, ROUTE3.harbor];
+  // the coast road itself: smooth curve (coastCurveX/samplePchPoints, see
+  // above) sampled into a dense chain of short segments instead of a few
+  // hand-picked points, so every turn is a gentle, continuous bend - not a
+  // handful of sharp-angle jogs like the old rp1/rp2/rp3 zigzag.
+  const pchPts = samplePchPoints(16);
   for (let i = 0; i < pchPts.length - 1; i++) {
     const [x1, z1] = pchPts[i], [x2, z2] = pchPts[i + 1];
-    addRoadSegment(x1, z1, x2, z2, 12, COLORS.road, 0.02);
-    addRoadSegment(x1, z1, x2, z2, 0.4, COLORS.roadLine, 0.03);
+    // wider "boulevard" treatment for the villa/beach stretch (z > 90):
+    // planted median strip + extra lane stripes instead of the plain
+    // single-centerline road used everywhere else
+    const isBoulevard = z1 > 88 && z2 > 88;
+    const width = isBoulevard ? 22 : 12;
+    addRoadSegment(x1, z1, x2, z2, width, COLORS.road, 0.02);
+    if (isBoulevard) {
+      addRoadSegment(x1, z1, x2, z2, 2.4, COLORS.park, 0.03); // planted median
+      addRoadSegment(x1, z1, x2, z2, 0.35, COLORS.roadLine, 0.035);
+    } else {
+      addRoadSegment(x1, z1, x2, z2, 0.4, COLORS.roadLine, 0.03);
+    }
   }
   const limoPts = [ROUTE3.eastShore, ROUTE3.limoP1, ROUTE3.limoP2, ROUTE3.pierRoad];
   for (let i = 0; i < limoPts.length - 1; i++) {
     const [x1, z1] = limoPts[i], [x2, z2] = limoPts[i + 1];
     addRoadSegment(x1, z1, x2, z2, 11, COLORS.road, 0.02);
     addRoadSegment(x1, z1, x2, z2, 0.4, COLORS.roadLine, 0.03);
+  }
+
+  // north ocean + beach strip along the villa/boulevard stretch - see
+  // NORTH_OCEAN/NORTH_BEACH above for why this doesn't overlap the bay
+  waterColliders.push(NORTH_OCEAN);
+  const northWaterMat = new THREE.MeshStandardMaterial({ color: COLORS.water, roughness: 0.28, metalness: 0.2, flatShading: true });
+  const northOceanMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(NORTH_OCEAN.maxX - NORTH_OCEAN.minX, NORTH_OCEAN.maxZ - NORTH_OCEAN.minZ),
+    northWaterMat
+  );
+  northOceanMesh.rotation.x = -Math.PI / 2;
+  northOceanMesh.position.set((NORTH_OCEAN.minX + NORTH_OCEAN.maxX) / 2, 0.05, (NORTH_OCEAN.minZ + NORTH_OCEAN.maxZ) / 2);
+  northOceanMesh.receiveShadow = true;
+  cityRoot.add(northOceanMesh);
+  const beach = new THREE.Mesh(
+    new THREE.PlaneGeometry(NORTH_BEACH.maxX - NORTH_BEACH.minX, NORTH_BEACH.maxZ - NORTH_BEACH.minZ),
+    flatMat(0xe8d19a)
+  );
+  beach.rotation.x = -Math.PI / 2;
+  beach.position.set((NORTH_BEACH.minX + NORTH_BEACH.maxX) / 2, 0.015, (NORTH_BEACH.minZ + NORTH_BEACH.maxZ) / 2);
+  beach.receiveShadow = true;
+  cityRoot.add(beach);
+  sidewalkCells.push({ x: (NORTH_BEACH.minX + NORTH_BEACH.maxX) / 2, z: (NORTH_BEACH.minZ + NORTH_BEACH.maxZ) / 2, half: 11 });
+  for (let bz = NORTH_BEACH.minZ + 6; bz < NORTH_BEACH.maxZ - 4; bz += 11) {
+    addPalm(NORTH_OCEAN.maxX - 2, bz + rand(-2, 2));
   }
 
   waterColliders.push(
@@ -1166,10 +1361,46 @@ function buildCoastalRoute() {
 
   // hand-built landmarks, reused as-is from Level 1/2 (they already take
   // arbitrary {x,z}, nothing grid-specific in them) - just placed along
-  // this route instead of a reserved grid cell
+  // this route instead of a reserved grid cell. Three villas instead of
+  // one - villa (the mission target, unchanged coordinates) plus villaB/
+  // villaC nearby, so the Malibu stretch reads as an actual villa district.
   buildVilla({ x: ROUTE3.villa[0], z: ROUTE3.villa[1] });
+  buildVilla({ x: ROUTE3.villaB[0], z: ROUTE3.villaB[1] });
+  buildVilla({ x: ROUTE3.villaC[0], z: ROUTE3.villaC[1] });
   buildHarbor({ x: ROUTE3.harbor[0], z: ROUTE3.harbor[1] });
   buildSausalitoPier({ x: ROUTE3.pier[0], z: ROUTE3.pier[1] });
+
+  // residential neighborhood: two rows of houses flanking the boulevard as
+  // it curves south of the villa district, each with its own short side
+  // street stub back to the main road - the "mehrere Hausreihen"/"normale
+  // Straßen" stretch between the villas and the industrial harbor.
+  for (const z of [82, 62, 42, 22]) {
+    const roadX = coastCurveX(z);
+    const westX = roadX - 24, eastX = roadX + 24;
+    addRoadSegment(roadX, z, westX, z, 6, COLORS.road, 0.02);
+    addRoadSegment(roadX, z, eastX, z, 6, COLORS.road, 0.02);
+    buildHouse({ x: westX, z: z + rand(-2, 2) });
+    buildHouse({ x: eastX, z: z + rand(-2, 2) });
+    if (Math.random() < 0.6) addPalm(roadX + rand(-5, 5), z + 10);
+  }
+
+  // a couple of extra warehouse buildings so the harbor reads as a small
+  // industrial district instead of one isolated building
+  buildWarehouseFiller({ x: ROUTE3.harbor[0] + 26, z: ROUTE3.harbor[1] + 6 });
+  buildWarehouseFiller({ x: ROUTE3.harbor[0] - 24, z: ROUTE3.harbor[1] - 8 });
+
+  // palms scattered along the whole coast road (villa district gets extra
+  // via the beach-edge loop above already) and a couple more buildings near
+  // the Sausalito pier so the finale doesn't feel like a single isolated
+  // gallery
+  for (const [x, z] of pchPts) {
+    if (Math.random() < 0.35) addPalm(x + rand(-9, 9), z + rand(-9, 9));
+  }
+  for (const [x, z] of limoPts) {
+    if (Math.random() < 0.5) addPalm(x + rand(-8, 8), z + rand(-8, 8));
+  }
+  buildHouse({ x: ROUTE3.pier[0] - 26, z: ROUTE3.pier[1] + 4, color: 0xf0e6d0 });
+  buildHouse({ x: ROUTE3.pier[0] + 22, z: ROUTE3.pier[1] - 8, color: 0xe6dcc8 });
 
   // walkable/spawn cells so spawnPedestrians()/spawnPickup() (which run
   // unconditionally at module load) have somewhere to place things - ambient
@@ -2259,7 +2490,7 @@ function updatePoliceChase(dt) {
       }
       car.heading = Math.atan2(toPlayer.x, toPlayer.z);
       collideWithBuildings(car.pos, 0.5);
-      car.officer.mesh.position.set(car.pos.x, 0, car.pos.z);
+      car.officer.mesh.position.set(car.pos.x, terrainY(car.pos.x, car.pos.z), car.pos.z);
       car.officer.mesh.rotation.y = car.heading;
       animateCharacter(car.officer, dt, { up: moving, down: false, left: false, right: false });
     } else {
@@ -3441,6 +3672,16 @@ function updateCamera(dt) {
     lookY = 0;
   }
 
+  // Level 3's Golden Gate crossing: lift the whole camera rig by the same
+  // amount terrainY() lifts the player mesh, so the camera rises with them
+  // walking up onto the bridge instead of the rig staying at water level
+  // while the character floats up out of frame. camTarget.y itself is left
+  // at 0 above (it's unused for anything but x/z here - see updatePlayer()
+  // for the mesh-position side of this).
+  const groundY = terrainY(focus.x, focus.z);
+  height += groundY;
+  lookY += groundY;
+
   const desired = new THREE.Vector3(
     camTarget.x - forward.x * back,
     height,
@@ -3530,7 +3771,7 @@ function updatePlayer(dt, input) {
 
   animateCharacter(player, dt, input);
 
-  player.mesh.position.set(player.pos.x, player.pos.y + CHAR_BASE_Y, player.pos.z);
+  player.mesh.position.set(player.pos.x, player.pos.y + CHAR_BASE_Y + terrainY(player.pos.x, player.pos.z), player.pos.z);
   player.mesh.rotation.y = player.heading;
 
   // run over by traffic/police while on foot
