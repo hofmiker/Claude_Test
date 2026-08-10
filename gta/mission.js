@@ -419,7 +419,11 @@ const DISTRICT_GOLDENGATE = {
   name: "Golden Gate Run",
   timeOfDay: "day",            // main.js' Tag-Beleuchtungspfad, wie Level 2
   weather: "clear",
-  fogColor: "#f2a35a",         // warmes Golden-Hour-Orange
+  // klarer Taghimmel statt Sonnenuntergangs-Orange - Nutzerfeedback: das
+  // Orange sah wie ein Sandsturm aus statt nach Golden Hour. scene.background
+  // in main.js übernimmt diesen Wert 1:1 als Himmelsfarbe (kein separates
+  // Sky-Objekt), also bestimmt allein dieser Hex-Code den ganzen Himmel.
+  fogColor: "#7ec8f0",
   fogNear: 35,
   fogFar: 230,
   // Level 3 startet nicht in der Grid-Plaza (die es hier nicht gibt),
