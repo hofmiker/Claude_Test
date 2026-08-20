@@ -237,10 +237,11 @@
     height: 104px;
     touch-action: none;
     user-select: none;
-    cursor: ns-resize;
+    cursor: grab;
     outline: none;
     -webkit-tap-highlight-color: transparent;
   }
+  .knob-wrap:active { cursor: grabbing; }
   .knob-wrap:focus-visible .knob-face {
     box-shadow:
       0 0 0 3px var(--cyan),
@@ -570,7 +571,72 @@
       if (this.kind === 'knob') this.el.style.setProperty('--angle', (-135 + pct * 270) + 'deg');
     }
     _bind() {
-      const travelPx = this.kind === 'fader' ? 130 : 150;
+      if (this.kind === 'knob') this._bindKnob();
+      else this._bindFader();
+
+      this.el.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        this.setValue(this.value + (e.deltaY < 0 ? this.step : -this.step));
+      }, { passive: false });
+
+      this.el.addEventListener('keydown', (e) => {
+        const big = this.step * 10;
+        const actions = {
+          ArrowUp: () => this.setValue(this.value + this.step),
+          ArrowRight: () => this.setValue(this.value + this.step),
+          ArrowDown: () => this.setValue(this.value - this.step),
+          ArrowLeft: () => this.setValue(this.value - this.step),
+          PageUp: () => this.setValue(this.value + big),
+          PageDown: () => this.setValue(this.value - big),
+          Home: () => this.setValue(this.min),
+          End: () => this.setValue(this.max),
+        };
+        if (actions[e.key]) { actions[e.key](); e.preventDefault(); }
+      });
+    }
+    // rotary knob: mouse angle around the knob's center drives rotation directly,
+    // like actually turning a dial — not a vertical drag distance.
+    _bindKnob() {
+      let dragging = false, rect = null, angleOffset = 0;
+
+      const angleFromEvent = (e) => {
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = e.clientX - cx, dy = e.clientY - cy;
+        // dead zone around dead-center: atan2(0,-0) is a degenerate ±180deg edge case
+        if (Math.hypot(dx, dy) < 3) return null;
+        return Math.atan2(dx, -dy) * (180 / Math.PI); // 0deg = straight up, clockwise positive
+      };
+
+      const down = (e) => {
+        dragging = true;
+        rect = this.el.getBoundingClientRect();
+        const pct = (this.value - this.min) / (this.max - this.min);
+        const valueAngle = -135 + pct * 270;
+        const a0 = angleFromEvent(e);
+        angleOffset = a0 === null ? 0 : a0 - valueAngle;
+        this.el.setPointerCapture?.(e.pointerId);
+        document.body.style.cursor = 'grabbing';
+        e.preventDefault();
+      };
+      const move = (e) => {
+        if (!dragging) return;
+        const a = angleFromEvent(e);
+        if (a === null) return; // stay put while pointer sits in the dead zone
+        let angle = a - angleOffset;
+        angle = Math.max(-135, Math.min(135, angle));
+        const pct = (angle + 135) / 270;
+        this.setValue(this.min + pct * (this.max - this.min));
+      };
+      const up = () => { dragging = false; document.body.style.cursor = ''; };
+
+      this.el.addEventListener('pointerdown', down);
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    }
+    // vertical fader: drag distance maps linearly to travel, like a real mixer fader.
+    _bindFader() {
+      const travelPx = 130;
       const sensitivity = (this.max - this.min) / travelPx;
       let dragging = false, startY = 0, startVal = 0;
 
@@ -592,26 +658,6 @@
       this.el.addEventListener('pointerdown', down);
       window.addEventListener('pointermove', move);
       window.addEventListener('pointerup', up);
-
-      this.el.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        this.setValue(this.value + (e.deltaY < 0 ? this.step : -this.step));
-      }, { passive: false });
-
-      this.el.addEventListener('keydown', (e) => {
-        const big = this.step * 10;
-        const actions = {
-          ArrowUp: () => this.setValue(this.value + this.step),
-          ArrowRight: () => this.setValue(this.value + this.step),
-          ArrowDown: () => this.setValue(this.value - this.step),
-          ArrowLeft: () => this.setValue(this.value - this.step),
-          PageUp: () => this.setValue(this.value + big),
-          PageDown: () => this.setValue(this.value - big),
-          Home: () => this.setValue(this.min),
-          End: () => this.setValue(this.max),
-        };
-        if (actions[e.key]) { actions[e.key](); e.preventDefault(); }
-      });
     }
   }
 
