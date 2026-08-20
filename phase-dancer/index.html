@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase Dancer Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink: #0b0b14;
+    --ink-2: #121022;
+    --card: #16132a;
+    --card-2: #1c1834;
+    --violet: #3d1466;
+    --magenta: #ff2e63;
+    --cyan: #00e5d0;
+    --paper: #f4f2fa;
+    --text: #e7e2fb;
+    --muted: #8f86ad;
+    --hair: #2c2646;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, Segoe UI, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 2.5rem 1.25rem 3rem;
+    background:
+      radial-gradient(60rem 40rem at 85% -10%, rgba(61,20,102,0.55), transparent 60%),
+      radial-gradient(50rem 30rem at -10% 110%, rgba(255,46,99,0.16), transparent 55%),
+      var(--ink);
+  }
+
+  main {
+    width: 100%;
+    max-width: 760px;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.28em;
+    color: var(--magenta);
+    text-transform: uppercase;
+    margin: 0 0 0.4rem;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: clamp(3rem, 9vw, 4.6rem);
+    letter-spacing: 0.04em;
+    line-height: 0.95;
+    margin: 0 0 0.6rem;
+    text-wrap: balance;
+  }
+
+  .lede {
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    max-width: 46rem;
+    margin: 0 0 2rem;
+  }
+
+  .lede b { color: var(--text); font-weight: 600; }
+
+  /* ---- transport ---- */
+  .transport {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    background: linear-gradient(180deg, var(--card-2), var(--card));
+    border: 1px solid var(--hair);
+    border-radius: 14px;
+    padding: 1.1rem 1.3rem;
+    margin-bottom: 1.1rem;
+  }
+
+  #playBtn {
+    flex: 0 0 auto;
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: var(--magenta);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s ease, background 0.2s ease;
+    box-shadow: 0 0 0 0 rgba(255,46,99,0.5);
+  }
+  #playBtn:hover { transform: scale(1.05); }
+  #playBtn:active { transform: scale(0.96); }
+  #playBtn.playing {
+    background: var(--cyan);
+    animation: pulse 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes pulse {
+    from { box-shadow: 0 0 0 0 rgba(0,229,208,0.35); }
+    to   { box-shadow: 0 0 0 10px rgba(0,229,208,0); }
+  }
+  #playBtn svg { width: 1.15rem; height: 1.15rem; }
+
+  .readout {
+    font-family: 'IBM Plex Mono', monospace;
+    display: flex;
+    gap: 1.6rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .readout .stat { display: flex; flex-direction: column; gap: 0.15rem; }
+  .readout .stat span:first-child { letter-spacing: 0.12em; font-size: 0.65rem; color: var(--muted); }
+  .readout .stat b {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.95rem;
+    color: var(--cyan);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  canvas#viz {
+    width: 100%;
+    height: 110px;
+    display: block;
+    border-radius: 14px;
+    border: 1px solid var(--hair);
+    background: var(--ink-2);
+    margin-bottom: 1.1rem;
+  }
+
+  /* ---- channel mutes ---- */
+  .channels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 1.4rem;
+  }
+  .channel-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 10px;
+    border: 1px solid var(--hair);
+    background: var(--card);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .channel-btn .led {
+    flex: 0 0 auto;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 6px rgba(0,229,208,0.85);
+    transition: all 0.15s ease;
+  }
+  .channel-btn.muted {
+    color: var(--muted);
+    background: var(--ink-2);
+    border-color: var(--hair);
+  }
+  .channel-btn.muted .led {
+    background: #332c50;
+    box-shadow: none;
+  }
+  .channel-btn:active { transform: translateY(1px); }
+
+  /* ---- controls ---- */
+  .rack {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+    gap: 0.85rem;
+  }
+
+  .control-card {
+    background: linear-gradient(180deg, var(--card-2), var(--card));
+    border: 1px solid var(--hair);
+    border-radius: 14px;
+    padding: 1.1rem 0.9rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .control-head { width: 100%; margin-bottom: 1rem; }
+
+  .control-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .control-tech {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 0.15rem;
+  }
+
+  .control-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.95rem;
+    color: var(--magenta);
+    font-variant-numeric: tabular-nums;
+    margin-top: 0.75rem;
+  }
+
+  /* ---- rotary knob ---- */
+  .knob-wrap {
+    --pct: 0;
+    --angle: -135deg;
+    position: relative;
+    width: 104px;
+    height: 104px;
+    touch-action: none;
+    user-select: none;
+    cursor: ns-resize;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .knob-wrap:focus-visible .knob-face {
+    box-shadow:
+      0 0 0 3px var(--cyan),
+      inset 0 2px 3px rgba(255,255,255,0.12),
+      inset 0 -5px 9px rgba(0,0,0,0.65);
+  }
+  .knob-arc {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from -135deg,
+      var(--magenta) 0 calc(var(--pct) * 270deg),
+      #332c50 calc(var(--pct) * 270deg) 270deg,
+      transparent 270deg 360deg);
+  }
+  .knob-face {
+    position: absolute;
+    inset: 13px;
+    border-radius: 50%;
+    background:
+      repeating-conic-gradient(from 0deg, rgba(255,255,255,0.045) 0deg 1.2deg, transparent 1.2deg 7deg),
+      radial-gradient(circle at 32% 26%, #423c62, #17141f 72%);
+    box-shadow:
+      inset 0 2px 3px rgba(255,255,255,0.12),
+      inset 0 -5px 9px rgba(0,0,0,0.65),
+      0 6px 14px rgba(0,0,0,0.45);
+    transform: rotate(var(--angle));
+    transition: transform 0.04s linear, box-shadow 0.15s ease;
+  }
+  .knob-pointer {
+    position: absolute;
+    top: 11%;
+    left: 50%;
+    width: 4px;
+    height: 30%;
+    background: var(--cyan);
+    border-radius: 2px;
+    transform: translateX(-50%);
+    box-shadow: 0 0 7px rgba(0,229,208,0.85);
+  }
+  .knob-dot {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #0c0a17;
+    transform: translate(-50%, -50%);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);
+  }
+
+  /* ---- fader ---- */
+  .fader-wrap {
+    --pct: 0.6;
+    position: relative;
+    width: 104px;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    touch-action: none;
+    user-select: none;
+    cursor: ns-resize;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fader-wrap:focus-visible .fader-cap {
+    box-shadow:
+      0 0 0 3px var(--cyan),
+      inset 0 1px 2px rgba(255,255,255,0.15),
+      inset 0 -2px 4px rgba(0,0,0,0.6);
+  }
+  .fader-track {
+    position: relative;
+    width: 12px;
+    height: 100%;
+    border-radius: 6px;
+    background: #0c0a17;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.8), inset 0 -1px 0 rgba(255,255,255,0.05);
+  }
+  .fader-ticks {
+    position: absolute;
+    left: -8px; top: 6px; bottom: 6px; width: 6px;
+    background-image: repeating-linear-gradient(0deg, var(--hair) 0 1px, transparent 1px calc(100% / 8));
+    opacity: 0.8;
+  }
+  .fader-fill {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: calc(var(--pct) * 100%);
+    border-radius: 6px;
+    background: linear-gradient(180deg, var(--cyan), #0a8a7d);
+    box-shadow: 0 0 10px rgba(0,229,208,0.45);
+  }
+  .fader-cap {
+    position: absolute;
+    left: 50%;
+    width: 56px;
+    height: 22px;
+    bottom: calc(var(--pct) * (100% - 22px));
+    border-radius: 5px;
+    background: linear-gradient(180deg, #46405f, #201c34);
+    border: 1px solid #0c0a17;
+    box-shadow:
+      inset 0 1px 2px rgba(255,255,255,0.15),
+      inset 0 -2px 4px rgba(0,0,0,0.6),
+      0 4px 10px rgba(0,0,0,0.5);
+    transform: translateX(-50%);
+    transition: box-shadow 0.15s ease;
+  }
+  .fader-cap::before {
+    content: '';
+    position: absolute;
+    left: 8px; right: 8px; top: 50%;
+    height: 2px;
+    background: var(--magenta);
+    transform: translateY(-50%);
+    box-shadow: 0 0 6px rgba(255,46,99,0.7);
+  }
+  .fader-cap::after {
+    content: '';
+    position: absolute;
+    left: 9px; right: 9px; top: 4px; bottom: 4px;
+    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.09) 0 1px, transparent 1px 4px);
+  }
+
+  /* ---- freeze toggle ---- */
+  .freeze-toggle {
+    width: 104px;
+    height: 104px;
+    border-radius: 16px;
+    border: 1px solid var(--hair);
+    background: linear-gradient(180deg, #201c34, #15121f);
+    box-shadow:
+      inset 0 2px 3px rgba(255,255,255,0.08),
+      inset 0 -6px 10px rgba(0,0,0,0.55),
+      0 6px 14px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    cursor: pointer;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    transition: all 0.12s ease;
+  }
+  .freeze-toggle .led {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: #2a2440;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.7);
+    transition: all 0.15s ease;
+  }
+  .freeze-toggle:active { transform: translateY(2px); }
+  .freeze-toggle.active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    box-shadow:
+      inset 0 2px 3px rgba(255,255,255,0.08),
+      inset 0 -6px 10px rgba(0,0,0,0.5),
+      0 0 22px rgba(0,229,208,0.35);
+  }
+  .freeze-toggle.active .led {
+    background: var(--cyan);
+    box-shadow: 0 0 10px rgba(0,229,208,0.9), 0 0 3px #fff;
+  }
+
+  footer {
+    margin-top: 1.6rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    line-height: 1.6;
+    border-top: 1px solid var(--hair);
+    padding-top: 1rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #playBtn.playing { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<main>
+  <p class="eyebrow">Phase Dancer &mdash; Prototyp-Sound-Lab</p>
+  <h1>KLANG IST DAS MATERIAL</h1>
+  <p class="lede">
+    Ein 4-Takt-Loop, komplett aus Oszillatoren und Rauschen synthetisiert &mdash;
+    <b>keine Samples, kein fremder Song</b>. Die fünf Regler entsprechen den
+    Manipulationstechniken aus dem Konzept: Tonhöhe, Tempo, Granularsynthese,
+    Spektral-Freeze und Feedback greifen live in denselben Klangkörper ein.
+  </p>
+
+  <div class="transport">
+    <button id="playBtn" aria-label="Play/Stop">
+      <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <div class="readout">
+      <div class="stat"><span>STATUS</span><b id="rStatus">GESTOPPT</b></div>
+      <div class="stat"><span>BPM</span><b id="rBpm">136</b></div>
+      <div class="stat"><span>PITCH</span><b id="rPitch">0 st</b></div>
+      <div class="stat"><span>GRAIN</span><b id="rGrain">0%</b></div>
+      <div class="stat"><span>FEEDBACK</span><b id="rFb">18%</b></div>
+      <div class="stat"><span>FREEZE</span><b id="rFreeze">AUS</b></div>
+    </div>
+  </div>
+
+  <canvas id="viz"></canvas>
+
+  <div class="channels" id="channels">
+    <button class="channel-btn" data-ch="kick" type="button" aria-pressed="true"><span class="led"></span>Kick</button>
+    <button class="channel-btn" data-ch="hat" type="button" aria-pressed="true"><span class="led"></span>Hat</button>
+    <button class="channel-btn" data-ch="bass" type="button" aria-pressed="true"><span class="led"></span>Bass</button>
+    <button class="channel-btn" data-ch="stab" type="button" aria-pressed="true"><span class="led"></span>Stab</button>
+    <button class="channel-btn" data-ch="lead" type="button" aria-pressed="true"><span class="led"></span>Lead</button>
+  </div>
+
+  <div class="rack">
+    <div class="control-card">
+      <div class="control-head">
+        <div class="control-label">Pitch</div>
+        <div class="control-tech">Pitch-Shifting</div>
+      </div>
+      <div class="knob-wrap" id="pitchKnob" tabindex="0" role="slider"
+           aria-label="Pitch" aria-valuemin="-12" aria-valuemax="12" aria-valuenow="0">
+        <div class="knob-arc"></div>
+        <div class="knob-face"><div class="knob-pointer"></div></div>
+        <div class="knob-dot"></div>
+      </div>
+      <div class="control-value" id="vPitch">0 st</div>
+    </div>
+
+    <div class="control-card">
+      <div class="control-head">
+        <div class="control-label">Tempo</div>
+        <div class="control-tech">Time-Stretching</div>
+      </div>
+      <div class="fader-wrap" id="bpmFader" tabindex="0" role="slider" aria-orientation="vertical"
+           aria-label="Tempo" aria-valuemin="108" aria-valuemax="152" aria-valuenow="136">
+        <div class="fader-track">
+          <div class="fader-ticks"></div>
+          <div class="fader-fill"></div>
+          <div class="fader-cap"></div>
+        </div>
+      </div>
+      <div class="control-value" id="vBpm">136</div>
+    </div>
+
+    <div class="control-card">
+      <div class="control-head">
+        <div class="control-label">Grain Chaos</div>
+        <div class="control-tech">Granularsynthese</div>
+      </div>
+      <div class="knob-wrap" id="grainKnob" tabindex="0" role="slider"
+           aria-label="Grain Chaos" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="knob-arc"></div>
+        <div class="knob-face"><div class="knob-pointer"></div></div>
+        <div class="knob-dot"></div>
+      </div>
+      <div class="control-value" id="vGrain">0%</div>
+    </div>
+
+    <div class="control-card">
+      <div class="control-head">
+        <div class="control-label">Feedback</div>
+        <div class="control-tech">Feedback &amp; Resampling</div>
+      </div>
+      <div class="knob-wrap" id="fbKnob" tabindex="0" role="slider"
+           aria-label="Feedback" aria-valuemin="0" aria-valuemax="85" aria-valuenow="18">
+        <div class="knob-arc"></div>
+        <div class="knob-face"><div class="knob-pointer"></div></div>
+        <div class="knob-dot"></div>
+      </div>
+      <div class="control-value" id="vFb">18%</div>
+    </div>
+
+    <div class="control-card">
+      <div class="control-head">
+        <div class="control-label">Freeze</div>
+        <div class="control-tech">Spektral-Freeze</div>
+      </div>
+      <button class="freeze-toggle" id="freezeBtn" type="button" aria-pressed="false">
+        <span class="led"></span>HALTEN
+      </button>
+      <div class="control-value" id="vFreeze" style="color:var(--muted)">AUS</div>
+    </div>
+  </div>
+
+  <footer>
+    Web Audio API &middot; eigene Komposition (A-Moll, i&ndash;VI&ndash;III&ndash;VII) &middot;
+    inspiriert von der Energie des frühen-90er-Eurodance, nicht von einem bestehenden Track.
+    Ton startet nach Klick auf Play (Browser-Autoplay-Regel).
+  </footer>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const playBtn = $('playBtn'), playIcon = $('playIcon'), freezeBtn = $('freezeBtn');
+  const pitchKnobEl = $('pitchKnob'), bpmFaderEl = $('bpmFader'), grainKnobEl = $('grainKnob'), fbKnobEl = $('fbKnob');
+  const vPitch = $('vPitch'), vBpm = $('vBpm'), vGrain = $('vGrain'), vFb = $('vFb'), vFreezeEl = $('vFreeze');
+  const rStatus = $('rStatus'), rBpm = $('rBpm'), rPitch = $('rPitch'), rGrain = $('rGrain'), rFb = $('rFb'), rFreeze = $('rFreeze');
+  const canvas = $('viz');
+  const ctx2d = canvas.getContext('2d');
+
+  // ---- draggable hardware-style controls (knob = rotary, fader = vertical slider) ----
+  class DragControl {
+    constructor(el, { min, max, value, step = 1, kind = 'knob', onChange }) {
+      this.el = el; this.min = min; this.max = max; this.step = step;
+      this.kind = kind; this.onChange = onChange; this.value = value;
+      this._render();
+      this._bind();
+    }
+    setValue(v, fire = true) {
+      v = Math.min(this.max, Math.max(this.min, v));
+      v = Math.round(v / this.step) * this.step;
+      this.value = v;
+      this._render();
+      this.el.setAttribute('aria-valuenow', v);
+      if (fire) this.onChange(v);
+    }
+    _render() {
+      const pct = (this.value - this.min) / (this.max - this.min);
+      this.el.style.setProperty('--pct', pct);
+      if (this.kind === 'knob') this.el.style.setProperty('--angle', (-135 + pct * 270) + 'deg');
+    }
+    _bind() {
+      const travelPx = this.kind === 'fader' ? 130 : 150;
+      const sensitivity = (this.max - this.min) / travelPx;
+      let dragging = false, startY = 0, startVal = 0;
+
+      const down = (e) => {
+        dragging = true;
+        startY = e.clientY;
+        startVal = this.value;
+        this.el.setPointerCapture?.(e.pointerId);
+        document.body.style.cursor = 'ns-resize';
+        e.preventDefault();
+      };
+      const move = (e) => {
+        if (!dragging) return;
+        const dy = startY - e.clientY;
+        this.setValue(startVal + dy * sensitivity);
+      };
+      const up = () => { dragging = false; document.body.style.cursor = ''; };
+
+      this.el.addEventListener('pointerdown', down);
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+
+      this.el.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        this.setValue(this.value + (e.deltaY < 0 ? this.step : -this.step));
+      }, { passive: false });
+
+      this.el.addEventListener('keydown', (e) => {
+        const big = this.step * 10;
+        const actions = {
+          ArrowUp: () => this.setValue(this.value + this.step),
+          ArrowRight: () => this.setValue(this.value + this.step),
+          ArrowDown: () => this.setValue(this.value - this.step),
+          ArrowLeft: () => this.setValue(this.value - this.step),
+          PageUp: () => this.setValue(this.value + big),
+          PageDown: () => this.setValue(this.value - big),
+          Home: () => this.setValue(this.min),
+          End: () => this.setValue(this.max),
+        };
+        if (actions[e.key]) { actions[e.key](); e.preventDefault(); }
+      });
+    }
+  }
+
+  let audioCtx = null, master, analyser, delayNode, feedbackGain, wetGain, limiter;
+  let playing = false, freeze = false;
+  let step = 0, nextStepTime = 0, timerId = null;
+  const stepsPerBar = 16, bars = 4, totalSteps = stepsPerBar * bars;
+
+  const state = { bpm: 136, pitchSemi: 0, grain: 0, fbAmount: 0.18 };
+  const mute = { kick: false, hat: false, bass: false, stab: false, lead: false };
+
+  // A minor: i(Am) - VI(F) - III(C) - VII(G)
+  const progression = [
+    { root: 110.00, third: 130.81, fifth: 164.81 },   // Am
+    { root: 87.31,  third: 110.00, fifth: 130.81 },   // F
+    { root: 130.81, third: 164.81, fifth: 196.00 },   // C
+    { root: 98.00,  third: 123.47, fifth: 146.83 },   // G
+  ];
+
+  function ratio(semi) { return Math.pow(2, semi / 12); }
+
+  function initAudio() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    master = audioCtx.createGain();
+    master.gain.value = 0.9;
+
+    limiter = audioCtx.createDynamicsCompressor();
+    limiter.threshold.value = -8;
+    limiter.knee.value = 12;
+    limiter.ratio.value = 8;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.15;
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+
+    delayNode = audioCtx.createDelay(1.0);
+    delayNode.delayTime.value = 0.11;
+    feedbackGain = audioCtx.createGain();
+    feedbackGain.gain.value = state.fbAmount;
+    wetGain = audioCtx.createGain();
+    wetGain.gain.value = 0.7;
+
+    delayNode.connect(feedbackGain);
+    feedbackGain.connect(delayNode);
+    delayNode.connect(wetGain);
+    wetGain.connect(limiter);
+
+    master.connect(limiter);
+    limiter.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    drawViz();
+  }
+
+  function sendToDelay(node, amount) {
+    const send = audioCtx.createGain();
+    send.gain.value = amount;
+    node.connect(send);
+    send.connect(delayNode);
+  }
+
+  // ---- synth voices ----
+  function kick(t) {
+    const osc = audioCtx.createOscillator();
+    const amp = audioCtx.createGain();
+    osc.type = 'sine';
+    const f0 = 150 * ratio(state.pitchSemi * 0.15);
+    osc.frequency.setValueAtTime(f0, t);
+    osc.frequency.exponentialRampToValueAtTime(38, t + 0.11);
+    amp.gain.setValueAtTime(1.0, t);
+    amp.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+    osc.connect(amp).connect(master);
+    osc.start(t); osc.stop(t + 0.34);
+  }
+
+  function hat(t, open) {
+    const bufSize = audioCtx.sampleRate * 0.2;
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const hp = audioCtx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 7000;
+    const amp = audioCtx.createGain();
+    const len = open ? 0.16 : 0.045;
+    amp.gain.setValueAtTime(open ? 0.22 : 0.28, t);
+    amp.gain.exponentialRampToValueAtTime(0.001, t + len);
+    src.connect(hp).connect(amp).connect(master);
+    sendToDelay(amp, state.fbAmount * 0.3);
+    src.start(t); src.stop(t + len + 0.02);
+  }
+
+  function bass(t, freq, dur) {
+    const osc = audioCtx.createOscillator();
+    const filt = audioCtx.createBiquadFilter();
+    const amp = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq * ratio(state.pitchSemi);
+    filt.type = 'lowpass';
+    filt.frequency.setValueAtTime(1200, t);
+    filt.frequency.exponentialRampToValueAtTime(220, t + dur);
+    filt.Q.value = 4;
+    amp.gain.setValueAtTime(0.001, t);
+    amp.gain.linearRampToValueAtTime(0.5, t + 0.01);
+    amp.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(filt).connect(amp).connect(master);
+    osc.start(t); osc.stop(t + dur + 0.02);
+  }
+
+  function stab(t, chord, dur) {
+    const amp = audioCtx.createGain();
+    const filt = audioCtx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = freeze ? 900 : 2600;
+    filt.Q.value = 1.2;
+    amp.gain.setValueAtTime(0.0001, t);
+    amp.gain.linearRampToValueAtTime(0.22, t + 0.02);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    filt.connect(amp).connect(master);
+
+    const freqs = [chord.root * 2, chord.third * 2, chord.fifth * 2];
+    const detunes = [-6, 0, 6, 9];
+    freqs.forEach((f) => {
+      detunes.forEach((det) => {
+        const osc = audioCtx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.value = f * ratio(state.pitchSemi);
+        osc.detune.value = det;
+        osc.connect(filt);
+        osc.start(t); osc.stop(t + dur + 0.05);
+      });
+    });
+    sendToDelay(amp, freeze ? 0.9 : state.fbAmount);
+  }
+
+  function lead(t, freq, dur) {
+    const osc = audioCtx.createOscillator();
+    const amp = audioCtx.createGain();
+    const filt = audioCtx.createBiquadFilter();
+    osc.type = 'square';
+    osc.frequency.value = freq * 2 * ratio(state.pitchSemi);
+    filt.type = 'bandpass';
+    filt.frequency.value = 2200;
+    filt.Q.value = 3;
+    amp.gain.setValueAtTime(0.0001, t);
+    amp.gain.linearRampToValueAtTime(0.13, t + 0.005);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(filt).connect(amp).connect(master);
+    sendToDelay(amp, state.fbAmount * 0.6);
+    osc.start(t); osc.stop(t + dur + 0.02);
+  }
+
+  // ---- pattern ----
+  function scheduleStep(s, t) {
+    const bar = Math.floor(s / stepsPerBar) % bars;
+    const pos = s % stepsPerBar;
+    const chord = progression[bar];
+    const stepDur = (60 / state.bpm / 4);
+
+    const grainRoll = Math.random() * 100 < state.grain;
+    const repeats = grainRoll ? 3 + Math.floor(Math.random() * 3) : 1;
+    const chunk = stepDur / repeats;
+
+    for (let r = 0; r < repeats; r++) {
+      const rt = t + r * chunk;
+      const g = repeats > 1 ? (1 - r / repeats) : 1;
+
+      if (!mute.kick && pos % 4 === 0) kick(rt);
+      if (!mute.hat && pos % 4 === 2) hat(rt, pos === 14);
+      if (!mute.bass && (pos % 2 === 1 || grainRoll)) {
+        const bassFreq = pos % 8 < 4 ? chord.root / 2 : chord.root / 2 * 1.5;
+        bassGainWrap(rt, bassFreq, chunk * 0.9, g);
+      }
+      if (!mute.stab && (pos === 0 || pos === 8)) stab(rt, chord, stepDur * 3.2);
+      if (!mute.lead && (pos === 3 || pos === 11 || (grainRoll && pos % 4 === 1)) ) {
+        const tones = [chord.root, chord.third, chord.fifth];
+        lead(rt, tones[(pos + bar) % 3], chunk * 1.6);
+      }
+    }
+  }
+
+  function bassGainWrap(t, freq, dur, gainMul) {
+    bass(t, freq, dur);
+  }
+
+  // ---- scheduler (lookahead) ----
+  const lookahead = 25.0, scheduleAheadTime = 0.12;
+
+  function schedulerTick() {
+    while (nextStepTime < audioCtx.currentTime + scheduleAheadTime) {
+      scheduleStep(step, nextStepTime);
+      nextStepTime += (60 / state.bpm / 4);
+      step = (step + 1) % totalSteps;
+    }
+    timerId = setTimeout(schedulerTick, lookahead);
+  }
+
+  function start() {
+    if (!audioCtx) initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    step = 0;
+    nextStepTime = audioCtx.currentTime + 0.05;
+    playing = true;
+    schedulerTick();
+    playBtn.classList.add('playing');
+    playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>';
+    rStatus.textContent = 'LÄUFT';
+  }
+
+  function stop() {
+    playing = false;
+    clearTimeout(timerId);
+    playBtn.classList.remove('playing');
+    playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+    rStatus.textContent = 'GESTOPPT';
+  }
+
+  playBtn.addEventListener('click', () => { playing ? stop() : start(); });
+
+  document.querySelectorAll('.channel-btn').forEach((btn) => {
+    const ch = btn.dataset.ch;
+    btn.addEventListener('click', () => {
+      mute[ch] = !mute[ch];
+      btn.classList.toggle('muted', mute[ch]);
+      btn.setAttribute('aria-pressed', String(!mute[ch]));
+    });
+  });
+
+  freezeBtn.addEventListener('click', () => {
+    freeze = !freeze;
+    freezeBtn.classList.toggle('active', freeze);
+    freezeBtn.setAttribute('aria-pressed', String(freeze));
+    const label = freeze ? 'AN' : 'AUS';
+    rFreeze.textContent = label;
+    vFreezeEl.textContent = label;
+    vFreezeEl.style.color = freeze ? 'var(--cyan)' : 'var(--muted)';
+    if (feedbackGain) feedbackGain.gain.setTargetAtTime(freeze ? 0.93 : state.fbAmount, audioCtx.currentTime, 0.05);
+    if (delayNode) delayNode.delayTime.setTargetAtTime(freeze ? 0.09 : 0.11, audioCtx.currentTime, 0.05);
+  });
+
+  new DragControl(pitchKnobEl, {
+    min: -12, max: 12, value: 0, step: 1, kind: 'knob',
+    onChange: (v) => {
+      state.pitchSemi = v;
+      const label = (v > 0 ? '+' : '') + v + ' st';
+      vPitch.textContent = label; rPitch.textContent = label;
+    },
+  });
+
+  new DragControl(bpmFaderEl, {
+    min: 108, max: 152, value: 136, step: 1, kind: 'fader',
+    onChange: (v) => {
+      state.bpm = v;
+      vBpm.textContent = v; rBpm.textContent = v;
+    },
+  });
+
+  new DragControl(grainKnobEl, {
+    min: 0, max: 100, value: 0, step: 1, kind: 'knob',
+    onChange: (v) => {
+      state.grain = v;
+      const label = v + '%';
+      vGrain.textContent = label; rGrain.textContent = label;
+    },
+  });
+
+  new DragControl(fbKnobEl, {
+    min: 0, max: 85, value: 18, step: 1, kind: 'knob',
+    onChange: (v) => {
+      state.fbAmount = v / 100;
+      const label = v + '%';
+      vFb.textContent = label; rFb.textContent = label;
+      if (feedbackGain && !freeze) feedbackGain.gain.setTargetAtTime(state.fbAmount, audioCtx.currentTime, 0.05);
+    },
+  });
+
+  // ---- visualizer ----
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * devicePixelRatio;
+    canvas.height = rect.height * devicePixelRatio;
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  function drawViz() {
+    resizeCanvas();
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const draw = () => {
+      requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(data);
+      const w = canvas.width, h = canvas.height;
+      ctx2d.clearRect(0, 0, w, h);
+      const barCount = 48;
+      const barW = w / barCount;
+      for (let i = 0; i < barCount; i++) {
+        const idx = Math.floor(i * data.length / barCount);
+        const v = data[idx] / 255;
+        const barH = Math.max(2, v * h * 0.92);
+        const t = i / barCount;
+        const r = Math.round(255 * (1 - t) + 0 * t);
+        const g = Math.round(46 * (1 - t) + 229 * t);
+        const b = Math.round(99 * (1 - t) + 208 * t);
+        ctx2d.fillStyle = `rgba(${r},${g},${b},${0.35 + v * 0.65})`;
+        ctx2d.fillRect(i * barW + barW * 0.15, h - barH, barW * 0.7, barH);
+      }
+    };
+    draw();
+  }
+
+  // idle canvas before first play
+  resizeCanvas();
+  ctx2d.fillStyle = '#8f86ad';
+  ctx2d.font = '12px IBM Plex Mono, monospace';
+})();
+</script>
+</body>
+</html>

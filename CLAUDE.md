@@ -21,6 +21,7 @@
 | `toy-box-rescue/` | Toy Box Rescue — 2D-Fangspiel im Kinderzimmer | `.../toy-box-rescue/` |
 | `starship-launch/` | Starship Launch — 3D-Raketenstart & Mondlandung mit EVA-Gameplay | `.../starship-launch/` |
 | `coastal-courier/` | The Coastal Courier — 3D-Fluchtfahrt im Vice-Grid-UI-Stil (Cabrio/Boot/zu Fuß/Limo) | `.../coastal-courier/` |
+| `phase-dancer/` | Phase Dancer Lab — Browser-Sound-Lab zur Klangmanipulation | `.../phase-dancer/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
 **Base-URL:** https://hofmiker.github.io/Claude_Test/
