@@ -49,6 +49,19 @@ ohne den Sequencer-Takt zu unterbrechen (Mute wirkt pro Schritt in `scheduleStep
 Alle Regler sind per Ziehen (vertikal), Mausrad (Feinjustierung) oder
 Tastatur (fokussieren + Pfeiltasten/PageUp-Down/Home-End) bedienbar.
 
+## Bekannter Fix: Audio-Node-Leak
+Jede ausgelöste Stimme (`kick`/`hat`/`bass`/`stab`/`lead`/`hookChop`) trennt ihre
+eigenen Nodes jetzt explizit per `onended`, statt sich auf die
+Browser-Garbage-Collection zu verlassen. Vorher blieb pro Note mindestens ein
+`sendToDelay()`-Gain-Node dauerhaft an `delayNode` hängen — bei langem Abspielen
+(insbesondere mit hohem Grain Chaos, das Schritte 3–5× retriggert) sammelten
+sich so über Minuten hinweg tausende tote Knoten im Audiograph an, was auf
+schwächerer Hardware zu Overload/Abstürzen führen konnte. `stab()` läuft außerdem
+mit 3 statt 4 Detune-Layern (9 statt 12 Oszillatoren pro Stab), ohne hörbaren
+Unterschied. Verifiziert per Playwright-Stresstest: 12 s Dauerbeschuss bei
+Grain/Feedback auf Maximum plus permanentem Track-Wechsel erzeugte ~3570
+Audio-Nodes bei ~96 % Disconnect-Quote (vorher praktisch 0 %).
+
 ## Tech-Stack
 - Web Audio API (Oszillatoren, BiquadFilter, DynamicsCompressor, DelayNode-Feedback-Loop, AnalyserNode)
 - Canvas 2D für den Frequenz-Visualizer

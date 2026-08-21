@@ -802,14 +802,21 @@
     drawViz();
   }
 
+  // returns the send gain node so callers can tear it down once their voice ends —
+  // otherwise every triggered note leaves a stray node hanging off delayNode forever.
   function sendToDelay(node, amount) {
     const send = audioCtx.createGain();
     send.gain.value = amount;
     node.connect(send);
     send.connect(delayNode);
+    return send;
   }
 
   // ---- synth voices ----
+  // every voice below disconnects its own nodes once its source has stopped
+  // (via onended) instead of relying on the engine to notice they've gone silent —
+  // over a long play session with hundreds of notes/sec this keeps the graph from
+  // filling up with dead nodes that still cost CPU every render quantum.
   function kick(t) {
     const osc = audioCtx.createOscillator();
     const amp = audioCtx.createGain();
@@ -820,6 +827,7 @@
     amp.gain.setValueAtTime(1.0, t);
     amp.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
     osc.connect(amp).connect(master);
+    osc.onended = () => { osc.disconnect(); amp.disconnect(); };
     osc.start(t); osc.stop(t + 0.34);
   }
 
@@ -838,7 +846,8 @@
     amp.gain.setValueAtTime(open ? 0.22 : 0.28, t);
     amp.gain.exponentialRampToValueAtTime(0.001, t + len);
     src.connect(hp).connect(amp).connect(master);
-    sendToDelay(amp, state.fbAmount * 0.3);
+    const send = sendToDelay(amp, state.fbAmount * 0.3);
+    src.onended = () => { src.disconnect(); hp.disconnect(); amp.disconnect(); send.disconnect(); };
     src.start(t); src.stop(t + len + 0.02);
   }
 
@@ -856,6 +865,7 @@
     amp.gain.linearRampToValueAtTime(0.5, t + 0.01);
     amp.gain.exponentialRampToValueAtTime(0.001, t + dur);
     osc.connect(filt).connect(amp).connect(master);
+    osc.onended = () => { osc.disconnect(); filt.disconnect(); amp.disconnect(); };
     osc.start(t); osc.stop(t + dur + 0.02);
   }
 
@@ -869,9 +879,11 @@
     amp.gain.linearRampToValueAtTime(0.22, t + 0.02);
     amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     filt.connect(amp).connect(master);
+    const send = sendToDelay(amp, freeze ? 0.9 : state.fbAmount);
 
     const freqs = [chord.root * 2, chord.third * 2, chord.fifth * 2];
-    const detunes = [-6, 0, 6, 9];
+    const detunes = [-6, 0, 7]; // trimmed from 4 layers to 3 — same "thick" character, 25% fewer oscillators
+    const oscs = [];
     freqs.forEach((f) => {
       detunes.forEach((det) => {
         const osc = audioCtx.createOscillator();
@@ -880,9 +892,13 @@
         osc.detune.value = det;
         osc.connect(filt);
         osc.start(t); osc.stop(t + dur + 0.05);
+        oscs.push(osc);
       });
     });
-    sendToDelay(amp, freeze ? 0.9 : state.fbAmount);
+    oscs[oscs.length - 1].onended = () => {
+      oscs.forEach((o) => o.disconnect());
+      filt.disconnect(); amp.disconnect(); send.disconnect();
+    };
   }
 
   function lead(t, freq, dur) {
@@ -898,7 +914,8 @@
     amp.gain.linearRampToValueAtTime(0.13, t + 0.005);
     amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     osc.connect(filt).connect(amp).connect(master);
-    sendToDelay(amp, state.fbAmount * 0.6);
+    const send = sendToDelay(amp, state.fbAmount * 0.6);
+    osc.onended = () => { osc.disconnect(); filt.disconnect(); amp.disconnect(); send.disconnect(); };
     osc.start(t); osc.stop(t + dur + 0.02);
   }
 
@@ -919,7 +936,8 @@
     amp.gain.linearRampToValueAtTime(0.17, t + 0.006);
     amp.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
     osc.connect(filt).connect(amp).connect(master);
-    sendToDelay(amp, state.fbAmount * 0.7);
+    const send = sendToDelay(amp, state.fbAmount * 0.7);
+    osc.onended = () => { osc.disconnect(); filt.disconnect(); amp.disconnect(); send.disconnect(); };
     osc.start(t); osc.stop(t + 0.18);
   }
 
