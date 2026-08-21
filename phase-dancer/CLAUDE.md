@@ -8,10 +8,30 @@ https://hofmiker.github.io/Claude_Test/phase-dancer/
 
 ## Beschreibung
 Prototyp-Begleitstück zum Konzept "PHASE DANCER" (audiovisuelle Live-Performance
-zum Thema Klangmanipulation). Ein 4-Takt-Loop in A-Moll (i–VI–III–VII) wird
-komplett aus Oszillatoren und Rauschen synthetisiert — keine Samples, kein
-bestehender Song. Fünf Live-Regler entsprechen den Manipulationstechniken aus
-dem Konzept, zusätzlich lässt sich jedes der fünf Instrumente einzeln stummschalten.
+zum Thema Klangmanipulation). Fünf 4-Takt-Loops (Klangkörper) werden komplett
+aus Oszillatoren und Rauschen synthetisiert — keine Samples, kein bestehender
+Song. Fünf Live-Regler entsprechen den Manipulationstechniken aus dem Konzept,
+zusätzlich lässt sich jedes der fünf Instrumente einzeln stummschalten.
+
+## Tracks (Klangkörper wählen)
+Alle fünf teilen dieselbe i–VI–III–VII-Akkordform (`baseProgression` in
+`buildProgression()` transponiert), unterscheiden sich in Tonart und Tempo:
+
+| Track | Tonart | BPM | Hook |
+|---|---|---|---|
+| Phase One | A-Moll | 136 | — |
+| Glass Veil | H-Moll | 132 | ✓ |
+| Neon Oath | G-Moll | 128 | ✓ |
+| Midnight Arc | D-Moll | 138 | ✓ |
+| Static Bloom | E-Moll | 126 | ✓ |
+
+Klick auf eine Track-Kachel wechselt Progression und BPM-Fader-Position live
+(`selectTrack()`), ohne den Sequencer-Takt zu unterbrechen. Die vier neuen
+Tracks („Hook“ = ✓) fügen zusätzlich `hookChop()` ein: ein kurzer,
+bandpassgefilterter Sägezahn-Stab mit Pitch-Scoop, angelehnt an den
+Klavier-Stab-Antrieb und Vocal-Chop-Hook aus Culture Beats "Mister Vain" —
+eigene Harmonik/Melodie, kein Sample, kein Cover. Der Hook läuft über den
+"Lead"-Kanalschalter mit.
 
 ## Instrumente (Kick/Hat/Bass/Stab/Lead)
 Je ein Kanal-Button unter dem Visualizer schaltet die Stimme live stumm/frei,

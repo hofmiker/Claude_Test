@@ -145,6 +145,45 @@
     margin-bottom: 1.1rem;
   }
 
+  /* ---- tracklist ---- */
+  .tracklist {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 1.3rem;
+  }
+  .track-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid var(--hair);
+    background: var(--card);
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .track-btn .track-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .track-btn .track-meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .track-btn.active {
+    border-color: var(--magenta);
+    background: linear-gradient(180deg, var(--card-2), var(--card));
+    box-shadow: 0 0 0 1px var(--magenta), 0 0 18px rgba(255,46,99,0.25);
+  }
+  .track-btn.active .track-meta { color: var(--cyan); }
+  .track-btn:active { transform: translateY(1px); }
+
   /* ---- channel mutes ---- */
   .channels {
     display: grid;
@@ -431,11 +470,38 @@
   <p class="eyebrow">Phase Dancer &mdash; Prototyp-Sound-Lab</p>
   <h1>KLANG IST DAS MATERIAL</h1>
   <p class="lede">
-    Ein 4-Takt-Loop, komplett aus Oszillatoren und Rauschen synthetisiert &mdash;
-    <b>keine Samples, kein fremder Song</b>. Die fünf Regler entsprechen den
-    Manipulationstechniken aus dem Konzept: Tonhöhe, Tempo, Granularsynthese,
-    Spektral-Freeze und Feedback greifen live in denselben Klangkörper ein.
+    Fünf 4-Takt-Loops, komplett aus Oszillatoren und Rauschen synthetisiert &mdash;
+    <b>keine Samples, kein fremder Song</b>. Die vier neuen Klangkörper orientieren
+    sich am Klavier-Stab-Antrieb und Vocal-Chop-Hook von Culture Beats
+    &bdquo;Mister Vain&ldquo; &mdash; eigene Harmonik, eigene Melodie. Die fünf Regler
+    entsprechen den Manipulationstechniken aus dem Konzept: Tonhöhe, Tempo,
+    Granularsynthese, Spektral-Freeze und Feedback greifen live in den
+    jeweils gewählten Klangkörper ein.
   </p>
+
+  <p class="eyebrow">Klangkörper wählen</p>
+  <div class="tracklist" id="tracklist">
+    <button class="track-btn active" data-track="0" type="button" aria-pressed="true">
+      <span class="track-name">Phase One</span>
+      <span class="track-meta">A-Moll &middot; 136 BPM</span>
+    </button>
+    <button class="track-btn" data-track="1" type="button" aria-pressed="false">
+      <span class="track-name">Glass Veil</span>
+      <span class="track-meta">H-Moll &middot; 132 BPM</span>
+    </button>
+    <button class="track-btn" data-track="2" type="button" aria-pressed="false">
+      <span class="track-name">Neon Oath</span>
+      <span class="track-meta">G-Moll &middot; 128 BPM</span>
+    </button>
+    <button class="track-btn" data-track="3" type="button" aria-pressed="false">
+      <span class="track-name">Midnight Arc</span>
+      <span class="track-meta">D-Moll &middot; 138 BPM</span>
+    </button>
+    <button class="track-btn" data-track="4" type="button" aria-pressed="false">
+      <span class="track-name">Static Bloom</span>
+      <span class="track-meta">E-Moll &middot; 126 BPM</span>
+    </button>
+  </div>
 
   <div class="transport">
     <button id="playBtn" aria-label="Play/Stop">
@@ -533,8 +599,10 @@
   </div>
 
   <footer>
-    Web Audio API &middot; eigene Komposition (A-Moll, i&ndash;VI&ndash;III&ndash;VII) &middot;
-    inspiriert von der Energie des frühen-90er-Eurodance, nicht von einem bestehenden Track.
+    Web Audio API &middot; fünf eigene Kompositionen (dieselbe i&ndash;VI&ndash;III&ndash;VII-Form,
+    fünf Tonarten/Tempi) &middot; Klavier-Stab-Antrieb und Vocal-Chop-Hook angelehnt an
+    die Energie von Culture Beats &bdquo;Mister Vain&ldquo; und frühen-90er-Eurodance
+    allgemein &mdash; kein Sample, kein Cover, keine übernommene Melodie.
     Ton startet nach Klick auf Play (Browser-Autoplay-Regel).
   </footer>
 </main>
@@ -669,8 +737,9 @@
   const state = { bpm: 136, pitchSemi: 0, grain: 0, fbAmount: 0.18 };
   const mute = { kick: false, hat: false, bass: false, stab: false, lead: false };
 
-  // A minor: i(Am) - VI(F) - III(C) - VII(G)
-  const progression = [
+  // A minor: i(Am) - VI(F) - III(C) - VII(G) — the shared voicing shape every
+  // track transposes; keeps the bass register and chord spacing consistent.
+  const baseProgression = [
     { root: 110.00, third: 130.81, fifth: 164.81 },   // Am
     { root: 87.31,  third: 110.00, fifth: 130.81 },   // F
     { root: 130.81, third: 164.81, fifth: 196.00 },   // C
@@ -678,6 +747,25 @@
   ];
 
   function ratio(semi) { return Math.pow(2, semi / 12); }
+
+  function buildProgression(shiftSemi) {
+    const r = ratio(shiftSemi);
+    return baseProgression.map((c) => ({ root: c.root * r, third: c.third * r, fifth: c.fifth * r }));
+  }
+
+  // Four additional Klangkörper alongside the original — same i-VI-III-VII shape,
+  // transposed to different keys/tempos. "hook" tracks add a bright, pitch-scooped
+  // stab reminiscent of the piano-stab-driven vocal-chop hook in Culture Beat's
+  // "Mister Vain" — own harmony/melody throughout, no sample, no cover.
+  const trackDefs = [
+    { name: 'Phase One',    shift: 0,  bpm: 136, hook: false },
+    { name: 'Glass Veil',   shift: 2,  bpm: 132, hook: true },
+    { name: 'Neon Oath',    shift: -2, bpm: 128, hook: true },
+    { name: 'Midnight Arc', shift: 5,  bpm: 138, hook: true },
+    { name: 'Static Bloom', shift: -5, bpm: 126, hook: true },
+  ];
+  let trackIndex = 0;
+  let progression = buildProgression(trackDefs[0].shift);
 
   function initAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -814,6 +902,27 @@
     osc.start(t); osc.stop(t + dur + 0.02);
   }
 
+  // bright, pitch-scooped stab through a narrow bandpass — the "vocal chop hook"
+  // touch on tracks with trackDefs[i].hook === true.
+  function hookChop(t, freq) {
+    const osc = audioCtx.createOscillator();
+    const amp = audioCtx.createGain();
+    const filt = audioCtx.createBiquadFilter();
+    const target = freq * 2 * ratio(state.pitchSemi);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(target * 1.5, t);
+    osc.frequency.exponentialRampToValueAtTime(target, t + 0.05);
+    filt.type = 'bandpass';
+    filt.frequency.value = 1500;
+    filt.Q.value = 4;
+    amp.gain.setValueAtTime(0.0001, t);
+    amp.gain.linearRampToValueAtTime(0.17, t + 0.006);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+    osc.connect(filt).connect(amp).connect(master);
+    sendToDelay(amp, state.fbAmount * 0.7);
+    osc.start(t); osc.stop(t + 0.18);
+  }
+
   // ---- pattern ----
   function scheduleStep(s, t) {
     const bar = Math.floor(s / stepsPerBar) % bars;
@@ -839,6 +948,9 @@
       if (!mute.lead && (pos === 3 || pos === 11 || (grainRoll && pos % 4 === 1)) ) {
         const tones = [chord.root, chord.third, chord.fifth];
         lead(rt, tones[(pos + bar) % 3], chunk * 1.6);
+      }
+      if (!mute.lead && trackDefs[trackIndex].hook && (pos === 6 || pos === 14)) {
+        hookChop(rt, chord.fifth);
       }
     }
   }
@@ -911,12 +1023,28 @@
     },
   });
 
-  new DragControl(bpmFaderEl, {
+  const bpmControl = new DragControl(bpmFaderEl, {
     min: 108, max: 152, value: 136, step: 1, kind: 'fader',
     onChange: (v) => {
       state.bpm = v;
       vBpm.textContent = v; rBpm.textContent = v;
     },
+  });
+
+  function selectTrack(idx) {
+    trackIndex = idx;
+    const def = trackDefs[idx];
+    progression = buildProgression(def.shift);
+    document.querySelectorAll('.track-btn').forEach((b, i) => {
+      const active = i === idx;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-pressed', String(active));
+    });
+    bpmControl.setValue(def.bpm);
+  }
+
+  document.querySelectorAll('.track-btn').forEach((btn) => {
+    btn.addEventListener('click', () => selectTrack(Number(btn.dataset.track)));
   });
 
   new DragControl(grainKnobEl, {
