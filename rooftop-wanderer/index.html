@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rooftop Wanderer — Atmosphären-Adventure</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #06060c;
+    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  }
+  #stage {
+    position: fixed;
+    inset: 0;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+  }
+  #hud {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #cfd3ea;
+    font-size: 12.5px;
+    letter-spacing: 0.3px;
+    text-align: center;
+    opacity: 0.7;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    line-height: 1.5;
+    pointer-events: none;
+    transition: opacity 1.2s ease;
+  }
+  #hud b { color: #d8c48a; font-weight: normal; }
+  #intro {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 86%;
+    max-width: 480px;
+    text-align: center;
+    color: #cfd3ea;
+    font-size: 17px;
+    font-style: italic;
+    letter-spacing: 0.4px;
+    line-height: 1.7;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 2.5s ease;
+  }
+  #intro.faded { opacity: 0; }
+  #zone-caption {
+    position: absolute;
+    top: 13%;
+    left: 50%;
+    transform: translate(-50%, 0);
+    width: 84%;
+    max-width: 440px;
+    text-align: center;
+    color: #cfd3ea;
+    font-size: 14.5px;
+    font-style: italic;
+    letter-spacing: 0.3px;
+    line-height: 1.6;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+  }
+  #zone-caption.shown { opacity: 1; }
+  #touch-controls {
+    position: absolute;
+    bottom: calc(22px + env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 calc(24px + env(safe-area-inset-right)) 0 calc(24px + env(safe-area-inset-left));
+    pointer-events: none;
+  }
+  .touch-btn {
+    pointer-events: auto;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 1px solid rgba(216,196,138,0.35);
+    background: rgba(20,18,35,0.35);
+    color: #d8c48a;
+    font-size: 21px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .touch-btn:active { background: rgba(216,196,138,0.25); }
+  #left-pad { display: flex; gap: 10px; }
+  #right-pad { display: flex; flex-direction: column; gap: 10px; }
+  #btn-light {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    pointer-events: auto;
+    padding: 7px 13px;
+    border-radius: 8px;
+    border: 1px solid rgba(216,196,138,0.35);
+    background: rgba(20,18,35,0.4);
+    color: #cfd3ea;
+    font-size: 12.5px;
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #btn-light.active {
+    background: rgba(216,196,138,0.28);
+    border-color: rgba(216,196,138,0.7);
+    color: #2a2416;
+  }
+  #ending {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(4,3,10,0);
+    color: #e8dcb8;
+    font-size: 20px;
+    font-style: italic;
+    letter-spacing: 0.5px;
+    text-align: center;
+    padding: 0 40px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 3s ease, background 3s ease;
+  }
+  #ending .sub {
+    font-size: 14px;
+    opacity: 0.75;
+  }
+  #ending.shown {
+    opacity: 1;
+    background: rgba(4,3,10,0.55);
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="intro">Die Türme schlafen. Nur du bist wach —<br>und irgendwo am Ende der Dächer wartet ein Licht.</div>
+  <div id="zone-caption"></div>
+  <div id="hud"><b>&larr; &rarr;</b> gehen &nbsp;&nbsp; <b>&uarr;</b> springen / klettern &nbsp;&nbsp; <b>&darr;</b> ducken</div>
+  <button id="btn-light">🕯️ Laterne entzünden</button>
+  <canvas id="c"></canvas>
+  <div id="touch-controls">
+    <div id="left-pad">
+      <div class="touch-btn" id="btn-left">&larr;</div>
+      <div class="touch-btn" id="btn-right">&rarr;</div>
+    </div>
+    <div id="right-pad">
+      <div class="touch-btn" id="btn-jump">&uarr;</div>
+      <div class="touch-btn" id="btn-crouch">&darr;</div>
+    </div>
+  </div>
+  <div id="ending">
+    <div>Das Licht ist erreicht.</div>
+    <div class="sub">Die Nacht verklingt hier.</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+
+  const WORLD_W = 4900;
+
+  // ---------- fullscreen canvas + device-aware zoom ----------
+  // Tablets (touch + a short side wide enough to not be a phone) get a
+  // closer camera: the same VIEW_W screen pixels show fewer world units.
+  let VIEW_W, VIEW_H, LVIEW_W, LVIEW_H, GROUND_LEVEL_Y, ZOOM;
+  function computeZoom() {
+    const isTouch = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+    if (!isTouch) return 1;
+    const w = window.innerWidth, h = window.innerHeight;
+    const shortSide = Math.min(w, h);
+    if (shortSide >= 560) return 1.5; // tablet, any orientation
+    if (w > h) return 1.3; // phone in landscape — pull the camera in a bit so
+                            // the character isn't tiny in the wide, short view
+    return 1; // phone portrait
+  }
+  function resizeCanvas() {
+    const prevGL = GROUND_LEVEL_Y;
+    VIEW_W = window.innerWidth;
+    VIEW_H = window.innerHeight;
+    canvas.width = VIEW_W;
+    canvas.height = VIEW_H;
+    ZOOM = computeZoom();
+    LVIEW_W = VIEW_W / ZOOM;
+    LVIEW_H = VIEW_H / ZOOM;
+    GROUND_LEVEL_Y = LVIEW_H - 90;
+    if (prevGL !== undefined && typeof character !== "undefined") {
+      const delta = GROUND_LEVEL_Y - prevGL;
+      character.baseGroundY += delta;
+      character.footWorldY += delta;
+    }
+  }
+
+  // ---------- input ----------
+  const keys = Object.create(null);
+  const KEY_LEFT = ["ArrowLeft", "KeyA"];
+  const KEY_RIGHT = ["ArrowRight", "KeyD"];
+  const KEY_JUMP = ["Space", "ArrowUp", "KeyW"];
+  const KEY_DOWN = ["ArrowDown", "KeyS"];
+
+  window.addEventListener("keydown", (e) => { keys[e.code] = true; if (KEY_JUMP.includes(e.code)) e.preventDefault(); });
+  window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+  function bindTouch(id, code) {
+    const el = document.getElementById(id);
+    const set = (v) => (e) => { e.preventDefault(); keys[code] = v; };
+    el.addEventListener("touchstart", set(true), { passive: false });
+    el.addEventListener("touchend", set(false), { passive: false });
+    // touchcancel fires when the OS interrupts the touch (finger slides off,
+    // a notification/gesture takes over) — without this the key would stay
+    // stuck "down" forever since touchend never fires in that case
+    el.addEventListener("touchcancel", set(false), { passive: false });
+    el.addEventListener("mousedown", set(true));
+    el.addEventListener("mouseup", set(false));
+    el.addEventListener("mouseleave", set(false));
+  }
+  bindTouch("btn-left", "ArrowLeft");
+  bindTouch("btn-right", "ArrowRight");
+  bindTouch("btn-jump", "Space");
+  bindTouch("btn-crouch", "ArrowDown");
+
+  // ---------- character spotlight toggle ----------
+  let characterLit = false;
+  const lightBtn = document.getElementById("btn-light");
+  lightBtn.addEventListener("click", () => {
+    characterLit = !characterLit;
+    lightBtn.classList.toggle("active", characterLit);
+  });
+
+  // touch devices don't have a keyboard, so show the on-screen control hint
+  // instead of key names
+  const isTouchDevice = matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+  if (isTouchDevice) {
+    document.getElementById("hud").innerHTML =
+      '<b>&larr; &rarr;</b> gehen &nbsp;&nbsp; <b>&uarr;</b> springen / klettern &nbsp;&nbsp; <b>&darr;</b> ducken';
+  }
+
+  // the opening line sets the mood, then quietly fades once the wanderer
+  // actually sets off (or after a while regardless, so it never overstays)
+  const introEl = document.getElementById("intro");
+  let introFaded = false;
+  function fadeIntro() {
+    if (introFaded) return;
+    introFaded = true;
+    introEl.classList.add("faded");
+  }
+  setTimeout(fadeIntro, 6000);
+
+  // zone captions: a short line fades in the first time a new stretch of
+  // the city is entered, then fades back out on its own
+  const zoneCaptionEl = document.getElementById("zone-caption");
+  let zoneCaptionTimer = null;
+  function showZoneCaption(text) {
+    zoneCaptionEl.textContent = text;
+    zoneCaptionEl.classList.add("shown");
+    clearTimeout(zoneCaptionTimer);
+    zoneCaptionTimer = setTimeout(() => zoneCaptionEl.classList.remove("shown"), 4200);
+  }
+
+  // tapping a piece of roof furniture gives the wanderer a small reflective
+  // thought — purely atmospheric, no effect on the physics/challenge at all
+  canvas.addEventListener("pointerdown", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const cssX = ((e.clientX - rect.left) / rect.width) * VIEW_W;
+    const cssY = ((e.clientY - rect.top) / rect.height) * VIEW_H;
+    const worldX = cssX / ZOOM + cameraX;
+    const worldY = cssY / ZOOM + cameraY;
+    for (const p of PROPS) {
+      const r = propWorldRect(p);
+      if (worldX >= r.x0 - 6 && worldX <= r.x1 + 6 && worldY >= r.y0 - 6 && worldY <= r.y1 + 6) {
+        fadeIntro();
+        showZoneCaption(p.text);
+        break;
+      }
+    }
+  });
+
+  function pressed(list) { return list.some((k) => keys[k]); }
+
+  // ---------- two-bone IK ----------
+  // Solve for the middle joint position given base, target and two segment
+  // lengths. `bend` flips which side the joint bows out to (knee/elbow).
+  function solveIK(baseX, baseY, targetX, targetY, l1, l2, bend) {
+    let dx = targetX - baseX;
+    let dy = targetY - baseY;
+    let dist = Math.sqrt(dx * dx + dy * dy);
+    const maxReach = l1 + l2 - 0.01;
+    const minReach = Math.abs(l1 - l2) + 0.01;
+    dist = Math.max(minReach, Math.min(maxReach, dist));
+    const baseAngle = Math.atan2(dy, dx);
+    const cosA = (l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist);
+    const a = Math.acos(Math.max(-1, Math.min(1, cosA)));
+    const jointAngle = baseAngle - bend * a;
+    const jx = baseX + Math.cos(jointAngle) * l1;
+    const jy = baseY + Math.sin(jointAngle) * l1;
+    const endX = baseX + Math.cos(baseAngle) * dist;
+    const endY = baseY + Math.sin(baseAngle) * dist;
+    return { jx, jy, endX, endY };
+  }
+
+  // ---------- physics constants ----------
+  const PHYS = {
+    accel: 1450,
+    maxSpeed: 300,
+    friction: 2300,
+    gravity: 2300,
+    jumpVel: 760,
+    strideRate: 0.034,  // phase radians per pixel moved
+    crouchTime: 0.11,   // seconds of anticipation squat before launch
+    duty: 0.36,         // fraction of the running cycle each foot spends planted
+  };
+
+  // Skeleton proportions (local space, facing = +x to the right, 0 = feet)
+  // hipY vs. upperLeg+lowerLeg must leave the two-bone IK enough reach to
+  // actually touch y=0 while standing — a mismatch here is what made the
+  // character hover above the ground with a maxed-out, clamped IK stretch
+  const SK = {
+    hipY: -72,
+    torso: 46,
+    neck: 8,
+    headR: 9,
+    shoulderDrop: 4,
+    upperLeg: 38,
+    lowerLeg: 38,
+    footLen: 12,
+    upperArm: 26,
+    lowerArm: 25,
+    hipW: 20,
+    shoulderW: 24,
+    crouchDepth: 26,
+  };
+
+  // Cool moonlit-silhouette palette — bright enough to read clearly against
+  // the dark sky/rooftops even before the "Laterne entzünden" toggle is on
+  const COL = {
+    limbBack: "#33323f",
+    limbFront: "#48485a",
+    torsoTop: "#40404f",
+    torsoBottom: "#24232e",
+    capeTop: "#312f3d",
+    capeBottom: "#17151e",
+    hood: "#3a394a",
+    hoodShade: "#1c1b26",
+    headBase: "#4a4a5c",
+    headShade: "#26252f",
+    headHilite: "#6a6c82",
+  };
+
+  // Warm, lit palette swapped in while the "Charakter beleuchten" spotlight
+  // is toggled on — multiplying the near-black base colors by a brightness
+  // filter barely shows, so a dedicated lit palette is used instead
+  const COL_LIT = {
+    limbBack: "#5a4d3e",
+    limbFront: "#6e6050",
+    torsoTop: "#6b5c48",
+    torsoBottom: "#453a2c",
+    capeTop: "#5a4d3e",
+    capeBottom: "#2c2419",
+    hood: "#5a4d3e",
+    hoodShade: "#2c2419",
+    headBase: "#d9ac74",
+    headShade: "#9a7748",
+    headHilite: "#f2dcae",
+  };
+  let PAL = COL;
+
+  // ---------- rooftops to cross ----------
+  // the whole scene now plays out purely on rooftops — never street level.
+  // Each entry is a large flat roof; gaps between them are jumped, one
+  // taller neighbor still needs the ledge-grab-and-climb for variety.
+  const boxes = [
+    { x: 100,  w: 560, h: 220 }, // start terrace — table & chairs
+    { x: 810,  w: 300, h: 230 }, // laundry line
+    { x: 1270, w: 320, h: 195 }, // crate storage
+    { x: 1730, w: 280, h: 250 }, // AC units
+    { x: 2160, w: 340, h: 225 }, // greenhouse
+    { x: 2670, w: 280, h: 205 }, // birdhouse
+    { x: 3100, w: 320, h: 295 }, // second stairwell hut
+    { x: 3550, w: 150, h: 305 }, // small ledge before the water tower
+    { x: 3740, w: 150, h: 480 }, // water tower — too tall to jump, climb the ladder instead
+    { x: 4040, w: 760, h: 470 }, // final terrace with the goal light
+  ];
+
+  // the signal at journey's end, resting on the final terrace
+  const GOAL = { x: 4720, h: 470 };
+  let endingShown = false;
+
+  // which roof (by index into `boxes`) contains a given world x, or -1 over a gap
+  function roofAt(worldX) {
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      if (worldX >= b.x - 0.5 && worldX <= b.x + b.w + 0.5) return i;
+    }
+    return -1;
+  }
+
+  // ---------- roof-top furniture (tappable — each gives the wanderer a
+  // small reflective thought) ----------
+  const PROPS = [
+    { roof: 0, local: 220, w: 70, h: 34, type: "table_chairs", text: "Ein Tisch mit drei Stühlen – als hätte hier gerade noch jemand gesessen." },
+    { roof: 1, local: 150, w: 110, h: 46, type: "clothesline", text: "Die Wäsche hängt noch vom Nachmittag – niemand hat sie hereingeholt." },
+    { roof: 2, local: 160, w: 64, h: 40, type: "crates", text: "Kisten voller Dinge, die keiner mehr sucht." },
+    { roof: 3, local: 140, w: 56, h: 34, type: "ac_units", text: "Ein monotones Summen – die einzige Musik hier oben." },
+    { roof: 4, local: 170, w: 74, h: 52, type: "greenhouse", text: "Jemand zieht Tomaten, mitten über den Dächern der Stadt." },
+    { roof: 5, local: 140, w: 30, h: 58, type: "birdhouse", text: "Ob hier noch Vögel wohnen? Um diese Zeit ist es still." },
+    { roof: 6, local: 160, w: 68, h: 62, type: "stair_hut", text: "Hinter dieser Tür liegt die Treppe zurück – aber die Nacht gehört den Dächern." },
+  ];
+
+  // a one-line caption tied to each roof's little "task"/theme — fades in
+  // the first time the wanderer lands on that roof
+  const ROOF_CAPTIONS = {
+    1: "Nasse Wäsche im Wind – als würde die Stadt heimlich noch atmen.",
+    2: "Kisten stapeln sich hier oben – wer bringt die je wieder hinunter?",
+    3: "Ein leises Brummen begleitet jeden Schritt über die Dächer.",
+    4: "Zwischen Glas und Grün blüht es sogar hier, weit über der Straße.",
+    5: "Ein kleines Vogelhaus, verlassen um diese Zeit.",
+    6: "Noch eine Tür zurück ins Innere – doch die Nacht gehört den Dächern.",
+    8: "Von hier oben sieht die Stadt aus wie ein stilles Meer aus Dächern.",
+    9: "Die letzte Weite vor dem Licht.",
+  };
+  let lastRoofIndex = 0; // start roof never triggers its own caption (the intro line covers it)
+
+  // max height reachable by a normal jump (v^2 / 2g); anything taller can
+  // only be reached by grabbing the ledge and climbing
+  const MAX_JUMP_HEIGHT = (PHYS.jumpVel * PHYS.jumpVel) / (2 * PHYS.gravity);
+  const GRAB_SETTLE_TIME = 0.16; // eases into the hang pose instead of snapping
+  const CLIMB_DURATION = 0.95;   // full mantle-up animation length
+
+  function smooth(t) {
+    t = Math.max(0, Math.min(1, t));
+    return t * t * (3 - 2 * t);
+  }
+
+  function getSurfaceY(worldX) {
+    let top = GROUND_LEVEL_Y;
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      if (worldX >= b.x && worldX <= b.x + b.w) {
+        const boxTop = GROUND_LEVEL_Y - b.h;
+        if (boxTop < top) top = boxTop;
+      }
+    }
+    return top;
+  }
+
+  function resolveHorizontal(prevX, nextX, footY) {
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      const boxTop = GROUND_LEVEL_Y - b.h;
+      if (footY > boxTop + 1) {
+        if (prevX <= b.x && nextX > b.x) return b.x - 0.5;
+        if (prevX >= b.x + b.w && nextX < b.x + b.w) return b.x + b.w + 0.5;
+      }
+    }
+    return nextX;
+  }
+
+  // ---------- character ----------
+  resizeCanvas();
+  const character = {
+    worldX: 220,
+    footWorldY: GROUND_LEVEL_Y - boxes[0].h,
+    baseGroundY: GROUND_LEVEL_Y - boxes[0].h,
+    vx: 0,
+    vy: 0,
+    facing: 1,
+    state: "stand", // "stand" | "crouch" | "air" | "hang" | "climb"
+    crouchT: 0,
+    jumpHeld: false,
+    phase: 0,
+    airTime: 0,
+    squash: 1,
+    accelerating: false,
+    hipBob: 0,
+    idleTime: 0,
+    ducking: false,
+    duckAmt: 0,
+    jumpOriginY: GROUND_LEVEL_Y - boxes[0].h,
+    hangBox: -1,
+    hangDir: 1,
+    grabT: 1,
+    grabFromX: 0,
+    grabFromY: 0,
+    hangX: 0,
+    hangY: 0,
+    climbT: 0,
+    climbFromX: 0,
+    climbFromY: 0,
+    climbToX: 0,
+    climbToY: 0,
+  };
+  window.addEventListener("resize", resizeCanvas);
+
+  // a gentle "catch" if a jump between rooftops is badly missed — rather than
+  // plummeting all the way to the true street far below with no way back,
+  // the wanderer is quietly placed back at the last solid rooftop stance
+  let lastSafeX = character.worldX, lastSafeY = character.footWorldY, lastSafeBaseGroundY = character.baseGroundY;
+
+  let cameraX = 0;
+  let cameraY = 0;
+  function updateCamera() {
+    cameraX = character.worldX - LVIEW_W / 2;
+    cameraX = Math.max(0, Math.min(Math.max(0, WORLD_W - LVIEW_W), cameraX));
+
+    // vertical: stays ground-anchored (0) until the character climbs high
+    // enough that the upper part of the screen would be violated, then
+    // scrolls up to follow them so elevated platforms stay in view
+    cameraY = Math.min(0, character.footWorldY - LVIEW_H * 0.65);
+  }
+
+  // ---------- cape (verlet cloth: a few hanging chains filled in between) ----------
+  const CAPE_SEGMENTS = 6;
+  const CAPE_SEG_LEN = 16;
+  const CAPE_STRANDS = 3; // front edge, middle, back edge
+  const CAPE_LATERAL_REST = 15; // constant spacing between adjacent anchors (local space)
+  const CAPE_ANCHOR_OFFSET_X = [-3, -3 - CAPE_LATERAL_REST, -3 - CAPE_LATERAL_REST * 2];
+  const CAPE_ANCHOR_OFFSET_Y = [-2, 0, 2];
+  let capeStrands = []; // each: array of {x,y,ox,oy,pin}
+
+  function initCape() {
+    capeStrands = [];
+    const originY = character.footWorldY + SK.hipY - SK.torso + SK.shoulderDrop;
+    for (let s = 0; s < CAPE_STRANDS; s++) {
+      const pts = [];
+      const startX = character.worldX + CAPE_ANCHOR_OFFSET_X[s];
+      const startY = originY + CAPE_ANCHOR_OFFSET_Y[s];
+      for (let i = 0; i <= CAPE_SEGMENTS; i++) {
+        const x = startX;
+        const y = startY + i * CAPE_SEG_LEN;
+        pts.push({ x, y, ox: x, oy: y, pin: i === 0 });
+      }
+      capeStrands.push(pts);
+    }
+  }
+  initCape();
+
+  function updateCape(dt, anchors, windX) {
+    const gravity = 900;
+    const maxStep = 6; // clamp per-step displacement so a stray large correction can't explode
+    for (let s = 0; s < CAPE_STRANDS; s++) {
+      const pts = capeStrands[s];
+      const anchor = anchors[s];
+      pts[0].x = anchor.x;
+      pts[0].y = anchor.y;
+      pts[0].ox = anchor.x;
+      pts[0].oy = anchor.y;
+
+      for (let i = 1; i < pts.length; i++) {
+        const p = pts[i];
+        let vx = (p.x - p.ox) * 0.98;
+        let vy = (p.y - p.oy) * 0.98;
+        const speed = Math.sqrt(vx * vx + vy * vy);
+        if (speed > maxStep) { const k = maxStep / speed; vx *= k; vy *= k; }
+        const nx = p.x + vx + windX * dt * dt;
+        const ny = p.y + vy + gravity * dt * dt;
+        p.ox = p.x;
+        p.oy = p.y;
+        p.x = nx;
+        p.y = ny;
+      }
+
+      for (let iter = 0; iter < 4; iter++) {
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = pts[i], b = pts[i + 1];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+          const diff = (d - CAPE_SEG_LEN) / d;
+          const ax = dx * 0.5 * diff, ay = dy * 0.5 * diff;
+          if (!a.pin) { a.x += ax; a.y += ay; }
+          if (!b.pin) { b.x -= ax; b.y -= ay; }
+        }
+      }
+    }
+    for (let iter = 0; iter < 2; iter++) {
+      for (let i = 0; i <= CAPE_SEGMENTS; i++) {
+        for (let s = 0; s < CAPE_STRANDS - 1; s++) {
+          const a = capeStrands[s][i], b = capeStrands[s + 1][i];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
+          const diff = (d - CAPE_LATERAL_REST) / d * 0.15;
+          if (!a.pin) { a.x += dx * diff * 0.5; a.y += dy * diff * 0.5; }
+          if (!b.pin) { b.x -= dx * diff * 0.5; b.y -= dy * diff * 0.5; }
+        }
+      }
+    }
+  }
+
+  // ---------- update ----------
+  let lastT = performance.now();
+  function update(dt) {
+    dt = Math.min(dt, 1 / 30);
+    const left = pressed(KEY_LEFT);
+    const right = pressed(KEY_RIGHT);
+    const down = pressed(KEY_DOWN);
+    const jump = pressed(KEY_JUMP);
+    const jumpEdge = jump && !character.jumpHeld;
+    character.jumpHeld = jump;
+
+    // hanging from a grabbed ledge: eases smoothly into the hang position
+    // (rather than snapping straight there, which read as a jerk/stutter),
+    // then holds until the player either climbs up (jump key) or drops (down)
+    if (character.state === "hang") {
+      if (character.grabT < 1) {
+        character.grabT = Math.min(1, character.grabT + dt / GRAB_SETTLE_TIME);
+        const e = character.grabT * character.grabT * (3 - 2 * character.grabT);
+        character.worldX = character.grabFromX + (character.hangX - character.grabFromX) * e;
+        character.footWorldY = character.grabFromY + (character.hangY - character.grabFromY) * e;
+      }
+      if (jumpEdge) {
+        const b = boxes[character.hangBox];
+        const boxTop = GROUND_LEVEL_Y - b.h;
+        character.state = "climb";
+        character.climbT = 0;
+        character.climbFromX = character.worldX;
+        character.climbFromY = character.footWorldY;
+        character.climbToX = character.hangDir > 0 ? b.x + 18 : b.x + b.w - 18;
+        character.climbToY = boxTop;
+      } else if (down) {
+        character.state = "air";
+      }
+      return;
+    }
+
+    // climbing: a scripted multi-phase mantle animation — pull up, press
+    // down with the arms, swing the legs over one at a time, then rise from
+    // a crouch to standing. The body stays outside the box's silhouette
+    // (worldX pinned at the hang position) while it rises above the ledge
+    // height, and only slides over the top once it's high enough to clear
+    // it, so the character never visibly clips through the crate.
+    if (character.state === "climb") {
+      character.climbT += dt;
+      const p = Math.min(1, character.climbT / CLIMB_DURATION);
+
+      // vertical: rise from the hang height, past the ledge, down to
+      // standing height on top — in two eased segments
+      const RISE_SPLIT = 0.55;
+      const liftedY = character.climbToY - 22; // torso above the ledge, arms locked
+      let footY;
+      if (p < RISE_SPLIT) {
+        const e = smooth(p / RISE_SPLIT);
+        footY = character.climbFromY + (liftedY - character.climbFromY) * e;
+      } else {
+        const e = smooth((p - RISE_SPLIT) / (1 - RISE_SPLIT));
+        footY = liftedY + (character.climbToY - liftedY) * e;
+      }
+
+      // horizontal: stays at the hang spot (outside the box) until the body
+      // has risen above the ledge, then slides over onto the top
+      const SHIFT_START = 0.5, SHIFT_END = 0.9;
+      let worldX;
+      if (p < SHIFT_START) {
+        worldX = character.climbFromX;
+      } else if (p < SHIFT_END) {
+        const e = smooth((p - SHIFT_START) / (SHIFT_END - SHIFT_START));
+        worldX = character.climbFromX + (character.climbToX - character.climbFromX) * e;
+      } else {
+        worldX = character.climbToX;
+      }
+
+      character.worldX = worldX;
+      character.footWorldY = footY;
+
+      if (p >= 1) {
+        character.state = "stand";
+        character.baseGroundY = character.climbToY;
+      }
+      return;
+    }
+
+    // voluntary duck/crouch (held), separate from the pre-jump anticipation
+    // crouch — only while grounded, and it blocks jumping while held
+    character.ducking = character.state === "stand" && down;
+    const duckTarget = character.ducking ? 1 : 0;
+    character.duckAmt += (duckTarget - character.duckAmt) * Math.min(1, dt * 10);
+
+    let input = 0;
+    if (left) input -= 1;
+    if (right) input += 1;
+    character.accelerating = input !== 0;
+    if (character.accelerating || jumpEdge) fadeIntro();
+
+    const speedCap = character.ducking ? PHYS.maxSpeed * 0.4 : PHYS.maxSpeed;
+
+    if (input !== 0) {
+      character.vx += input * PHYS.accel * dt;
+      character.facing = input > 0 ? 1 : -1;
+    } else {
+      const sign = Math.sign(character.vx);
+      character.vx -= sign * PHYS.friction * dt;
+      if (Math.sign(character.vx) !== sign) character.vx = 0;
+    }
+    character.vx = Math.max(-speedCap, Math.min(speedCap, character.vx));
+
+    const prevX = character.worldX;
+    let nextX = prevX + character.vx * dt;
+    nextX = Math.max(40, Math.min(WORLD_W - 40, nextX));
+
+    // low parapet walls rim every rooftop: while grounded, movement is
+    // clamped to the current roof's own footprint — you cannot simply walk
+    // off the edge, a deliberate jump is required to clear the wall and
+    // reach the next roof (or the ledge-grab, for the one tall neighbor)
+    if (character.state === "stand" || character.state === "crouch") {
+      const homeRoof = roofAt(prevX);
+      if (homeRoof !== -1) {
+        const b = boxes[homeRoof];
+        nextX = Math.max(b.x, Math.min(b.x + b.w, nextX));
+      }
+    }
+
+    // ledge grab: while airborne, jumping into the side of a crate too tall
+    // to reach from wherever this jump was launched lets you grab and hang
+    // from its top edge instead of just bumping into the wall. Eligibility
+    // is relative to the jump's own launch height (jumpOriginY), not a
+    // fixed world height — that's what lets a staircase of individually
+    // jumpable platforms be climbed with normal jumps once you're already
+    // partway up, while a single oversized crate still requires a grab.
+    let grabbed = false;
+    if (character.state === "air") {
+      const reachableCeiling = character.jumpOriginY - MAX_JUMP_HEIGHT - 10;
+      for (let i = 0; i < boxes.length; i++) {
+        const b = boxes[i];
+        const boxTop = GROUND_LEVEL_Y - b.h;
+        if (boxTop >= reachableCeiling) continue; // reachable via a normal jump
+        const crossesLeft = prevX <= b.x && nextX > b.x;
+        const crossesRight = prevX >= b.x + b.w && nextX < b.x + b.w;
+        if (!crossesLeft && !crossesRight) continue;
+        const rel = character.footWorldY - boxTop;
+        if (rel > 8 && rel < 70) {
+          character.state = "hang";
+          character.hangBox = i;
+          character.hangDir = crossesLeft ? 1 : -1;
+          character.grabT = 0;
+          character.grabFromX = character.worldX;
+          character.grabFromY = character.footWorldY;
+          character.hangX = crossesLeft ? b.x - 18 : b.x + b.w + 18;
+          character.hangY = boxTop + 58;
+          character.facing = character.hangDir;
+          character.vx = 0;
+          character.vy = 0;
+          grabbed = true;
+          break;
+        }
+      }
+    }
+
+    if (!grabbed) {
+      const footYRef = character.state === "air" ? character.footWorldY : character.baseGroundY;
+      const resolvedX = resolveHorizontal(prevX, nextX, footYRef);
+      if (resolvedX !== nextX) character.vx = 0;
+      character.worldX = resolvedX;
+
+      const surfaceY = getSurfaceY(character.worldX);
+
+      if (character.state === "stand") {
+        if (surfaceY > character.baseGroundY + 0.5) {
+          // walked off a ledge
+          character.state = "air";
+          character.footWorldY = character.baseGroundY;
+          character.vy = 0;
+        } else {
+          character.baseGroundY = surfaceY;
+          lastSafeX = character.worldX;
+          lastSafeY = character.footWorldY;
+          lastSafeBaseGroundY = character.baseGroundY;
+          if (jumpEdge && !character.ducking) {
+            character.state = "crouch";
+            character.crouchT = 0;
+          } else {
+            character.phase += Math.abs(character.vx) * dt * PHYS.strideRate;
+          }
+        }
+      } else if (character.state === "crouch") {
+        character.crouchT += dt;
+        if (character.crouchT >= PHYS.crouchTime) {
+          character.vy = -PHYS.jumpVel;
+          character.state = "air";
+          character.airTime = 0;
+          character.footWorldY = character.baseGroundY;
+          character.jumpOriginY = character.baseGroundY;
+        }
+      } else if (character.state === "air") {
+        character.vy += PHYS.gravity * dt;
+        const prevFootY = character.footWorldY;
+        const nextFootY = prevFootY + character.vy * dt;
+        // over a real gap between rooftops there is nothing to land on —
+        // getSurfaceY's fallback (GROUND_LEVEL_Y) is the true street far
+        // below, never an actual landable rooftop, so it must never be
+        // treated as a normal landing
+        const overGap = surfaceY >= GROUND_LEVEL_Y - 0.5;
+        if (character.vy >= 0 && !overGap && prevFootY <= surfaceY + 0.5 && nextFootY >= surfaceY) {
+          character.footWorldY = surfaceY;
+          character.vy = 0;
+          character.state = "stand";
+          character.baseGroundY = surfaceY;
+          character.squash = 1.22;
+        } else if (overGap && nextFootY >= GROUND_LEVEL_Y - 2) {
+          // a badly missed jump plunging toward the true street far below —
+          // caught quietly and placed back at the last solid rooftop stance
+          character.worldX = lastSafeX;
+          character.footWorldY = lastSafeY;
+          character.baseGroundY = lastSafeBaseGroundY;
+          character.vx = 0;
+          character.vy = 0;
+          character.state = "stand";
+          showZoneCaption("Puh – das wäre ein tiefer Fall gewesen.");
+        } else {
+          character.footWorldY = nextFootY;
+        }
+        character.airTime += dt;
+      }
+    }
+
+    // hip bob: rises only while BOTH feet are actually off the ground (a real
+    // flight phase), stays low whenever either foot is planted — tied to the
+    // same stance/swing timing as the feet so it can't drift out of sync
+    const speedRatio = Math.min(1, Math.abs(character.vx) / PHYS.maxSpeed);
+    let bobTarget = 0;
+    if (character.state === "stand" && speedRatio > 0.03) {
+      const pFront = (((character.phase / (2 * Math.PI)) % 1) + 1) % 1;
+      const pBack = ((pFront + 0.5) % 1 + 1) % 1;
+      const grounded = pFront < PHYS.duty || pBack < PHYS.duty;
+      bobTarget = grounded ? 0 : -8 * speedRatio;
+    }
+    character.hipBob += (bobTarget - character.hipBob) * Math.min(1, dt * 18);
+
+    character.squash += (1 - character.squash) * Math.min(1, dt * 10);
+
+    // idle timer: only accumulates while genuinely standing still with no
+    // input, so we can trigger a little head-scratch fidget after a while
+    const isIdle = character.state === "stand" && Math.abs(character.vx) < 1 && !character.accelerating;
+    character.idleTime = isIdle ? character.idleTime + dt : 0;
+
+    // journey's end: a quiet fade-in caption once the wanderer reaches the
+    // signal at the far side of the upper rooftops — no score, just a close
+    if (!endingShown && Math.abs(character.worldX - GOAL.x) < 46 && character.state !== "air") {
+      endingShown = true;
+      document.getElementById("ending").classList.add("shown");
+    }
+
+    // landing on a new roof surfaces a one-line caption tied to that roof's
+    // own little scene, the first time it's reached
+    if (character.state === "stand") {
+      const ri = roofAt(character.worldX);
+      if (ri !== -1 && ri !== lastRoofIndex) {
+        lastRoofIndex = ri;
+        if (ROOF_CAPTIONS[ri]) showZoneCaption(ROOF_CAPTIONS[ri]);
+      }
+    }
+  }
+
+  // ---------- pose ----------
+  function computePose() {
+    // hanging from a ledge: fixed pose with arms stretched up to the grip
+    // and legs relaxed and dangling (translate origin = footWorldY, which
+    // was placed 58px below the grabbed ledge, so the ledge is at y=-58)
+    if (character.state === "hang") {
+      const hip = { x: 4, y: 30 };
+      const shoulder = { x: 4, y: 30 - SK.torso };
+      const backHand = { x: 8, y: -54 };
+      const frontHand = { x: 14, y: -58 };
+      const backFoot = { x: -2, y: hip.y + 48 };
+      const frontFoot = { x: 6, y: hip.y + 55 };
+      return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean: 0, scratchEnvelope: 0 };
+    }
+    // climbing: a flowing multi-phase mantle — pull up, press down on the
+    // ledge with the arms, swing one leg up and over, then the other, settle
+    // into a crouch on top, then rise to standing. Keyframes are defined in
+    // the local space of the moving origin (see update()'s "climb" handling
+    // for how that origin travels) and blended by climbT.
+    if (character.state === "climb") {
+      const p = Math.min(1, character.climbT / CLIMB_DURATION);
+      const CLIMB_KF = [
+        { t: 0.00, hip: [4, 30], sh: [4, -16], bh: [8, -54], fh: [14, -58], bf: [-2, 78], ff: [6, 85] },     // hang
+        { t: 0.22, hip: [2, -6], sh: [2, -52], bh: [6, -58], fh: [12, -62], bf: [-4, 30], ff: [2, 36] },     // pulling up
+        { t: 0.42, hip: [4, -18], sh: [8, -64], bh: [4, -60], fh: [24, -70], bf: [-4, 4], ff: [18, -18] },   // arms pressing down, first knee hooks up
+        { t: 0.62, hip: [6, -24], sh: [10, -68], bh: [2, -58], fh: [10, -62], bf: [-6, -12], ff: [12, -30] },// first leg planted on ledge, second following
+        { t: 0.82, hip: [6, -26], sh: [10, -70], bh: [2, -56], fh: [8, -58], bf: [-6, -14], ff: [8, -14] },  // both legs up, crouched on the ledge
+        { t: 1.00, hip: [0, -72], sh: [0, -118], bh: [-14, -74], fh: [14, -74], bf: [-7, 0], ff: [7, 0] },   // rising to standing
+      ];
+      let a = CLIMB_KF[0], b = CLIMB_KF[CLIMB_KF.length - 1];
+      for (let i = 0; i < CLIMB_KF.length - 1; i++) {
+        if (p >= CLIMB_KF[i].t && p <= CLIMB_KF[i + 1].t) { a = CLIMB_KF[i]; b = CLIMB_KF[i + 1]; break; }
+      }
+      const span = Math.max(0.0001, b.t - a.t);
+      const e = smooth((p - a.t) / span);
+      const mix = (pa, pb) => ({ x: pa[0] + (pb[0] - pa[0]) * e, y: pa[1] + (pb[1] - pa[1]) * e });
+      const hip = mix(a.hip, b.hip);
+      const shoulder = mix(a.sh, b.sh);
+      const backHand = mix(a.bh, b.bh);
+      const frontHand = mix(a.fh, b.fh);
+      const backFoot = mix(a.bf, b.bf);
+      const frontFoot = mix(a.ff, b.ff);
+      return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean: 0, scratchEnvelope: 0 };
+    }
+
+    const speedRatio = Math.min(1, Math.abs(character.vx) / PHYS.maxSpeed);
+    const crouching = character.state === "crouch";
+    const airborne = character.state === "air";
+
+    // smoothstep ramp so standing->running (stride, arm pump, running crouch)
+    // eases in gradually instead of snapping the moment the character moves
+    const runRamp = Math.min(1, speedRatio / 0.5);
+    const runEase = runRamp * runRamp * (3 - 2 * runRamp);
+
+    let crouchAmt = 0;
+    if (crouching) {
+      const p = Math.min(1, character.crouchT / PHYS.crouchTime);
+      crouchAmt = Math.sin(p * Math.PI * 0.5) * SK.crouchDepth;
+    } else if (character.duckAmt > 0) {
+      // voluntary held duck/crouch, distinct from the pre-jump squat above
+      crouchAmt = character.duckAmt * SK.crouchDepth * 0.85;
+    }
+
+    // running crouch: a small constant knee bend baked into the hip height
+    // whenever running, so the stance leg never straightens all the way out
+    // and reads as running rather than walking
+    const runCrouch = (!airborne && !crouching) ? 12 * runEase : 0;
+
+    // hip bob is precomputed in update() from the actual stance/swing state of
+    // both feet, so it rises only during a genuine both-feet-off flight phase
+    const hipY = SK.hipY + crouchAmt + character.hipBob + runCrouch;
+    const hipX = 0;
+
+    // lean uses forward speed (vx * facing, not raw vx) so a left-facing run
+    // leans the same way relative to travel as a right-facing run does.
+    // Accelerating from a stop leans harder than cruising at steady speed.
+    // The jump lean is asymmetric: strong forward lean while rising, but
+    // only a mild backward lean while falling so it doesn't look like it's
+    // toppling over right before landing.
+    const forwardSpeed = character.vx * character.facing;
+    const cruiseLean = (forwardSpeed / PHYS.maxSpeed) * 7;
+    const accelLean = (character.accelerating && !airborne && !crouching) ? (1 - speedRatio) * 11 : 0;
+    const vyRatio = airborne ? Math.max(-1, Math.min(1, character.vy / PHYS.jumpVel)) : 0;
+    const airLean = airborne ? -vyRatio * (vyRatio < 0 ? 13 : 5) : 0;
+    const lean = crouching ? 0 : cruiseLean + accelLean + airLean;
+    const shoulderX = hipX + lean;
+    const shoulderY = hipY - SK.torso + crouchAmt * 0.35;
+
+    const strideLen = 30 * runEase;  // half-stride reach
+    const heelLift = 44 * runEase;   // swing-leg heel-to-glute tuck height
+
+    // idle fidget: after standing still for a while, scratch the head for a
+    // couple of seconds, then settle back down (repeats periodically)
+    const idleCycle = character.idleTime % 14;
+    const scratchWindow = idleCycle > 10 && idleCycle < 12.4;
+    const scratchEnvelope = scratchWindow ? Math.sin(((idleCycle - 10) / 2.4) * Math.PI) : 0;
+
+    function footTarget(sign) {
+      if (airborne) {
+        const tuck = Math.min(1, character.airTime * 6);
+        return {
+          x: hipX + sign * 4,
+          y: -(SK.upperLeg + SK.lowerLeg) * (0.8 - 0.45 * tuck),
+        };
+      }
+      if (crouching) {
+        return { x: hipX + sign * 9, y: 0 };
+      }
+      const t = character.phase + (sign > 0 ? 0 : Math.PI);
+      const p = (((t / (2 * Math.PI)) % 1) + 1) % 1; // 0..1 through this leg's cycle
+      const stanceSpread = 7;
+      let x, y;
+      if (p < PHYS.duty) {
+        // stance: foot planted flat, sweeping back underneath the body
+        const sp = p / PHYS.duty;
+        x = strideLen - sp * 2 * strideLen;
+        y = 0;
+      } else {
+        // swing has two parts: first the heel snaps up and back toward the
+        // glute (foot stays behind the hip while the knee folds), then the
+        // leg drives forward and extends back down for the next footstrike
+        const sp = (p - PHYS.duty) / (1 - PHYS.duty);
+        const foldEnd = 0.45;
+        if (sp < foldEnd) {
+          const q = sp / foldEnd;
+          x = -strideLen + q * strideLen * 0.35;
+          y = -Math.sin(q * Math.PI * 0.5) * heelLift;
+        } else {
+          const q = (sp - foldEnd) / (1 - foldEnd);
+          x = -strideLen * 0.65 + q * strideLen * 1.65;
+          y = -heelLift * Math.cos(q * Math.PI * 0.5);
+        }
+      }
+      return { x: hipX + sign * stanceSpread + x, y };
+    }
+
+    function handTarget(sign) {
+      const bentHang = (SK.upperArm + SK.lowerArm) * 0.55;
+      if (airborne) {
+        const t = Math.max(-1, Math.min(1, -character.vy / PHYS.jumpVel));
+        return { x: shoulderX + sign * (SK.shoulderW * 0.55), y: shoulderY + bentHang * 0.6 - t * 14 };
+      }
+      if (crouching) {
+        return { x: shoulderX + sign * (SK.shoulderW * 0.5) - 4, y: shoulderY + bentHang * 0.8 };
+      }
+
+      const idleX = shoulderX + sign * (SK.shoulderW * 0.6);
+      const idleY = shoulderY + (SK.upperArm + SK.lowerArm) * 0.86;
+
+      // running: a toned-down bent-elbow arm pump, swinging opposite the
+      // same-side leg (kept subtle per feedback that it moved too much)
+      const t = character.phase + (sign > 0 ? Math.PI : 0);
+      const swing = Math.sin(t) * (strideLen * 0.55);
+      const runX = shoulderX + sign * (SK.shoulderW * 0.35) + swing;
+      const runY = shoulderY + bentHang - Math.max(0, -Math.cos(t)) * 8;
+
+      let x = idleX + (runX - idleX) * runEase;
+      let y = idleY + (runY - idleY) * runEase;
+
+      // idle head-scratch: only the front arm reaches up, blended on top of
+      // whatever the idle/run pose already is
+      if (sign > 0 && scratchEnvelope > 0) {
+        const wiggle = Math.sin(character.idleTime * 14) * 3 * scratchEnvelope;
+        const scratchX = shoulderX + SK.shoulderW * 0.1 + wiggle;
+        const scratchY = shoulderY - SK.torso * 0.85;
+        x += (scratchX - x) * scratchEnvelope;
+        y += (scratchY - y) * scratchEnvelope;
+      }
+
+      return { x, y };
+    }
+
+    const backFoot = footTarget(-1);
+    const frontFoot = footTarget(1);
+    const backHand = handTarget(-1);
+    const frontHand = handTarget(1);
+
+    const hip = { x: hipX, y: hipY };
+    const shoulder = { x: shoulderX, y: shoulderY };
+
+    return { hip, shoulder, backFoot, frontFoot, backHand, frontHand, lean, scratchEnvelope };
+  }
+
+  // ---------- draw ----------
+  function draw() {
+    ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+    updateCamera();
+
+    ctx.save();
+    ctx.scale(ZOOM, ZOOM);
+
+    drawBackground();
+    drawMoonAndStars();
+    drawParallax();
+    drawFog();
+    drawBoxes();
+    drawProps();
+    drawGoal();
+    drawShadow();
+
+    const facing = character.facing;
+    const screenX = character.worldX - cameraX;
+    ctx.save();
+    ctx.translate(screenX, character.footWorldY - cameraY);
+    ctx.scale(facing, 1);
+
+    const pose = computePose();
+    const hip = pose.hip;
+    const shoulder = pose.shoulder;
+
+    const backFootTarget = { x: pose.backFoot.x, y: pose.backFoot.y };
+    const frontFootTarget = { x: pose.frontFoot.x, y: pose.frontFoot.y };
+    const backHandTarget = { x: pose.backHand.x, y: pose.backHand.y };
+    const frontHandTarget = { x: pose.frontHand.x, y: pose.frontHand.y };
+
+    const backLegIK = solveIK(hip.x, hip.y, backFootTarget.x, backFootTarget.y, SK.upperLeg, SK.lowerLeg, 1);
+    const frontLegIK = solveIK(hip.x, hip.y, frontFootTarget.x, frontFootTarget.y, SK.upperLeg, SK.lowerLeg, 1);
+    const backArmIK = solveIK(shoulder.x, shoulder.y, backHandTarget.x, backHandTarget.y, SK.upperArm, SK.lowerArm, -1);
+    const frontArmIK = solveIK(shoulder.x, shoulder.y, frontHandTarget.x, frontHandTarget.y, SK.upperArm, SK.lowerArm, -1);
+
+    const neckPt = { x: shoulder.x, y: shoulder.y - SK.neck };
+    const headCenter = { x: neckPt.x + pose.lean * 0.3, y: neckPt.y - SK.headR - 2 + pose.scratchEnvelope * 1.5 };
+
+    const capeAnchorsLocal = CAPE_ANCHOR_OFFSET_X.map((ox, s) => ({
+      x: shoulder.x + ox,
+      y: shoulder.y + SK.shoulderDrop + CAPE_ANCHOR_OFFSET_Y[s],
+    }));
+    const worldAnchors = capeAnchorsLocal.map((a) => ({
+      x: character.worldX + a.x * facing,
+      y: character.footWorldY + a.y,
+    }));
+    const windX = -character.vx * 1.4;
+    updateCape(dtGlobal, worldAnchors, windX);
+
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // swap in the warm lit palette and draw a soft halo behind the figure
+    // while the "Charakter beleuchten" spotlight is toggled on
+    PAL = characterLit ? COL_LIT : COL;
+    if (characterLit) {
+      const glowY = (hip.y + shoulder.y) / 2;
+      const glow = ctx.createRadialGradient(0, glowY, 8, 0, glowY, 110);
+      glow.addColorStop(0, "rgba(255,232,180,0.55)");
+      glow.addColorStop(1, "rgba(255,232,180,0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, glowY, 110, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    drawCape(facing);
+    drawLimb(hip, backLegIK, PAL.limbBack, 12, true);
+    drawLimb(shoulder, backArmIK, PAL.limbBack, 8, false);
+
+    drawTorso(hip, shoulder);
+
+    drawLimb(hip, frontLegIK, PAL.limbFront, 13, true);
+    drawLimb(shoulder, frontArmIK, PAL.limbFront, 9, false);
+
+    drawHood(headCenter, shoulder, facing);
+
+    ctx.restore();
+    ctx.restore();
+
+    drawVignette();
+  }
+
+  function drawBackground() {
+    // a sleeping city at night: deep violet-navy sky, no warehouse ceiling
+    const g = ctx.createLinearGradient(0, 0, 0, LVIEW_H);
+    g.addColorStop(0, "#0a0a1c");
+    g.addColorStop(0.45, "#14122e");
+    g.addColorStop(0.75, "#221a3a");
+    g.addColorStop(1, "#2c1f3a");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, LVIEW_W, LVIEW_H);
+
+    const floorY = GROUND_LEVEL_Y - cameraY;
+    if (floorY < LVIEW_H) {
+      ctx.fillStyle = "#100e1a";
+      ctx.fillRect(0, floorY + 2, LVIEW_W, LVIEW_H - floorY - 2);
+      ctx.strokeStyle = "rgba(255,190,120,0.35)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, floorY + 2);
+      ctx.lineTo(LVIEW_W, floorY + 2);
+      ctx.stroke();
+    }
+  }
+
+  // ---------- moon and stars ----------
+  // fixed in screen space like a real night sky backdrop — they don't track
+  // the world scroll, only the camera's vertical climb dims them slightly
+  const STAR_COUNT = 70;
+  const stars = [];
+  for (let i = 0; i < STAR_COUNT; i++) {
+    stars.push({
+      x: hashTile(i * 3 + 1),
+      y: hashTile(i * 3 + 2) * 0.55,
+      r: 0.5 + hashTile(i * 3 + 3) * 1.3,
+      phase: hashTile(i * 7) * 10,
+    });
+  }
+  function drawMoonAndStars() {
+    // fixed screen-space position, matching the stars exactly (no cameraY
+    // drift) so the moon reads as part of the same night-sky backdrop
+    // instead of visibly sliding away from the star field while climbing
+    const mx = LVIEW_W * 0.82, my = LVIEW_H * 0.16, mr = Math.min(46, LVIEW_H * 0.09);
+    const glow = ctx.createRadialGradient(mx, my, 4, mx, my, mr * 2.6);
+    glow.addColorStop(0, "rgba(225,222,255,0.30)");
+    glow.addColorStop(1, "rgba(225,222,255,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(mx, my, mr * 2.6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#eee6ff";
+    ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(150,140,190,0.25)";
+    ctx.beginPath(); ctx.arc(mx - mr * 0.3, my - mr * 0.18, mr * 0.18, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(mx + mr * 0.22, my + mr * 0.3, mr * 0.11, 0, Math.PI * 2); ctx.fill();
+
+    for (const s of stars) {
+      const tw = 0.5 + 0.5 * Math.sin(elapsedTime * 1.3 + s.phase);
+      ctx.globalAlpha = 0.3 + tw * 0.55;
+      ctx.fillStyle = "#dfe0ff";
+      ctx.beginPath();
+      ctx.arc(s.x * LVIEW_W, s.y * LVIEW_H, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // deterministic pseudo-random 0..1 from an integer index (no Math.random so
+  // the layout doesn't jitter frame to frame)
+  function hashTile(i) {
+    const v = Math.sin(i * 12.9898) * 43758.5453;
+    return v - Math.floor(v);
+  }
+
+  // ---------- skyline ----------
+  // parallax rooftop silhouettes with lit windows — the "Lichtpunkte" that
+  // keep the dark city readable: warm rectangles scattered per building,
+  // each softly flickering on its own deterministic cycle
+  function drawSkylineLayer(depth, tileW, minH, maxH, color, windowColor, seedBase) {
+    const scroll = cameraX * depth;
+    const startTile = Math.floor(scroll / tileW) - 1;
+    const endTile = Math.floor((scroll + LVIEW_W) / tileW) + 1;
+    const floorY = GROUND_LEVEL_Y - cameraY * depth;
+    for (let i = startTile; i <= endTile; i++) {
+      const seed = hashTile(i + seedBase);
+      const w = tileW * 0.62 * (0.7 + seed * 0.3);
+      const h = minH + seed * (maxH - minH);
+      const x = i * tileW - scroll + (tileW - w) / 2;
+      const y = floorY - h;
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h + 120); // extend well past the floor so gaps never show through
+      if (w > 26) ctx.fillRect(x + w / 2 - 1, y - 16, 2, 16); // antenna
+
+      // lit windows: a sparse grid, each on/off + flicker seeded by tile+cell
+      const cols = Math.max(1, Math.floor(w / 16));
+      const rows = Math.max(1, Math.floor(h / 20));
+      for (let cx = 0; cx < cols; cx++) {
+        for (let cy = 0; cy < rows; cy++) {
+          const wseed = hashTile(i * 97 + cx * 13 + cy * 5 + seedBase * 3);
+          if (wseed > 0.27) continue;
+          const wy = y + 8 + cy * 20;
+          if (wy > floorY) continue;
+          const flick = Math.sin(elapsedTime * 1.6 + wseed * 40) > -0.75;
+          ctx.fillStyle = flick ? windowColor : "rgba(255,255,255,0.03)";
+          ctx.fillRect(x + 5 + cx * 16, wy, 7, 9);
+        }
+      }
+    }
+  }
+
+  function drawParallax() {
+    // the skyline is just the rest of the city continuing on beyond the
+    // rooftops the wanderer is actually crossing — a constant backdrop
+    drawSkylineLayer(0.15, 190, 90, 220, "#171233", "rgba(255,210,120,0.30)", 11);
+    drawSkylineLayer(0.4, 130, 60, 150, "#0f0c22", "rgba(255,200,110,0.55)", 47);
+  }
+
+  function drawFog() {
+    const floorY = GROUND_LEVEL_Y - cameraY;
+    const top = Math.max(0, floorY - 140);
+    const g = ctx.createLinearGradient(0, top, 0, floorY + 10);
+    g.addColorStop(0, "rgba(20,15,40,0)");
+    g.addColorStop(1, "rgba(15,10,30,0.8)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, top, LVIEW_W, floorY + 10 - top);
+  }
+
+  // one consistent rooftop material — variety now comes from the furniture
+  // scattered across each roof, not from the roof itself
+  function drawBoxes() {
+    const floorY = GROUND_LEVEL_Y - cameraY;
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      const sx = b.x - cameraX;
+      if (sx + b.w < 0 || sx > LVIEW_W) continue;
+      const topY = floorY - b.h;
+      if (topY > LVIEW_H) continue; // fully below the visible area
+
+      const grad = ctx.createLinearGradient(0, topY, 0, floorY + 4);
+      grad.addColorStop(0, "#2b2440");
+      grad.addColorStop(1, "#191527");
+      ctx.fillStyle = grad;
+      ctx.fillRect(sx, topY, b.w, floorY + 4 - topY);
+      ctx.fillStyle = "rgba(150,130,230,0.55)";
+      ctx.fillRect(sx, topY, b.w, 3);
+
+      // roof-vent detail dots on wider rooftops
+      if (b.w > 90) {
+        ctx.fillStyle = "rgba(255,255,255,0.06)";
+        for (let d = 20; d < b.w - 10; d += 46) ctx.fillRect(sx + d, topY + 8, 12, 4);
+      }
+
+      // low parapet walls at both edges — the reason you can't just walk off
+      const wallH = 15, wallW = 7;
+      ctx.fillStyle = "#231d38";
+      ctx.fillRect(sx - 1, topY - wallH, wallW, wallH + 3);
+      ctx.fillRect(sx + b.w - wallW + 1, topY - wallH, wallW, wallH + 3);
+      ctx.fillStyle = "rgba(170,150,235,0.4)";
+      ctx.fillRect(sx - 1, topY - wallH, wallW, 2);
+      ctx.fillRect(sx + b.w - wallW + 1, topY - wallH, wallW, 2);
+    }
+  }
+
+  // world-space bounding box of a prop, used both for the tap hit-test and
+  // to know when it's on screen — independent of camera/zoom
+  function propWorldRect(p) {
+    const roof = boxes[p.roof];
+    const worldX = roof.x + p.local;
+    const roofTopWorld = GROUND_LEVEL_Y - roof.h;
+    return { worldX, x0: worldX - p.w / 2, x1: worldX + p.w / 2, y0: roofTopWorld - p.h, y1: roofTopWorld };
+  }
+
+  function drawProps() {
+    for (const p of PROPS) {
+      const r = propWorldRect(p);
+      const cx = r.worldX - cameraX;
+      if (cx < -100 || cx > LVIEW_W + 100) continue;
+      const baseY = r.y1 - cameraY;
+      if (p.type === "table_chairs") drawTableChairs(cx, baseY, p.w, p.h);
+      else if (p.type === "clothesline") drawClothesline(cx, baseY, p.w, p.h);
+      else if (p.type === "crates") drawCrates(cx, baseY, p.w, p.h);
+      else if (p.type === "ac_units") drawACUnits(cx, baseY, p.w, p.h);
+      else if (p.type === "greenhouse") drawGreenhouse(cx, baseY, p.w, p.h);
+      else if (p.type === "birdhouse") drawBirdhouse(cx, baseY, p.w, p.h);
+      else if (p.type === "stair_hut") drawStairHut(cx, baseY, p.w, p.h);
+
+      // a faint pulsing outline hints that this piece of furniture can be tapped
+      const pulse = 0.10 + 0.07 * Math.sin(elapsedTime * 2 + r.worldX * 0.01);
+      ctx.strokeStyle = `rgba(220,205,255,${pulse.toFixed(3)})`;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx - p.w / 2 - 3, baseY - p.h - 3, p.w + 6, p.h + 6);
+    }
+  }
+
+  function drawTableChairs(cx, baseY, w, h) {
+    ctx.fillStyle = "#1c1830";
+    ctx.fillRect(cx - 3, baseY - h + 10, 6, h - 10);
+    ctx.fillStyle = "#241f3a";
+    ctx.fillRect(cx - w / 2, baseY - h, w, 7);
+    ctx.fillStyle = "rgba(200,180,255,0.25)";
+    ctx.fillRect(cx - w / 2, baseY - h, w, 2);
+    ctx.fillStyle = "#1c1830";
+    ctx.fillRect(cx - w / 2 - 8, baseY - 18, 9, 18);
+    ctx.fillRect(cx - w / 2 - 8, baseY - 28, 9, 4);
+    ctx.fillRect(cx + w / 2 - 1, baseY - 18, 9, 18);
+    ctx.fillRect(cx + w / 2 - 1, baseY - 28, 9, 4);
+  }
+
+  function drawClothesline(cx, baseY, w, h) {
+    const left = cx - w / 2, right = cx + w / 2, ropeY = baseY - h;
+    ctx.strokeStyle = "#2a2440";
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(left, baseY); ctx.lineTo(left, ropeY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(right, baseY); ctx.lineTo(right, ropeY); ctx.stroke();
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(left, ropeY); ctx.lineTo(right, ropeY); ctx.stroke();
+    ctx.fillStyle = "rgba(210,208,225,0.45)";
+    for (let i = 0; i < 3; i++) {
+      const x = left + (w * (i + 1)) / 4;
+      const sway = Math.sin(elapsedTime * 1.2 + i * 2) * 3;
+      ctx.fillRect(x - 6 + sway, ropeY, 12, 15 + (i % 2) * 5);
+    }
+  }
+
+  function drawCrates(cx, baseY, w, h) {
+    const left = cx - w / 2;
+    ctx.fillStyle = "#241f30";
+    ctx.fillRect(left, baseY - h * 0.68, w * 0.5, h * 0.68);
+    ctx.fillRect(left + w * 0.42, baseY - h, w * 0.56, h);
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    ctx.fillRect(left + 4, baseY - h * 0.5, w * 0.5 - 8, 2);
+    ctx.fillRect(left + w * 0.42 + 4, baseY - h * 0.7, w * 0.56 - 8, 2);
+  }
+
+  function drawACUnits(cx, baseY, w, h) {
+    const left = cx - w / 2;
+    ctx.fillStyle = "#201c30";
+    ctx.fillRect(left, baseY - h, w, h);
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    for (let dy = 5; dy < h - 4; dy += 5) ctx.fillRect(left + 4, baseY - h + dy, w - 8, 2);
+    ctx.strokeStyle = "rgba(190,180,225,0.35)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(cx, baseY - h * 0.5, h * 0.28, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  function drawGreenhouse(cx, baseY, w, h) {
+    const left = cx - w / 2;
+    ctx.strokeStyle = "#3a3256";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(left, baseY - h, w, h);
+    ctx.fillStyle = "rgba(140,210,220,0.10)";
+    ctx.fillRect(left + 2, baseY - h + 2, w - 4, h - 4);
+    ctx.beginPath();
+    ctx.moveTo(left - 3, baseY - h);
+    ctx.lineTo(cx, baseY - h - 12);
+    ctx.lineTo(left + w + 3, baseY - h);
+    ctx.closePath();
+    ctx.fillStyle = "#241f3a";
+    ctx.fill();
+    ctx.fillStyle = "#1f3a24";
+    ctx.beginPath(); ctx.ellipse(cx - 8, baseY - 8, 7, 12, 0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 9, baseY - 6, 6, 10, -0.15, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawBirdhouse(cx, baseY, w, h) {
+    const poleTopY = baseY - h + 26;
+    ctx.fillStyle = "#1c1830";
+    ctx.fillRect(cx - 2, poleTopY, 4, h - 26);
+    ctx.fillStyle = "#241f3a";
+    ctx.fillRect(cx - w / 2, poleTopY - 22, w, 22);
+    ctx.beginPath();
+    ctx.moveTo(cx - w / 2 - 4, poleTopY - 22);
+    ctx.lineTo(cx, poleTopY - 34);
+    ctx.lineTo(cx + w / 2 + 4, poleTopY - 22);
+    ctx.closePath();
+    ctx.fillStyle = "#1c1830";
+    ctx.fill();
+    ctx.fillStyle = "#0a0812";
+    ctx.beginPath(); ctx.arc(cx, poleTopY - 11, 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawStairHut(cx, baseY, w, h) {
+    const left = cx - w / 2;
+    ctx.fillStyle = "#241f3a";
+    ctx.fillRect(left, baseY - h, w, h);
+    ctx.fillStyle = "#1c1830";
+    ctx.fillRect(left - 4, baseY - h - 6, w + 8, 8);
+    ctx.fillStyle = "#100e1c";
+    ctx.fillRect(cx - 9, baseY - 24, 18, 24);
+    ctx.strokeStyle = "rgba(200,185,255,0.3)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx - 9, baseY - 24, 18, 24);
+    ctx.fillStyle = "#1c1830";
+    ctx.fillRect(left + w - 14, baseY - h - 14, 6, 14);
+  }
+
+  function drawGoal() {
+    const sx = GOAL.x - cameraX;
+    if (sx < -60 || sx > LVIEW_W + 60) return;
+    const floorY = GROUND_LEVEL_Y - cameraY;
+    const gy = floorY - GOAL.h - 4;
+    ctx.fillStyle = "#1c1730";
+    ctx.fillRect(sx - 3, gy, 6, GOAL.h + 4);
+    const pulse = 0.6 + 0.4 * Math.sin(elapsedTime * 3.2);
+    const glow = ctx.createRadialGradient(sx, gy, 2, sx, gy, 60 * pulse + 30);
+    glow.addColorStop(0, "rgba(255,224,150,0.9)");
+    glow.addColorStop(1, "rgba(255,224,150,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(sx, gy, 60 * pulse + 30, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#ffe8b0";
+    ctx.beginPath(); ctx.arc(sx, gy, 8, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawShadow() {
+    const groundBelow = getSurfaceY(character.worldX);
+    const heightAbove = Math.max(0, groundBelow - character.footWorldY);
+    const shadowScreenX = character.worldX - cameraX;
+    ctx.save();
+    ctx.globalAlpha = 0.4 * Math.max(0, 1 - heightAbove / 140);
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.ellipse(shadowScreenX, groundBelow - cameraY + 6, 34 / Math.max(0.6, character.squash), 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawVignette() {
+    const cx = (character.worldX - cameraX) * ZOOM;
+    const cy = (character.footWorldY - cameraY) * ZOOM - VIEW_H * 0.15;
+    const r = Math.max(VIEW_W, VIEW_H) * 0.75;
+    const g = ctx.createRadialGradient(cx, cy, r * 0.3, cx, cy, r);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(1, characterLit ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.22)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  }
+
+  function drawLimb(base, ik, color, width, isLeg) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(base.x, base.y);
+    ctx.lineTo(ik.jx, ik.jy);
+    ctx.lineTo(ik.endX, ik.endY);
+    ctx.stroke();
+
+    if (isLeg) {
+      drawFoot({ x: ik.endX, y: ik.endY }, color);
+    }
+  }
+
+  // a small angled shoe silhouette (heel, sole, toe kicked slightly up)
+  // instead of a thick straight stub
+  function drawFoot(ankle, color) {
+    const L = SK.footLen;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(ankle.x - 2, ankle.y - 4);
+    ctx.lineTo(ankle.x - 4, ankle.y + 3);
+    ctx.lineTo(ankle.x + L * 0.68, ankle.y + 4);
+    ctx.lineTo(ankle.x + L, ankle.y + 0.5);
+    ctx.lineTo(ankle.x + L * 0.7, ankle.y - 2.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawTorso(hip, shoulder) {
+    const g = ctx.createLinearGradient(0, shoulder.y, 0, hip.y);
+    g.addColorStop(0, PAL.torsoTop);
+    g.addColorStop(1, PAL.torsoBottom);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(hip.x - SK.hipW * 0.5, hip.y);
+    ctx.quadraticCurveTo(hip.x - SK.shoulderW * 0.3, (hip.y + shoulder.y) / 2, shoulder.x - SK.shoulderW * 0.5, shoulder.y);
+    ctx.lineTo(shoulder.x + SK.shoulderW * 0.5, shoulder.y);
+    ctx.quadraticCurveTo(hip.x + SK.shoulderW * 0.3, (hip.y + shoulder.y) / 2, hip.x + SK.hipW * 0.5, hip.y);
+    ctx.closePath();
+    ctx.fill();
+
+    // glute bulge: a subtle rounded protrusion on the trailing (back) side
+    // of the hip so the silhouette doesn't read as flat-backed — kept small
+    // so it reads as a curve, not a separate lump
+    ctx.beginPath();
+    ctx.ellipse(hip.x - SK.hipW * 0.32, hip.y - 4, SK.hipW * 0.28, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // face: kept small and mostly shadowed by the hood, but with enough
+  // structure (brow shadow, nose, chin) to read as a face in silhouette
+  function drawHead(c, scale) {
+    scale = scale || 1;
+    const rx = SK.headR * scale, ry = SK.headR * 1.15 * scale;
+    ctx.fillStyle = PAL.headBase;
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // chin
+    ctx.beginPath();
+    ctx.ellipse(c.x + rx * 0.3, c.y + ry * 0.78, rx * 0.4, ry * 0.28, 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    // brow/eye-socket shadow
+    ctx.fillStyle = PAL.headShade;
+    ctx.beginPath();
+    ctx.ellipse(c.x + rx * 0.35, c.y - ry * 0.08, rx * 0.3, ry * 0.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // nose
+    ctx.fillStyle = PAL.headHilite;
+    ctx.beginPath();
+    ctx.moveTo(c.x + rx * 0.82, c.y - ry * 0.05);
+    ctx.lineTo(c.x + rx * 1.22, c.y + ry * 0.15);
+    ctx.lineTo(c.x + rx * 0.8, c.y + ry * 0.3);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawHood(headC, shoulder, facing) {
+    // a cowl that wraps the head closely — only a small, recessed face
+    // opening breaks through, kept deliberately more hidden than the head,
+    // but sized close to the actual head rather than ballooning past it
+    const r = SK.headR;
+    const g = ctx.createLinearGradient(0, headC.y - r * 1.4, 0, headC.y + r * 1.4);
+    g.addColorStop(0, PAL.hood);
+    g.addColorStop(1, PAL.hoodShade);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(headC.x, headC.y - r * 0.1, r * 1.28, r * 1.38, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // drape connecting the cowl down onto the shoulders/collar
+    ctx.beginPath();
+    ctx.moveTo(shoulder.x - SK.shoulderW * 0.6, shoulder.y + 4);
+    ctx.quadraticCurveTo(headC.x - r * 1.25, headC.y + r * 0.7, headC.x - r * 0.95, headC.y + r * 0.3);
+    ctx.lineTo(headC.x + r * 0.95, headC.y + r * 0.3);
+    ctx.quadraticCurveTo(headC.x + r * 1.25, headC.y + r * 0.7, shoulder.x + SK.shoulderW * 0.6, shoulder.y + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // recessed shadow ring framing the face, then the (smaller, tucked-in)
+    // face itself on top
+    const faceC = { x: headC.x + r * 0.05, y: headC.y + r * 0.28 };
+    ctx.fillStyle = PAL.hoodShade;
+    ctx.beginPath();
+    ctx.ellipse(faceC.x, faceC.y, r * 0.85, r * 0.92, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    drawHead(faceC, 0.8);
+  }
+
+  function drawCape(facing) {
+    ctx.save();
+    ctx.scale(1 / facing, 1);
+    ctx.translate(-character.worldX, -character.footWorldY);
+
+    for (let s = 0; s < CAPE_STRANDS - 1; s++) {
+      const a = capeStrands[s];
+      const b = capeStrands[s + 1];
+      const grad = ctx.createLinearGradient(0, a[0].y, 0, a[a.length - 1].y);
+      grad.addColorStop(0, PAL.capeTop);
+      grad.addColorStop(1, PAL.capeBottom);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(a[0].x, a[0].y);
+      for (let i = 1; i < a.length; i++) ctx.lineTo(a[i].x, a[i].y);
+      for (let i = b.length - 1; i >= 0; i--) ctx.lineTo(b[i].x, b[i].y);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.lineWidth = 1.2;
+    for (let s = 1; s < CAPE_STRANDS - 1; s++) {
+      const strand = capeStrands[s];
+      ctx.beginPath();
+      ctx.moveTo(strand[0].x, strand[0].y);
+      for (let i = 1; i < strand.length; i++) ctx.lineTo(strand[i].x, strand[i].y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---------- main loop ----------
+  let dtGlobal = 1 / 60;
+  let elapsedTime = 0;
+  function frame(now) {
+    const dt = Math.min(0.033, (now - lastT) / 1000 || 1 / 60);
+    lastT = now;
+    dtGlobal = dt;
+    elapsedTime += dt;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

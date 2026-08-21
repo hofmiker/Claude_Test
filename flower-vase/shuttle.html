@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>3D Spaceshuttle – Explosion</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: radial-gradient(ellipse at 50% 30%, #10131e 0%, #020204 70%);
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    color: #eef1f8;
+  }
+  canvas { display: block; touch-action: none; }
+
+  #deploy-time {
+    position: fixed; top: 18px; right: 18px; z-index: 10;
+    font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase;
+    color: rgba(255,255,255,0.30);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    pointer-events: none;
+  }
+
+  #sceneTabs {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    z-index: 12; display: flex; gap: 4px; max-width: calc(100vw - 120px);
+    overflow-x: auto; scrollbar-width: none;
+    background: rgba(18, 20, 32, 0.55);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-radius: 999px;
+    padding: 5px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  }
+  #sceneTabs::-webkit-scrollbar { display: none; }
+  #sceneTabs a {
+    text-decoration: none; white-space: nowrap; flex-shrink: 0;
+    color: rgba(255,255,255,0.55);
+    font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em;
+    padding: 8px 16px;
+    border-radius: 999px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  #sceneTabs a:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  #sceneTabs a.active {
+    color: #0a0b12;
+    background: linear-gradient(90deg, #6ea8ff, #b98bff);
+  }
+
+  #infoBtn {
+    position: fixed; top: 18px; left: 18px; z-index: 11;
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(18, 20, 32, 0.55);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    color: #fff; font-size: 1.1rem; font-style: italic; font-family: Georgia, serif;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  #infoBtn:hover { background: rgba(255,255,255,0.18); }
+  #infoBtn:active { transform: scale(0.92); }
+
+  #hud {
+    position: fixed; top: 18px; left: 66px; z-index: 10;
+    max-width: min(360px, calc(100vw - 100px));
+    background: rgba(18, 20, 32, 0.55);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-radius: 14px;
+    padding: 12px 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    opacity: 0; transform: translateX(-8px);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  #hud.open {
+    opacity: 1; transform: translateX(0);
+    pointer-events: auto;
+  }
+  #hud h1 {
+    margin: 0 0 4px 0; font-size: 1.1rem; font-weight: 600; letter-spacing: 0.02em;
+  }
+  #hud p {
+    margin: 0; font-size: 0.82rem; opacity: 0.75;
+  }
+
+  #panel {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    width: min(720px, 92vw);
+    background: rgba(18, 20, 32, 0.55);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-radius: 18px;
+    padding: 14px 18px 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    z-index: 10;
+  }
+
+  #panelTop {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+  }
+
+  .iconBtn {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+    color: #fff; font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .iconBtn:hover { background: rgba(255,255,255,0.18); }
+  .iconBtn:active { transform: scale(0.92); }
+
+  #timeSlider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #ff9a5a 0%, #ff5a5a var(--fill, 0%), rgba(255,255,255,0.15) var(--fill, 0%));
+    outline: none;
+    cursor: pointer;
+  }
+  #timeSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(255, 138, 90, 0.35), 0 2px 6px rgba(0,0,0,0.5);
+    cursor: grab;
+  }
+  #timeSlider::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%; border: none;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(255, 138, 90, 0.35), 0 2px 6px rgba(0,0,0,0.5);
+    cursor: grab;
+  }
+
+  #panelBottom {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.78rem; opacity: 0.85; padding: 0 2px;
+  }
+  #stateLabel { font-weight: 600; letter-spacing: 0.02em; }
+  #pctLabel { font-variant-numeric: tabular-nums; opacity: 0.7; }
+
+  #loading {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem; opacity: 0.6; z-index: 20; transition: opacity 0.4s ease;
+  }
+</style>
+</head>
+<body>
+
+<div id="deploy-time">v2.2&thinsp;|&thinsp;17.07.2026</div>
+<nav id="sceneTabs">
+  <a href="./index.html">🌸 Blumenvase</a>
+  <a href="./shuttle.html" class="active">🚀 Spaceshuttle</a>
+</nav>
+<button id="infoBtn" title="Info" aria-label="Info">i</button>
+<div id="hud">
+  <h1>🚀 3D Spaceshuttle — Explosion</h1>
+  <p>Explodiert mit Feuer &amp; Rauch. Regler unten: durch die Zeit scrollen, vor &amp; zurück. Maus / Finger auf der Szene: Kamera drehen &amp; zoomen.</p>
+</div>
+
+<div id="loading">Lade Szene …</div>
+
+<div id="panel">
+  <div id="panelTop">
+    <button id="playBtn" class="iconBtn" title="Abspielen / Pause">▶</button>
+    <input id="timeSlider" type="range" min="0" max="1000" value="0" step="1" />
+    <button id="resetBtn" class="iconBtn" title="Zurücksetzen">⟲</button>
+  </div>
+  <div id="panelBottom">
+    <span id="stateLabel">Intakt</span>
+    <span id="pctLabel">0%</span>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+// ---------- helpers ----------
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const smoothstep = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+// explosion motion: very high initial acceleration, then rapid deceleration
+const easeOutBlast = (t) => { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 4); };
+const lerp = (a, b, t) => a + (b - a) * t;
+
+function weightedPick(items) {
+  let total = 0;
+  for (const it of items) total += it.weight;
+  let r = Math.random() * total;
+  for (const it of items) {
+    if (r < it.weight) return it;
+    r -= it.weight;
+  }
+  return items[items.length - 1];
+}
+
+function makeGlowTexture(hard) {
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  if (hard) {
+    grad.addColorStop(0, "rgba(255,255,255,1)");
+    grad.addColorStop(0.55, "rgba(255,255,255,0.55)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+  } else {
+    grad.addColorStop(0, "rgba(255,255,255,0.9)");
+    grad.addColorStop(0.5, "rgba(255,255,255,0.35)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+  }
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+  return new THREE.CanvasTexture(canvas);
+}
+
+// ---------- renderer / scene / camera ----------
+const canvas = document.createElement("canvas");
+document.body.appendChild(canvas);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x02030a);
+scene.fog = new THREE.FogExp2(0x02030a, 0.012);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 200);
+camera.position.set(4.2, 4.3, 5.6);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 2.5;
+controls.maxDistance = 24;
+controls.target.set(0, 0, 0);
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.5;
+controls.addEventListener("start", () => (controls.autoRotate = false));
+
+// ---------- lighting (deep space: one hard sun, faint ambient) ----------
+scene.add(new THREE.HemisphereLight(0x4a5a80, 0x0a0a10, 0.7));
+
+const sun = new THREE.DirectionalLight(0xfff2df, 3.0);
+sun.position.set(6, 5, 4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.near = 1;
+sun.shadow.camera.far = 20;
+sun.shadow.camera.left = -4;
+sun.shadow.camera.right = 4;
+sun.shadow.camera.top = 4;
+sun.shadow.camera.bottom = -4;
+sun.shadow.bias = -0.0015;
+scene.add(sun);
+
+const rimLight = new THREE.PointLight(0x5a7fff, 4, 14, 2);
+rimLight.position.set(-4, -1.5, -3);
+scene.add(rimLight);
+
+const blastLight = new THREE.PointLight(0xff7a33, 0, 16, 2);
+blastLight.position.set(0, 0, 0);
+scene.add(blastLight);
+
+// soft light that follows the camera so the model is never lit from only one hard angle
+const camLight = new THREE.PointLight(0xffffff, 2.2, 20, 1.5);
+scene.add(camLight);
+
+// ---------- starfield ----------
+{
+  const starCount = 1400;
+  const starPos = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    const r = rand(30, 90);
+    const theta = rand(0, Math.PI * 2);
+    const phi = Math.acos(rand(-1, 1));
+    starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    starPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    starPos[i * 3 + 2] = r * Math.cos(phi);
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
+  const starMat = new THREE.PointsMaterial({
+    color: 0xffffff, size: 0.16, sizeAttenuation: true,
+    map: makeGlowTexture(true), transparent: true, opacity: 0.85, depthWrite: false,
+  });
+  const stars = new THREE.Points(starGeo, starMat);
+  stars.frustumCulled = false;
+  scene.add(stars);
+}
+
+// distant planet for atmosphere
+{
+  const planet = new THREE.Mesh(
+    new THREE.SphereGeometry(7, 32, 32),
+    new THREE.MeshStandardMaterial({ color: 0x1c3a55, roughness: 0.85, metalness: 0.05, emissive: 0x061018, emissiveIntensity: 0.6 })
+  );
+  planet.position.set(20, -8, -28);
+  scene.add(planet);
+}
+
+// ---------- ground / display ambience (toy sitting in a lit display space) ----------
+const GROUND_Y = -1.15;
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(9, 64),
+  new THREE.MeshStandardMaterial({ color: 0x0b0d18, roughness: 0.7, metalness: 0.2 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = GROUND_Y;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const haloRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.05, 0.06, 96),
+  new THREE.MeshBasicMaterial({ color: 0xff8a3c, transparent: true, opacity: 0.16, side: THREE.DoubleSide })
+);
+haloRing.rotation.x = -Math.PI / 2;
+haloRing.position.y = GROUND_Y + 0.01;
+scene.add(haloRing);
+
+const groundFill = new THREE.PointLight(0x3a5a8a, 2.2, 8, 2);
+groundFill.position.set(0, GROUND_Y + 0.6, 1.5);
+scene.add(groundFill);
+
+// ---------- fragments registry (shared by big hull chunks + small shrapnel) ----------
+// each fragment: { mesh, basePos, baseQuat, baseScale, dir, dist, axis, spin, delay, gravity, fade }
+const fragments = [];
+
+function addFragment(geometry, material, basePos, baseQuat, opts = {}) {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.copy(basePos);
+  mesh.quaternion.copy(baseQuat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = false;
+  scene.add(mesh);
+
+  const dir = (opts.dir || new THREE.Vector3(rand(-1, 1), rand(0.2, 1), rand(-1, 1))).clone().normalize();
+  fragments.push({
+    mesh,
+    basePos: basePos.clone(),
+    baseQuat: baseQuat.clone(),
+    baseScale: mesh.scale.clone(),
+    dir,
+    dist: opts.dist ?? rand(2, 4),
+    axis: opts.axis || new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize(),
+    spin: opts.spin ?? rand(1.5, 4.5) * (Math.random() < 0.5 ? -1 : 1),
+    delay: opts.delay ?? rand(0, 0.05),
+    fade: opts.fade ?? false,
+    gravity: opts.gravity ?? rand(0.1, 0.4),
+  });
+  return mesh;
+}
+
+// a slightly-jittered copy of another fragment's explosion params, so an
+// attached detail piece (cockpit, wing trim, engine bell) tears away
+// together with its parent chunk instead of flying off on its own
+function attachedExplosion(base) {
+  return {
+    dir: base.dir.clone().add(new THREE.Vector3(rand(-0.06, 0.06), rand(-0.06, 0.06), rand(-0.06, 0.06))).normalize(),
+    dist: base.dist * rand(0.94, 1.06),
+    axis: base.axis.clone(),
+    spin: base.spin * rand(0.9, 1.1),
+    delay: base.delay + rand(0, 0.015),
+    gravity: base.gravity,
+  };
+}
+
+// ---------- shuttle geometry (nose points +Z, tail at -Z) — a chunky toy model ----------
+function makeToyMat(color, opts = {}) {
+  return new THREE.MeshPhysicalMaterial({
+    color, roughness: opts.roughness ?? 0.32, metalness: opts.metalness ?? 0.08,
+    clearcoat: opts.clearcoat ?? 0.6, clearcoatRoughness: 0.25,
+    emissive: opts.emissive ?? 0x000000, emissiveIntensity: opts.emissiveIntensity ?? 1,
+  });
+}
+
+const hullMat = makeToyMat(0xf2f0ea, { roughness: 0.38, metalness: 0.04 });
+const darkMat = makeToyMat(0x28344a, { roughness: 0.42, metalness: 0.15, clearcoat: 0.5 });
+const canopyMat = makeToyMat(0xbfe0ee, { roughness: 0.12, metalness: 0.1, clearcoat: 0.9 });
+canopyMat.transparent = true;
+canopyMat.opacity = 0.62;
+const astronautMat = makeToyMat(0xf6f6f2, { roughness: 0.45, metalness: 0.02, clearcoat: 0.2 });
+
+const FUSELAGE_R = 0.4;
+const FRONT_LEN = 1.05;
+const REAR_LEN = 0.8;
+const SEG = 32;
+
+// front module: nose + forward hull as ONE smooth rounded lathe taper (no seam)
+// so it reads as a real blended toy hull instead of a cylinder + cone glued together
+const frontProfile = [
+  [FUSELAGE_R, 0], [FUSELAGE_R * 1.0, 0.06], [FUSELAGE_R * 0.94, 0.28],
+  [FUSELAGE_R * 0.74, 0.52], [FUSELAGE_R * 0.44, 0.74], [FUSELAGE_R * 0.16, 0.9],
+  [FUSELAGE_R * 0.02, 0.99], [0, FRONT_LEN],
+].map(([r, y]) => new THREE.Vector2(r, y));
+const frontGeo = new THREE.LatheGeometry(frontProfile, SEG);
+frontGeo.rotateX(Math.PI / 2);
+
+// rear module: same idea, tapering to a smooth rounded tail
+const rearProfile = [
+  [FUSELAGE_R, 0], [FUSELAGE_R * 1.04, 0.13], [FUSELAGE_R * 0.88, 0.36],
+  [FUSELAGE_R * 0.58, 0.57], [FUSELAGE_R * 0.28, 0.7], [0, REAR_LEN],
+].map(([r, y]) => new THREE.Vector2(r, y));
+const rearGeo = new THREE.LatheGeometry(rearProfile, SEG);
+rearGeo.rotateX(-Math.PI / 2);
+
+// small dark nose-tip cap, like the reference toy's painted tip
+const noseTipGeo = new THREE.SphereGeometry(FUSELAGE_R * 0.2, 16, 12);
+noseTipGeo.scale(1, 1, 1.3);
+noseTipGeo.translate(0, 0, FRONT_LEN - FUSELAGE_R * 0.12);
+
+// big elongated dome canopy (toy-style, much larger than a real shuttle's flight deck windows)
+const canopyGeo = new THREE.SphereGeometry(0.24, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+canopyGeo.scale(0.86, 0.78, 1.55);
+canopyGeo.translate(0, FUSELAGE_R * 0.58, 0.42);
+
+// tiny astronaut sitting inside the canopy
+const astronautHeadGeo = new THREE.SphereGeometry(0.05, 14, 10);
+astronautHeadGeo.translate(0, FUSELAGE_R * 0.5, 0.5);
+const astronautTorsoGeo = new THREE.CapsuleGeometry(0.045, 0.1, 4, 10);
+astronautTorsoGeo.translate(0, FUSELAGE_R * 0.32, 0.5);
+
+// delta wings — thick, heavily beveled for a chunky rounded toy profile
+const WING_Z = -0.25;
+const WING_Y = -FUSELAGE_R * 0.45;
+const WING_TIP_LOCAL = new THREE.Vector2(1.0, -0.2);
+function makeWingGeo(mirror) {
+  const s = new THREE.Shape();
+  const sgn = mirror ? -1 : 1;
+  s.moveTo(0.06 * sgn, 0.22);
+  s.lineTo(WING_TIP_LOCAL.x * sgn, WING_TIP_LOCAL.y);
+  s.lineTo(0.06 * sgn, -0.62);
+  s.closePath();
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.1, bevelEnabled: true, bevelThickness: 0.032, bevelSize: 0.032, bevelSegments: 4 });
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(sgn * FUSELAGE_R * 0.7, WING_Y, WING_Z);
+  return geo;
+}
+const wingRGeo = makeWingGeo(false);
+const wingLGeo = makeWingGeo(true);
+
+// rounded dark wingtip pods, like the toy's painted tip caps
+function makeWingtipPodGeo(mirror) {
+  const sgn = mirror ? -1 : 1;
+  const geo = new THREE.SphereGeometry(0.075, 14, 10);
+  geo.scale(1.4, 1, 1);
+  geo.translate(
+    sgn * (WING_TIP_LOCAL.x + FUSELAGE_R * 0.7),
+    WING_Y,
+    WING_Z - WING_TIP_LOCAL.y
+  );
+  return geo;
+}
+const wingtipPodRGeo = makeWingtipPodGeo(false);
+const wingtipPodLGeo = makeWingtipPodGeo(true);
+
+// single centered tail fin, solid dark accent color, thick + rounded
+const FIN_Z = -0.5;
+function makeFinGeo() {
+  const s = new THREE.Shape();
+  s.moveTo(0, 0);
+  s.lineTo(-0.22, 0.62);
+  s.lineTo(-0.52, 0.56);
+  s.lineTo(-0.4, 0);
+  s.closePath();
+  const geo = new THREE.ExtrudeGeometry(s, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.026, bevelSize: 0.026, bevelSegments: 3 });
+  geo.rotateY(Math.PI / 2);
+  geo.translate(0, FUSELAGE_R * 0.58, FIN_Z);
+  return geo;
+}
+const finGeo = makeFinGeo();
+
+// ---------- assemble big hull chunks as fragments (fly apart as large pieces) ----------
+addFragment(frontGeo, hullMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(rand(-0.25, 0.25), rand(0.2, 0.55), 0.75).normalize(),
+  dist: rand(2.2, 3.4), delay: rand(0, 0.03), gravity: rand(0.12, 0.3),
+});
+const frontFrag = fragments[fragments.length - 1];
+addFragment(noseTipGeo, darkMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(frontFrag));
+addFragment(canopyGeo, canopyMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(frontFrag));
+addFragment(astronautHeadGeo, astronautMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(frontFrag));
+addFragment(astronautTorsoGeo, astronautMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(frontFrag));
+
+addFragment(rearGeo, hullMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(rand(-0.3, 0.3), rand(0.15, 0.5), -0.7).normalize(),
+  dist: rand(1.8, 3.0), delay: rand(0, 0.04), gravity: rand(0.2, 0.45),
+});
+
+addFragment(wingRGeo, hullMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(1, rand(0.2, 0.5), rand(-0.2, 0.2)).normalize(),
+  dist: rand(2.2, 3.4), delay: rand(0, 0.03), gravity: rand(0.15, 0.35),
+});
+addFragment(wingtipPodRGeo, darkMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(fragments[fragments.length - 1]));
+
+addFragment(wingLGeo, hullMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(-1, rand(0.2, 0.5), rand(-0.2, 0.2)).normalize(),
+  dist: rand(2.2, 3.4), delay: rand(0, 0.03), gravity: rand(0.15, 0.35),
+});
+addFragment(wingtipPodLGeo, darkMat, new THREE.Vector3(), new THREE.Quaternion(), attachedExplosion(fragments[fragments.length - 1]));
+
+addFragment(finGeo, darkMat, new THREE.Vector3(), new THREE.Quaternion(), {
+  dir: new THREE.Vector3(rand(-0.3, 0.3), 1, rand(-0.3, -0.05)).normalize(),
+  dist: rand(2.0, 3.2), delay: rand(0, 0.03), gravity: rand(0.15, 0.35),
+});
+
+// rounded dark engine pods clustered behind the fin (toy-style, no exposed nozzles)
+const ENGINE_Z = -REAR_LEN + 0.14;
+const enginePositions = [
+  new THREE.Vector3(0.1, FUSELAGE_R * 0.3, ENGINE_Z),
+  new THREE.Vector3(-0.1, FUSELAGE_R * 0.3, ENGINE_Z),
+];
+for (const p of enginePositions) {
+  const eGeo = new THREE.SphereGeometry(0.1, 16, 12);
+  eGeo.scale(1, 1, 1.3);
+  eGeo.translate(p.x, p.y, p.z);
+
+  const outward = new THREE.Vector3(p.x, p.y, 0).normalize();
+  if (outward.lengthSq() < 1e-6) outward.set(0, 1, 0);
+  addFragment(eGeo, darkMat, new THREE.Vector3(), new THREE.Quaternion(), {
+    dir: outward.multiplyScalar(0.5).add(new THREE.Vector3(0, 0.3, -1)).normalize(),
+    dist: rand(1.6, 2.6), delay: rand(0, 0.04), gravity: rand(0.2, 0.5),
+  });
+}
+
+// ---------- small shrapnel (secondary debris supplementing the big chunks) ----------
+const SHUTTLE_CENTER = new THREE.Vector3(0, 0, 0);
+const debrisSources = [
+  { center: new THREE.Vector3(0, 0, FRONT_LEN * 0.4), half: new THREE.Vector3(FUSELAGE_R, FUSELAGE_R, FRONT_LEN * 0.5), weight: 20 },
+  { center: new THREE.Vector3(0, 0, -REAR_LEN * 0.4), half: new THREE.Vector3(FUSELAGE_R, FUSELAGE_R, REAR_LEN * 0.5), weight: 20 },
+  { center: new THREE.Vector3(FUSELAGE_R * 1.4, WING_Y, WING_Z), half: new THREE.Vector3(0.5, 0.08, 0.4), weight: 16 },
+  { center: new THREE.Vector3(-FUSELAGE_R * 1.4, WING_Y, WING_Z), half: new THREE.Vector3(0.5, 0.08, 0.4), weight: 16 },
+  { center: new THREE.Vector3(0, FUSELAGE_R * 1.0, FIN_Z), half: new THREE.Vector3(0.05, 0.3, 0.25), weight: 6 },
+  { center: new THREE.Vector3(0, 0, ENGINE_Z), half: new THREE.Vector3(0.22, 0.22, 0.15), weight: 8 },
+];
+
+const DEBRIS_COUNT = 380;
+const debrisGeo = new THREE.BoxGeometry(0.045, 0.032, 0.009).toNonIndexed();
+{
+  const colors = [];
+  const faceColors = [
+    new THREE.Color(0xf0f2f6), new THREE.Color(0xf0f2f6),
+    new THREE.Color(0x121319), new THREE.Color(0x121319),
+    new THREE.Color(0x9aa0ac), new THREE.Color(0xff7a33),
+  ];
+  const posAttr = debrisGeo.getAttribute("position");
+  const faceCount = posAttr.count / 3;
+  for (let f = 0; f < faceCount; f++) {
+    const c = faceColors[f % faceColors.length];
+    for (let v = 0; v < 3; v++) colors.push(c.r, c.g, c.b);
+  }
+  debrisGeo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+}
+const debrisMat = new THREE.MeshStandardMaterial({
+  vertexColors: true, roughness: 0.4, metalness: 0.4, transparent: true, opacity: 0,
+});
+const debrisMesh = new THREE.InstancedMesh(debrisGeo, debrisMat, DEBRIS_COUNT);
+debrisMesh.castShadow = true;
+debrisMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+debrisMesh.frustumCulled = false;
+debrisMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(DEBRIS_COUNT * 3), 3);
+scene.add(debrisMesh);
+
+const debris = [];
+const debrisTmpColor = new THREE.Color();
+for (let i = 0; i < DEBRIS_COUNT; i++) {
+  const src = weightedPick(debrisSources);
+  const pos = new THREE.Vector3(
+    src.center.x + rand(-src.half.x, src.half.x),
+    src.center.y + rand(-src.half.y, src.half.y),
+    src.center.z + rand(-src.half.z, src.half.z)
+  );
+  const baseQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rand(0, Math.PI * 2), rand(0, Math.PI * 2), rand(0, Math.PI * 2)));
+
+  const dir = pos.clone().sub(SHUTTLE_CENTER);
+  if (dir.lengthSq() < 1e-6) dir.set(rand(-1, 1), rand(-1, 1), rand(-1, 1));
+  dir.add(new THREE.Vector3(rand(-0.3, 0.3), rand(-0.1, 0.5), rand(-0.3, 0.3)));
+  dir.normalize();
+
+  debris.push({
+    basePos: pos,
+    baseQuat,
+    dir,
+    dist: rand(2.6, 7.0),
+    axis: new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize(),
+    spin: rand(2, 8) * (Math.random() < 0.5 ? -1 : 1),
+    delay: rand(0, 0.08),
+    gravity: rand(0.05, 0.35),
+    scale: rand(0.6, 2.0),
+  });
+
+  debrisTmpColor.setScalar(rand(0.8, 1.2));
+  debrisMesh.setColorAt(i, debrisTmpColor);
+}
+debrisMesh.instanceColor.needsUpdate = true;
+
+// ---------- fire particles ----------
+const FIRE_COUNT = 260;
+const fireGeo = new THREE.BufferGeometry();
+const firePos = new Float32Array(FIRE_COUNT * 3);
+const fireColor = new Float32Array(FIRE_COUNT * 3);
+const fireData = [];
+for (let i = 0; i < FIRE_COUNT; i++) {
+  const base = new THREE.Vector3(rand(-0.15, 0.15), rand(-0.15, 0.15), rand(-0.4, 0.4));
+  const dir = base.clone().normalize();
+  if (dir.lengthSq() < 1e-6) dir.set(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize();
+  fireData.push({
+    basePos: base,
+    dir: dir.add(new THREE.Vector3(rand(-0.4, 0.4), rand(-0.4, 0.4), rand(-0.4, 0.4))).normalize(),
+    dist: rand(0.6, 2.6),
+    delay: rand(0, 0.04),
+  });
+  const c = new THREE.Color().setHSL(rand(0.04, 0.13), 1, rand(0.5, 0.75));
+  fireColor[i * 3] = c.r; fireColor[i * 3 + 1] = c.g; fireColor[i * 3 + 2] = c.b;
+}
+fireGeo.setAttribute("position", new THREE.Float32BufferAttribute(firePos, 3));
+fireGeo.setAttribute("color", new THREE.Float32BufferAttribute(fireColor, 3));
+const fireMat = new THREE.PointsMaterial({
+  size: 0.001, vertexColors: true, map: makeGlowTexture(true),
+  transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true,
+});
+const fireParticles = new THREE.Points(fireGeo, fireMat);
+fireParticles.frustumCulled = false;
+scene.add(fireParticles);
+
+// ---------- smoke particles ----------
+const SMOKE_COUNT = 300;
+const smokeGeo = new THREE.BufferGeometry();
+const smokePos = new Float32Array(SMOKE_COUNT * 3);
+const smokeColor = new Float32Array(SMOKE_COUNT * 3);
+const smokeData = [];
+for (let i = 0; i < SMOKE_COUNT; i++) {
+  const base = new THREE.Vector3(rand(-0.25, 0.25), rand(-0.25, 0.25), rand(-0.6, 0.6));
+  const dir = base.clone().normalize();
+  if (dir.lengthSq() < 1e-6) dir.set(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize();
+  smokeData.push({
+    basePos: base,
+    dir: dir.add(new THREE.Vector3(rand(-0.5, 0.5), rand(-0.2, 0.7), rand(-0.5, 0.5))).normalize(),
+    dist: rand(1.8, 5.5),
+    delay: rand(0, 0.15),
+  });
+  const g = rand(0.18, 0.55);
+  smokeColor[i * 3] = g; smokeColor[i * 3 + 1] = g; smokeColor[i * 3 + 2] = g * 1.05;
+}
+smokeGeo.setAttribute("position", new THREE.Float32BufferAttribute(smokePos, 3));
+smokeGeo.setAttribute("color", new THREE.Float32BufferAttribute(smokeColor, 3));
+const smokeMat = new THREE.PointsMaterial({
+  size: 0.001, vertexColors: true, map: makeGlowTexture(false),
+  transparent: true, opacity: 0, depthWrite: false, blending: THREE.NormalBlending, sizeAttenuation: true,
+});
+const smokeParticles = new THREE.Points(smokeGeo, smokeMat);
+smokeParticles.frustumCulled = false;
+scene.add(smokeParticles);
+
+// ---------- explosion flash ----------
+const flashMat = new THREE.SpriteMaterial({
+  map: makeGlowTexture(true), color: 0xff8a3c, transparent: true, opacity: 0,
+  blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false,
+});
+const flash = new THREE.Sprite(flashMat);
+scene.add(flash);
+
+const shockMat = new THREE.MeshBasicMaterial({
+  color: 0xffb066, transparent: true, opacity: 0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false,
+});
+const shockwave = new THREE.Mesh(new THREE.RingGeometry(1, 1.08, 64), shockMat);
+scene.add(shockwave);
+
+// ---------- time state ----------
+let t = 0; // 0..1
+let playing = false;
+let playDir = 1;
+
+const slider = document.getElementById("timeSlider");
+const playBtn = document.getElementById("playBtn");
+const resetBtn = document.getElementById("resetBtn");
+const stateLabel = document.getElementById("stateLabel");
+const pctLabel = document.getElementById("pctLabel");
+const loading = document.getElementById("loading");
+const infoBtn = document.getElementById("infoBtn");
+const hud = document.getElementById("hud");
+
+infoBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  hud.classList.toggle("open");
+});
+document.addEventListener("click", (e) => {
+  if (hud.classList.contains("open") && !hud.contains(e.target) && e.target !== infoBtn) {
+    hud.classList.remove("open");
+  }
+});
+
+function setT(newT, fromSlider) {
+  t = clamp(newT, 0, 1);
+  if (!fromSlider) slider.value = String(Math.round(t * 1000));
+  const pct = Math.round(t * 100);
+  pctLabel.textContent = pct + "%";
+  slider.style.setProperty("--fill", pct + "%");
+  stateLabel.textContent = t < 0.02 ? "Intakt" : t > 0.97 ? "Vollständig zerstört" : "Explosion läuft …";
+}
+
+slider.addEventListener("input", () => {
+  playing = false;
+  playBtn.textContent = "▶";
+  setT(Number(slider.value) / 1000, true);
+});
+
+playBtn.addEventListener("click", () => {
+  playing = !playing;
+  playBtn.textContent = playing ? "⏸" : "▶";
+});
+
+resetBtn.addEventListener("click", () => {
+  playing = false;
+  playBtn.textContent = "▶";
+  setT(0);
+});
+
+setT(0);
+
+// ---------- animate ----------
+const tmpV = new THREE.Vector3();
+const tmpQ = new THREE.Quaternion();
+const tmpPos = new THREE.Vector3();
+const tmpScale = new THREE.Vector3();
+const tmpQuat2 = new THREE.Quaternion();
+const tmpMatrix = new THREE.Matrix4();
+const clock = new THREE.Clock();
+
+function fireEnvelope(tt) {
+  const rise = smoothstep(clamp(tt / 0.04, 0, 1));
+  const decay = Math.exp(-Math.max(0, tt - 0.04) * 8.5);
+  return rise * decay;
+}
+function smokeEnvelope(tt) {
+  const rise = smoothstep(clamp(tt / 0.15, 0, 1));
+  const fade = 1 - smoothstep(clamp((tt - 0.45) / 0.55, 0, 1)) * 0.75;
+  return rise * fade;
+}
+
+function updateScene() {
+  camLight.position.copy(camera.position);
+
+  // small shrapnel fades in fast alongside the big chunks breaking apart
+  const shrapnelIn = smoothstep(clamp(t / 0.05, 0, 1));
+  debrisMat.opacity = shrapnelIn * 0.9;
+  debrisMesh.visible = shrapnelIn > 0.001;
+
+  // big hull chunks: fly apart directly from their intact position (no crossfade needed)
+  for (const fr of fragments) {
+    const localT = clamp((t - fr.delay) / Math.max(0.0001, 1 - fr.delay), 0, 1);
+    const eff = easeOutBlast(localT);
+
+    tmpV.copy(fr.dir).multiplyScalar(fr.dist * eff);
+    tmpV.y -= fr.gravity * eff * eff * 0.6;
+    fr.mesh.position.copy(fr.basePos).add(tmpV);
+
+    tmpQ.setFromAxisAngle(fr.axis, fr.spin * eff * Math.PI);
+    fr.mesh.quaternion.copy(fr.baseQuat).multiply(tmpQ);
+
+    if (fr.fade) fr.mesh.material.opacity = lerp(1, 0.4, eff);
+  }
+
+  const fEnv = fireEnvelope(t);
+  const sEnv = smokeEnvelope(t);
+  blastLight.intensity = fEnv * 22;
+
+  flash.scale.setScalar(0.4 + fEnv * 4.5);
+  flashMat.opacity = fEnv;
+
+  const shockT = clamp(t / 0.35, 0, 1);
+  const shockEff = smoothstep(shockT);
+  shockwave.scale.setScalar(0.3 + shockEff * 7);
+  shockwave.lookAt(camera.position);
+  shockMat.opacity = (1 - shockEff) * smoothstep(clamp(t * 16, 0, 1)) * 0.55;
+
+  // debris
+  for (let i = 0; i < debris.length; i++) {
+    const d = debris[i];
+    const localT = clamp((t - d.delay) / Math.max(0.0001, 1 - d.delay), 0, 1);
+    const eff = easeOutBlast(localT);
+
+    tmpV.copy(d.dir).multiplyScalar(d.dist * eff);
+    tmpV.y -= d.gravity * eff * eff * 0.6;
+    tmpPos.copy(d.basePos).add(tmpV);
+
+    tmpQ.setFromAxisAngle(d.axis, d.spin * eff * Math.PI);
+    tmpQuat2.copy(d.baseQuat).multiply(tmpQ);
+
+    tmpScale.setScalar(d.scale * (1 + Math.sin(eff * Math.PI) * 0.15));
+
+    tmpMatrix.compose(tmpPos, tmpQuat2, tmpScale);
+    debrisMesh.setMatrixAt(i, tmpMatrix);
+  }
+  debrisMesh.instanceMatrix.needsUpdate = true;
+
+  // fire particles
+  const firePosAttr = fireGeo.getAttribute("position");
+  for (let i = 0; i < FIRE_COUNT; i++) {
+    const f = fireData[i];
+    const localT = clamp((t - f.delay) / Math.max(0.0001, 1 - f.delay), 0, 1);
+    const eff = easeOutBlast(localT);
+    tmpPos.copy(f.basePos).add(tmpV.copy(f.dir).multiplyScalar(f.dist * eff));
+    firePosAttr.setXYZ(i, tmpPos.x, tmpPos.y, tmpPos.z);
+  }
+  firePosAttr.needsUpdate = true;
+  fireMat.opacity = fEnv;
+  fireMat.size = lerp(0.05, 0.55, smoothstep(clamp(t / 0.15, 0, 1))) * (0.5 + fEnv * 0.5);
+
+  // smoke particles
+  const smokePosAttr = smokeGeo.getAttribute("position");
+  for (let i = 0; i < SMOKE_COUNT; i++) {
+    const s = smokeData[i];
+    const localT = clamp((t - s.delay) / Math.max(0.0001, 1 - s.delay), 0, 1);
+    const eff = easeOutBlast(localT);
+    tmpPos.copy(s.basePos).add(tmpV.copy(s.dir).multiplyScalar(s.dist * eff));
+    tmpPos.y += t * 0.6;
+    smokePosAttr.setXYZ(i, tmpPos.x, tmpPos.y, tmpPos.z);
+  }
+  smokePosAttr.needsUpdate = true;
+  smokeMat.opacity = sEnv * 0.55;
+  smokeMat.size = lerp(0.1, 0.85, smoothstep(t));
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  if (playing) {
+    t += dt * 0.16 * playDir;
+    if (t >= 1) { t = 1; playDir = -1; }
+    if (t <= 0) { t = 0; playDir = 1; }
+    setT(t);
+  }
+
+  updateScene();
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+loading.style.opacity = "0";
+setTimeout(() => loading.remove(), 400);
+
+animate();
+</script>
+</body>
+</html>
