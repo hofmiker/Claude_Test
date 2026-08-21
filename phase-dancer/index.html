@@ -470,36 +470,36 @@
   <p class="eyebrow">Phase Dancer &mdash; Prototyp-Sound-Lab</p>
   <h1>KLANG IST DAS MATERIAL</h1>
   <p class="lede">
-    Fünf 4-Takt-Loops, komplett aus Oszillatoren und Rauschen synthetisiert &mdash;
-    <b>keine Samples, kein fremder Song</b>. Die vier neuen Klangkörper orientieren
-    sich am Klavier-Stab-Antrieb und Vocal-Chop-Hook von Culture Beats
-    &bdquo;Mister Vain&ldquo; &mdash; eigene Harmonik, eigene Melodie. Die fünf Regler
-    entsprechen den Manipulationstechniken aus dem Konzept: Tonhöhe, Tempo,
-    Granularsynthese, Spektral-Freeze und Feedback greifen live in den
-    jeweils gewählten Klangkörper ein.
+    Fünf eigenständige Tracks, komplett aus Oszillatoren und Rauschen synthetisiert
+    &mdash; <b>keine Samples, kein fremder Song</b>. Jeder Track ein eigenes Genre mit
+    eigenem Tempo, eigener Harmonik und eigenem Rhythmusgerüst: Eurodance in
+    Anlehnung an Culture Beats &bdquo;Mister Vain&ldquo;, dazu Hip-Hop, Jungle/Drum&amp;Bass
+    und House. Die fünf Regler entsprechen den Manipulationstechniken aus dem
+    Konzept: Tonhöhe, Tempo, Granularsynthese, Spektral-Freeze und Feedback
+    greifen live in den jeweils gewählten Track ein.
   </p>
 
-  <p class="eyebrow">Klangkörper wählen</p>
+  <p class="eyebrow">Track wählen</p>
   <div class="tracklist" id="tracklist">
     <button class="track-btn active" data-track="0" type="button" aria-pressed="true">
       <span class="track-name">Phase One</span>
-      <span class="track-meta">A-Moll &middot; 136 BPM</span>
+      <span class="track-meta">Eurodance &middot; A-Moll &middot; 136 BPM</span>
     </button>
     <button class="track-btn" data-track="1" type="button" aria-pressed="false">
-      <span class="track-name">Glass Veil</span>
-      <span class="track-meta">H-Moll &middot; 132 BPM</span>
+      <span class="track-name">Vain Reflex</span>
+      <span class="track-meta">Eurodance/Hook &middot; Fis-Moll &middot; 138 BPM</span>
     </button>
     <button class="track-btn" data-track="2" type="button" aria-pressed="false">
-      <span class="track-name">Neon Oath</span>
-      <span class="track-meta">G-Moll &middot; 128 BPM</span>
+      <span class="track-name">Concrete Loop</span>
+      <span class="track-meta">Hip-Hop &middot; D-Moll &middot; 92 BPM</span>
     </button>
     <button class="track-btn" data-track="3" type="button" aria-pressed="false">
-      <span class="track-name">Midnight Arc</span>
-      <span class="track-meta">D-Moll &middot; 138 BPM</span>
+      <span class="track-name">Under Canopy</span>
+      <span class="track-meta">Jungle/D&amp;B &middot; E-Moll &middot; 172 BPM</span>
     </button>
     <button class="track-btn" data-track="4" type="button" aria-pressed="false">
-      <span class="track-name">Static Bloom</span>
-      <span class="track-meta">E-Moll &middot; 126 BPM</span>
+      <span class="track-name">Deep Current</span>
+      <span class="track-meta">House &middot; C-Moll &middot; 124 BPM</span>
     </button>
   </div>
 
@@ -548,7 +548,7 @@
         <div class="control-tech">Time-Stretching</div>
       </div>
       <div class="fader-wrap" id="bpmFader" tabindex="0" role="slider" aria-orientation="vertical"
-           aria-label="Tempo" aria-valuemin="108" aria-valuemax="152" aria-valuenow="136">
+           aria-label="Tempo" aria-valuemin="85" aria-valuemax="175" aria-valuenow="136">
         <div class="fader-track">
           <div class="fader-ticks"></div>
           <div class="fader-fill"></div>
@@ -599,10 +599,11 @@
   </div>
 
   <footer>
-    Web Audio API &middot; fünf eigene Kompositionen (dieselbe i&ndash;VI&ndash;III&ndash;VII-Form,
-    fünf Tonarten/Tempi) &middot; Klavier-Stab-Antrieb und Vocal-Chop-Hook angelehnt an
-    die Energie von Culture Beats &bdquo;Mister Vain&ldquo; und frühen-90er-Eurodance
-    allgemein &mdash; kein Sample, kein Cover, keine übernommene Melodie.
+    Web Audio API &middot; fünf eigenständige Kompositionen, je eigene Akkorde,
+    Bassline und Rhythmusgerüst &mdash; nur &bdquo;Vain Reflex&ldquo; zitiert bewusst den
+    Klavier-Stab-Antrieb und Vocal-Chop-Hook von Culture Beats &bdquo;Mister Vain&ldquo;,
+    die anderen drei gehen Richtung Hip-Hop, Jungle/Drum&amp;Bass und House.
+    Kein Sample, kein Cover, keine übernommene Melodie.
     Ton startet nach Klick auf Play (Browser-Autoplay-Regel).
   </footer>
 </main>
@@ -737,35 +738,119 @@
   const state = { bpm: 136, pitchSemi: 0, grain: 0, fbAmount: 0.18 };
   const mute = { kick: false, hat: false, bass: false, stab: false, lead: false };
 
-  // A minor: i(Am) - VI(F) - III(C) - VII(G) — the shared voicing shape every
-  // track transposes; keeps the bass register and chord spacing consistent.
-  const baseProgression = [
+  function ratio(semi) { return Math.pow(2, semi / 12); }
+  function noteHz(semiFromA4) { return 440 * Math.pow(2, semiFromA4 / 12); }
+  // minor/major triad from a root semitone offset (relative to A4=0)
+  function tri(rootSemi, quality) {
+    const third = rootSemi + (quality === 'maj' ? 4 : 3);
+    return { root: noteHz(rootSemi), third: noteHz(third), fifth: noteHz(rootSemi + 7) };
+  }
+
+  let trackIndex = 0;
+
+  // ---- Track 1: Phase One — A minor, i-VI-III-VII, the original Eurodance loop.
+  // Left untouched; every other track below is built from scratch with its own
+  // key, tempo, chords and rhythm — no shared shape, no transposition.
+  const chordsPhaseOne = [
     { root: 110.00, third: 130.81, fifth: 164.81 },   // Am
     { root: 87.31,  third: 110.00, fifth: 130.81 },   // F
     { root: 130.81, third: 164.81, fifth: 196.00 },   // C
     { root: 98.00,  third: 123.47, fifth: 146.83 },   // G
   ];
-
-  function ratio(semi) { return Math.pow(2, semi / 12); }
-
-  function buildProgression(shiftSemi) {
-    const r = ratio(shiftSemi);
-    return baseProgression.map((c) => ({ root: c.root * r, third: c.third * r, fifth: c.fifth * r }));
+  function patternPhaseOne(pos, bar, t, chunk, g, grainRoll, stepDur) {
+    const chord = chordsPhaseOne[bar];
+    if (!mute.kick && pos % 4 === 0) kick(t);
+    if (!mute.hat && pos % 4 === 2) hat(t, pos === 14);
+    if (!mute.bass && (pos % 2 === 1 || grainRoll)) {
+      const bassFreq = pos % 8 < 4 ? chord.root / 2 : chord.root / 2 * 1.5;
+      bass(t, bassFreq, chunk * 0.9);
+    }
+    if (!mute.stab && (pos === 0 || pos === 8)) stab(t, chord, stepDur * 3.2);
+    if (!mute.lead && (pos === 3 || pos === 11 || (grainRoll && pos % 4 === 1))) {
+      const tones = [chord.root, chord.third, chord.fifth];
+      lead(t, tones[(pos + bar) % 3], chunk * 1.6);
+    }
   }
 
-  // Four additional Klangkörper alongside the original — same i-VI-III-VII shape,
-  // transposed to different keys/tempos. "hook" tracks add a bright, pitch-scooped
-  // stab reminiscent of the piano-stab-driven vocal-chop hook in Culture Beat's
-  // "Mister Vain" — own harmony/melody throughout, no sample, no cover.
-  const trackDefs = [
-    { name: 'Phase One',    shift: 0,  bpm: 136, hook: false },
-    { name: 'Glass Veil',   shift: 2,  bpm: 132, hook: true },
-    { name: 'Neon Oath',    shift: -2, bpm: 128, hook: true },
-    { name: 'Midnight Arc', shift: 5,  bpm: 138, hook: true },
-    { name: 'Static Bloom', shift: -5, bpm: 126, hook: true },
+  // ---- Track 2: Vain Reflex — Fis minor, i-iv-VII-V(maj). The one track that
+  // deliberately nods to Culture Beat's "Mister Vain": relentless stab on every
+  // beat plus a bright vocal-chop-style hook (hookChop) on the off-beats.
+  const TV = -27; // F#2
+  const chordsVainReflex = [
+    tri(TV, 'min'),      // i   (F#m)
+    tri(TV + 5, 'min'),  // iv  (Bm)
+    tri(TV - 2, 'maj'),  // VII (E)
+    tri(TV + 7, 'maj'),  // V   (C#, raised for an anthemic lift)
   ];
-  let trackIndex = 0;
-  let progression = buildProgression(trackDefs[0].shift);
+  function patternVainReflex(pos, bar, t, chunk, g, grainRoll, stepDur) {
+    const chord = chordsVainReflex[bar];
+    if (!mute.kick && pos % 4 === 0) kick(t);
+    if (!mute.hat && pos % 2 === 1) hat(t, pos === 15);
+    if (!mute.bass && (pos % 2 === 0 || grainRoll)) bass(t, chord.root / 2, chunk * 0.85);
+    if (!mute.stab && pos % 4 === 0) stab(t, chord, stepDur * 2.0);
+    if (!mute.lead && (pos === 2 || pos === 6 || pos === 10 || pos === 14 || (grainRoll && pos % 4 === 3))) {
+      hookChop(t, chord.fifth);
+    }
+  }
+
+  // ---- Track 3: Concrete Loop — Hip-Hop. D minor, sparse 2-chord loop (i, iv),
+  // boom-bap kick/snare, swung hats, sliding sub-bass, warm Rhodes-style pad.
+  const TH = -31; // D2
+  const chordsConcreteLoop = [
+    tri(TH, 'min'), tri(TH, 'min'), tri(TH + 5, 'min'), tri(TH + 5, 'min'),
+  ];
+  function patternConcreteLoop(pos, bar, t, chunk, g, grainRoll, stepDur) {
+    const chord = chordsConcreteLoop[bar];
+    if (!mute.kick && (pos === 0 || pos === 10)) kick(t);
+    if (!mute.hat && (pos === 4 || pos === 12)) snare(t, 'boom');
+    if (!mute.hat && pos % 2 === 1 && pos !== 7) hat(t, false);
+    if (!mute.bass && (pos === 0 || pos === 9)) subBass(t, chord.root / 2, chunk * 2.6, pos === 9);
+    if (!mute.stab && pos === 0) warmPad(t, chord, stepDur * 14);
+    if (!mute.lead && pos === 6 && bar % 2 === 1) lead(t, chord.third, chunk * 1.2);
+  }
+
+  // ---- Track 4: Under Canopy — Jungle/Drum&Bass. E minor drone (one chord the
+  // whole loop, genre-authentic), chopped breakbeat kick/snare, near-constant
+  // fast hats, a growling reese sub. No lead hook — deliberately minimal.
+  const TJ = -29; // E2
+  const chordsUnderCanopy = [tri(TJ, 'min'), tri(TJ, 'min'), tri(TJ, 'min'), tri(TJ, 'min')];
+  function patternUnderCanopy(pos, bar, t, chunk, g, grainRoll, stepDur) {
+    const chord = chordsUnderCanopy[bar];
+    if (!mute.kick && (pos === 0 || pos === 6 || pos === 10)) kick(t);
+    if (!mute.hat && (pos === 4 || pos === 7 || pos === 12 || pos === 13)) snare(t, 'break');
+    if (!mute.hat) hat(t, false);
+    if (!mute.bass && pos === 0) reeseBass(t, chord.root / 2, stepDur * 15.5);
+    if (!mute.stab && pos === 8 && bar % 2 === 0) organStab(t, chord, stepDur * 6);
+    if (!mute.lead && pos === 3 && bar === 3) lead(t, chord.fifth * 2, chunk * 0.8);
+  }
+
+  // ---- Track 5: Deep Current — House. C minor, i-VI-iv-VII, four-on-the-floor
+  // kick with off-beat open hats and a 2-and-4 clap, syncopated bassline, a
+  // slow filter-swell organ stab.
+  const TD = -21; // C2
+  const chordsDeepCurrent = [
+    tri(TD, 'min'),      // i  (Cm)
+    tri(TD + 8, 'maj'),  // VI (Ab)
+    tri(TD + 5, 'min'),  // iv (Fm)
+    tri(TD + 10, 'maj'), // VII (Bb)
+  ];
+  function patternDeepCurrent(pos, bar, t, chunk, g, grainRoll, stepDur) {
+    const chord = chordsDeepCurrent[bar];
+    if (!mute.kick && pos % 4 === 0) kick(t);
+    if (!mute.hat && (pos === 4 || pos === 12)) snare(t, 'clap');
+    if (!mute.hat && pos % 4 === 2) hat(t, true);
+    if (!mute.bass && [0, 3, 6, 10, 13].includes(pos)) bass(t, chord.root / 2, chunk * 0.8);
+    if (!mute.stab && pos === 8) organStab(t, chord, stepDur * 5);
+    if (!mute.lead && pos === 11 && bar % 2 === 0) lead(t, chord.fifth, chunk * 1.3);
+  }
+
+  const trackDefs = [
+    { name: 'Phase One',    bpm: 136, pattern: patternPhaseOne },
+    { name: 'Vain Reflex',  bpm: 138, pattern: patternVainReflex },
+    { name: 'Concrete Loop', bpm: 92, pattern: patternConcreteLoop },
+    { name: 'Under Canopy', bpm: 172, pattern: patternUnderCanopy },
+    { name: 'Deep Current', bpm: 124, pattern: patternDeepCurrent },
+  ];
 
   function initAudio() {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -941,11 +1026,148 @@
     osc.start(t); osc.stop(t + 0.18);
   }
 
+  // noise-based snare/clap — one shared build, three tunings per genre
+  function snare(t, style) {
+    const bufSize = audioCtx.sampleRate * 0.25;
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const bp = audioCtx.createBiquadFilter();
+    const amp = audioCtx.createGain();
+    let freq = 1800, q = 0.7, len = 0.14, gain = 0.3;
+    if (style === 'boom') { freq = 1400; q = 0.6; len = 0.16; gain = 0.28; }       // hip-hop: warm, short
+    else if (style === 'clap') { freq = 1700; q = 1.4; len = 0.11; gain = 0.26; }  // house: tight, resonant
+    else if (style === 'break') { freq = 2200; q = 0.5; len = 0.2; gain = 0.3; }   // jungle: sharp, longer tail
+    bp.type = 'bandpass';
+    bp.frequency.value = freq;
+    bp.Q.value = q;
+    amp.gain.setValueAtTime(gain, t);
+    amp.gain.exponentialRampToValueAtTime(0.001, t + len);
+    src.connect(bp).connect(amp).connect(master);
+    const send = sendToDelay(amp, state.fbAmount * 0.25);
+    src.onended = () => { src.disconnect(); bp.disconnect(); amp.disconnect(); send.disconnect(); };
+    src.start(t); src.stop(t + len + 0.02);
+  }
+
+  // deep sine/triangle sub, optional downward glide into the note — hip-hop 808-style
+  function subBass(t, freq, dur, glide) {
+    const osc = audioCtx.createOscillator();
+    const amp = audioCtx.createGain();
+    osc.type = 'triangle';
+    const target = freq * ratio(state.pitchSemi);
+    if (glide) {
+      osc.frequency.setValueAtTime(target * 1.5, t);
+      osc.frequency.exponentialRampToValueAtTime(target, t + 0.09);
+    } else {
+      osc.frequency.value = target;
+    }
+    amp.gain.setValueAtTime(0.001, t);
+    amp.gain.linearRampToValueAtTime(0.55, t + 0.015);
+    amp.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    osc.connect(amp).connect(master);
+    osc.onended = () => { osc.disconnect(); amp.disconnect(); };
+    osc.start(t); osc.stop(t + dur + 0.02);
+  }
+
+  // two detuned saws through an LFO-modulated lowpass — jungle "reese" growl
+  function reeseBass(t, freq, dur) {
+    const amp = audioCtx.createGain();
+    const filt = audioCtx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.Q.value = 6;
+    filt.frequency.value = 500;
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.value = 5.5;
+    lfoGain.gain.value = 220;
+    lfo.connect(lfoGain).connect(filt.frequency);
+    amp.gain.setValueAtTime(0.001, t);
+    amp.gain.linearRampToValueAtTime(0.42, t + 0.02);
+    amp.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    filt.connect(amp).connect(master);
+    const target = freq * ratio(state.pitchSemi);
+    const oscs = [-7, 7].map((det) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = target;
+      osc.detune.value = det;
+      osc.connect(filt);
+      osc.start(t); osc.stop(t + dur + 0.05);
+      return osc;
+    });
+    lfo.start(t); lfo.stop(t + dur + 0.05);
+    oscs.push(lfo);
+    oscs[oscs.length - 1].onended = () => {
+      oscs.forEach((o) => o.disconnect());
+      lfoGain.disconnect(); filt.disconnect(); amp.disconnect();
+    };
+  }
+
+  // slow filter-swell chord hit — deep-house organ/pad character
+  function organStab(t, chord, dur) {
+    const amp = audioCtx.createGain();
+    const filt = audioCtx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.Q.value = 1.5;
+    filt.frequency.setValueAtTime(freeze ? 500 : 350, t);
+    filt.frequency.linearRampToValueAtTime(freeze ? 1200 : 2200, t + dur * 0.6);
+    amp.gain.setValueAtTime(0.0001, t);
+    amp.gain.linearRampToValueAtTime(0.2, t + dur * 0.35);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    filt.connect(amp).connect(master);
+    const send = sendToDelay(amp, freeze ? 0.85 : state.fbAmount * 0.8);
+    const freqs = [chord.root * 2, chord.third * 2, chord.fifth * 2];
+    const oscs = freqs.map((f) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = f * ratio(state.pitchSemi);
+      osc.connect(filt);
+      osc.start(t); osc.stop(t + dur + 0.05);
+      return osc;
+    });
+    oscs[oscs.length - 1].onended = () => {
+      oscs.forEach((o) => o.disconnect());
+      filt.disconnect(); amp.disconnect(); send.disconnect();
+    };
+  }
+
+  // mellow, longer-attack pad — hip-hop's warm looped-Rhodes texture
+  function warmPad(t, chord, dur) {
+    const amp = audioCtx.createGain();
+    const filt = audioCtx.createBiquadFilter();
+    filt.type = 'lowpass';
+    filt.frequency.value = freeze ? 700 : 1400;
+    filt.Q.value = 0.8;
+    amp.gain.setValueAtTime(0.0001, t);
+    amp.gain.linearRampToValueAtTime(0.16, t + 0.08);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    filt.connect(amp).connect(master);
+    const send = sendToDelay(amp, freeze ? 0.85 : state.fbAmount * 0.5);
+    const freqs = [chord.root * 2, chord.third * 2, chord.fifth * 2];
+    const oscs = freqs.map((f) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = f * ratio(state.pitchSemi);
+      osc.connect(filt);
+      osc.start(t); osc.stop(t + dur + 0.05);
+      return osc;
+    });
+    oscs[oscs.length - 1].onended = () => {
+      oscs.forEach((o) => o.disconnect());
+      filt.disconnect(); amp.disconnect(); send.disconnect();
+    };
+  }
+
   // ---- pattern ----
+  // dispatches to the current track's own pattern function — each track owns
+  // its full rhythm/harmony, this just drives the shared lookahead clock and
+  // the grain-chaos retrigger (which every track gets "for free").
   function scheduleStep(s, t) {
     const bar = Math.floor(s / stepsPerBar) % bars;
     const pos = s % stepsPerBar;
-    const chord = progression[bar];
     const stepDur = (60 / state.bpm / 4);
 
     const grainRoll = Math.random() * 100 < state.grain;
@@ -955,26 +1177,8 @@
     for (let r = 0; r < repeats; r++) {
       const rt = t + r * chunk;
       const g = repeats > 1 ? (1 - r / repeats) : 1;
-
-      if (!mute.kick && pos % 4 === 0) kick(rt);
-      if (!mute.hat && pos % 4 === 2) hat(rt, pos === 14);
-      if (!mute.bass && (pos % 2 === 1 || grainRoll)) {
-        const bassFreq = pos % 8 < 4 ? chord.root / 2 : chord.root / 2 * 1.5;
-        bassGainWrap(rt, bassFreq, chunk * 0.9, g);
-      }
-      if (!mute.stab && (pos === 0 || pos === 8)) stab(rt, chord, stepDur * 3.2);
-      if (!mute.lead && (pos === 3 || pos === 11 || (grainRoll && pos % 4 === 1)) ) {
-        const tones = [chord.root, chord.third, chord.fifth];
-        lead(rt, tones[(pos + bar) % 3], chunk * 1.6);
-      }
-      if (!mute.lead && trackDefs[trackIndex].hook && (pos === 6 || pos === 14)) {
-        hookChop(rt, chord.fifth);
-      }
+      trackDefs[trackIndex].pattern(pos, bar, rt, chunk, g, grainRoll, stepDur);
     }
-  }
-
-  function bassGainWrap(t, freq, dur, gainMul) {
-    bass(t, freq, dur);
   }
 
   // ---- scheduler (lookahead) ----
@@ -1042,7 +1246,7 @@
   });
 
   const bpmControl = new DragControl(bpmFaderEl, {
-    min: 108, max: 152, value: 136, step: 1, kind: 'fader',
+    min: 85, max: 175, value: 136, step: 1, kind: 'fader',
     onChange: (v) => {
       state.bpm = v;
       vBpm.textContent = v; rBpm.textContent = v;
@@ -1052,7 +1256,6 @@
   function selectTrack(idx) {
     trackIndex = idx;
     const def = trackDefs[idx];
-    progression = buildProgression(def.shift);
     document.querySelectorAll('.track-btn').forEach((b, i) => {
       const active = i === idx;
       b.classList.toggle('active', active);
