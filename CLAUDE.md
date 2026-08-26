@@ -22,6 +22,7 @@
 | `starship-launch/` | Starship Launch — 3D-Raketenstart & Mondlandung mit EVA-Gameplay | `.../starship-launch/` |
 | `coastal-courier/` | The Coastal Courier — 3D-Fluchtfahrt im Vice-Grid-UI-Stil (Cabrio/Boot/zu Fuß/Limo) | `.../coastal-courier/` |
 | `phase-dancer/` | Phase Dancer Lab — Browser-Sound-Lab zur Klangmanipulation | `.../phase-dancer/` |
+| `chroma-ladder/` | Chroma Ladder — vierstufiger Farbkombinations-Builder (OKLCH, Light/Dark, Harmonielehre) | `.../chroma-ladder/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
 **Base-URL:** https://hofmiker.github.io/Claude_Test/
