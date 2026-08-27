@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Andy's Zimmer – Spielzeug-Rettung</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: linear-gradient(#87ceeb 0%, #b3e0ff 60%, #cfe8b0 60%, #cfe8b0 100%);
+    font-family: "Trebuchet MS", "Segoe UI", Arial, sans-serif;
+    touch-action: manipulation;
+  }
+  #wrap {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  canvas {
+    background: transparent;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    box-shadow: 0 0 0 4px #ffdd55, 0 0 0 8px #cc3333;
+    border-radius: 6px;
+    touch-action: none;
+  }
+  #hud {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(640px, 92%);
+    display: flex;
+    justify-content: space-between;
+    color: #3a2a1a;
+    font-weight: bold;
+    font-size: 1.1rem;
+    text-shadow: 1px 1px 0 #fff8;
+    pointer-events: none;
+  }
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: rgba(20, 30, 50, 0.55);
+    color: white;
+    padding: 20px;
+  }
+  #overlay h1 {
+    font-size: 2rem;
+    margin: 0 0 8px;
+    text-shadow: 2px 2px 0 #cc3333;
+  }
+  #overlay p {
+    max-width: 480px;
+    line-height: 1.5;
+    margin: 6px 0 18px;
+  }
+  button {
+    font-size: 1.1rem;
+    font-weight: bold;
+    padding: 12px 28px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(#ffd25a, #ffb300);
+    color: #4a2a00;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #a86b00;
+  }
+  button:active { transform: translateY(3px); box-shadow: 0 1px 0 #a86b00; }
+  #touch-controls {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(640px, 92%);
+    display: none;
+    justify-content: space-between;
+  }
+  #touch-controls button {
+    width: 84px;
+    height: 60px;
+    font-size: 1.6rem;
+    box-shadow: 0 4px 0 #a86b00;
+  }
+  .hidden { display: none !important; }
+  #footer-note {
+    position: absolute;
+    bottom: 6px;
+    width: 100%;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #ffffffaa;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="640" height="420"></canvas>
+
+  <div id="hud">
+    <span id="score">⭐ 0</span>
+    <span id="lives">❤️❤️❤️</span>
+    <span id="level">Level 1</span>
+  </div>
+
+  <div id="touch-controls">
+    <button id="btn-left">◀️</button>
+    <button id="btn-right">▶️</button>
+  </div>
+
+  <div id="overlay">
+    <h1>🤠 Andys Zimmer 🚀</h1>
+    <p>
+      Zurgs Ausschuss-Roboter (👾) wirft Andys Spielzeuge (⭐🎈🧩) aus dem Regal!
+      Steuere Woody mit <b>◀️ ▶️</b> (oder A/D) und fange die Spielzeuge, bevor
+      sie den Boden berühren. Weiche den Robotern aus – 3 Treffer und das Spiel ist vorbei!
+    </p>
+    <button id="start-btn">Spiel starten</button>
+  </div>
+
+  <div id="footer-note">Fan-Browsergame · unabhängig erstellt · keine offiziellen Bilder</div>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const scoreEl = document.getElementById('score');
+  const livesEl = document.getElementById('lives');
+  const levelEl = document.getElementById('level');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('start-btn');
+  const touchControls = document.getElementById('touch-controls');
+
+  const GROUND_Y = H - 46;
+
+  const player = {
+    x: W / 2,
+    y: GROUND_Y,
+    w: 46,
+    h: 46,
+    speed: 6.5,
+    dir: 0,
+    emoji: '🤠'
+  };
+
+  const GOOD = ['⭐', '🎈', '🧩', '🚗', '🦕'];
+  const BAD = '👾';
+
+  let items = [];
+  let score = 0;
+  let lives = 3;
+  let level = 1;
+  let spawnTimer = 0;
+  let spawnInterval = 70;
+  let fallSpeedBase = 2.2;
+  let running = false;
+  let keys = {};
+  let animT = 0;
+
+  function reset() {
+    items = [];
+    score = 0;
+    lives = 3;
+    level = 1;
+    spawnTimer = 0;
+    spawnInterval = 70;
+    fallSpeedBase = 2.2;
+    player.x = W / 2;
+    updateHud();
+  }
+
+  function updateHud() {
+    scoreEl.textContent = '⭐ ' + score;
+    livesEl.textContent = '❤️'.repeat(Math.max(lives, 0)) + '🖤'.repeat(Math.max(3 - lives, 0));
+    levelEl.textContent = 'Level ' + level;
+  }
+
+  function spawnItem() {
+    const isBad = Math.random() < 0.22;
+    const kind = isBad ? BAD : GOOD[Math.floor(Math.random() * GOOD.length)];
+    items.push({
+      x: 24 + Math.random() * (W - 48),
+      y: -20,
+      size: isBad ? 40 : 34,
+      speed: fallSpeedBase + Math.random() * 1.4 + (level - 1) * 0.35,
+      kind,
+      bad: isBad
+    });
+  }
+
+  function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+    return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+  }
+
+  function update() {
+    if (!running) return;
+
+    animT += 1;
+
+    if (keys.left) player.dir = -1;
+    else if (keys.right) player.dir = 1;
+    else player.dir = 0;
+
+    player.x += player.dir * player.speed;
+    player.x = Math.max(player.w / 2, Math.min(W - player.w / 2, player.x));
+
+    spawnTimer++;
+    if (spawnTimer >= spawnInterval) {
+      spawnTimer = 0;
+      spawnItem();
+    }
+
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      it.y += it.speed;
+
+      const playerBox = {
+        x: player.x - player.w / 2,
+        y: player.y - player.h + 10,
+        w: player.w,
+        h: player.h - 10
+      };
+      const itemBox = { x: it.x - it.size / 2, y: it.y - it.size / 2, w: it.size, h: it.size };
+
+      if (rectsOverlap(playerBox.x, playerBox.y, playerBox.w, playerBox.h, itemBox.x, itemBox.y, itemBox.w, itemBox.h)) {
+        if (it.bad) {
+          lives--;
+          flash('#ff4444');
+        } else {
+          score += 10;
+          if (score > 0 && score % 100 === 0) levelUp();
+        }
+        items.splice(i, 1);
+        updateHud();
+        if (lives <= 0) gameOver();
+        continue;
+      }
+
+      if (it.y - it.size / 2 > H) {
+        if (!it.bad) {
+          lives--;
+          updateHud();
+          if (lives <= 0) gameOver();
+        }
+        items.splice(i, 1);
+      }
+    }
+  }
+
+  function levelUp() {
+    level++;
+    spawnInterval = Math.max(28, spawnInterval - 6);
+    updateHud();
+  }
+
+  let flashColor = null, flashT = 0;
+  function flash(color) {
+    flashColor = color;
+    flashT = 10;
+  }
+
+  function drawBackground() {
+    ctx.clearRect(0, 0, W, H);
+
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#8ec9f0');
+    sky.addColorStop(0.65, '#cdeafd');
+    sky.addColorStop(0.65, '#dff2c2');
+    sky.addColorStop(1, '#c3e6a1');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.font = '30px sans-serif';
+    ctx.globalAlpha = 0.8;
+    ctx.fillText('☁️', 60 + Math.sin(animT * 0.005) * 20, 60);
+    ctx.fillText('☁️', 420 + Math.cos(animT * 0.004) * 20, 40);
+    ctx.fillText('☁️', 260 + Math.sin(animT * 0.003) * 15, 90);
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = '#7a5230';
+    ctx.fillRect(0, GROUND_Y + 6, W, H - GROUND_Y - 6);
+    ctx.fillStyle = '#c99a5b';
+    for (let x = 0; x < W; x += 24) {
+      ctx.fillRect(x, GROUND_Y + 6, 14, 4);
+    }
+  }
+
+  function drawPlayer() {
+    const bob = Math.sin(animT * 0.25) * (player.dir !== 0 ? 4 : 1);
+    ctx.font = '42px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.save();
+    if (player.dir < 0) {
+      ctx.translate(player.x, 0);
+      ctx.scale(-1, 1);
+      ctx.fillText(player.emoji, 0, player.y + bob);
+    } else {
+      ctx.fillText(player.emoji, player.x, player.y + bob);
+    }
+    ctx.restore();
+  }
+
+  function drawItems() {
+    ctx.textAlign = 'center';
+    for (const it of items) {
+      ctx.font = it.size + 'px sans-serif';
+      ctx.fillText(it.kind, it.x, it.y + it.size / 3);
+    }
+  }
+
+  function draw() {
+    drawBackground();
+    drawItems();
+    drawPlayer();
+
+    if (flashT > 0) {
+      ctx.fillStyle = flashColor;
+      ctx.globalAlpha = flashT / 22;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+      flashT--;
+    }
+  }
+
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function gameOver() {
+    running = false;
+    overlay.classList.remove('hidden');
+    overlay.innerHTML =
+      '<h1>🧸 Game Over</h1>' +
+      '<p>Du hast <b>' + score + '</b> Punkte erreicht und Level ' + level + ' erreicht.<br>' +
+      'Zurgs Roboter haben Andys Zimmer übernommen – versuch es noch einmal!</p>' +
+      '<button id="start-btn">Nochmal spielen</button>';
+    document.getElementById('start-btn').addEventListener('click', startGame);
+  }
+
+  function startGame() {
+    reset();
+    overlay.classList.add('hidden');
+    running = true;
+  }
+
+  startBtn.addEventListener('click', startGame);
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = true;
+    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = true;
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') keys.right = false;
+  });
+
+  function bindHold(el, onDown, onUp) {
+    el.addEventListener('mousedown', onDown);
+    el.addEventListener('mouseup', onUp);
+    el.addEventListener('mouseleave', onUp);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); }, { passive: false });
+    el.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); }, { passive: false });
+  }
+
+  const btnLeft = document.getElementById('btn-left');
+  const btnRight = document.getElementById('btn-right');
+  bindHold(btnLeft, () => keys.left = true, () => keys.left = false);
+  bindHold(btnRight, () => keys.right = true, () => keys.right = false);
+
+  if ('ontouchstart' in window) {
+    touchControls.style.display = 'flex';
+  }
+
+  reset();
+  draw();
+  loop();
+})();
+</script>
+</body>
+</html>

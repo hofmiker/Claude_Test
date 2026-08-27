@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chroma Ladder — Farbkombinationen bauen</title>
+<style>
+@font-face { font-family:'Inter'; src:url('../vendor/fonts/inter-400.woff2') format('woff2'); font-weight:400; font-display:swap; }
+@font-face { font-family:'Inter'; src:url('../vendor/fonts/inter-500.woff2') format('woff2'); font-weight:500; font-display:swap; }
+@font-face { font-family:'Inter'; src:url('../vendor/fonts/inter-600.woff2') format('woff2'); font-weight:600; font-display:swap; }
+
+:root {
+    --bg:#0a0a10; --panel:#14141c; --panel-2:#1b1b25;
+    --line:rgba(255,255,255,0.10); --line-strong:rgba(255,255,255,0.24);
+    --t1:rgba(255,255,255,0.92); --t2:rgba(255,255,255,0.62); --t3:rgba(255,255,255,0.40);
+    --shadow:0 2px 12px rgba(0,0,0,0.5); --shadow-lg:0 14px 40px rgba(0,0,0,0.6);
+    --acc-bg:rgba(255,255,255,0.90); --acc-t:#0a0a10;
+    --strip-bg:rgba(10,10,16,0.95);
+}
+:root[data-theme="light"] {
+    --bg:#f3f2ee; --panel:#ffffff; --panel-2:#faf9f6;
+    --line:rgba(0,0,0,0.11); --line-strong:rgba(0,0,0,0.26);
+    --t1:rgba(0,0,0,0.88); --t2:rgba(0,0,0,0.58); --t3:rgba(0,0,0,0.38);
+    --shadow:0 2px 12px rgba(0,0,0,0.07); --shadow-lg:0 14px 40px rgba(0,0,0,0.13);
+    --acc-bg:#16161c; --acc-t:#ffffff;
+    --strip-bg:rgba(243,242,238,0.96);
+}
+
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+    margin:0; padding:0 0 100px; background:var(--bg); color:var(--t1);
+    font-family:'Inter',-apple-system,Helvetica,sans-serif; font-size:15px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+}
+.wrap { max-width:1080px; margin:0 auto; padding:0 20px; }
+
+/* ---------- Kopf ---------- */
+header { padding:40px 0 18px; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
+h1 { font-size:27px; font-weight:600; letter-spacing:-0.025em; margin:0; }
+.sub { color:var(--t2); font-size:14px; margin:4px 0 0; }
+.theme-switch {
+    flex:none; width:50px; height:27px; border-radius:14px; margin-top:6px;
+    background:var(--panel-2); border:1px solid var(--line-strong); cursor:pointer; padding:0;
+    display:flex; align-items:center;
+}
+.theme-switch span {
+    width:21px; height:21px; border-radius:50%; background:var(--t2); color:var(--bg);
+    display:flex; align-items:center; justify-content:center; font-size:11px;
+    margin-left:2px; transition:transform .22s cubic-bezier(.4,0,.2,1);
+}
+:root[data-theme="light"] .theme-switch span { transform:translateX(23px); }
+
+/* ---------- Palette-Leiste: alle gewählten Farben nebeneinander ---------- */
+.strip-outer {
+    position:sticky; top:0; z-index:30; background:var(--strip-bg);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line); margin-bottom:4px;
+}
+.bar { display:flex; align-items:center; gap:16px; padding:9px 0 10px; }
+.bar .wheel { flex:none; display:block; }
+.strip { display:flex; gap:4px; flex:1; min-width:0; }
+.slot {
+    flex:1; min-width:0; border:0; padding:0; background:none; font:inherit; color:inherit;
+    cursor:pointer; text-align:left; border-radius:8px; overflow:hidden;
+}
+.slot:disabled { cursor:default; }
+.slot .chip {
+    height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    font-size:10px; font-weight:600; letter-spacing:.02em; transition:transform .15s;
+    border:1px dashed var(--line-strong); color:var(--t3);
+}
+.slot.filled .chip { border:1px solid rgba(0,0,0,0.12); }
+.slot:not(:disabled):hover .chip { transform:translateY(-2px); }
+.slot .cap {
+    display:block; font-size:10px; color:var(--t3); margin-top:5px; text-align:center;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.strip-hint { font-size:11px; color:var(--t3); padding:0 0 10px; margin:-4px 0 0; }
+
+/* ---------- Sektionen ---------- */
+section {
+    margin:20px 0 0; scroll-margin-top:120px; padding:22px 22px 24px; border-radius:15px;
+    background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow);
+}
+section[hidden] { display:none; }
+.sec-head { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+h2 { font-size:17px; font-weight:600; letter-spacing:-0.015em; margin:0; display:flex; align-items:center; gap:10px; }
+h2 .no {
+    width:22px; height:22px; border-radius:50%; background:var(--acc-bg); color:var(--acc-t);
+    font-size:11px; display:flex; align-items:center; justify-content:center; flex:none;
+}
+.tools { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
+.mini-btn {
+    font:inherit; font-size:12px; font-weight:500; padding:5px 11px; border-radius:8px;
+    background:var(--panel-2); color:var(--t2); border:1px solid var(--line); cursor:pointer; transition:all .15s;
+}
+.mini-btn:hover { color:var(--t1); border-color:var(--line-strong); }
+.mini-btn.on { background:var(--acc-bg); color:var(--acc-t); border-color:transparent; }
+input[type=text] {
+    font:inherit; font-size:12px; width:88px; padding:5px 9px; border-radius:8px;
+    background:var(--panel-2); border:1px solid var(--line); color:var(--t1);
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+
+/* ---------- Aufklappbare Erklärungen ---------- */
+.info { margin-top:16px; }
+.info summary {
+    display:inline-flex; align-items:center; gap:7px; cursor:pointer; list-style:none;
+    font-size:12px; font-weight:500; color:var(--t3); padding:5px 11px; border-radius:999px;
+    border:1px solid var(--line); transition:all .15s; user-select:none;
+}
+.info summary::-webkit-details-marker { display:none; }
+.info summary:hover { color:var(--t1); border-color:var(--line-strong); }
+.info summary::before { content:'?'; font-weight:700; font-size:10px; opacity:.7; }
+.info[open] summary { color:var(--t1); border-color:var(--line-strong); margin-bottom:12px; }
+.info-body {
+    padding:16px 18px; border-radius:11px; background:var(--panel-2); border:1px solid var(--line);
+    font-size:12.5px; color:var(--t2); line-height:1.6;
+}
+.info-body p { margin:0 0 10px; }
+.info-body p:last-child { margin-bottom:0; }
+.info-body strong { color:var(--t1); font-weight:600; }
+
+/* ---------- Kacheln: drei Gewichtungsstufen ---------- */
+.tiles { display:grid; gap:10px; }
+.tiles.w-lg { grid-template-columns:repeat(5,1fr); }
+.tiles.w-md { grid-template-columns:repeat(5,1fr); }
+.tiles.w-sm { grid-template-columns:repeat(5,1fr); gap:8px; }
+.tile {
+    position:relative; display:block; padding:0; overflow:hidden; text-align:left;
+    border-radius:12px; border:1px solid var(--line); background:var(--panel-2);
+    cursor:pointer; font:inherit; color:inherit; transition:transform .15s, box-shadow .15s, border-color .15s;
+}
+.tile:hover { transform:translateY(-3px); box-shadow:var(--shadow-lg); border-color:var(--line-strong); }
+.tile.selected { border-color:var(--t1); box-shadow:0 0 0 2px var(--t1) inset, var(--shadow-lg); }
+.tile[disabled] { cursor:default; }
+.tile[disabled]:hover { transform:none; box-shadow:none; border-color:var(--line); }
+.swatch { display:flex; align-items:flex-end; justify-content:space-between; padding:8px 10px; }
+.w-lg .swatch { height:150px; }
+.w-md .swatch { height:88px; }
+.w-sm .swatch { height:52px; }
+.swatch .hex { font-size:10.5px; font-weight:600; font-variant-numeric:tabular-nums; opacity:.92; }
+.swatch .key { font-size:9.5px; font-weight:700; width:15px; height:15px; border-radius:4px; display:flex; align-items:center; justify-content:center; opacity:.5; border:1px solid currentColor; }
+.w-sm .swatch .key { display:none; }
+.meta { padding:8px 10px 10px; }
+.meta .name { font-size:12.5px; font-weight:600; display:block; letter-spacing:-0.01em; }
+.w-sm .meta .name { font-size:11.5px; }
+.meta .rule { font-size:10.5px; color:var(--t3); display:block; margin-top:1px; font-variant-numeric:tabular-nums; }
+
+/* ---------- Light/Dark-Beleg ---------- */
+.previews { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.preview { border-radius:12px; overflow:hidden; border:1px solid var(--line); background:var(--pv-bg); }
+.preview-head {
+    display:flex; align-items:center; justify-content:space-between; padding:8px 13px;
+    font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--t3); background:var(--panel-2); border-bottom:1px solid var(--line);
+}
+.mini { padding:15px; background:var(--pv-bg); color:var(--pv-text); }
+.mini-top { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.mini-dot { width:20px; height:20px; border-radius:6px; background:var(--pv-primary); }
+.mini-name { font-weight:600; font-size:12.5px; }
+.mini-card { background:var(--pv-surface); border:1px solid var(--pv-border); border-radius:10px; padding:13px; }
+.mini-lbl { font-size:9.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--pv-muted); }
+.mini-val { font-size:22px; font-weight:600; letter-spacing:-0.02em; margin:2px 0 10px; }
+.mini-btns { display:flex; gap:7px; flex-wrap:wrap; }
+.mini-btn2 { font-size:11.5px; font-weight:500; padding:6px 12px; border-radius:7px; border:1px solid transparent; }
+.mini-btn2.p { background:var(--pv-primary); color:var(--pv-on-primary); }
+.mini-btn2.s { background:transparent; color:var(--pv-secondary); border-color:var(--pv-secondary); }
+.mini-btn2.g { background:transparent; color:var(--pv-text); border-color:var(--pv-border); }
+.mini-txt { font-size:11.5px; color:var(--pv-muted); margin-top:11px; }
+.contrast-row { display:flex; flex-wrap:wrap; gap:6px; padding:0 15px 15px; background:var(--pv-bg); }
+.cbadge { font-size:10px; font-weight:600; padding:3px 7px; border-radius:6px; border:1px solid var(--pv-border); color:var(--pv-muted); font-variant-numeric:tabular-nums; }
+.cbadge.fail { color:#e5484d; border-color:currentColor; }
+
+/* ---------- Beispiel-Website ---------- */
+.browser {
+    border-radius:13px; overflow:hidden; border:1px solid var(--line); box-shadow:var(--shadow-lg);
+    background:var(--pv-bg);
+}
+.chrome {
+    display:flex; align-items:center; gap:7px; padding:9px 13px;
+    background:var(--panel-2); border-bottom:1px solid var(--line);
+}
+.chrome i { width:9px; height:9px; border-radius:50%; background:var(--line-strong); display:block; }
+.chrome .url {
+    flex:1; margin-left:8px; font-size:10.5px; color:var(--t3); background:var(--panel);
+    border-radius:6px; padding:3px 10px; font-family:ui-monospace,Menlo,monospace;
+}
+.site { background:var(--pv-bg); color:var(--pv-text); font-size:13px; }
+.site-nav {
+    display:flex; align-items:center; gap:22px; padding:15px 26px;
+    border-bottom:1px solid var(--pv-border);
+}
+.site-logo { display:flex; align-items:center; gap:9px; font-weight:600; font-size:14.5px; letter-spacing:-0.01em; }
+.site-logo i { width:22px; height:22px; border-radius:7px; background:var(--pv-primary); display:block; }
+.site-links { display:flex; gap:18px; font-size:12.5px; color:var(--pv-muted); }
+.site-nav .grow { flex:1; }
+.btn { display:inline-block; font-size:12.5px; font-weight:500; padding:8px 16px; border-radius:9px; border:1px solid transparent; white-space:nowrap; }
+.btn.p { background:var(--pv-primary); color:var(--pv-on-primary); }
+.btn.s { background:transparent; color:var(--pv-secondary); border-color:var(--pv-secondary); }
+.btn.o { background:transparent; color:var(--pv-text); border-color:var(--pv-border); }
+.btn.lg { font-size:13.5px; padding:11px 22px; }
+.site-hero { display:grid; grid-template-columns:1.05fr .95fr; gap:32px; align-items:center; padding:44px 26px 40px; }
+.badge { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:600; padding:4px 11px; border-radius:999px; background:var(--pv-bridge-soft); color:var(--pv-bridge-text); margin-bottom:14px; }
+.site-hero h3 { font-size:32px; line-height:1.14; letter-spacing:-0.03em; font-weight:600; margin:0 0 12px; }
+.site-hero h3 em { font-style:normal; color:var(--pv-primary); }
+.site-hero p { color:var(--pv-muted); font-size:13.5px; margin:0 0 20px; max-width:36ch; }
+.hero-btns { display:flex; gap:10px; flex-wrap:wrap; }
+.panel { background:var(--pv-surface); border:1px solid var(--pv-border); border-radius:14px; padding:18px; }
+.panel-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:3px; }
+.panel-head .l { font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--pv-muted); }
+.panel-head .d { font-size:11.5px; font-weight:600; color:var(--pv-tone-3); }
+.panel .big { font-size:26px; font-weight:600; letter-spacing:-0.02em; margin-bottom:14px; }
+.bars { display:flex; align-items:flex-end; gap:7px; height:74px; }
+.bars span { flex:1; border-radius:5px 5px 2px 2px; }
+.legend { display:flex; gap:12px; margin-top:11px; font-size:10.5px; color:var(--pv-muted); flex-wrap:wrap; }
+.legend b { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:5px; }
+.site-features { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; padding:0 26px 40px; }
+.feat { background:var(--pv-surface); border:1px solid var(--pv-border); border-radius:12px; padding:16px; }
+.feat i { width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:14px; font-style:normal; margin-bottom:11px; }
+.feat h4 { font-size:13px; font-weight:600; margin:0 0 5px; }
+.feat p { font-size:11.5px; color:var(--pv-muted); margin:0; line-height:1.5; }
+.site-cta { margin:0 26px 34px; border-radius:14px; padding:30px 28px; background:var(--pv-primary); color:var(--pv-on-primary); display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
+.site-cta div { flex:1; min-width:220px; }
+.site-cta h4 { font-size:19px; font-weight:600; letter-spacing:-0.02em; margin:0 0 5px; }
+.site-cta p { font-size:12.5px; opacity:.82; margin:0; }
+.site-cta .btn { background:var(--pv-on-primary); color:var(--pv-primary); }
+.site-foot { border-top:1px solid var(--pv-border); padding:18px 26px; display:flex; gap:20px; align-items:center; font-size:11.5px; color:var(--pv-muted); flex-wrap:wrap; }
+.site-foot .grow { flex:1; }
+
+/* ---------- Gewichtung ---------- */
+.weight { margin-top:22px; }
+.weight h3 { font-size:13px; font-weight:600; margin:0 0 9px; }
+.wbar { display:flex; height:52px; border-radius:10px; overflow:hidden; border:1px solid var(--line); }
+.wbar div { display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:10px; font-weight:600; gap:1px; overflow:hidden; }
+.wbar div small { font-weight:500; opacity:.7; font-size:9px; }
+
+/* ---------- Export ---------- */
+.tabs { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+pre {
+    margin:0; padding:14px; border-radius:10px; background:var(--panel); border:1px solid var(--line);
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; line-height:1.6;
+    color:var(--t2); overflow-x:auto; max-height:300px;
+}
+.copy-row { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center; }
+.toast { font-size:12px; color:var(--t3); opacity:0; transition:opacity .2s; }
+.toast.show { opacity:1; }
+kbd { font:inherit; font-size:10px; font-weight:600; padding:1px 5px; border-radius:4px; border:1px solid var(--line-strong); color:var(--t2); }
+
+@media (max-width:980px) {
+    .slot .chip { font-size:9px; }
+}
+@media (max-width:880px) {
+    .tiles.w-lg, .tiles.w-md { grid-template-columns:repeat(3,1fr); }
+    .previews { grid-template-columns:1fr; }
+    .site-hero { grid-template-columns:1fr; gap:24px; padding:30px 20px; }
+    .site-features { grid-template-columns:1fr; padding:0 20px 30px; }
+    .site-links { display:none; }
+    .site-nav { padding:13px 18px; gap:12px; }
+    .site-cta { margin:0 20px 26px; padding:22px 20px; }
+    .site-foot { padding:15px 20px; }
+}
+@media (max-width:560px) {
+    .wrap { padding:0 13px; }
+    section { padding:17px 14px 19px; }
+    .tiles.w-lg, .tiles.w-md { grid-template-columns:repeat(2,1fr); }
+    .tiles.w-sm { grid-template-columns:repeat(3,1fr); }
+    .w-lg .swatch { height:104px; }
+    h1 { font-size:23px; }
+    .slot .cap { display:none; }
+    .bar { gap:11px; }
+    .bar .wheel { width:58px; height:58px; }
+    /* Auf schmalen Schirmen bleiben nur die Farbflächen — der Hex-Wert
+       passt nicht mehr hinein, Antippen kopiert ihn weiterhin. */
+    .slot .chip { font-size:0; height:30px; }
+    .site-hero h3 { font-size:23px; }
+    .site-nav .btn.o { display:none; }
+    .btn.lg { font-size:12.5px; padding:9px 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+    <header>
+        <div>
+            <h1>Chroma Ladder</h1>
+            <p class="sub">Farbe wählen. Die nächste kommt von selbst.</p>
+        </div>
+        <button type="button" class="theme-switch" id="theme-toggle" aria-label="Hell-/Dunkelmodus umschalten"><span>☾</span></button>
+    </header>
+</div>
+<div class="strip-outer" id="strip-outer">
+    <div class="wrap"><div class="bar">
+        <svg class="wheel" id="wheel" width="88" height="88" viewBox="0 0 132 132" aria-label="Farbkreis mit den Positionen der Palette"></svg>
+        <div class="strip" id="strip"></div>
+    </div></div>
+</div>
+
+<div class="wrap">
+
+<!-- ============ 1 ============ -->
+<section id="step-base">
+    <div class="sec-head">
+        <h2><span class="no">1</span>Grundfarbe wählen</h2>
+        <div class="tools">
+            <input type="text" id="hex-input" value="#4F7CFF" spellcheck="false" aria-label="Eigener Startton als Hex">
+            <button type="button" class="mini-btn" id="hex-go">Eigene</button>
+            <button type="button" class="mini-btn" id="reroll">Neu würfeln</button>
+            <button type="button" class="mini-btn" id="reset">Zurücksetzen</button>
+        </div>
+    </div>
+    <div class="tiles w-lg" id="tiles-base"></div>
+    <details class="info">
+        <summary>Wie sind diese fünf ausgewählt?</summary>
+        <div class="info-body">
+            <p>Fünf Farbtöne im <strong>72°-Abstand</strong> — der größtmögliche gleichmäßige Abstand, den fünf Farben auf dem Farbkreis haben können. Kein Nachbarton, keine Dopplung. Im Farbkreis oben stehen sie als Ring aus fünf Punkten.</p>
+            <p>Gerechnet wird in <strong>OKLCH</strong>, nicht in HSL. In HSL hat <code>hsl(60 100% 50%)</code> (Gelb) dieselbe „Helligkeit" wie <code>hsl(240 100% 50%)</code> (Blau) — sichtbar ist Gelb um ein Vielfaches heller. OKLCH ist wahrnehmungs&shy;bezogen: gleiche L-Werte sehen auch gleich hell aus.</p>
+            <p>Jeder Ton wird auf die maximale Sättigung gezogen, die sein Farbton erreichen kann. Reines Cyan liegt in sRGB bei L 0.90 — auf dieselbe Helligkeit wie Blau gezwungen wäre es blass. Ohne diesen Ausgleich hätte jede Reihe zwei tote Kacheln.</p>
+            <p>Mit <kbd>1</kbd>–<kbd>5</kbd> lässt sich auch per Tastatur wählen.</p>
+        </div>
+    </details>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="step-second" hidden>
+    <div class="sec-head"><h2><span class="no">2</span>Zweite Farbe wählen</h2></div>
+    <div class="tiles w-md" id="tiles-second"></div>
+    <details class="info">
+        <summary>Nach welchem System sind diese fünf gewählt?</summary>
+        <div class="info-body">
+            <p>Alle fünf sitzen auf demselben Farbkreis wie die erste Farbe, nur bei einem anderen Winkel — klassische Harmonielehre (Itten), in OKLCH-Hue-Grad übersetzt:</p>
+            <p><strong>Komplementär (+180°)</strong> — gegenüberliegend, maximaler Kontrast. Höchste Signalwirkung, in gleicher Größe nebeneinander aber unruhig: als Akzent gegen Fläche einsetzen, nie 50/50.<br>
+            <strong>Split-Komplementär (+150°)</strong> — Nachbar des Komplements. Fast derselbe Kontrast, deutlich weniger Härte. Der sicherste Griff.<br>
+            <strong>Triade (+120°)</strong> — gleichseitiges Dreieck im Kreis. Lebendig, ausgewogen, lässt Platz für eine dritte Farbe.<br>
+            <strong>Analog (+32°)</strong> — direkter Nachbar. Ruhig, „eine Familie" — braucht Helligkeits&shy;kontrast, sonst verschmelzen beide.<br>
+            <strong>Quadrat (+90°)</strong> — Warm-Kalt-Spannung ohne die Härte des direkten Komplements.</p>
+            <p>Zwei Regeln greifen zusätzlich: die zweite Farbe bekommt immer eine <strong>andere Helligkeit</strong> als die erste (gleiches L lässt beide um dieselbe Aufmerksamkeit konkurrieren), und die Sättigung wird zurückgenommen, wo der Farbtonabstand ohnehin groß ist, und angehoben, wo er klein ist.</p>
+            <p>Beim Überfahren einer Kachel wandert die Markierung im Farbkreis oben mit.</p>
+        </div>
+    </details>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="step-accents" hidden>
+    <div class="sec-head"><h2><span class="no">3</span>Zusatzfarben</h2></div>
+    <div class="tiles w-sm" id="tiles-accents"></div>
+    <details class="info">
+        <summary>Woher kommen diese fünf?</summary>
+        <div class="info-body">
+            <p><strong>Brückenton</strong> — genau in der Mitte zwischen beiden gewählten Farben, auf dem <em>kürzeren</em> Bogen. Bindet die Kombination zusammen: Verläufe, Hover-States, Diagramm-Serien.</p>
+            <p><strong>Getönter Neutralton</strong> — Farbton der ersten Farbe, Sättigung auf ~0.02 gedrückt. Kein reines Grau: Flächen und Rahmen nehmen einen Hauch der Grundfarbe auf, dadurch wirkt alles wie aus einem Guss.</p>
+            <p><strong>Gedeckt hell / mittel / tief</strong> — bewusst keine Alarmfarben. Die drei füllen gleichmäßig die <em>größere</em> Lücke im Farbkreis, also den Bereich, den Grundfarbe, zweite Farbe und Brückenton frei lassen. Ihre Buntheit liegt bei rund einem Drittel der Hauptfarben, die Helligkeit staffelt sich in drei Stufen. Damit taugen sie für Illustrationen, Diagramm-Serien und ruhige Flächen — und stehlen den beiden Hauptfarben nicht die Aufmerksamkeit.</p>
+        </div>
+    </details>
+</section>
+
+<!-- ============ Light &amp; Dark ============ -->
+<section id="step-modes" hidden>
+    <div class="sec-head"><h2><span class="no">◐</span>Light &amp; Dark, Kontraste</h2></div>
+    <div class="previews">
+        <div class="preview" id="pv-light">
+            <div class="preview-head"><span>Light Mode</span><span id="pv-light-hex"></span></div>
+            <div class="mini"></div><div class="contrast-row"></div>
+        </div>
+        <div class="preview" id="pv-dark">
+            <div class="preview-head"><span>Dark Mode</span><span id="pv-dark-hex"></span></div>
+            <div class="mini"></div><div class="contrast-row"></div>
+        </div>
+    </div>
+    <details class="info">
+        <summary>Warum ist die Farbe im Dark Mode eine andere?</summary>
+        <div class="info-body" id="info-modes"></div>
+    </details>
+</section>
+
+<!-- ============ Beispiel ============ -->
+<section id="step-site" hidden>
+    <div class="sec-head">
+        <h2><span class="no">✓</span>Die Palette im Einsatz</h2>
+        <div class="tools">
+            <button type="button" class="mini-btn on" data-site="light">Light</button>
+            <button type="button" class="mini-btn" data-site="dark">Dark</button>
+        </div>
+    </div>
+    <div class="browser">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">aurora.app</span></div>
+        <div class="site" id="site"></div>
+    </div>
+
+    <div class="weight">
+        <h3>Flächenanteil im Interface — 60 / 30 / 10</h3>
+        <div class="wbar" id="wbar"></div>
+    </div>
+
+    <details class="info">
+        <summary>Farbcodes &amp; Export</summary>
+        <div class="info-body" style="background:var(--panel-2)">
+            <div class="tabs">
+                <button type="button" class="mini-btn on" data-tab="css">CSS-Variablen</button>
+                <button type="button" class="mini-btn" data-tab="tokens">JSON</button>
+                <button type="button" class="mini-btn" data-tab="list">Hex-Liste</button>
+            </div>
+            <pre id="export-out"></pre>
+            <div class="copy-row">
+                <button type="button" class="mini-btn" id="copy-btn">Kopieren</button>
+                <button type="button" class="mini-btn" id="share-btn">Link zur Palette</button>
+                <span class="toast" id="toast"></span>
+            </div>
+        </div>
+    </details>
+
+    <details class="info">
+        <summary>Warum nur eine Aktionsfarbe?</summary>
+        <div class="info-body">
+            <p>Gefüllt auftreten darf in dieser Website nur die <strong>Grundfarbe</strong> — sie markiert die eine Handlung, die als nächstes dran ist. Die zweite Farbe erscheint ausschließlich als <strong>Outline</strong>. Sobald zwei Farben gleich laut gefüllt nebeneinander stehen, hat der Blick keinen Anker mehr und beide verlieren ihre Signalwirkung.</p>
+            <p>Die Gewichtung darunter zeigt dasselbe als Fläche: der getönte Neutralton trägt rund 60 %, die beiden Hauptfarben 30 %, die gedeckten Töne den Rest. Bekommt die Grundfarbe mehr als etwa ein Drittel, sticht nichts mehr heraus — genau deshalb werden auch die Kacheln von Schritt zu Schritt kleiner.</p>
+        </div>
+    </details>
+</section>
+
+</div>
+<script>
+/* =====================================================================
+   Farb-Engine — OKLCH <-> sRGB (Björn Ottosson), plus Gamut-Clamping
+   und WCAG-Kontrast. Bewusst wahrnehmungsbezogen statt HSL: nur so
+   sehen zwei Farben mit gleichem L auch gleich hell aus.
+   ===================================================================== */
+function clamp01(x){ return x < 0 ? 0 : x > 1 ? 1 : x; }
+function gamma(c){ return c <= 0.0031308 ? 12.92*c : 1.055*Math.pow(c, 1/2.4) - 0.055; }
+function ungamma(c){ return c <= 0.04045 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); }
+
+function oklchToLinear(L, C, H){
+    const h = H * Math.PI / 180;
+    const a = C * Math.cos(h), b = C * Math.sin(h);
+    const l_ = L + 0.3963377774*a + 0.2158037573*b;
+    const m_ = L - 0.1055613458*a - 0.0638541728*b;
+    const s_ = L - 0.0894841775*a - 1.2914855480*b;
+    const l = l_*l_*l_, m = m_*m_*m_, s = s_*s_*s_;
+    return [
+        +4.0767416621*l - 3.3077115913*m + 0.2309699292*s,
+        -1.2684380046*l + 2.6097574011*m - 0.3413193965*s,
+        -0.0041960863*l - 0.7034186147*m + 1.7076147010*s
+    ];
+}
+function inGamut(L, C, H){
+    const rgb = oklchToLinear(L, C, H);
+    return rgb.every(function(v){ return v >= -0.0001 && v <= 1.0001; });
+}
+/* Chroma so weit zurücknehmen, bis der Ton in sRGB darstellbar ist —
+   Farbton und Helligkeit bleiben dabei erhalten. */
+function fit(L, C, H){
+    L = clamp01(L); H = ((H % 360) + 360) % 360;
+    if (C <= 0 || inGamut(L, C, H)) return { l:L, c:Math.max(C,0), h:H };
+    let lo = 0, hi = C;
+    for (let i = 0; i < 24; i++){
+        const mid = (lo + hi) / 2;
+        if (inGamut(L, mid, H)) lo = mid; else hi = mid;
+    }
+    return { l:L, c:lo, h:H };
+}
+function toHex(col){
+    const rgb = oklchToLinear(col.l, col.c, col.h);
+    return '#' + rgb.map(function(v){
+        return Math.round(clamp01(gamma(v)) * 255).toString(16).padStart(2, '0');
+    }).join('').toUpperCase();
+}
+function mk(L, C, H){
+    const col = fit(L, C, H);
+    col.hex = toHex(col);
+    return col;
+}
+/* Wie mk(), aber die Helligkeit darf um bis zu ±0.12 wandern, wenn der
+   Farbton die gewünschte Buntheit sonst gar nicht erreichen kann. Reines
+   Cyan liegt in sRGB z.B. bei L 0.90 — auf L 0.62 gezwungen wird es
+   zwangsläufig blass, während Blau dort noch volle Sättigung hat. Ohne
+   diesen Ausgleich hätte jede Palette ein oder zwei tote Kacheln. */
+function mkVivid(L, C, H){
+    let best = fit(L, C, H);
+    if (best.c < C - 0.002){
+        for (let d = 0.015; d <= 0.12 && best.c < C - 0.002; d += 0.015){
+            [L - d, L + d].forEach(function(l2){
+                const cand = fit(l2, C, H);
+                if (cand.c > best.c + 0.0008) best = cand;
+            });
+        }
+    }
+    best.hex = toHex(best);
+    return best;
+}
+function hexToOklch(hex){
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+    if (!m) return null;
+    const n = parseInt(m[1], 16);
+    const r = ungamma(((n >> 16) & 255)/255), g = ungamma(((n >> 8) & 255)/255), b = ungamma((n & 255)/255);
+    const l_ = Math.cbrt(0.4122214708*r + 0.5363325363*g + 0.0514459929*b);
+    const m_ = Math.cbrt(0.2119034982*r + 0.6806995451*g + 0.1073969566*b);
+    const s_ = Math.cbrt(0.0883024619*r + 0.2817188376*g + 0.6299787005*b);
+    const L = 0.2104542553*l_ + 0.7936177850*m_ - 0.0040720468*s_;
+    const A = 1.9779984951*l_ - 2.4285922050*m_ + 0.4505937099*s_;
+    const B = 0.0259040371*l_ + 0.7827717662*m_ - 0.8086757660*s_;
+    let H = Math.atan2(B, A) * 180 / Math.PI;
+    if (H < 0) H += 360;
+    return { l:L, c:Math.sqrt(A*A + B*B), h:H, hex:'#' + m[1].toUpperCase() };
+}
+function relLum(col){
+    const rgb = oklchToLinear(col.l, col.c, col.h).map(function(v){ return clamp01(v); });
+    return 0.2126*rgb[0] + 0.7152*rgb[1] + 0.0722*rgb[2];
+}
+function contrast(a, b){
+    const la = relLum(a), lb = relLum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+/* Schrift auf einer Fläche: der Ton mit dem besseren Kontrast gewinnt. */
+function onColor(bg){
+    const light = mk(0.99, 0.006, bg.h), dark = mk(0.19, 0.020, bg.h);
+    return contrast(light, bg) >= contrast(dark, bg) ? light : dark;
+}
+function angDiff(a, b){
+    const d = Math.abs(((a - b) % 360 + 360) % 360);
+    return d > 180 ? 360 - d : d;
+}
+/* Mittelpunkt zweier Farbtöne auf dem *kürzeren* Bogen. */
+function midHue(a, b){
+    let d = ((b - a) % 360 + 360) % 360;
+    if (d > 180) d -= 360;
+    return ((a + d/2) % 360 + 360) % 360;
+}
+const HUE_NAMES = [
+    [16,'Rot'], [42,'Zinnober'], [72,'Orange'], [100,'Gold'], [122,'Limette'],
+    [152,'Grün'], [178,'Smaragd'], [205,'Türkis'], [232,'Cyan'], [258,'Azur'],
+    [285,'Blau'], [310,'Violett'], [335,'Magenta'], [361,'Pink']
+];
+function hueName(h){
+    h = ((h % 360) + 360) % 360;
+    for (let i = 0; i < HUE_NAMES.length; i++) if (h < HUE_NAMES[i][0]) return HUE_NAMES[i][1];
+    return 'Pink';
+}
+function toneName(col){
+    const l = col.l, c = col.c;
+    let pre = '';
+    if (c < 0.045) pre = 'Graues ';
+    else if (l > 0.78) pre = 'Helles ';
+    else if (l < 0.45) pre = 'Tiefes ';
+    else if (c > 0.17) pre = 'Sattes ';
+    return pre + hueName(col.h);
+}
+
+/* =====================================================================
+   Kandidaten-Erzeugung
+   ===================================================================== */
+/* Schritt 1: fünf Töne mit 72° Abstand — der größtmögliche gleichmäßige
+   Abstand, den fünf Farben auf dem Kreis haben können. L wird pro Farbton
+   leicht angehoben, wo sRGB ohnehin heller kann (Gelb/Grün), damit alle
+   fünf gleich "kräftig" wirken statt technisch gleich zu sein. */
+function baseCandidates(seed){
+    const h0 = ((seed % 360) + 360) % 360;
+    const out = [];
+    for (let i = 0; i < 5; i++){
+        const h = (h0 + i * 72) % 360;
+        const warm = Math.max(0, Math.cos((h - 100) * Math.PI / 180));
+        out.push(mkVivid(0.615 + 0.11 * warm, 0.155 + 0.02 * warm, h));
+    }
+    return out;
+}
+
+const HARMONIES = [
+    { key:'comp',  deg:180, name:'Komplementär',        why:'Maximaler Farbkontrast. Stärkste Signalwirkung — als Akzent gegen Fläche, nie 50/50.',        dl:-0.07, cf:0.80 },
+    { key:'split', deg:150, name:'Split-Komplementär',  why:'Nachbar des Komplements: fast derselbe Kontrast, deutlich weniger Härte. Sicherster Griff.',  dl:+0.09, cf:0.92 },
+    { key:'triad', deg:120, name:'Triade',              why:'Gleichseitiges Dreieck im Kreis. Lebendig, ausgewogen, lässt Platz für eine dritte Farbe.',   dl:-0.09, cf:1.00 },
+    { key:'analog',deg:32,  name:'Analog',              why:'Direkter Nachbar. Ruhig und geschlossen — braucht Helligkeitskontrast, sonst verschmilzt es.', dl:+0.15, cf:1.12 },
+    { key:'square',deg:90,  name:'Quadrat / Tetrade',   why:'Warm-Kalt-Spannung, ohne die Härte des direkten Komplements. Gut für zwei Marken-Töne.',      dl:+0.07, cf:0.88 }
+];
+function warmLift(h){ return Math.max(0, Math.cos((h - 100) * Math.PI / 180)); }
+function secondCandidates(p){
+    /* Die Eigenhelligkeit der Primärfarbe herausrechnen, damit der
+       Helligkeits-Versatz des Schemas nicht davon abhängt, ob man zufällig
+       mit Gelb oder mit Blau gestartet ist. */
+    const base = p.l - 0.11 * warmLift(p.h);
+    return HARMONIES.map(function(H){
+        const h = (p.h + H.deg) % 360;
+        /* Helligkeit bewusst weg von der Primärfarbe schieben: zwei Töne
+           mit gleichem L konkurrieren um dieselbe Aufmerksamkeit. */
+        let l = base + H.dl + 0.11 * warmLift(h);
+        if (l > 0.80) l = 0.80; if (l < 0.42) l = 0.42;
+        const col = mkVivid(l, Math.max(p.c, 0.13) * H.cf, h);
+        col.harmony = H;
+        return col;
+    });
+}
+/* Schritt 3: aus BEIDEN gewählten Farben abgeleitet. */
+function accentSet(p, s){
+    const bridgeH = midHue(p.h, s.h);
+    const avgC = (p.c + s.c) / 2;
+    const avgL = (p.l + s.l) / 2;
+    /* Die drei gedeckten Töne füllen die GRÖSSERE der beiden Lücken
+       zwischen den Hauptfarben. Dort ist im Farbkreis Platz — der
+       Brückenton sitzt in der kleineren Lücke, die Hauptfarben an den
+       Rändern, also gerät nichts in Konkurrenz. Bewusst keine Alert-Farben:
+       stark reduzierte Buntheit und drei Helligkeitsstufen ergeben Töne für
+       Illustrationen, Diagramme und Flächen statt für Warnmeldungen. */
+    const fwd = ((s.h - p.h) % 360 + 360) % 360;
+    const start = fwd < 180 ? s.h : p.h;
+    const span  = fwd < 180 ? 360 - fwd : fwd;
+    const mutedC = Math.max(0.05, Math.min(avgC * 0.46, 0.088));
+    const steps = [
+        { at:0.25, l:0.775, role:'Gedeckt hell' },
+        { at:0.50, l:0.615, role:'Gedeckt mittel' },
+        { at:0.75, l:0.455, role:'Gedeckt tief' }
+    ];
+    const out = [
+        Object.assign(mkVivid(Math.min(avgL + 0.06, 0.78), Math.max(avgC, 0.12) * 1.05, bridgeH), {
+            role:'Brückenton', tag:'Mitte beider Farben',
+            why:'Bindet die Kombination zusammen — Verläufe, Hover-States, Diagramm-Serien.'
+        }),
+        Object.assign(mk(0.56, 0.024, p.h), {
+            role:'Neutral', tag:'Grundfarbton, C 0.02',
+            why:'Kein reines Grau: Flächen und Rahmen nehmen einen Hauch der Grundfarbe auf.'
+        })
+    ];
+    steps.forEach(function(st){
+        const h = (start + span * st.at) % 360;
+        const col = mk(st.l, mutedC, h);
+        out.push(Object.assign(col, {
+            role: st.role,
+            tag: toneName(col) + ' · ' + Math.round(h) + '°',
+            why: 'Gedeckter Illustrationston in der großen Farbkreis-Lücke.'
+        }));
+    });
+    return out;
+}
+
+/* =====================================================================
+   Rollen-Tokens je Modus
+   ===================================================================== */
+function roleColor(base, dark){
+    /* Dark Mode: heller UND weniger gesättigt — satte Farben auf dunklem
+       Grund flimmern. Der Farbton selbst bleibt exakt gleich. */
+    return dark ? mkVivid(0.745, Math.min(base.c * 0.86, 0.148), base.h)
+                : mkVivid(Math.min(base.l, 0.555), Math.min(base.c * 1.04, 0.20), base.h);
+}
+/* Die gedeckten Illustrationstöne NICHT durch roleColor() schicken: das
+   normiert alle auf dieselbe Helligkeit und macht hell/mittel/tief
+   ununterscheidbar. Stattdessen im Dark Mode anheben und dabei die
+   Reihenfolge erhalten. */
+function toneColor(base, dark){
+    return dark ? mk(Math.min(0.42 + base.l * 0.45, 0.88), base.c * 0.92, base.h)
+                : mk(base.l, base.c, base.h);
+}
+function buildTokens(dark){
+    const p = state.primary, s = state.secondary;
+    /* In Schritt 2 steht die zweite Primärfarbe noch nicht fest — für die
+       Vorschau provisorisch am Komplement ableiten, damit die Statusfarben
+       nicht alle in der Primärfarbe erscheinen. */
+    const acc = state.accents || accentSet(p, mk(p.l, p.c, p.h + 180));
+    const prim = roleColor(p, dark);
+    const sec  = s ? roleColor(s, dark) : prim;
+    const T = {
+        bg:      dark ? mk(0.175, 0.014, p.h) : mk(0.985, 0.006, p.h),
+        surface: dark ? mk(0.232, 0.016, p.h) : mk(1.000, 0.000, p.h),
+        border:  dark ? mk(0.330, 0.018, p.h) : mk(0.895, 0.012, p.h),
+        text:    dark ? mk(0.955, 0.008, p.h) : mk(0.255, 0.020, p.h),
+        muted:   dark ? mk(0.720, 0.016, p.h) : mk(0.545, 0.018, p.h),
+        primary: prim,
+        secondary: sec
+    };
+    T.onPrimary = onColor(prim);
+    T.onSecondary = onColor(sec);
+    acc.forEach(function(a, i){
+        T['accent' + (i+1)] = i >= 2 ? toneColor(a, dark) : roleColor(a, dark);
+    });
+    return T;
+}
+
+/* =====================================================================
+   Zustand + Oberfläche
+   ===================================================================== */
+const state = { seed: 0, primary: null, secondary: null, accents: null, harmonyKey: null, siteMode: 'light' };
+const $ = function(s){ return document.querySelector(s); };
+const $$ = function(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+/* Alle Rollenfarben eines Modus als CSS-Variablen auf ein Element legen. */
+function applyTokens(el, dark){
+    const T = buildTokens(dark);
+    const bridge = T.accent1 || T.primary;
+    const map = {
+        'bg':T.bg, 'surface':T.surface, 'border':T.border, 'text':T.text, 'muted':T.muted,
+        'primary':T.primary, 'secondary':T.secondary, 'on-primary':T.onPrimary, 'on-secondary':T.onSecondary,
+        'bridge':bridge, 'neutral':T.accent2 || T.muted,
+        'tone-1':T.accent3 || bridge, 'tone-2':T.accent4 || bridge, 'tone-3':T.accent5 || bridge,
+        'bridge-soft': mk(dark ? 0.30 : 0.93, bridge.c * 0.38, bridge.h),
+        'bridge-text': mk(dark ? 0.86 : 0.44, bridge.c * 0.95, bridge.h)
+    };
+    Object.keys(map).forEach(function(k){ el.style.setProperty('--pv-' + k, map[k].hex); });
+    return T;
+}
+
+function tile(col, opts){
+    opts = opts || {};
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tile' + (opts.selected ? ' selected' : '');
+    if (opts.disabled) b.disabled = true;
+    b.innerHTML =
+        '<span class="swatch" style="background:' + col.hex + ';color:' + onColor(col).hex + '">' +
+            (opts.index ? '<span class="key">' + opts.index + '</span>' : '<span></span>') +
+            '<span class="hex">' + col.hex + '</span>' +
+        '</span>' +
+        '<span class="meta"><span class="name">' + opts.name + '</span>' +
+        '<span class="rule">' + opts.rule + '</span></span>';
+    if (opts.onPick) b.addEventListener('click', opts.onPick);
+    if (!opts.disabled){
+        b.addEventListener('mouseenter', function(){ drawWheel(col); });
+        b.addEventListener('mouseleave', function(){ drawWheel(); });
+    }
+    return b;
+}
+
+/* ---------- Die gewählten Farben, immer nebeneinander ---------- */
+const SLOTS = ['Grundfarbe', 'Zweite Farbe', 'Brücke', 'Neutral', 'Gedeckt hell', 'Gedeckt mittel', 'Gedeckt tief'];
+function renderStrip(){
+    const cols = [state.primary, state.secondary].concat(state.accents || []);
+    $('#strip').innerHTML = SLOTS.map(function(label, i){
+        const c = cols[i];
+        if (!c) return '<button type="button" class="slot" disabled><span class="chip">–</span><span class="cap">' + label + '</span></button>';
+        return '<button type="button" class="slot filled" data-hex="' + c.hex + '" title="' + c.hex + ' kopieren">' +
+               '<span class="chip" style="background:' + c.hex + ';color:' + onColor(c).hex + '">' + c.hex + '</span>' +
+               '<span class="cap">' + label + '</span></button>';
+    }).join('');
+    $$('#strip .slot.filled').forEach(function(b){
+        b.addEventListener('click', function(){ copyText(b.dataset.hex, b.dataset.hex + ' kopiert'); });
+    });
+}
+
+function renderBase(){
+    const wrap = $('#tiles-base');
+    wrap.innerHTML = '';
+    baseCandidates(state.seed).forEach(function(col, i){
+        wrap.appendChild(tile(col, {
+            index: i + 1, name: toneName(col), rule: 'Farbton ' + Math.round(col.h) + '°',
+            selected: !!state.primary && Math.abs(state.primary.h - col.h) < 0.5,
+            onPick: function(){ pickPrimary(col); }
+        }));
+    });
+    if (!state.primary) drawWheel();
+}
+function renderSecond(){
+    const wrap = $('#tiles-second');
+    wrap.innerHTML = '';
+    secondCandidates(state.primary).forEach(function(col, i){
+        wrap.appendChild(tile(col, {
+            index: i + 1, name: col.harmony.name, rule: '+' + col.harmony.deg + '° im Farbkreis',
+            selected: state.harmonyKey === col.harmony.key,
+            onPick: function(){ pickSecondary(col); }
+        }));
+    });
+    drawWheel();
+}
+function renderAccents(){
+    const wrap = $('#tiles-accents');
+    wrap.innerHTML = '';
+    state.accents.forEach(function(col){
+        wrap.appendChild(tile(col, { name: col.role, rule: col.tag, disabled: true }));
+    });
+}
+
+/* Farbkreis in der Kopfleiste. Läuft immer mit und zeigt live, wo die
+   Palette im Kreis steht: gefüllte Marker für die beiden gewählten Farben,
+   hohle für die gerade zur Wahl stehenden Kandidaten, kleine Punkte innen
+   für Brückenton und die gedeckten Töne. `hover` setzt zusätzlich einen
+   Vorschau-Ring, während die Maus über einer Kachel steht. */
+function drawWheel(hover){
+    const svg = $('#wheel'); if (!svg) return;
+    const cx = 66, cy = 66, R = 53, W = 9, RING = 34, INNER = 17;
+    let out = '';
+    for (let a = 0; a < 360; a += 3){
+        const col = mk(0.68, 0.15, a), rad = (a - 90) * Math.PI / 180;
+        out += '<line x1="' + (cx + Math.cos(rad)*(R-W)).toFixed(1) + '" y1="' + (cy + Math.sin(rad)*(R-W)).toFixed(1) +
+               '" x2="' + (cx + Math.cos(rad)*R).toFixed(1) + '" y2="' + (cy + Math.sin(rad)*R).toFixed(1) +
+               '" stroke="' + col.hex + '" stroke-width="2.9"/>';
+    }
+    function pos(h, rad){ const a = (h - 90) * Math.PI / 180; return [cx + Math.cos(a)*rad, cy + Math.sin(a)*rad]; }
+    function spoke(h){
+        const e = pos(h, R - W - 2);
+        return '<line x1="' + cx + '" y1="' + cy + '" x2="' + e[0].toFixed(1) + '" y2="' + e[1].toFixed(1) +
+               '" stroke="var(--line-strong)" stroke-width="1.1"/>';
+    }
+    function dot(h, rad, r, fill, label){
+        const q = pos(h, rad);
+        let g = '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + r +
+                '" fill="' + fill + '" stroke="var(--panel)" stroke-width="1.6"/>';
+        if (label) g += '<text x="' + q[0].toFixed(1) + '" y="' + (q[1] + 2.9).toFixed(1) +
+                        '" text-anchor="middle" font-size="8.5" font-weight="700" fill="' +
+                        onColor(hexToOklch(fill)).hex + '">' + label + '</text>';
+        return g;
+    }
+    function ring(h, rad, r, stroke){
+        const q = pos(h, rad);
+        return '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + r +
+               '" fill="none" stroke="' + stroke + '" stroke-width="2"/>';
+    }
+    if (!state.primary){
+        baseCandidates(state.seed).forEach(function(c){ out += ring(c.h, RING, 4.5, c.hex); });
+    } else {
+        if (!state.secondary){
+            secondCandidates(state.primary).forEach(function(c){ out += ring(c.h, RING, 4.5, c.hex); });
+        }
+        out += spoke(state.primary.h);
+        if (state.secondary){
+            out += spoke(state.secondary.h);
+            (state.accents || []).forEach(function(a, i){
+                if (i === 1) return;                        /* Neutral liegt auf der Grundfarbe */
+                out += dot(a.h, INNER, i === 0 ? 4.5 : 3.4, a.hex, '');
+            });
+            out += dot(state.secondary.h, RING, 8, state.secondary.hex, '2');
+        }
+        out += dot(state.primary.h, RING, 8, state.primary.hex, '1');
+    }
+    if (hover) out += ring(hover.h, RING, 8.5, 'var(--t1)');
+    svg.innerHTML = out;
+}
+
+/* ---------- Schritt 2: derselbe Ton, zwei Modi ---------- */
+function renderPreview(id, dark){
+    const el = $(id), T = applyTokens(el, dark);
+    el.querySelector('.mini').innerHTML =
+        '<div class="mini-top"><span class="mini-dot"></span><span class="mini-name">Aurora</span></div>' +
+        '<div class="mini-card">' +
+            '<div class="mini-lbl">Umsatz · laufender Monat</div>' +
+            '<div class="mini-val">248.190 €</div>' +
+            '<div class="mini-btns"><span class="mini-btn2 p">Bericht</span>' +
+            '<span class="mini-btn2 s">Export</span><span class="mini-btn2 g">Abbrechen</span></div>' +
+            '<div class="mini-txt">Fließtext auf der Karte — gleicher Farbton, nur entsättigt.</div>' +
+        '</div>';
+    const checks = [
+        ['Text', contrast(T.text, T.bg), 4.5],
+        ['Grundfarbe', contrast(T.primary, T.bg), 3.0],
+        ['Schrift auf Grundfarbe', contrast(T.onPrimary, T.primary), 4.5],
+        ['Schrift auf zweiter Farbe', contrast(T.onSecondary, T.secondary), 4.5]
+    ];
+    el.querySelector('.contrast-row').innerHTML = checks.map(function(c){
+        const grade = c[1] >= 7 ? 'AAA' : c[1] >= 4.5 ? 'AA' : c[1] >= 3 ? 'AA groß' : 'zu wenig';
+        return '<span class="cbadge' + (c[1] >= c[2] ? '' : ' fail') + '">' + c[0] + ' ' + c[1].toFixed(1) + ':1 · ' + grade + '</span>';
+    }).join('');
+    $(id + '-hex').textContent = T.primary.hex;
+}
+function renderPreviews(){
+    renderPreview('#pv-light', false);
+    renderPreview('#pv-dark', true);
+    const p = state.primary, ll = roleColor(p, false), dl = roleColor(p, true);
+    $('#info-modes').innerHTML =
+        '<p>Ein Ton, der auf Weiß gut sitzt, ist auf Schwarz zu dunkel und zu satt: bei wenig Umgebungslicht ' +
+        'reagiert das Auge empfindlicher, stark gesättigte Farben auf dunklem Grund fangen an zu <strong>flimmern</strong>. ' +
+        'Deshalb wird derselbe Farbton gedreht statt kopiert — <strong>Helligkeit hoch, Sättigung runter</strong>.</p>' +
+        '<p>Der Farbton bleibt exakt bei ' + Math.round(p.h) + '°, die Marke bleibt also erkennbar. Konkret hier: ' +
+        'Light <strong>L ' + ll.l.toFixed(2) + ' / C ' + ll.c.toFixed(3) + '</strong> → ' +
+        'Dark <strong>L ' + dl.l.toFixed(2) + ' / C ' + dl.c.toFixed(3) + '</strong>.</p>';
+}
+
+/* ---------- Schritt 5: die Palette als echte Website ---------- */
+function renderSite(){
+    const el = $('#site'), dark = state.siteMode === 'dark', T = applyTokens(el, dark);
+    const bridge = T.accent1, t1 = T.accent3, t2 = T.accent4, t3 = T.accent5;
+    /* Nur die Grundfarbe tritt gefüllt auf — im Diagramm markiert sie den
+       aktuellen Monat, alles andere trägt die gedeckten Töne. */
+    const bars = [
+        [48, t1], [62, t2], [55, t1], [78, t3], [70, t2], [100, T.primary]
+    ];
+    el.innerHTML =
+    '<div class="site-nav">' +
+        '<span class="site-logo"><i></i>Aurora</span>' +
+        '<span class="site-links"><span>Produkt</span><span>Preise</span><span>Kunden</span><span>Kontakt</span></span>' +
+        '<span class="grow"></span>' +
+        '<span class="btn o">Anmelden</span><span class="btn p">Loslegen</span>' +
+    '</div>' +
+    '<div class="site-hero">' +
+        '<div>' +
+            '<span class="badge">Neu · Version 3</span>' +
+            '<h3>Zahlen, die <em>endlich</em> zusammen&shy;passen.</h3>' +
+            '<p>Alle Kennzahlen aus jedem Kanal in einer Ansicht. Keine Tabellen&shy;exporte mehr, kein Rätselraten am Monatsende.</p>' +
+            '<div class="hero-btns"><span class="btn p lg">Kostenlos testen</span><span class="btn s lg">Demo ansehen</span></div>' +
+        '</div>' +
+        '<div class="panel">' +
+            '<div class="panel-head"><span class="l">Umsatz · laufender Monat</span><span class="d">▲ 12,4 %</span></div>' +
+            '<div class="big">248.190 €</div>' +
+            '<div class="bars">' + bars.map(function(b){
+                return '<span style="height:' + b[0] + '%;background:' + b[1].hex + '"></span>'; }).join('') +
+            '</div>' +
+            '<div class="legend">' +
+                '<span><b style="background:' + T.primary.hex + '"></b>Laufender Monat</span>' +
+                '<span><b style="background:' + t2.hex + '"></b>Direkt</span>' +
+                '<span><b style="background:' + t3.hex + '"></b>Partner</span>' +
+            '</div>' +
+        '</div>' +
+    '</div>' +
+    '<div class="site-features">' +
+        [['◆', 'Alles an einem Ort', 'Kanäle, Kosten und Deckungs&shy;beitrag in einer einzigen Ansicht.', bridge],
+         ['◗', 'Live statt Freitag', 'Zahlen aktualisieren sich laufend — kein Warten auf den Wochen&shy;bericht.', t2],
+         ['◇', 'Sagt vorher Bescheid', 'Schwellen setzen und rechtzeitig informiert werden, nicht erst im Rückblick.', t3]
+        ].map(function(f){
+            return '<div class="feat"><i style="background:' + f[3].hex + ';color:' + onColor(f[3]).hex + '">' + f[0] + '</i>' +
+                   '<h4>' + f[1] + '</h4><p>' + f[2] + '</p></div>';
+        }).join('') +
+    '</div>' +
+    '<div class="site-cta">' +
+        '<div><h4>30 Tage testen, ohne Karte.</h4><p>Einrichtung in unter zehn Minuten. Danach jederzeit kündbar.</p></div>' +
+        '<span class="btn lg">Konto anlegen</span>' +
+    '</div>' +
+    '<div class="site-foot"><span>© 2026 Aurora</span><span class="grow"></span>' +
+        '<span>Datenschutz</span><span>Impressum</span><span>Status</span></div>';
+}
+
+/* ---------- Gewichtungsbalken: exakt die gewählten Farben ---------- */
+function renderWeight(){
+    const a = state.accents;
+    const parts = [
+        { c:a[1], w:60, t:'Neutral', s:'60 %' },
+        { c:state.primary, w:20, t:'Grundfarbe', s:'20 %' },
+        { c:state.secondary, w:10, t:'Zweite', s:'10 %' },
+        { c:a[0], w:4, t:'', s:'' }, { c:a[2], w:2, t:'', s:'' },
+        { c:a[3], w:2, t:'', s:'' }, { c:a[4], w:2, t:'', s:'' }
+    ];
+    $('#wbar').innerHTML = parts.map(function(p){
+        return '<div style="width:' + p.w + '%;background:' + p.c.hex + ';color:' + onColor(p.c).hex + '" title="' + p.c.hex + '">' +
+               (p.t ? p.t + '<small>' + p.s + '</small>' : '') + '</div>';
+    }).join('');
+}
+
+/* ---------- Export ---------- */
+function tokenLines(dark, indent){
+    const T = buildTokens(dark);
+    const order = ['bg','surface','border','text','muted','primary','onPrimary','secondary','onSecondary',
+                   'accent1','accent2','accent3','accent4','accent5'];
+    const names = { onPrimary:'on-primary', onSecondary:'on-secondary', accent1:'accent-bridge',
+                    accent2:'accent-neutral', accent3:'tone-light', accent4:'tone-mid', accent5:'tone-deep' };
+    return order.map(function(k){ return indent + '--' + (names[k] || k) + ': ' + T[k].hex + ';'; }).join('\n');
+}
+function exportText(tab){
+    const p = state.primary, s = state.secondary;
+    if (tab === 'css'){
+        return '/* Chroma Ladder — ' + toneName(p) + ' + ' + s.harmony.name + ' (' + s.harmony.deg + '°) */\n' +
+               ':root {\n' + tokenLines(false, '    ') + '\n}\n\n' +
+               ':root[data-theme="dark"] {\n' + tokenLines(true, '    ') + '\n}\n\n' +
+               '@media (prefers-color-scheme: dark) {\n    :root:not([data-theme="light"]) {\n' +
+               tokenLines(true, '        ') + '\n    }\n}';
+    }
+    if (tab === 'tokens'){
+        function obj(dark){ const T = buildTokens(dark), o = {}; Object.keys(T).forEach(function(k){ o[k] = T[k].hex; }); return o; }
+        return JSON.stringify({
+            meta: {
+                grundfarbe: { hex:p.hex, oklch:'oklch(' + p.l.toFixed(3) + ' ' + p.c.toFixed(3) + ' ' + p.h.toFixed(1) + ')' },
+                zweiteFarbe: { hex:s.hex, harmonie:s.harmony.name, winkel:s.harmony.deg,
+                               oklch:'oklch(' + s.l.toFixed(3) + ' ' + s.c.toFixed(3) + ' ' + s.h.toFixed(1) + ')' },
+                gewichtung: { neutral:'60%', grundfarbe:'20%', zweiteFarbe:'10%', akzente:'10%' }
+            },
+            light: obj(false), dark: obj(true)
+        }, null, 2);
+    }
+    let out = 'Grundfarbe    ' + p.hex + '   ' + toneName(p) + '  (Farbton ' + Math.round(p.h) + '°)\n' +
+              'Zweite Farbe  ' + s.hex + '   ' + s.harmony.name + '  (+' + s.harmony.deg + '° → ' + Math.round(s.h) + '°)\n\n';
+    state.accents.forEach(function(x){ out += (x.role + '            ').slice(0, 14) + x.hex + '   ' + x.tag + '\n'; });
+    return out;
+}
+function renderExport(){ $('#export-out').textContent = exportText($('.tabs .mini-btn.on').dataset.tab); }
+
+/* =====================================================================
+   Ablauf
+   ===================================================================== */
+function show(id){ $('#' + id).hidden = false; }
+function pickPrimary(col){
+    state.primary = col; state.secondary = null; state.harmonyKey = null; state.accents = null;
+    $('#step-accents').hidden = true; $('#step-site').hidden = true;
+    renderBase(); renderStrip(); renderPreviews(); renderSecond(); drawWheel();
+    show('step-second'); show('step-modes');
+    $('#step-second').scrollIntoView({ behavior:'smooth', block:'start' });
+    writeHash();
+}
+function pickSecondary(col){
+    state.secondary = col; state.harmonyKey = col.harmony.key;
+    state.accents = accentSet(state.primary, col);
+    renderSecond(); renderStrip(); renderPreviews(); renderAccents();
+    renderSite(); renderWeight(); renderExport(); drawWheel();
+    show('step-accents'); show('step-site');
+    $('#step-accents').scrollIntoView({ behavior:'smooth', block:'start' });
+    writeHash();
+}
+function writeHash(){
+    if (!state.primary) return;
+    const p = state.primary;
+    const parts = ['p=' + [p.l.toFixed(5), p.c.toFixed(5), p.h.toFixed(3)].join(',')];
+    if (state.harmonyKey) parts.push('h=' + state.harmonyKey);
+    parts.push('s=' + state.seed);
+    history.replaceState(null, '', '#' + parts.join('&'));
+}
+function readHash(){
+    const raw = location.hash.replace(/^#/, '');
+    if (!raw) return false;
+    const q = {};
+    raw.split('&').forEach(function(kv){ const i = kv.indexOf('='); if (i > 0) q[kv.slice(0, i)] = kv.slice(i + 1); });
+    if (!q.p) return false;
+    const n = q.p.split(',').map(Number);
+    if (n.length !== 3 || n.some(isNaN)) return false;
+    state.seed = q.s ? parseInt(q.s, 10) || 0 : 0;
+    renderBase();
+    pickPrimary(mk(n[0], n[1], n[2]));
+    if (q.h){
+        const cand = secondCandidates(state.primary).filter(function(c){ return c.harmony.key === q.h; })[0];
+        if (cand) pickSecondary(cand);
+    }
+    return true;
+}
+
+/* ---------- Ereignisse ---------- */
+function toast(msg){
+    const t = $('#toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+function copyText(text, msg){
+    if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(function(){ toast(msg); }, function(){ toast('Kopieren nicht möglich'); });
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); toast(msg); } catch (e) { toast('Kopieren nicht möglich'); }
+        document.body.removeChild(ta);
+    }
+}
+$('#reroll').addEventListener('click', function(){ state.seed = Math.floor(Math.random() * 360); renderBase(); drawWheel(); });
+$('#reset').addEventListener('click', function(){
+    state.primary = null; state.secondary = null; state.accents = null; state.harmonyKey = null;
+    ['step-second','step-accents','step-modes','step-site'].forEach(function(id){ $('#' + id).hidden = true; });
+    history.replaceState(null, '', location.pathname);
+    renderBase(); renderStrip(); drawWheel();
+    window.scrollTo({ top:0, behavior:'smooth' });
+});
+$('#hex-go').addEventListener('click', function(){
+    const col = hexToOklch($('#hex-input').value);
+    if (!col){ $('#hex-input').style.borderColor = '#e5484d'; return; }
+    $('#hex-input').style.borderColor = '';
+    pickPrimary(mk(col.l, col.c, col.h));
+});
+$('#hex-input').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('#hex-go').click(); });
+$$('[data-site]').forEach(function(b){
+    b.addEventListener('click', function(){
+        $$('[data-site]').forEach(function(x){ x.classList.remove('on'); });
+        b.classList.add('on');
+        state.siteMode = b.dataset.site;
+        renderSite();
+    });
+});
+$$('.tabs .mini-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+        $$('.tabs .mini-btn').forEach(function(x){ x.classList.remove('on'); });
+        b.classList.add('on'); renderExport();
+    });
+});
+$('#copy-btn').addEventListener('click', function(){ copyText($('#export-out').textContent, 'Kopiert'); });
+$('#share-btn').addEventListener('click', function(){ writeHash(); copyText(location.href, 'Link kopiert'); });
+document.addEventListener('keydown', function(e){
+    if (e.target.tagName === 'INPUT') return;
+    const n = parseInt(e.key, 10);
+    if (!(n >= 1 && n <= 5)) return;
+    const btn = $((state.primary ? '#tiles-second' : '#tiles-base') + ' .tile:nth-child(' + n + ')');
+    if (btn && !btn.disabled) btn.click();
+});
+
+/* Theme des Werkzeugs selbst — unabhängig von der gebauten Palette */
+(function(){
+    const root = document.documentElement, tgl = $('#theme-toggle'), th = tgl.querySelector('span');
+    function apply(t){ root.setAttribute('data-theme', t); th.textContent = t === 'light' ? '☀' : '☾'; }
+    apply(localStorage.getItem('cl-theme') === 'light' ? 'light' : 'dark');
+    tgl.addEventListener('click', function(){
+        const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        apply(next); localStorage.setItem('cl-theme', next);
+    });
+})();
+
+state.seed = Math.floor(Math.random() * 360);
+renderStrip();
+if (!readHash()){ renderBase(); drawWheel(); }
+</script>
+</body>
+</html>

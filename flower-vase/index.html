@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>3D Blumenvase – Explosion</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: radial-gradient(ellipse at 50% 30%, #1a2036 0%, #05060a 70%);
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    color: #eef1f8;
+  }
+  canvas { display: block; touch-action: none; }
+
+  #deploy-time {
+    position: fixed; top: 18px; right: 18px; z-index: 10;
+    font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase;
+    color: rgba(255,255,255,0.30);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    pointer-events: none;
+  }
+
+  #sceneTabs {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    z-index: 12; display: flex; gap: 4px; max-width: calc(100vw - 120px);
+    overflow-x: auto; scrollbar-width: none;
+    background: rgba(18, 20, 32, 0.55);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-radius: 999px;
+    padding: 5px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  }
+  #sceneTabs::-webkit-scrollbar { display: none; }
+  #sceneTabs a {
+    text-decoration: none; white-space: nowrap; flex-shrink: 0;
+    color: rgba(255,255,255,0.55);
+    font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em;
+    padding: 8px 16px;
+    border-radius: 999px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  #sceneTabs a:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  #sceneTabs a.active {
+    color: #0a0b12;
+    background: linear-gradient(90deg, #6ea8ff, #b98bff);
+  }
+
+  #infoBtn {
+    position: fixed; top: 18px; left: 18px; z-index: 11;
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(18, 20, 32, 0.55);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    color: #fff; font-size: 1.1rem; font-style: italic; font-family: Georgia, serif;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  #infoBtn:hover { background: rgba(255,255,255,0.18); }
+  #infoBtn:active { transform: scale(0.92); }
+
+  #hud {
+    position: fixed; top: 18px; left: 66px; z-index: 10;
+    max-width: min(360px, calc(100vw - 100px));
+    background: rgba(18, 20, 32, 0.55);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-radius: 14px;
+    padding: 12px 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    opacity: 0; transform: translateX(-8px);
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+  }
+  #hud.open {
+    opacity: 1; transform: translateX(0);
+    pointer-events: auto;
+  }
+  #hud h1 {
+    margin: 0 0 4px 0; font-size: 1.1rem; font-weight: 600; letter-spacing: 0.02em;
+  }
+  #hud p {
+    margin: 0; font-size: 0.82rem; opacity: 0.75;
+  }
+
+  #panel {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    width: min(720px, 92vw);
+    background: rgba(18, 20, 32, 0.55);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-radius: 18px;
+    padding: 14px 18px 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    z-index: 10;
+  }
+
+  #panelTop {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
+  }
+
+  .iconBtn {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+    color: #fff; font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .iconBtn:hover { background: rgba(255,255,255,0.18); }
+  .iconBtn:active { transform: scale(0.92); }
+
+  #timeSlider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #6ea8ff 0%, #b98bff var(--fill, 0%), rgba(255,255,255,0.15) var(--fill, 0%));
+    outline: none;
+    cursor: pointer;
+  }
+  #timeSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(185, 139, 255, 0.35), 0 2px 6px rgba(0,0,0,0.5);
+    cursor: grab;
+  }
+  #timeSlider::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%; border: none;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(185, 139, 255, 0.35), 0 2px 6px rgba(0,0,0,0.5);
+    cursor: grab;
+  }
+
+  #panelBottom {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.78rem; opacity: 0.85; padding: 0 2px;
+  }
+  #stateLabel { font-weight: 600; letter-spacing: 0.02em; }
+  #pctLabel { font-variant-numeric: tabular-nums; opacity: 0.7; }
+
+  #loading {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 0.95rem; opacity: 0.6; z-index: 20; transition: opacity 0.4s ease;
+  }
+</style>
+</head>
+<body>
+
+<div id="deploy-time">v2.2&thinsp;|&thinsp;17.07.2026</div>
+<nav id="sceneTabs">
+  <a href="./index.html" class="active">🌸 Blumenvase</a>
+  <a href="./shuttle.html">🚀 Spaceshuttle</a>
+</nav>
+<button id="infoBtn" title="Info" aria-label="Info">i</button>
+<div id="hud">
+  <h1>🌸 3D Blumenvase — Explosion</h1>
+  <p>Vase und Blumen zerbersten gemeinsam. Regler unten: durch die Zeit scrollen, vor &amp; zurück. Maus / Finger auf der Szene: Kamera drehen &amp; zoomen.</p>
+</div>
+
+<div id="loading">Lade Szene …</div>
+
+<div id="panel">
+  <div id="panelTop">
+    <button id="playBtn" class="iconBtn" title="Abspielen / Pause">▶</button>
+    <input id="timeSlider" type="range" min="0" max="1000" value="0" step="1" />
+    <button id="resetBtn" class="iconBtn" title="Zurücksetzen">⟲</button>
+  </div>
+  <div id="panelBottom">
+    <span id="stateLabel">Intakt</span>
+    <span id="pctLabel">0%</span>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+// ---------- helpers ----------
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const smoothstep = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+// explosion motion: very high initial acceleration, then rapid deceleration
+const easeOutBlast = (t) => { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 4); };
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// ---------- renderer / scene / camera ----------
+const canvas = document.createElement("canvas");
+document.body.appendChild(canvas);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05060a);
+scene.fog = new THREE.FogExp2(0x05060a, 0.045);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.05, 100);
+camera.position.set(3.6, 2.6, 5.2);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 2.2;
+controls.maxDistance = 14;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.target.set(0, 1.5, 0);
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.55;
+controls.addEventListener("start", () => (controls.autoRotate = false));
+
+// ---------- lighting ----------
+scene.add(new THREE.HemisphereLight(0x9fb8ff, 0x1a1208, 0.55));
+
+const key = new THREE.DirectionalLight(0xfff2df, 2.4);
+key.position.set(4, 7, 3.5);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.near = 1;
+key.shadow.camera.far = 20;
+key.shadow.camera.left = -5;
+key.shadow.camera.right = 5;
+key.shadow.camera.top = 5;
+key.shadow.camera.bottom = -5;
+key.shadow.bias = -0.0015;
+scene.add(key);
+
+const rim = new THREE.PointLight(0x8fb0ff, 8, 12, 2);
+rim.position.set(-3, 3.2, -2.5);
+scene.add(rim);
+
+const fill = new THREE.PointLight(0xffb87a, 3, 10, 2);
+fill.position.set(1.5, 1.2, -3);
+scene.add(fill);
+
+// ---------- ground ----------
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(9, 64),
+  new THREE.MeshStandardMaterial({ color: 0x0b0d16, roughness: 0.9, metalness: 0.1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+const haloRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.05, 0.06, 96),
+  new THREE.MeshBasicMaterial({ color: 0x8fb0ff, transparent: true, opacity: 0.15, side: THREE.DoubleSide })
+);
+haloRing.rotation.x = -Math.PI / 2;
+haloRing.position.y = 0.01;
+scene.add(haloRing);
+
+// ---------- vase (Lathe) ----------
+const profile = [
+  [0.001, 0.00], [0.42, 0.00], [0.50, 0.05], [0.55, 0.20],
+  [0.50, 0.45], [0.34, 0.70], [0.26, 0.95], [0.24, 1.15],
+  [0.28, 1.30], [0.38, 1.42], [0.40, 1.50], [0.32, 1.58], [0.34, 1.60],
+].map(([x, y]) => new THREE.Vector2(x, y));
+
+const VASE_TOP_Y = 1.60;
+const VASE_RIM_R = 0.32;
+
+const vaseGeo = new THREE.LatheGeometry(profile, 64);
+vaseGeo.computeVertexNormals();
+const vaseMat = new THREE.MeshPhysicalMaterial({
+  color: 0x3a6ea8,
+  roughness: 0.22,
+  metalness: 0.02,
+  clearcoat: 0.8,
+  clearcoatRoughness: 0.15,
+  reflectivity: 0.5,
+  transparent: true,
+});
+const vase = new THREE.Mesh(vaseGeo, vaseMat);
+vase.castShadow = true;
+vase.receiveShadow = true;
+scene.add(vase);
+
+// water surface just below the rim
+const waterMat = new THREE.MeshPhysicalMaterial({
+  color: 0x1c3a55, roughness: 0.05, metalness: 0,
+  transmission: 0.85, thickness: 0.3, transparent: true, opacity: 0.9,
+});
+const water = new THREE.Mesh(new THREE.CircleGeometry(0.24, 32), waterMat);
+water.rotation.x = -Math.PI / 2;
+water.position.y = VASE_TOP_Y - 0.12;
+scene.add(water);
+
+// ---------- vase shard system (the vase itself shatters into ~1000 pieces) ----------
+const SHARD_COUNT = 1000;
+
+const segLengths = [];
+let totalProfileLen = 0;
+for (let i = 0; i < profile.length - 1; i++) {
+  const l = profile[i].distanceTo(profile[i + 1]);
+  segLengths.push(l);
+  totalProfileLen += l;
+}
+function pickProfileSegment() {
+  let r = Math.random() * totalProfileLen;
+  for (let i = 0; i < segLengths.length; i++) {
+    if (r < segLengths[i]) return i;
+    r -= segLengths[i];
+  }
+  return segLengths.length - 1;
+}
+
+function vaseSurfaceSample() {
+  const k = pickProfileSegment();
+  const p0 = profile[k], p1 = profile[k + 1];
+  const v = Math.random();
+  const radius = lerp(p0.x, p1.x, v);
+  const y = lerp(p0.y, p1.y, v);
+  const theta = Math.random() * Math.PI * 2;
+
+  const dx = p1.x - p0.x, dy = p1.y - p0.y;
+  let nx = dy, ny = -dx;
+  const nLen = Math.hypot(nx, ny) || 1;
+  nx /= nLen; ny /= nLen;
+  const isFlatBottom = Math.abs(dy) < 1e-5 && p0.y < 0.01;
+  if (isFlatBottom) { nx = 0; ny = -1; }
+  else if (nx < 0) { nx = -nx; ny = -ny; }
+
+  const pos = new THREE.Vector3(radius * Math.cos(theta), y, radius * Math.sin(theta));
+  const normal = new THREE.Vector3(nx * Math.cos(theta), ny, nx * Math.sin(theta)).normalize();
+  const tangent = new THREE.Vector3(-Math.sin(theta), 0, Math.cos(theta));
+  return { pos, normal, tangent };
+}
+
+const shardGeo = new THREE.TetrahedronGeometry(0.045, 0).toNonIndexed();
+{
+  const colors = [];
+  const faceColors = [
+    new THREE.Color(0xf3e6cf), // inner ceramic
+    new THREE.Color(0x3a6ea8),
+    new THREE.Color(0x477fbd),
+    new THREE.Color(0x2e5a8c),
+  ];
+  const posAttr = shardGeo.getAttribute("position");
+  const faceCount = posAttr.count / 3;
+  for (let f = 0; f < faceCount; f++) {
+    const c = faceColors[f % faceColors.length];
+    for (let v = 0; v < 3; v++) colors.push(c.r, c.g, c.b);
+  }
+  shardGeo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+}
+
+const shardMat = new THREE.MeshStandardMaterial({
+  vertexColors: true, roughness: 0.3, metalness: 0.05, transparent: true, opacity: 0,
+});
+const shardMesh = new THREE.InstancedMesh(shardGeo, shardMat, SHARD_COUNT);
+shardMesh.castShadow = true;
+shardMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+shardMesh.frustumCulled = false;
+shardMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(SHARD_COUNT * 3), 3);
+scene.add(shardMesh);
+
+const shards = [];
+const shardTmpColor = new THREE.Color();
+for (let i = 0; i < SHARD_COUNT; i++) {
+  const { pos, normal, tangent } = vaseSurfaceSample();
+  const bitangent = normal.clone().cross(tangent).normalize();
+  const basis = new THREE.Matrix4().makeBasis(tangent, bitangent, normal);
+  const baseQuat = new THREE.Quaternion().setFromRotationMatrix(basis);
+
+  const dir = normal.clone();
+  if (dir.y < -0.4) {
+    dir.set(pos.x, 0, pos.z);
+    if (dir.lengthSq() < 1e-6) dir.set(rand(-1, 1), 0, rand(-1, 1));
+    dir.normalize().multiplyScalar(0.8);
+    dir.y = rand(0.2, 0.5);
+  } else {
+    dir.multiplyScalar(0.75).add(new THREE.Vector3(0, rand(0.3, 0.8), 0));
+  }
+  dir.normalize();
+
+  shards.push({
+    basePos: pos,
+    baseQuat,
+    dir,
+    dist: rand(1.6, 4.2),
+    axis: new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize(),
+    spin: rand(2, 7) * (Math.random() < 0.5 ? -1 : 1),
+    delay: rand(0, 0.1),
+    gravity: rand(1.0, 2.4),
+    scale: rand(0.6, 1.8),
+  });
+
+  shardTmpColor.setScalar(rand(0.82, 1.18));
+  shardMesh.setColorAt(i, shardTmpColor);
+}
+shardMesh.instanceColor.needsUpdate = true;
+
+// ---------- fragments registry ----------
+// each fragment: { mesh, basePos, baseQuat, baseScale, dir(Vector3), dist, axis(Vector3), spin, delay, opacityFade }
+const fragments = [];
+
+function addFragment(geometry, material, basePos, baseQuat, opts = {}) {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.copy(basePos);
+  mesh.quaternion.copy(baseQuat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = false;
+  scene.add(mesh);
+
+  const dir = (opts.dir || new THREE.Vector3(rand(-1, 1), rand(0.2, 1), rand(-1, 1))).clone().normalize();
+  fragments.push({
+    mesh,
+    basePos: basePos.clone(),
+    baseQuat: baseQuat.clone(),
+    baseScale: mesh.scale.clone(),
+    dir,
+    dist: opts.dist ?? rand(1, 2),
+    axis: new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1)).normalize(),
+    spin: rand(1.5, 5.0) * (Math.random() < 0.5 ? -1 : 1),
+    delay: opts.delay ?? 0,
+    fade: opts.fade ?? true,
+    gravity: opts.gravity ?? rand(0.6, 1.4),
+  });
+  return mesh;
+}
+
+function dirFromAngle(angle, tilt) {
+  const horiz = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+  return horiz.multiplyScalar(Math.cos(tilt)).add(new THREE.Vector3(0, Math.sin(tilt), 0)).normalize();
+}
+
+const UP = new THREE.Vector3(0, 1, 0);
+const FWD = new THREE.Vector3(0, 0, 1);
+
+// ---------- build flowers ----------
+const NUM_FLOWERS = 5;
+const PETALS = 7;
+const flowerHues = [0.98, 0.05, 0.86, 0.60, 0.10];
+
+for (let f = 0; f < NUM_FLOWERS; f++) {
+  const angle0 = (f / NUM_FLOWERS) * Math.PI * 2 + rand(-0.25, 0.25);
+  const startR = rand(0.05, 0.14);
+  const start = new THREE.Vector3(Math.cos(angle0) * startR, VASE_TOP_Y - 0.02, Math.sin(angle0) * startR);
+
+  const leanAngle = angle0 + rand(-0.35, 0.35);
+  const leanDir = new THREE.Vector3(Math.cos(leanAngle), 0, Math.sin(leanAngle));
+  const stemHeight = rand(0.85, 1.35);
+  const leanAmount = rand(0.12, 0.32);
+
+  const flowerCenter = start.clone()
+    .add(new THREE.Vector3(0, stemHeight, 0))
+    .add(leanDir.clone().multiplyScalar(leanAmount));
+
+  const stemColor = new THREE.Color().setHSL(0.32, 0.45, 0.28);
+  const stemMat = new THREE.MeshStandardMaterial({ color: stemColor, roughness: 0.6, metalness: 0.0, transparent: true });
+
+  // --- stem: 3 segments with slight organic bend ---
+  const SEG = 3;
+  let prevPoint = start.clone();
+  for (let s = 0; s < SEG; s++) {
+    const tSeg = (s + 1) / SEG;
+    const bendJitter = new THREE.Vector3(rand(-0.03, 0.03), 0, rand(-0.03, 0.03));
+    const nextPoint = start.clone().lerp(flowerCenter, tSeg).add(bendJitter);
+    const segDir = nextPoint.clone().sub(prevPoint);
+    const segLen = segDir.length();
+    const mid = prevPoint.clone().add(nextPoint).multiplyScalar(0.5);
+
+    const geo = new THREE.CylinderGeometry(0.017 * (1 - s * 0.15), 0.02 * (1 - s * 0.1), segLen, 6);
+    const quat = new THREE.Quaternion().setFromUnitVectors(UP, segDir.clone().normalize());
+
+    const outward = new THREE.Vector3(mid.x, 0, mid.z);
+    if (outward.lengthSq() < 1e-6) outward.set(Math.cos(angle0), 0, Math.sin(angle0));
+    outward.normalize();
+    const explodeDir = outward.multiplyScalar(0.6).add(new THREE.Vector3(0, rand(0.5, 1), 0)).normalize();
+
+    addFragment(geo, stemMat, mid, quat, {
+      dir: explodeDir,
+      dist: rand(0.4, 1.1) * ((s + 1) / SEG),
+      delay: 0.18 + s * 0.09 + rand(0, 0.06),
+      gravity: rand(1.0, 1.8),
+    });
+    prevPoint = nextPoint;
+  }
+
+  // --- leaves ---
+  const leafMat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(0.33, 0.55, 0.32), roughness: 0.55, transparent: true });
+  for (let l = 0; l < 2; l++) {
+    const tAlong = 0.35 + l * 0.32 + rand(-0.05, 0.05);
+    const attach = start.clone().lerp(flowerCenter, tAlong);
+    const leafAngle = angle0 + (l === 0 ? 1 : -1) * rand(0.7, 1.3);
+    const leafDir = dirFromAngle(leafAngle, rand(0.15, 0.4));
+    const geo = new THREE.SphereGeometry(1, 8, 6);
+    geo.scale(0.045, 0.014, 0.12);
+    const quat = new THREE.Quaternion().setFromUnitVectors(FWD, leafDir);
+    addFragment(geo, leafMat, attach.clone().add(leafDir.clone().multiplyScalar(0.09)), quat, {
+      dir: leafDir,
+      dist: rand(1.0, 2.0),
+      delay: rand(0.05, 0.2),
+    });
+  }
+
+  // --- flower head: center + petals ---
+  const hue = flowerHues[f % flowerHues.length];
+  const petalColor = new THREE.Color().setHSL(hue, 0.75, 0.62);
+  const centerColor = new THREE.Color().setHSL(0.13, 0.9, 0.55);
+
+  const centerMat = new THREE.MeshStandardMaterial({ color: centerColor, roughness: 0.5, emissive: centerColor.clone().multiplyScalar(0.15), transparent: true });
+  const centerGeo = new THREE.IcosahedronGeometry(0.055, 1);
+  addFragment(centerGeo, centerMat, flowerCenter, new THREE.Quaternion(), {
+    dir: new THREE.Vector3(rand(-0.4, 0.4), rand(0.4, 1), rand(-0.4, 0.4)),
+    dist: rand(0.8, 1.6),
+    delay: rand(0.1, 0.25),
+  });
+
+  const petalMat = new THREE.MeshStandardMaterial({ color: petalColor, roughness: 0.45, side: THREE.DoubleSide, transparent: true });
+  for (let p = 0; p < PETALS; p++) {
+    const pAngle = (p / PETALS) * Math.PI * 2 + rand(-0.1, 0.1);
+    const pTilt = rand(0.15, 0.45);
+    const pDir = dirFromAngle(pAngle, pTilt);
+    const geo = new THREE.SphereGeometry(1, 10, 8);
+    geo.scale(0.06, 0.022, 0.15);
+    const quat = new THREE.Quaternion().setFromUnitVectors(FWD, pDir);
+    const pos = flowerCenter.clone().add(pDir.clone().multiplyScalar(0.1));
+    addFragment(geo, petalMat, pos, quat, {
+      dir: pDir.clone().add(new THREE.Vector3(rand(-0.15, 0.15), rand(-0.05, 0.15), rand(-0.15, 0.15))),
+      dist: rand(1.4, 2.8),
+      delay: rand(0, 0.12),
+      gravity: rand(0.4, 1.0),
+    });
+  }
+
+  // --- pollen / glitter sparkles ---
+  const pollenMat = new THREE.MeshStandardMaterial({
+    color: 0xffe9a8, emissive: 0xffb347, emissiveIntensity: 1.4, roughness: 0.3, transparent: true,
+  });
+  for (let g = 0; g < 5; g++) {
+    const gAngle = rand(0, Math.PI * 2);
+    const gTilt = rand(0.2, 0.9);
+    const gDir = dirFromAngle(gAngle, gTilt);
+    const geo = new THREE.SphereGeometry(rand(0.012, 0.02), 6, 6);
+    const pos = flowerCenter.clone().add(gDir.clone().multiplyScalar(0.06));
+    addFragment(geo, pollenMat, pos, new THREE.Quaternion(), {
+      dir: gDir,
+      dist: rand(2.0, 3.6),
+      delay: rand(0, 0.08),
+      gravity: rand(0.3, 0.7),
+    });
+  }
+}
+
+// ---------- explosion shockwave ring ----------
+const shockGeo = new THREE.RingGeometry(1, 1.06, 64);
+const shockMat = new THREE.MeshBasicMaterial({
+  color: 0xffe0a0, transparent: true, opacity: 0, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false,
+});
+const shockwave = new THREE.Mesh(shockGeo, shockMat);
+shockwave.rotation.x = -Math.PI / 2;
+shockwave.position.y = VASE_TOP_Y + 0.02;
+scene.add(shockwave);
+
+// ---------- time state ----------
+let t = 0; // 0..1
+let playing = false;
+let playDir = 1;
+
+const slider = document.getElementById("timeSlider");
+const playBtn = document.getElementById("playBtn");
+const resetBtn = document.getElementById("resetBtn");
+const stateLabel = document.getElementById("stateLabel");
+const pctLabel = document.getElementById("pctLabel");
+const loading = document.getElementById("loading");
+const infoBtn = document.getElementById("infoBtn");
+const hud = document.getElementById("hud");
+
+infoBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  hud.classList.toggle("open");
+});
+document.addEventListener("click", (e) => {
+  if (hud.classList.contains("open") && !hud.contains(e.target) && e.target !== infoBtn) {
+    hud.classList.remove("open");
+  }
+});
+
+function setT(newT, fromSlider) {
+  t = clamp(newT, 0, 1);
+  if (!fromSlider) slider.value = String(Math.round(t * 1000));
+  const pct = Math.round(t * 100);
+  pctLabel.textContent = pct + "%";
+  slider.style.setProperty("--fill", pct + "%");
+  stateLabel.textContent = t < 0.02 ? "Intakt" : t > 0.97 ? "Vase & Inhalt vollständig zersplittert" : "Explosion läuft …";
+}
+
+slider.addEventListener("input", () => {
+  playing = false;
+  playBtn.textContent = "▶";
+  setT(Number(slider.value) / 1000, true);
+});
+
+playBtn.addEventListener("click", () => {
+  playing = !playing;
+  playBtn.textContent = playing ? "⏸" : "▶";
+});
+
+resetBtn.addEventListener("click", () => {
+  playing = false;
+  playBtn.textContent = "▶";
+  setT(0);
+});
+
+setT(0);
+
+// ---------- animate ----------
+const tmpV = new THREE.Vector3();
+const tmpQ = new THREE.Quaternion();
+const tmpPos = new THREE.Vector3();
+const tmpScale = new THREE.Vector3();
+const tmpQuat2 = new THREE.Quaternion();
+const tmpMatrix = new THREE.Matrix4();
+const clock = new THREE.Clock();
+
+function updateFragments() {
+  for (const fr of fragments) {
+    const localT = clamp((t - fr.delay) / Math.max(0.0001, 1 - fr.delay), 0, 1);
+    const eff = easeOutBlast(localT);
+
+    tmpV.copy(fr.dir).multiplyScalar(fr.dist * eff);
+    tmpV.y -= fr.gravity * eff * eff * 0.6;
+
+    fr.mesh.position.copy(fr.basePos).add(tmpV);
+
+    tmpQ.setFromAxisAngle(fr.axis, fr.spin * eff * Math.PI);
+    fr.mesh.quaternion.copy(fr.baseQuat).multiply(tmpQ);
+
+    const s = 1 + Math.sin(eff * Math.PI) * 0.12 - eff * 0.15;
+    fr.mesh.scale.copy(fr.baseScale).multiplyScalar(Math.max(0.15, s));
+
+    if (fr.fade && fr.mesh.material.opacity !== undefined) {
+      fr.mesh.material.opacity = lerp(1, 0.35, eff);
+    }
+  }
+
+  // shockwave burst near t=0..~0.3
+  const burst = clamp(t / 0.3, 0, 1);
+  const eb = smoothstep(burst);
+  shockwave.scale.setScalar(0.4 + eb * 5.5);
+  shockMat.opacity = (1 - eb) * smoothstep(clamp(t * 12, 0, 1)) * 0.6;
+
+  // vase shakes right before it shatters, then crossfades into the shard cloud
+  const shake = (1 - smoothstep(clamp(t / 0.12, 0, 1))) * smoothstep(clamp(t * 30, 0, 1));
+  vase.position.y = Math.sin(t * 400) * 0.004 * shake;
+
+  const vaseBurst = smoothstep(clamp(t / 0.08, 0, 1));
+  vaseMat.opacity = 1 - vaseBurst;
+  vase.visible = vaseBurst < 0.999;
+  waterMat.opacity = 0.9 * (1 - vaseBurst);
+  water.visible = vaseBurst < 0.999;
+  shardMat.opacity = vaseBurst;
+  shardMesh.visible = vaseBurst > 0.001;
+
+  for (let i = 0; i < shards.length; i++) {
+    const sh = shards[i];
+    const localT = clamp((t - sh.delay) / Math.max(0.0001, 1 - sh.delay), 0, 1);
+    const eff = easeOutBlast(localT);
+
+    tmpV.copy(sh.dir).multiplyScalar(sh.dist * eff);
+    tmpV.y -= sh.gravity * eff * eff * 0.6;
+    tmpPos.copy(sh.basePos).add(tmpV);
+
+    tmpQ.setFromAxisAngle(sh.axis, sh.spin * eff * Math.PI);
+    tmpQuat2.copy(sh.baseQuat).multiply(tmpQ);
+
+    tmpScale.setScalar(sh.scale * (1 + Math.sin(eff * Math.PI) * 0.15));
+
+    tmpMatrix.compose(tmpPos, tmpQuat2, tmpScale);
+    shardMesh.setMatrixAt(i, tmpMatrix);
+  }
+  shardMesh.instanceMatrix.needsUpdate = true;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+
+  if (playing) {
+    t += dt * 0.18 * playDir;
+    if (t >= 1) { t = 1; playDir = -1; }
+    if (t <= 0) { t = 0; playDir = 1; }
+    setT(t);
+  }
+
+  updateFragments();
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+loading.style.opacity = "0";
+setTimeout(() => loading.remove(), 400);
+
+animate();
+</script>
+</body>
+</html>

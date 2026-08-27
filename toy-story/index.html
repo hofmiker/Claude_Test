@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spielzeug-Abenteuer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="game"></canvas>
+
+    <div id="hud">
+        <div id="hint" class="hidden">
+            <strong>Steuerung</strong><br>
+            W / ↑ — vorwärts<br>
+            S / ↓ — rückwärts<br>
+            A/D / ←/→ — drehen<br>
+            Leertaste — Hüpfen<br>
+            <em>Touch: Knüppel unten links = laufen/drehen, Button unten rechts = hüpfen</em>
+        </div>
+        <button id="hint-toggle">?</button>
+    </div>
+
+    <div id="toy-quest-splash">Toy Quest</div>
+
+    <div id="coin-counter">🪙 <span id="coin-count">0</span> / 10</div>
+
+    <div id="touch-controls">
+        <div id="joystick">
+            <div id="joystick-knob"></div>
+        </div>
+        <div class="touch-btn" id="btn-jump">&uarr;</div>
+    </div>
+
+    <div id="version-tag">v1.10 · 22.07.2026</div>
+
+    <script type="module" src="main.js?v=1.10"></script>
+</body>
+</html>
