@@ -7,16 +7,47 @@ https://hofmiker.github.io/Claude_Test/chroma-ladder/
 - `index.html` — komplettes Tool (Farb-Engine, UI, Export in einer Datei, keine Abhängigkeiten)
 
 ## Beschreibung
-Vierstufiger Palettenbauer. Jeder Schritt schaltet den nächsten frei, und die
-Kachelgröße nimmt pro Schritt ab — sie bildet das Flächengewicht ab, das die
-Farbe später im Interface bekommt (60 / 30 / 10).
+Palettenbauer in vier Auswahlschritten plus Ergebnisseite. Jeder Schritt
+schaltet den nächsten frei, und die Kachelgröße nimmt pro Schritt ab — sie
+bildet das Flächengewicht ab, das die Farbe später im Interface bekommt
+(60 / 30 / 10).
 
 | Schritt | Inhalt | Kachelhöhe |
 |---|---|---|
-| 01 | Primärfarbe — 5 Töne im 72°-Abstand über den ganzen Farbkreis | 168 px |
-| 02 | Dieselbe Farbe als Light- und Dark-Mode-Tokenset, mit UI-Vorschau, Tonwertreihe und WCAG-Kontrastprüfung | — |
-| 03 | Zweite Primärfarbe — 5 Kandidaten nach klassischer Harmonielehre | 104 px |
-| 04 | 5 Zusatzfarben, direkt abgeleitet (keine Auswahl) + Gewichtungsbalken + Export | 62 px |
+| 1 | Grundfarbe — 5 Töne im 72°-Abstand über den ganzen Farbkreis | 150 px |
+| 2 | Dieselbe Farbe als Light- und Dark-Mode-Tokenset, mit Mini-UI und WCAG-Kontrastprüfung | — |
+| 3 | Zweite Farbe — 5 Kandidaten nach klassischer Harmonielehre | 88 px |
+| 4 | 5 Zusatzfarben, direkt abgeleitet (keine Auswahl) | 52 px |
+| ✓ | Die Palette als komplette Beispiel-Website (Light/Dark umschaltbar), Gewichtungsbalken, Export | — |
+
+## UI-Grundsätze (nicht versehentlich zurückdrehen)
+Drei Dinge sind bewusst so gebaut und waren ausdrücklicher Änderungswunsch:
+
+1. **Erklärungen sind versteckt.** Kein Fließtext in der Oberfläche — jede
+   Begründung steckt in einem `<details class="info">` mit „?"-Chip als
+   `summary`. Sichtbar bleiben nur Überschrift und Kacheln. Neue Erklärungen
+   gehören in einen bestehenden oder neuen Info-Block, nicht in die Sektion.
+2. **Die gewählten Farben stehen nebeneinander.** `#strip-outer` ist eine
+   `position:sticky`-Leiste mit sieben Slots (Grundfarbe, Zweite Farbe,
+   Brücke, Neutral, Erfolg, Warnung, Kritisch). Ungefüllte Slots bleiben als
+   gestrichelte Platzhalter sichtbar, damit der Fortschritt lesbar ist; Klick
+   auf einen gefüllten Slot kopiert den Hex-Wert. Weil die Leiste klebt,
+   haben alle `section` ein `scroll-margin-top`.
+3. **Der Gewichtungsbalken zeigt exakt die gewählten Farben.** `renderWeight()`
+   nimmt `state.primary`, `state.secondary` und `state.accents` direkt —
+   **nicht** die über `roleColor()` modusangepassten Token. Genau das war
+   vorher der Fehler: die Balkenfarben sahen anders aus als die Kacheln.
+   Der 60-%-Block ist der getönte Neutralton, nicht ein separater
+   Hintergrundton.
+
+## Beispiel-Website (Schritt ✓)
+`renderSite()` baut eine vollständige fiktive Produktseite („Aurora") in einem
+Browser-Rahmen: Navigation, Hero mit Kennzahlen-Panel und Balkendiagramm, drei
+Feature-Karten, CTA-Band, Footer. Gestylt ausschließlich über die `--pv-*`
+-Variablen, die `applyTokens(el, dark)` auf den Container legt — dieselbe
+Funktion versorgt auch die beiden Mini-Vorschauen in Schritt 2. Der
+Light/Dark-Schalter über dem Rahmen setzt `state.siteMode` und rendert neu;
+er ist unabhängig vom Theme-Schalter des Werkzeugs selbst.
 
 ## Farb-Engine
 Alles rechnet in **OKLCH** (Ottosson), nicht in HSL — nur dort entspricht
@@ -63,10 +94,11 @@ Farbton bleibt in beiden Modi exakt gleich. Dark-Mode-Farben werden aufgehellt
 
 ## Bedienung
 - Klick auf eine Kachel oder Tasten <kbd>1</kbd>–<kbd>5</kbd>
-- „Eigener Startton": Hex-Feld, springt direkt zu Schritt 2
+- Hex-Feld + „Eigene": eigener Startton, springt direkt zu Schritt 2
 - „Neu würfeln" zieht einen neuen Startwinkel für Schritt 1
-- Der Theme-Schalter oben rechts betrifft nur das Tool selbst, nicht die
-  gebaute Palette (die zeigt immer beide Modi nebeneinander)
+- Klick auf einen Slot der Palette-Leiste kopiert dessen Hex-Wert
+- Der Theme-Schalter oben rechts betrifft nur das Werkzeug selbst, nicht die
+  gebaute Palette
 
 ## Export & Permalink
 Drei Tabs: CSS-Variablen (`:root` + `[data-theme="dark"]` +
