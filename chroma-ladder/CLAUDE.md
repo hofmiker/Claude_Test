@@ -12,16 +12,22 @@ schaltet den nächsten frei, und die Kachelgröße nimmt pro Schritt ab — sie
 bildet das Flächengewicht ab, das die Farbe später im Interface bekommt
 (60 / 30 / 10).
 
-| Schritt | Inhalt | Kachelhöhe |
-|---|---|---|
-| 1 | Grundfarbe — 5 Töne im 72°-Abstand über den ganzen Farbkreis | 150 px |
-| 2 | Dieselbe Farbe als Light- und Dark-Mode-Tokenset, mit Mini-UI und WCAG-Kontrastprüfung | — |
-| 3 | Zweite Farbe — 5 Kandidaten nach klassischer Harmonielehre | 88 px |
-| 4 | 5 Zusatzfarben, direkt abgeleitet (keine Auswahl) | 52 px |
-| ✓ | Die Palette als komplette Beispiel-Website (Light/Dark umschaltbar), Gewichtungsbalken, Export | — |
+| Sektion | ID | Inhalt | Kachelhöhe |
+|---|---|---|---|
+| 1 | `#step-base` | Grundfarbe — 5 Töne im 72°-Abstand über den ganzen Farbkreis | 150 px |
+| 2 | `#step-second` | Zweite Farbe — 5 Kandidaten nach klassischer Harmonielehre | 88 px |
+| 3 | `#step-accents` | 5 Zusatzfarben, direkt abgeleitet (keine Auswahl) | 52 px |
+| ◐ | `#step-modes` | Light-/Dark-Tokenset mit Mini-UI und WCAG-Kontrastprüfung | — |
+| ✓ | `#step-site` | Die Palette als komplette Beispiel-Website (Light/Dark umschaltbar), Gewichtungsbalken, Export | — |
+
+Die beiden Ergebnis-Sektionen stehen bewusst **hinter** den drei Auswahl-
+schritten und direkt **vor bzw. mit** dem Beispiel — Light/Dark und die
+Kontrastwerte sind der Beleg, den man unmittelbar vor der Website sehen will.
+`#step-modes` wird trotzdem schon freigeschaltet, sobald nur die Grundfarbe
+steht.
 
 ## UI-Grundsätze (nicht versehentlich zurückdrehen)
-Drei Dinge sind bewusst so gebaut und waren ausdrücklicher Änderungswunsch:
+Fünf Dinge sind bewusst so gebaut und waren ausdrücklicher Änderungswunsch:
 
 1. **Erklärungen sind versteckt.** Kein Fließtext in der Oberfläche — jede
    Begründung steckt in einem `<details class="info">` mit „?"-Chip als
@@ -33,7 +39,22 @@ Drei Dinge sind bewusst so gebaut und waren ausdrücklicher Änderungswunsch:
    gestrichelte Platzhalter sichtbar, damit der Fortschritt lesbar ist; Klick
    auf einen gefüllten Slot kopiert den Hex-Wert. Weil die Leiste klebt,
    haben alle `section` ein `scroll-margin-top`.
-3. **Der Gewichtungsbalken zeigt exakt die gewählten Farben.** `renderWeight()`
+3. **Der Farbkreis läuft immer mit.** `#wheel` sitzt links in derselben
+   sticky Leiste und wird bei jeder Zustandsänderung neu gezeichnet
+   (`drawWheel()`): hohle Ringe für die aktuell zur Wahl stehenden
+   Kandidaten, gefüllte Marker „1"/„2" für die beiden gewählten Farben,
+   kleine Punkte innen für Brückenton und die gedeckten Töne. Der
+   Neutralton wird bewusst ausgelassen, er läge auf der Grundfarbe.
+   `drawWheel(col)` mit Argument zeichnet zusätzlich einen Vorschau-Ring —
+   das hängt an `mouseenter`/`mouseleave` jeder Kachel, damit die
+   Markierung beim Überfahren mitwandert. Der Kreis darf nicht wieder in
+   einen Info-Block zurückwandern.
+4. **Nur eine Aktionsfarbe.** In der Beispiel-Website tritt ausschließlich
+   die Grundfarbe gefüllt auf; die zweite Farbe erscheint nur als Outline
+   (`.btn.s` / `.mini-btn2.s` haben `background:transparent` und
+   `border-color:var(--pv-secondary)`). Zwei gleich laut gefüllte Farben
+   nebeneinander nehmen sich gegenseitig die Signalwirkung.
+5. **Der Gewichtungsbalken zeigt exakt die gewählten Farben.** `renderWeight()`
    nimmt `state.primary`, `state.secondary` und `state.accents` direkt —
    **nicht** die über `roleColor()` modusangepassten Token. Genau das war
    vorher der Fehler: die Balkenfarben sahen anders aus als die Kacheln.
@@ -43,7 +64,9 @@ Drei Dinge sind bewusst so gebaut und waren ausdrücklicher Änderungswunsch:
 ## Beispiel-Website (Schritt ✓)
 `renderSite()` baut eine vollständige fiktive Produktseite („Aurora") in einem
 Browser-Rahmen: Navigation, Hero mit Kennzahlen-Panel und Balkendiagramm, drei
-Feature-Karten, CTA-Band, Footer. Gestylt ausschließlich über die `--pv-*`
+Feature-Karten, CTA-Band, Footer. Gefüllt ist nur die Grundfarbe (Nav-CTA,
+Hero-CTA, CTA-Band, der hervorgehobene Balken); Diagramm-Serien und
+Feature-Icons tragen die gedeckten Töne, die zweite Farbe nur die Outline. Gestylt ausschließlich über die `--pv-*`
 -Variablen, die `applyTokens(el, dark)` auf den Container legt — dieselbe
 Funktion versorgt auch die beiden Mini-Vorschauen in Schritt 2. Der
 Light/Dark-Schalter über dem Rahmen setzt `state.siteMode` und rendert neu;
@@ -79,13 +102,25 @@ ist (Analog 1.12). Die Eigenhelligkeit der Primärfarbe wird vorher
 herausgerechnet (`base = p.l - 0.11·warmLift(p.h)`), damit der Versatz nicht
 davon abhängt, ob man mit Gelb oder mit Blau gestartet ist.
 
-**Schritt 4** — `accentSet(p, s)`: Brückenton auf dem Mittelpunkt des
-*kürzeren* Bogens zwischen beiden Primärfarben (`midHue`), getönter Neutralton
-(Primär-Hue bei C 0.024), und drei Statusfarben. Die starten bei ihren
-kulturellen Ankern (Grün 148°, Gelb 85°, Rot 28°) und werden über `harmonize()`
-um **maximal 14°** zur nächsten Palettenfarbe gezogen — weiter nicht, sonst ist
-Rot nicht mehr als Warnung lesbar. L und C werden dagegen voll an die Palette
-angeglichen.
+**Schritt 3** — `accentSet(p, s)`: Brückenton auf dem Mittelpunkt des
+*kürzeren* Bogens zwischen beiden gewählten Farben (`midHue`), getönter
+Neutralton (Grundfarbton bei C 0.024), und drei **gedeckte Illustrationstöne**.
+Die drei füllen gleichmäßig (25 / 50 / 75 %) die *größere* der beiden Lücken im
+Farbkreis — dort, wo Grundfarbe, zweite Farbe und Brückenton nichts belegen.
+Ihre Buntheit liegt bei `avgC * 0.46`, gedeckelt auf 0.088, und sie sind in drei
+Helligkeitsstufen gestaffelt (L 0.775 / 0.615 / 0.455).
+
+Das war ausdrücklich gewünscht und ersetzt eine frühere Version mit
+Status-/Alarmfarben (Erfolg/Warnung/Kritisch an kulturellen Ankern bei 148° /
+85° / 28°). Nicht versehentlich dorthin zurückbauen: die Töne sollen für
+Illustrationen, Diagramm-Serien und ruhige Flächen taugen, nicht für
+Warnmeldungen.
+
+Wichtig dabei: die drei laufen in `buildTokens()` durch `toneColor()`, **nicht**
+durch `roleColor()`. `roleColor()` normiert jede Farbe auf eine feste
+Modus-Helligkeit (0.555 hell / 0.745 dunkel) — damit wären hell/mittel/tief
+im Interface nicht mehr unterscheidbar. `toneColor()` hebt im Dark Mode nur an
+(`0.42 + l * 0.45`) und erhält die Reihenfolge.
 
 **Rollen-Tokens** — `roleColor(base, dark)` erzeugt aus einer Basisfarbe die
 Modus-Variante: Light `L ≤ 0.555`, Dark `L 0.745` bei ~86 % der Buntheit. Der
@@ -102,7 +137,9 @@ Farbton bleibt in beiden Modi exakt gleich. Dark-Mode-Farben werden aufgehellt
 
 ## Export & Permalink
 Drei Tabs: CSS-Variablen (`:root` + `[data-theme="dark"]` +
-`prefers-color-scheme`-Block), Design Tokens als JSON, Hex-Liste. Der Zustand
+`prefers-color-scheme`-Block), Design Tokens als JSON, Hex-Liste. Die
+Variablennamen sind `--primary`, `--secondary`, `--accent-bridge`,
+`--accent-neutral` und `--tone-light` / `--tone-mid` / `--tone-deep`. Der Zustand
 liegt im URL-Hash (`#p=L,C,H&h=<schema>&s=<seed>`) — „Link zur Palette
 kopieren" gibt eine URL, die exakt dieselbe Palette wiederherstellt.
 

@@ -57,7 +57,9 @@ h1 { font-size:27px; font-weight:600; letter-spacing:-0.025em; margin:0; }
     backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
     border-bottom:1px solid var(--line); margin-bottom:4px;
 }
-.strip { display:flex; gap:4px; padding:10px 0 11px; }
+.bar { display:flex; align-items:center; gap:16px; padding:9px 0 10px; }
+.bar .wheel { flex:none; display:block; }
+.strip { display:flex; gap:4px; flex:1; min-width:0; }
 .slot {
     flex:1; min-width:0; border:0; padding:0; background:none; font:inherit; color:inherit;
     cursor:pointer; text-align:left; border-radius:8px; overflow:hidden;
@@ -78,7 +80,7 @@ h1 { font-size:27px; font-weight:600; letter-spacing:-0.025em; margin:0; }
 
 /* ---------- Sektionen ---------- */
 section {
-    margin:20px 0 0; scroll-margin-top:78px; padding:22px 22px 24px; border-radius:15px;
+    margin:20px 0 0; scroll-margin-top:120px; padding:22px 22px 24px; border-radius:15px;
     background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow);
 }
 section[hidden] { display:none; }
@@ -119,7 +121,6 @@ input[type=text] {
 .info-body p { margin:0 0 10px; }
 .info-body p:last-child { margin-bottom:0; }
 .info-body strong { color:var(--t1); font-weight:600; }
-.info-body .wheel { float:right; margin:0 0 12px 16px; }
 
 /* ---------- Kacheln: drei Gewichtungsstufen ---------- */
 .tiles { display:grid; gap:10px; }
@@ -165,12 +166,12 @@ input[type=text] {
 .mini-btns { display:flex; gap:7px; flex-wrap:wrap; }
 .mini-btn2 { font-size:11.5px; font-weight:500; padding:6px 12px; border-radius:7px; border:1px solid transparent; }
 .mini-btn2.p { background:var(--pv-primary); color:var(--pv-on-primary); }
-.mini-btn2.s { background:var(--pv-secondary); color:var(--pv-on-secondary); }
+.mini-btn2.s { background:transparent; color:var(--pv-secondary); border-color:var(--pv-secondary); }
 .mini-btn2.g { background:transparent; color:var(--pv-text); border-color:var(--pv-border); }
 .mini-txt { font-size:11.5px; color:var(--pv-muted); margin-top:11px; }
 .contrast-row { display:flex; flex-wrap:wrap; gap:6px; padding:0 15px 15px; background:var(--pv-bg); }
 .cbadge { font-size:10px; font-weight:600; padding:3px 7px; border-radius:6px; border:1px solid var(--pv-border); color:var(--pv-muted); font-variant-numeric:tabular-nums; }
-.cbadge.fail { color:var(--pv-danger); border-color:currentColor; }
+.cbadge.fail { color:#e5484d; border-color:currentColor; }
 
 /* ---------- Beispiel-Website ---------- */
 .browser {
@@ -197,7 +198,7 @@ input[type=text] {
 .site-nav .grow { flex:1; }
 .btn { display:inline-block; font-size:12.5px; font-weight:500; padding:8px 16px; border-radius:9px; border:1px solid transparent; white-space:nowrap; }
 .btn.p { background:var(--pv-primary); color:var(--pv-on-primary); }
-.btn.s { background:var(--pv-secondary); color:var(--pv-on-secondary); }
+.btn.s { background:transparent; color:var(--pv-secondary); border-color:var(--pv-secondary); }
 .btn.o { background:transparent; color:var(--pv-text); border-color:var(--pv-border); }
 .btn.lg { font-size:13.5px; padding:11px 22px; }
 .site-hero { display:grid; grid-template-columns:1.05fr .95fr; gap:32px; align-items:center; padding:44px 26px 40px; }
@@ -209,7 +210,7 @@ input[type=text] {
 .panel { background:var(--pv-surface); border:1px solid var(--pv-border); border-radius:14px; padding:18px; }
 .panel-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:3px; }
 .panel-head .l { font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--pv-muted); }
-.panel-head .d { font-size:11.5px; font-weight:600; color:var(--pv-success); }
+.panel-head .d { font-size:11.5px; font-weight:600; color:var(--pv-tone-3); }
 .panel .big { font-size:26px; font-weight:600; letter-spacing:-0.02em; margin-bottom:14px; }
 .bars { display:flex; align-items:flex-end; gap:7px; height:74px; }
 .bars span { flex:1; border-radius:5px 5px 2px 2px; }
@@ -247,6 +248,9 @@ pre {
 .toast.show { opacity:1; }
 kbd { font:inherit; font-size:10px; font-weight:600; padding:1px 5px; border-radius:4px; border:1px solid var(--line-strong); color:var(--t2); }
 
+@media (max-width:980px) {
+    .slot .chip { font-size:9px; }
+}
 @media (max-width:880px) {
     .tiles.w-lg, .tiles.w-md { grid-template-columns:repeat(3,1fr); }
     .previews { grid-template-columns:1fr; }
@@ -256,7 +260,6 @@ kbd { font:inherit; font-size:10px; font-weight:600; padding:1px 5px; border-rad
     .site-nav { padding:13px 18px; gap:12px; }
     .site-cta { margin:0 20px 26px; padding:22px 20px; }
     .site-foot { padding:15px 20px; }
-    .info-body .wheel { float:none; margin:0 0 12px; display:block; }
 }
 @media (max-width:560px) {
     .wrap { padding:0 13px; }
@@ -266,6 +269,11 @@ kbd { font:inherit; font-size:10px; font-weight:600; padding:1px 5px; border-rad
     .w-lg .swatch { height:104px; }
     h1 { font-size:23px; }
     .slot .cap { display:none; }
+    .bar { gap:11px; }
+    .bar .wheel { width:58px; height:58px; }
+    /* Auf schmalen Schirmen bleiben nur die Farbflächen — der Hex-Wert
+       passt nicht mehr hinein, Antippen kopiert ihn weiterhin. */
+    .slot .chip { font-size:0; height:30px; }
     .site-hero h3 { font-size:23px; }
     .site-nav .btn.o { display:none; }
     .btn.lg { font-size:12.5px; padding:9px 16px; }
@@ -283,15 +291,17 @@ kbd { font:inherit; font-size:10px; font-weight:600; padding:1px 5px; border-rad
         <button type="button" class="theme-switch" id="theme-toggle" aria-label="Hell-/Dunkelmodus umschalten"><span>☾</span></button>
     </header>
 </div>
-
-<div class="strip-outer" id="strip-outer" hidden>
-    <div class="wrap"><div class="strip" id="strip"></div></div>
+<div class="strip-outer" id="strip-outer">
+    <div class="wrap"><div class="bar">
+        <svg class="wheel" id="wheel" width="88" height="88" viewBox="0 0 132 132" aria-label="Farbkreis mit den Positionen der Palette"></svg>
+        <div class="strip" id="strip"></div>
+    </div></div>
 </div>
 
 <div class="wrap">
 
 <!-- ============ 1 ============ -->
-<section id="step1">
+<section id="step-base">
     <div class="sec-head">
         <h2><span class="no">1</span>Grundfarbe wählen</h2>
         <div class="tools">
@@ -305,7 +315,7 @@ kbd { font:inherit; font-size:10px; font-weight:600; padding:1px 5px; border-rad
     <details class="info">
         <summary>Wie sind diese fünf ausgewählt?</summary>
         <div class="info-body">
-            <p>Fünf Farbtöne im <strong>72°-Abstand</strong> — der größtmögliche gleichmäßige Abstand, den fünf Farben auf dem Farbkreis haben können. Kein Nachbarton, keine Dopplung.</p>
+            <p>Fünf Farbtöne im <strong>72°-Abstand</strong> — der größtmögliche gleichmäßige Abstand, den fünf Farben auf dem Farbkreis haben können. Kein Nachbarton, keine Dopplung. Im Farbkreis oben stehen sie als Ring aus fünf Punkten.</p>
             <p>Gerechnet wird in <strong>OKLCH</strong>, nicht in HSL. In HSL hat <code>hsl(60 100% 50%)</code> (Gelb) dieselbe „Helligkeit" wie <code>hsl(240 100% 50%)</code> (Blau) — sichtbar ist Gelb um ein Vielfaches heller. OKLCH ist wahrnehmungs&shy;bezogen: gleiche L-Werte sehen auch gleich hell aus.</p>
             <p>Jeder Ton wird auf die maximale Sättigung gezogen, die sein Farbton erreichen kann. Reines Cyan liegt in sRGB bei L 0.90 — auf dieselbe Helligkeit wie Blau gezwungen wäre es blass. Ohne diesen Ausgleich hätte jede Reihe zwei tote Kacheln.</p>
             <p>Mit <kbd>1</kbd>–<kbd>5</kbd> lässt sich auch per Tastatur wählen.</p>
@@ -314,8 +324,41 @@ kbd { font:inherit; font-size:10px; font-weight:600; padding:1px 5px; border-rad
 </section>
 
 <!-- ============ 2 ============ -->
-<section id="step2" hidden>
-    <div class="sec-head"><h2><span class="no">2</span>Light &amp; Dark</h2></div>
+<section id="step-second" hidden>
+    <div class="sec-head"><h2><span class="no">2</span>Zweite Farbe wählen</h2></div>
+    <div class="tiles w-md" id="tiles-second"></div>
+    <details class="info">
+        <summary>Nach welchem System sind diese fünf gewählt?</summary>
+        <div class="info-body">
+            <p>Alle fünf sitzen auf demselben Farbkreis wie die erste Farbe, nur bei einem anderen Winkel — klassische Harmonielehre (Itten), in OKLCH-Hue-Grad übersetzt:</p>
+            <p><strong>Komplementär (+180°)</strong> — gegenüberliegend, maximaler Kontrast. Höchste Signalwirkung, in gleicher Größe nebeneinander aber unruhig: als Akzent gegen Fläche einsetzen, nie 50/50.<br>
+            <strong>Split-Komplementär (+150°)</strong> — Nachbar des Komplements. Fast derselbe Kontrast, deutlich weniger Härte. Der sicherste Griff.<br>
+            <strong>Triade (+120°)</strong> — gleichseitiges Dreieck im Kreis. Lebendig, ausgewogen, lässt Platz für eine dritte Farbe.<br>
+            <strong>Analog (+32°)</strong> — direkter Nachbar. Ruhig, „eine Familie" — braucht Helligkeits&shy;kontrast, sonst verschmelzen beide.<br>
+            <strong>Quadrat (+90°)</strong> — Warm-Kalt-Spannung ohne die Härte des direkten Komplements.</p>
+            <p>Zwei Regeln greifen zusätzlich: die zweite Farbe bekommt immer eine <strong>andere Helligkeit</strong> als die erste (gleiches L lässt beide um dieselbe Aufmerksamkeit konkurrieren), und die Sättigung wird zurückgenommen, wo der Farbtonabstand ohnehin groß ist, und angehoben, wo er klein ist.</p>
+            <p>Beim Überfahren einer Kachel wandert die Markierung im Farbkreis oben mit.</p>
+        </div>
+    </details>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="step-accents" hidden>
+    <div class="sec-head"><h2><span class="no">3</span>Zusatzfarben</h2></div>
+    <div class="tiles w-sm" id="tiles-accents"></div>
+    <details class="info">
+        <summary>Woher kommen diese fünf?</summary>
+        <div class="info-body">
+            <p><strong>Brückenton</strong> — genau in der Mitte zwischen beiden gewählten Farben, auf dem <em>kürzeren</em> Bogen. Bindet die Kombination zusammen: Verläufe, Hover-States, Diagramm-Serien.</p>
+            <p><strong>Getönter Neutralton</strong> — Farbton der ersten Farbe, Sättigung auf ~0.02 gedrückt. Kein reines Grau: Flächen und Rahmen nehmen einen Hauch der Grundfarbe auf, dadurch wirkt alles wie aus einem Guss.</p>
+            <p><strong>Gedeckt hell / mittel / tief</strong> — bewusst keine Alarmfarben. Die drei füllen gleichmäßig die <em>größere</em> Lücke im Farbkreis, also den Bereich, den Grundfarbe, zweite Farbe und Brückenton frei lassen. Ihre Buntheit liegt bei rund einem Drittel der Hauptfarben, die Helligkeit staffelt sich in drei Stufen. Damit taugen sie für Illustrationen, Diagramm-Serien und ruhige Flächen — und stehlen den beiden Hauptfarben nicht die Aufmerksamkeit.</p>
+        </div>
+    </details>
+</section>
+
+<!-- ============ Light &amp; Dark ============ -->
+<section id="step-modes" hidden>
+    <div class="sec-head"><h2><span class="no">◐</span>Light &amp; Dark, Kontraste</h2></div>
     <div class="previews">
         <div class="preview" id="pv-light">
             <div class="preview-head"><span>Light Mode</span><span id="pv-light-hex"></span></div>
@@ -332,41 +375,8 @@ kbd { font:inherit; font-size:10px; font-weight:600; padding:1px 5px; border-rad
     </details>
 </section>
 
-<!-- ============ 3 ============ -->
-<section id="step3" hidden>
-    <div class="sec-head"><h2><span class="no">3</span>Zweite Farbe wählen</h2></div>
-    <div class="tiles w-md" id="tiles-second"></div>
-    <details class="info">
-        <summary>Nach welchem System sind diese fünf gewählt?</summary>
-        <div class="info-body">
-            <svg class="wheel" width="120" height="120" viewBox="0 0 132 132" id="wheel"></svg>
-            <p>Alle fünf sitzen auf demselben Farbkreis wie die erste Farbe, nur bei einem anderen Winkel — klassische Harmonielehre (Itten), in OKLCH-Hue-Grad übersetzt:</p>
-            <p><strong>Komplementär (+180°)</strong> — gegenüberliegend, maximaler Kontrast. Höchste Signalwirkung, in gleicher Größe nebeneinander aber unruhig: als Akzent gegen Fläche einsetzen, nie 50/50.<br>
-            <strong>Split-Komplementär (+150°)</strong> — Nachbar des Komplements. Fast derselbe Kontrast, deutlich weniger Härte. Der sicherste Griff.<br>
-            <strong>Triade (+120°)</strong> — gleichseitiges Dreieck im Kreis. Lebendig, ausgewogen, lässt Platz für eine dritte Farbe.<br>
-            <strong>Analog (+32°)</strong> — direkter Nachbar. Ruhig, „eine Familie" — braucht Helligkeits&shy;kontrast, sonst verschmelzen beide.<br>
-            <strong>Quadrat (+90°)</strong> — Warm-Kalt-Spannung ohne die Härte des direkten Komplements.</p>
-            <p>Zwei Regeln greifen zusätzlich: die zweite Farbe bekommt immer eine <strong>andere Helligkeit</strong> als die erste (gleiches L lässt beide um dieselbe Aufmerksamkeit konkurrieren), und die Sättigung wird zurückgenommen, wo der Farbtonabstand ohnehin groß ist, und angehoben, wo er klein ist.</p>
-        </div>
-    </details>
-</section>
-
-<!-- ============ 4 ============ -->
-<section id="step4" hidden>
-    <div class="sec-head"><h2><span class="no">4</span>Zusatzfarben</h2></div>
-    <div class="tiles w-sm" id="tiles-accents"></div>
-    <details class="info">
-        <summary>Woher kommen diese fünf?</summary>
-        <div class="info-body">
-            <p><strong>Brückenton</strong> — genau in der Mitte zwischen beiden gewählten Farben (auf dem kürzeren Bogen). Bindet die Kombination zusammen: Verläufe, Hover-States, Diagramm-Serien.</p>
-            <p><strong>Getönter Neutralton</strong> — Farbton der ersten Farbe, Sättigung auf ~0.02 gedrückt. Kein reines Grau: Flächen und Rahmen nehmen einen Hauch der Grundfarbe auf, dadurch wirkt alles wie aus einem Guss.</p>
-            <p><strong>Erfolg / Warnung / Kritisch</strong> — starten bei ihren kulturell festen Ankern (Grün 148°, Gelb 85°, Rot 28°) und werden um maximal 14° zur nächsten Palettenfarbe gezogen. Weiter nicht: sonst ist Rot nicht mehr als Warnung lesbar. Helligkeit und Sättigung werden dagegen voll angeglichen.</p>
-        </div>
-    </details>
-</section>
-
-<!-- ============ 5 ============ -->
-<section id="step5" hidden>
+<!-- ============ Beispiel ============ -->
+<section id="step-site" hidden>
     <div class="sec-head">
         <h2><span class="no">✓</span>Die Palette im Einsatz</h2>
         <div class="tools">
@@ -402,10 +412,10 @@ kbd { font:inherit; font-size:10px; font-weight:600; padding:1px 5px; border-rad
     </details>
 
     <details class="info">
-        <summary>Warum 60 / 30 / 10?</summary>
+        <summary>Warum nur eine Aktionsfarbe?</summary>
         <div class="info-body">
-            <p>Die klassische Innenarchitektur-Regel, die im Interface genauso trägt: Wand — Möbel — Kissen. Der getönte Neutralton übernimmt die Grundfläche, die beiden gewählten Farben tragen Marke und Aktionen, die Statusfarben bleiben punktuell.</p>
-            <p>Bekommt die Grundfarbe mehr als etwa ein Drittel der Fläche, verliert sie ihre Signalwirkung — es sticht dann nichts mehr heraus. Genau deshalb werden die Kacheln in diesem Werkzeug von Schritt zu Schritt kleiner.</p>
+            <p>Gefüllt auftreten darf in dieser Website nur die <strong>Grundfarbe</strong> — sie markiert die eine Handlung, die als nächstes dran ist. Die zweite Farbe erscheint ausschließlich als <strong>Outline</strong>. Sobald zwei Farben gleich laut gefüllt nebeneinander stehen, hat der Blick keinen Anker mehr und beide verlieren ihre Signalwirkung.</p>
+            <p>Die Gewichtung darunter zeigt dasselbe als Fläche: der getönte Neutralton trägt rund 60 %, die beiden Hauptfarben 30 %, die gedeckten Töne den Rest. Bekommt die Grundfarbe mehr als etwa ein Drittel, sticht nichts mehr heraus — genau deshalb werden auch die Kacheln von Schritt zu Schritt kleiner.</p>
         </div>
     </details>
 </section>
@@ -579,44 +589,45 @@ function secondCandidates(p){
         return col;
     });
 }
-/* Schritt 4: aus BEIDEN Primärfarben abgeleitet. */
+/* Schritt 3: aus BEIDEN gewählten Farben abgeleitet. */
 function accentSet(p, s){
     const bridgeH = midHue(p.h, s.h);
     const avgC = (p.c + s.c) / 2;
     const avgL = (p.l + s.l) / 2;
-    const anchors = [p.h, s.h, bridgeH];
-    /* Statusfarben um max. 14° zur nächsten Palettenfarbe ziehen — weiter
-       nicht, sonst ist Rot nicht mehr als Warnung lesbar. */
-    function harmonize(target){
-        let best = anchors[0], bd = 999;
-        anchors.forEach(function(a){ const d = angDiff(a, target); if (d < bd){ bd = d; best = a; } });
-        let diff = ((best - target) % 360 + 360) % 360;
-        if (diff > 180) diff -= 360;
-        const pull = Math.max(-14, Math.min(14, diff));
-        return target + pull;
-    }
+    /* Die drei gedeckten Töne füllen die GRÖSSERE der beiden Lücken
+       zwischen den Hauptfarben. Dort ist im Farbkreis Platz — der
+       Brückenton sitzt in der kleineren Lücke, die Hauptfarben an den
+       Rändern, also gerät nichts in Konkurrenz. Bewusst keine Alert-Farben:
+       stark reduzierte Buntheit und drei Helligkeitsstufen ergeben Töne für
+       Illustrationen, Diagramme und Flächen statt für Warnmeldungen. */
+    const fwd = ((s.h - p.h) % 360 + 360) % 360;
+    const start = fwd < 180 ? s.h : p.h;
+    const span  = fwd < 180 ? 360 - fwd : fwd;
+    const mutedC = Math.max(0.05, Math.min(avgC * 0.46, 0.088));
+    const steps = [
+        { at:0.25, l:0.775, role:'Gedeckt hell' },
+        { at:0.50, l:0.615, role:'Gedeckt mittel' },
+        { at:0.75, l:0.455, role:'Gedeckt tief' }
+    ];
     const out = [
         Object.assign(mkVivid(Math.min(avgL + 0.06, 0.78), Math.max(avgC, 0.12) * 1.05, bridgeH), {
-            role:'Brückenton', tag:'Mitte beider Primärfarben',
+            role:'Brückenton', tag:'Mitte beider Farben',
             why:'Bindet die Kombination zusammen — Verläufe, Hover-States, Diagramm-Serien.'
         }),
         Object.assign(mk(0.56, 0.024, p.h), {
-            role:'Neutral', tag:'Primär-Hue, C 0.02',
-            why:'Kein reines Grau: Flächen und Rahmen nehmen einen Hauch der Primärfarbe auf.'
-        }),
-        Object.assign(mkVivid(0.60, Math.max(avgC * 0.95, 0.12), harmonize(148)), {
-            role:'Erfolg', tag:'Anker 148° · angeglichen',
-            why:'Bestätigungen, positive Deltas, erledigte Zustände.'
-        }),
-        Object.assign(mkVivid(0.78, Math.max(avgC * 1.05, 0.14), harmonize(85)), {
-            role:'Warnung', tag:'Anker 85° · angeglichen',
-            why:'Hinweise, die noch keine Fehler sind. Braucht dunkle Schrift.'
-        }),
-        Object.assign(mkVivid(0.57, Math.max(avgC * 1.10, 0.15), harmonize(28)), {
-            role:'Kritisch', tag:'Anker 28° · angeglichen',
-            why:'Fehler und destruktive Aktionen. Bedeutung schlägt Harmonie.'
+            role:'Neutral', tag:'Grundfarbton, C 0.02',
+            why:'Kein reines Grau: Flächen und Rahmen nehmen einen Hauch der Grundfarbe auf.'
         })
     ];
+    steps.forEach(function(st){
+        const h = (start + span * st.at) % 360;
+        const col = mk(st.l, mutedC, h);
+        out.push(Object.assign(col, {
+            role: st.role,
+            tag: toneName(col) + ' · ' + Math.round(h) + '°',
+            why: 'Gedeckter Illustrationston in der großen Farbkreis-Lücke.'
+        }));
+    });
     return out;
 }
 
@@ -628,6 +639,14 @@ function roleColor(base, dark){
        Grund flimmern. Der Farbton selbst bleibt exakt gleich. */
     return dark ? mkVivid(0.745, Math.min(base.c * 0.86, 0.148), base.h)
                 : mkVivid(Math.min(base.l, 0.555), Math.min(base.c * 1.04, 0.20), base.h);
+}
+/* Die gedeckten Illustrationstöne NICHT durch roleColor() schicken: das
+   normiert alle auf dieselbe Helligkeit und macht hell/mittel/tief
+   ununterscheidbar. Stattdessen im Dark Mode anheben und dabei die
+   Reihenfolge erhalten. */
+function toneColor(base, dark){
+    return dark ? mk(Math.min(0.42 + base.l * 0.45, 0.88), base.c * 0.92, base.h)
+                : mk(base.l, base.c, base.h);
 }
 function buildTokens(dark){
     const p = state.primary, s = state.secondary;
@@ -649,7 +668,7 @@ function buildTokens(dark){
     T.onPrimary = onColor(prim);
     T.onSecondary = onColor(sec);
     acc.forEach(function(a, i){
-        T['accent' + (i+1)] = roleColor(a, dark);
+        T['accent' + (i+1)] = i >= 2 ? toneColor(a, dark) : roleColor(a, dark);
     });
     return T;
 }
@@ -668,8 +687,8 @@ function applyTokens(el, dark){
     const map = {
         'bg':T.bg, 'surface':T.surface, 'border':T.border, 'text':T.text, 'muted':T.muted,
         'primary':T.primary, 'secondary':T.secondary, 'on-primary':T.onPrimary, 'on-secondary':T.onSecondary,
-        'bridge':bridge, 'neutral':T.accent2 || T.muted, 'success':T.accent3 || T.primary,
-        'warning':T.accent4 || T.secondary, 'danger':T.accent5 || T.secondary,
+        'bridge':bridge, 'neutral':T.accent2 || T.muted,
+        'tone-1':T.accent3 || bridge, 'tone-2':T.accent4 || bridge, 'tone-3':T.accent5 || bridge,
         'bridge-soft': mk(dark ? 0.30 : 0.93, bridge.c * 0.38, bridge.h),
         'bridge-text': mk(dark ? 0.86 : 0.44, bridge.c * 0.95, bridge.h)
     };
@@ -691,15 +710,17 @@ function tile(col, opts){
         '<span class="meta"><span class="name">' + opts.name + '</span>' +
         '<span class="rule">' + opts.rule + '</span></span>';
     if (opts.onPick) b.addEventListener('click', opts.onPick);
+    if (!opts.disabled){
+        b.addEventListener('mouseenter', function(){ drawWheel(col); });
+        b.addEventListener('mouseleave', function(){ drawWheel(); });
+    }
     return b;
 }
 
 /* ---------- Die gewählten Farben, immer nebeneinander ---------- */
-const SLOTS = ['Grundfarbe', 'Zweite Farbe', 'Brücke', 'Neutral', 'Erfolg', 'Warnung', 'Kritisch'];
+const SLOTS = ['Grundfarbe', 'Zweite Farbe', 'Brücke', 'Neutral', 'Gedeckt hell', 'Gedeckt mittel', 'Gedeckt tief'];
 function renderStrip(){
     const cols = [state.primary, state.secondary].concat(state.accents || []);
-    if (!state.primary){ $('#strip-outer').hidden = true; return; }
-    $('#strip-outer').hidden = false;
     $('#strip').innerHTML = SLOTS.map(function(label, i){
         const c = cols[i];
         if (!c) return '<button type="button" class="slot" disabled><span class="chip">–</span><span class="cap">' + label + '</span></button>';
@@ -722,6 +743,7 @@ function renderBase(){
             onPick: function(){ pickPrimary(col); }
         }));
     });
+    if (!state.primary) drawWheel();
 }
 function renderSecond(){
     const wrap = $('#tiles-second');
@@ -743,26 +765,59 @@ function renderAccents(){
     });
 }
 
-/* Farbkreis mit Markern für die Grundfarbe und die fünf Kandidaten. */
-function drawWheel(){
-    const svg = $('#wheel'); if (!svg || !state.primary) return;
-    const cx = 66, cy = 66, r = 46;
+/* Farbkreis in der Kopfleiste. Läuft immer mit und zeigt live, wo die
+   Palette im Kreis steht: gefüllte Marker für die beiden gewählten Farben,
+   hohle für die gerade zur Wahl stehenden Kandidaten, kleine Punkte innen
+   für Brückenton und die gedeckten Töne. `hover` setzt zusätzlich einen
+   Vorschau-Ring, während die Maus über einer Kachel steht. */
+function drawWheel(hover){
+    const svg = $('#wheel'); if (!svg) return;
+    const cx = 66, cy = 66, R = 53, W = 9, RING = 34, INNER = 17;
     let out = '';
-    for (let a = 0; a < 360; a += 4){
-        const col = mk(0.66, 0.14, a), rad = (a - 90) * Math.PI / 180;
-        out += '<line x1="' + (cx + Math.cos(rad)*(r-9)).toFixed(1) + '" y1="' + (cy + Math.sin(rad)*(r-9)).toFixed(1) +
-               '" x2="' + (cx + Math.cos(rad)*r).toFixed(1) + '" y2="' + (cy + Math.sin(rad)*r).toFixed(1) +
-               '" stroke="' + col.hex + '" stroke-width="3.4"/>';
+    for (let a = 0; a < 360; a += 3){
+        const col = mk(0.68, 0.15, a), rad = (a - 90) * Math.PI / 180;
+        out += '<line x1="' + (cx + Math.cos(rad)*(R-W)).toFixed(1) + '" y1="' + (cy + Math.sin(rad)*(R-W)).toFixed(1) +
+               '" x2="' + (cx + Math.cos(rad)*R).toFixed(1) + '" y2="' + (cy + Math.sin(rad)*R).toFixed(1) +
+               '" stroke="' + col.hex + '" stroke-width="2.9"/>';
     }
-    function dot(h, rad, size, fill, label){
-        const x = cx + Math.cos((h-90)*Math.PI/180) * rad, y = cy + Math.sin((h-90)*Math.PI/180) * rad;
-        return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + size + '" fill="' + fill +
-               '" stroke="var(--panel-2)" stroke-width="1.5"/>' +
-               (label ? '<text x="' + x.toFixed(1) + '" y="' + (y+3).toFixed(1) + '" text-anchor="middle" font-size="8"' +
-                        ' font-weight="600" fill="' + onColor(hexToOklch(fill)).hex + '">' + label + '</text>' : '');
+    function pos(h, rad){ const a = (h - 90) * Math.PI / 180; return [cx + Math.cos(a)*rad, cy + Math.sin(a)*rad]; }
+    function spoke(h){
+        const e = pos(h, R - W - 2);
+        return '<line x1="' + cx + '" y1="' + cy + '" x2="' + e[0].toFixed(1) + '" y2="' + e[1].toFixed(1) +
+               '" stroke="var(--line-strong)" stroke-width="1.1"/>';
     }
-    secondCandidates(state.primary).forEach(function(c){ out += dot(c.h, r - 20, 5.5, c.hex, ''); });
-    out += dot(state.primary.h, r - 20, 8, state.primary.hex, 'P');
+    function dot(h, rad, r, fill, label){
+        const q = pos(h, rad);
+        let g = '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + r +
+                '" fill="' + fill + '" stroke="var(--panel)" stroke-width="1.6"/>';
+        if (label) g += '<text x="' + q[0].toFixed(1) + '" y="' + (q[1] + 2.9).toFixed(1) +
+                        '" text-anchor="middle" font-size="8.5" font-weight="700" fill="' +
+                        onColor(hexToOklch(fill)).hex + '">' + label + '</text>';
+        return g;
+    }
+    function ring(h, rad, r, stroke){
+        const q = pos(h, rad);
+        return '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + r +
+               '" fill="none" stroke="' + stroke + '" stroke-width="2"/>';
+    }
+    if (!state.primary){
+        baseCandidates(state.seed).forEach(function(c){ out += ring(c.h, RING, 4.5, c.hex); });
+    } else {
+        if (!state.secondary){
+            secondCandidates(state.primary).forEach(function(c){ out += ring(c.h, RING, 4.5, c.hex); });
+        }
+        out += spoke(state.primary.h);
+        if (state.secondary){
+            out += spoke(state.secondary.h);
+            (state.accents || []).forEach(function(a, i){
+                if (i === 1) return;                        /* Neutral liegt auf der Grundfarbe */
+                out += dot(a.h, INNER, i === 0 ? 4.5 : 3.4, a.hex, '');
+            });
+            out += dot(state.secondary.h, RING, 8, state.secondary.hex, '2');
+        }
+        out += dot(state.primary.h, RING, 8, state.primary.hex, '1');
+    }
+    if (hover) out += ring(hover.h, RING, 8.5, 'var(--t1)');
     svg.innerHTML = out;
 }
 
@@ -806,10 +861,11 @@ function renderPreviews(){
 /* ---------- Schritt 5: die Palette als echte Website ---------- */
 function renderSite(){
     const el = $('#site'), dark = state.siteMode === 'dark', T = applyTokens(el, dark);
-    const bridge = T.accent1, success = T.accent3, warning = T.accent4;
+    const bridge = T.accent1, t1 = T.accent3, t2 = T.accent4, t3 = T.accent5;
+    /* Nur die Grundfarbe tritt gefüllt auf — im Diagramm markiert sie den
+       aktuellen Monat, alles andere trägt die gedeckten Töne. */
     const bars = [
-        [48, T.secondary], [62, T.accent1], [55, T.secondary], [78, T.accent1],
-        [70, T.secondary], [100, T.primary]
+        [48, t1], [62, t2], [55, t1], [78, t3], [70, t2], [100, T.primary]
     ];
     el.innerHTML =
     '<div class="site-nav">' +
@@ -832,16 +888,16 @@ function renderSite(){
                 return '<span style="height:' + b[0] + '%;background:' + b[1].hex + '"></span>'; }).join('') +
             '</div>' +
             '<div class="legend">' +
-                '<span><b style="background:' + T.primary.hex + '"></b>Direkt</span>' +
-                '<span><b style="background:' + T.secondary.hex + '"></b>Partner</span>' +
-                '<span><b style="background:' + bridge.hex + '"></b>Kampagnen</span>' +
+                '<span><b style="background:' + T.primary.hex + '"></b>Laufender Monat</span>' +
+                '<span><b style="background:' + t2.hex + '"></b>Direkt</span>' +
+                '<span><b style="background:' + t3.hex + '"></b>Partner</span>' +
             '</div>' +
         '</div>' +
     '</div>' +
     '<div class="site-features">' +
         [['◆', 'Alles an einem Ort', 'Kanäle, Kosten und Deckungs&shy;beitrag in einer einzigen Ansicht.', bridge],
-         ['✓', 'Live statt Freitag', 'Zahlen aktualisieren sich laufend — kein Warten auf den Wochen&shy;bericht.', success],
-         ['!', 'Warnt von selbst', 'Schwellen setzen, Bescheid bekommen, bevor der Monat gelaufen ist.', warning]
+         ['◗', 'Live statt Freitag', 'Zahlen aktualisieren sich laufend — kein Warten auf den Wochen&shy;bericht.', t2],
+         ['◇', 'Sagt vorher Bescheid', 'Schwellen setzen und rechtzeitig informiert werden, nicht erst im Rückblick.', t3]
         ].map(function(f){
             return '<div class="feat"><i style="background:' + f[3].hex + ';color:' + onColor(f[3]).hex + '">' + f[0] + '</i>' +
                    '<h4>' + f[1] + '</h4><p>' + f[2] + '</p></div>';
@@ -877,7 +933,7 @@ function tokenLines(dark, indent){
     const order = ['bg','surface','border','text','muted','primary','onPrimary','secondary','onSecondary',
                    'accent1','accent2','accent3','accent4','accent5'];
     const names = { onPrimary:'on-primary', onSecondary:'on-secondary', accent1:'accent-bridge',
-                    accent2:'accent-neutral', accent3:'accent-success', accent4:'accent-warning', accent5:'accent-danger' };
+                    accent2:'accent-neutral', accent3:'tone-light', accent4:'tone-mid', accent5:'tone-deep' };
     return order.map(function(k){ return indent + '--' + (names[k] || k) + ': ' + T[k].hex + ';'; }).join('\n');
 }
 function exportText(tab){
@@ -913,22 +969,20 @@ function renderExport(){ $('#export-out').textContent = exportText($('.tabs .min
    ===================================================================== */
 function show(id){ $('#' + id).hidden = false; }
 function pickPrimary(col){
-    const fresh = !state.primary;
     state.primary = col; state.secondary = null; state.harmonyKey = null; state.accents = null;
-    $('#step5').hidden = true;
-    renderBase(); renderStrip(); renderPreviews(); renderSecond();
-    show('step2'); show('step3');
-    if (fresh) $('#step2').scrollIntoView({ behavior:'smooth', block:'start' });
-    else $('#step3').scrollIntoView({ behavior:'smooth', block:'start' });
+    $('#step-accents').hidden = true; $('#step-site').hidden = true;
+    renderBase(); renderStrip(); renderPreviews(); renderSecond(); drawWheel();
+    show('step-second'); show('step-modes');
+    $('#step-second').scrollIntoView({ behavior:'smooth', block:'start' });
     writeHash();
 }
 function pickSecondary(col){
     state.secondary = col; state.harmonyKey = col.harmony.key;
     state.accents = accentSet(state.primary, col);
     renderSecond(); renderStrip(); renderPreviews(); renderAccents();
-    renderSite(); renderWeight(); renderExport();
-    show('step4'); show('step5');
-    $('#step4').scrollIntoView({ behavior:'smooth', block:'start' });
+    renderSite(); renderWeight(); renderExport(); drawWheel();
+    show('step-accents'); show('step-site');
+    $('#step-accents').scrollIntoView({ behavior:'smooth', block:'start' });
     writeHash();
 }
 function writeHash(){
@@ -973,13 +1027,12 @@ function copyText(text, msg){
         document.body.removeChild(ta);
     }
 }
-$('#reroll').addEventListener('click', function(){ state.seed = Math.floor(Math.random() * 360); renderBase(); });
+$('#reroll').addEventListener('click', function(){ state.seed = Math.floor(Math.random() * 360); renderBase(); drawWheel(); });
 $('#reset').addEventListener('click', function(){
     state.primary = null; state.secondary = null; state.accents = null; state.harmonyKey = null;
-    ['step2','step3','step4','step5'].forEach(function(id){ $('#' + id).hidden = true; });
-    $('#strip-outer').hidden = true;
+    ['step-second','step-accents','step-modes','step-site'].forEach(function(id){ $('#' + id).hidden = true; });
     history.replaceState(null, '', location.pathname);
-    renderBase();
+    renderBase(); renderStrip(); drawWheel();
     window.scrollTo({ top:0, behavior:'smooth' });
 });
 $('#hex-go').addEventListener('click', function(){
@@ -1025,7 +1078,8 @@ document.addEventListener('keydown', function(e){
 })();
 
 state.seed = Math.floor(Math.random() * 360);
-if (!readHash()) renderBase();
+renderStrip();
+if (!readHash()){ renderBase(); drawWheel(); }
 </script>
 </body>
 </html>
