@@ -8,6 +8,12 @@
   keine Kartenkacheln und keine Abhängigkeiten außer Google Fonts.
 - Bedienung: Mausrad oder Pinch zum Zoomen, Ziehen zum Verschieben, Klick auf eine Fläche oder einen
   Listeneintrag öffnet die Details. Filter nach Typ, Mindestbreite und Eignung.
+- Hintergrund umschaltbar „Karte / Luftbild“ (Auswahl wird per localStorage gemerkt). Das Luftbild
+  kommt live vom WMS NW DOP (`https://www.wms.nrw.de/geobasis/wms_nw_dop`, Layer `nw_dop_rgb`):
+  pro zur Ruhe gekommener Ansicht ein GetMap direkt in EPSG:25832, kein Leaflet nötig.
+  Der WMS-Host ist in der Sandbox gesperrt, getestet wurde mit einem lokalen Ersatzbild.
+- Layout: Desktop Karte links, Seitenleiste rechts. Handy: Titel, Kennzahlen und Filter über der
+  Karte, Details und Liste darunter. Zahlen und Kleintexte in IBM Plex Serif (keine Monospace-Schrift).
 - Tech-Stack: Python (geopandas, shapely) für die Pipeline; Canvas 2D + Vanilla JS für die Karte.
 - Neu bauen: `python scripts/build.py ergebnisse/karte.json index.html` (aus diesem Ordner heraus).
 
@@ -55,8 +61,6 @@ Ergebnis Herne (Stand Kataster 07/2026): 702 Kandidaten, davon 47 Baulücken, 20
 
 ## Bekannte Grenzen / nächste Schritte
 - Viele „Freiflächen“ sind Seitengärten von Nachbarhäusern → manuelle Prüfung am Luftbild nötig.
-- Die aktuelle Karte zeichnet nur Katasterdaten (keine Kacheln). Für die echte Website:
-  Leaflet oder MapLibre mit Luftbild (z. B. WMS NW DOP) und Katasterkarte als Hintergrund.
 - Prüfstatus je Fläche speichern (ungeprüft / vielversprechend / verworfen) und Notizen.
 - Formular „Interesse melden“ mit echter Speicherung.
 - Pipeline für alle NRW-Städte automatisieren, weitere Bundesländer mit Open-Data-ALKIS ergänzen.
