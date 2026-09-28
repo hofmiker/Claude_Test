@@ -1,0 +1,4 @@
+daten/*
+!daten/.gitkeep
+__pycache__/
+*.gpkg

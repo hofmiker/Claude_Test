@@ -1,0 +1,703 @@
+﻿ID;Typ;Adresse;Gemarkung;Flur;Flurstück;Kennzeichen;Fläche m²;Breite m;Länge m;Straßenfront m;Gebäude an Grenze;Eignung;Breitengrad;Längengrad
+HE-001;Baulücke;Tillmanns Hof 12;Holthausen;14;333;05126101400333______;135;11,1;13,4;22,7;2;8,0;51.546496;7.278394
+HE-002;Baulücke;Eickeler Bruch 127;Wanne-Eickel;53;343;05112805300343______;151;10,4;14,5;15,5;2;8,0;51.521119;7.160989
+HE-003;Baulücke;Riemker Straße 4;Herne;36;198;05113203600198______;135;6,9;26,6;27,5;3;8,0;51.529139;7.207903
+HE-004;Baulücke;Altenhöfener Straße 37;Herne;29;239;05113202900239______;109;6,0;19,0;25,3;3;8,0;51.53142;7.2275
+HE-005;Baulücke;Ludwig-Steil-Straße 1;Wanne-Eickel;32;244;05112803200244______;122;11,2;11,8;12,5;2;7,7;51.528633;7.198238
+HE-006;Garagengrundstück;Werderstraße 42;Horsthausen;11;698;05113501100698______;162;8,6;19,1;9,6;3;7,3;51.552471;7.230137
+HE-007;Baulücke;Brauwasserweg 18 a;Wanne-Eickel;44;192;05112804400192______;170;5,8;36,0;8,4;2;7,1;51.516986;7.178791
+HE-008;Baulücke;"Im Sportpark 1 a; Langekampstraße 2";Wanne-Eickel;55;336;05112805500336______;80;5,6;16,3;26,6;2;7,0;51.522023;7.167269
+HE-009;Garagengrundstück;Bahnhofstraße 275, 277;Baukau;6;557;05112700600557______;507;13,6;45,4;15,5;2;7,0;51.557635;7.209268
+HE-010;Baulücke;Am Kricken 19;Sodingen;10;409;05125801000409______;413;10,3;42,1;11,3;3;7,0;51.535583;7.25583
+HE-011;Baulücke;Wakefieldstraße 1;Wanne-Eickel;52;319;05112805200319______;326;14,1;36,8;19,5;2;7,0;51.511465;7.165805
+HE-012;Baulücke;Rudolfstraße 16;Wanne-Eickel;8;305;05112800800305______;127;6,4;19,9;7,4;2;7,0;51.536929;7.165474
+HE-013;Baulücke;Schadeburgstraße;Börnig;10;322;05125001000322______;277;10,7;30,1;40,2;5;7,0;51.552101;7.270527
+HE-014;Baulücke;Brackweder Straße;Wanne-Eickel;28;280;05112802800280______;151;8,3;27,2;35,1;2;7,0;51.536209;7.187184
+HE-015;Baulücke;Am Kricken 16;Sodingen;12;415;05125801200415______;416;6,4;68,7;6,8;3;6,9;51.536064;7.255018
+HE-016;Baulücke;Eickeler Markt 3 a, 3 b;Wanne-Eickel;44;265;05112804400265______;289;11,0;32,9;6,4;2;6,9;51.515372;7.17925
+HE-017;Baulücke;Rathausstraße 64;Wanne-Eickel;8;1518;05112800801518______;107;5,9;20,6;6,9;2;6,9;51.537807;7.162519
+HE-018;Baulücke;Am Alten Hof 4 b;Wanne-Eickel;64;491;05112806400491______;228;5,7;43,1;6,7;2;6,9;51.511651;7.148222
+HE-019;Baulücke;Resser Straße 94;Wanne-Eickel;1;1045;05112800101045______;160;6,0;27,3;7,0;2;6,9;51.550635;7.143027
+HE-020;Garagengrundstück;Im Hasenkamp 36;Wanne-Eickel;32;319;05112803200319______;243;10,9;34,3;6,7;3;6,9;51.531394;7.202309
+HE-021;Baulücke;Kaiserstraße 5;Baukau;10;20;05112701000020______;285;5,1;56,0;6,1;2;6,8;51.545089;7.205399
+HE-022;Baulücke;An der Kreuzkirche;Herne;31;4;05113203100004______;360;11,9;30,9;12,9;2;6,7;51.536983;7.227209
+HE-023;Garagengrundstück;Händelstraße;Sodingen;12;269;05125801200269______;266;11,6;30,1;12,2;2;6,6;51.537461;7.256343
+HE-024;Freifläche / Garten;Wilhelm-Lennemann-Straße 13;Wanne-Eickel;7;816;05112800700816______;443;13,4;37,0;18,6;1;6,5;51.543993;7.156779
+HE-025;Garagengrundstück;Am Stöckmannshof 13, 15;Wanne-Eickel;5;286;05112800500286______;240;10,1;30,1;17,4;1;6,5;51.541512;7.151904
+HE-026;Freifläche / Garten;Wilhelmstraße 119 a;Wanne-Eickel;20;162;05112802000162______;223;7,8;46,6;61,0;1;6,5;51.530133;7.143155
+HE-027;Garagengrundstück;Am Vogelsang 13;Wanne-Eickel;54;516;05112805400516______;395;7,3;54,9;16,9;1;6,5;51.521032;7.162242
+HE-028;Garagengrundstück;Siemensstraße;Wanne-Eickel;14;81;05112801400081______;114;10,1;14,2;11,2;3;6,5;51.52457;7.161061
+HE-029;Freifläche / Garten;Göddenhoff 7;Wanne-Eickel;64;498;05112806400498______;282;10,0;30,9;39,8;1;6,5;51.515552;7.147937
+HE-030;Freifläche / Garten;Dorfstraße 3;Börnig;9;273;05125000900273______;116;5,3;25,4;25,1;1;6,5;51.552696;7.265696
+HE-031;Freifläche / Garten;Edmund-Weber-Straße 258, 260, 262, 262 a;Wanne-Eickel;64;497;05112806400497______;180;10,0;20,6;18,7;1;6,5;51.515401;7.147714
+HE-032;Freifläche / Garten;Eickeler Bruch 89;Wanne-Eickel;53;310;05112805300310______;298;10,3;36,7;43,5;1;6,5;51.518481;7.163373
+HE-033;Freifläche / Garten;Heisterkamp 63;Wanne-Eickel;55;200;05112805500200______;215;11,3;18,9;19,9;1;6,5;51.519432;7.170384
+HE-034;Freifläche / Garten;Michaelstraße 9, 11;Wanne-Eickel;16;393;05112801600393______;242;11,4;30,5;34,9;1;6,5;51.526962;7.146866
+HE-035;Freifläche / Garten;Ludwigstraße 23;Wanne-Eickel;8;1519;05112800801519______;162;10,7;18,3;17,5;1;6,5;51.540784;7.165329
+HE-036;Garagengrundstück;Eickeler Bruch 94;Wanne-Eickel;54;612;05112805400612______;202;8,3;35,0;43,5;1;6,5;51.518734;7.163844
+HE-037;Freifläche / Garten;Auf der Insel 12 b;Herne;15;512;05113201500512______;123;6,0;22,2;21,7;1;6,5;51.539907;7.23122
+HE-038;Freifläche / Garten;Max-Planck-Straße 46;Wanne-Eickel;30;286;05112803000286______;129;5,1;32,6;40,5;1;6,5;51.537107;7.20147
+HE-039;Freifläche / Garten;Hölkeskampring 94;Herne;29;173;05113202900173______;256;6,6;48,7;49,5;1;6,5;51.531485;7.233563
+HE-040;Freifläche / Garten;Flözstraße 2;Herne;22;219;05113202200219______;137;5,3;39,9;42,3;1;6,5;51.527141;7.254475
+HE-041;Garagengrundstück;Juliastraße 21;Wanne-Eickel;28;628;05112802800628______;365;13,9;27,9;14,1;1;6,4;51.538524;7.190372
+HE-042;Baulücke;Unser-Fritz-Straße 176, Ortsteil Unser Fritz;Wanne-Eickel;3;449;05112800300449______;613;10,1;83,2;10,7;2;6,4;51.542425;7.136355
+HE-043;Freifläche / Garten;Manteuffelstraße 22;Herne;3;35;05113200300035______;172;13,5;13,8;14,5;1;6,4;51.545729;7.215083
+HE-044;Garagengrundstück;Heidstraße 48;Wanne-Eickel;8;649;05112800800649______;405;12,4;34,0;13,4;1;6,3;51.535086;7.165804
+HE-045;Freifläche / Garten;Riemker Straße 87, 89;Herne;39;283;05113203900283______;247;5,5;49,3;13,8;1;6,3;51.521455;7.211544
+HE-046;Freifläche / Garten;Shamrockstraße 36;Herne;5;26;05113200500026______;351;12,5;28,4;13,5;1;6,3;51.535878;7.221158
+HE-047;Garagengrundstück;Friedgrasstraße 23;Wanne-Eickel;43;393;05112804300393______;270;12,2;23,8;13,2;1;6,3;51.517452;7.175635
+HE-048;Garagengrundstück;Kurze Straße;Wanne-Eickel;65;83;05112806500083______;298;12,0;25,6;12,9;2;6,2;51.510865;7.152726
+HE-049;Garagengrundstück;Walter-Bälz-Straße;Herne;34;542;05113203400542______;113;9,4;13,1;9,0;3;6,2;51.529286;7.217712
+HE-050;Freifläche / Garten;Feldkampstraße 40;Herne;36;101;05113203600101______;236;9,6;24,7;12,5;1;6,2;51.525172;7.211836
+HE-051;Garagengrundstück;Heidstraße 103;Wanne-Eickel;6;229;05112800600229______;231;9,6;24,4;12,6;1;6,2;51.538658;7.160023
+HE-052;Baulücke;La-Roche-Straße;Baukau;10;552;05112701000552______;173;5,1;35,8;9,1;2;6,2;51.543795;7.203601
+HE-053;Baulücke;Rathausstraße;Wanne-Eickel;8;1515;05112800801515______;166;7,0;26,6;7,3;3;6,0;51.538031;7.16233
+HE-054;Garagengrundstück;Holunderweg;Börnig;11;983;05125001100983______;480;10,8;44,8;45,8;2;6,0;51.547003;7.26016
+HE-055;Garagengrundstück;Poststraße 17, 19;Herne;8;110;05113200800110______;271;11,4;25,0;11,2;1;6,0;51.541054;7.218522
+HE-056;Garagengrundstück;Königstraße;Wanne-Eickel;42;1198;05112804201198______;338;17,7;19,5;20,3;2;6,0;51.516113;7.180819
+HE-057;Baulücke;(HER) Hordeler Straße;Wanne-Eickel;50;386;05112805000386______;88;5,5;21,2;27,7;2;6,0;51.510657;7.174267
+HE-058;Garagengrundstück;Landgrafenstraße, Ortsteil Wanne-Süd;Wanne-Eickel;13;310;05112801300310______;437;18,4;32,1;17,0;3;6,0;51.524625;7.163581
+HE-059;Freifläche / Garten;Max-Planck-Straße 52;Wanne-Eickel;30;261;05112803000261______;204;6,2;33,8;11,2;1;6,0;51.537415;7.201607
+HE-060;Garagengrundstück;Viktor-Reuter-Straße;Herne;12;200;05113201200200______;376;15,2;25,3;26,0;2;6,0;51.541386;7.223252
+HE-061;Garagengrundstück;(HER) Hordeler Straße;Wanne-Eickel;48;402;05112804800402______;337;14,1;24,0;25,0;2;6,0;51.509113;7.171751
+HE-062;Baulücke;Tönnishof;Börnig;11;375;05125001100375______;95;5,8;17,3;18,3;2;6,0;51.544448;7.264515
+HE-063;Baulücke;Bielefelder Straße;Wanne-Eickel;37;90;05112803700090______;422;14,0;30,3;15,0;2;6,0;51.53554;7.193226
+HE-064;Baulücke;In der Siedlung 11;Wanne-Eickel;29;121;05112802900121______;635;20,6;31,4;21,5;3;6,0;51.537405;7.197178
+HE-065;Baulücke;Nordstraße;Baukau;7;905;05112700700905______;288;15,8;19,7;16,8;2;6,0;51.554685;7.216808
+HE-066;Baulücke;Edmund-Weber-Straße 207;Wanne-Eickel;63;195;05112806300195______;568;17,1;37,6;28,8;2;6,0;51.512729;7.155543
+HE-067;Baulücke;Burgstraße;Wanne-Eickel;62;634;05112806200634______;139;8,3;24,8;11,1;3;6,0;51.514642;7.162721
+HE-068;Baulücke;Gelsenkircher Straße;Wanne-Eickel;15;489;05112801500489______;414;15,6;40,2;43,3;3;6,0;51.526743;7.15929
+HE-069;Freifläche / Garten;In der Helle 18;Herne;4;718;05113200400718______;175;9,8;18,4;10,8;1;5,9;51.536491;7.2176
+HE-070;Garagengrundstück;Gräffstraße;Herne;34;609;05113203400609______;576;13,0;45,6;14,0;3;5,9;51.529335;7.21921
+HE-071;Garagengrundstück;Mindener Straße 19;Wanne-Eickel;41;240;05112804100240______;380;13,1;29,2;14,1;1;5,9;51.524758;7.184435
+HE-072;Freifläche / Garten;Fontanestraße 1;Wanne-Eickel;36;181;05112803600181______;143;9,6;15,1;10,6;1;5,9;51.525946;7.189441
+HE-073;Baulücke;Dorneburger Straße;Wanne-Eickel;40;280;05112804000280______;113;5,5;20,6;6,4;3;5,9;51.523316;7.178037
+HE-074;Baulücke;Flottmannstraße;Herne;26;344;05113202600344______;276;8,0;43,6;6,7;3;5,9;51.523822;7.226015
+HE-075;Garagengrundstück;(HER) Vödestraße 15;Herne;45;191;05113204500191______;342;9,9;35,0;10,7;1;5,9;51.519351;7.237131
+HE-076;Freifläche / Garten;Koppelheide 1;Baukau;19;243;05112701900243______;335;9,9;37,2;10,3;1;5,9;51.539956;7.185808
+HE-077;Garagengrundstück;Hauptstraße 58;Wanne-Eickel;43;756;05112804300756______;187;11,0;22,1;9,5;1;5,8;51.51761;7.173146
+HE-078;Garagengrundstück;Zechenweg 30;Wanne-Eickel;15;161;05112801500161______;131;9,0;18,0;10,0;1;5,8;51.525844;7.154797
+HE-079;Baulücke;Landgrafenstraße, Ortsteil Wanne-Süd;Wanne-Eickel;13;366;05112801300366______;147;8,8;26,6;6,3;3;5,8;51.524737;7.164255
+HE-080;Garagengrundstück;Gelsenkircher Straße 190;Wanne-Eickel;57;221;05112805700221______;216;7,0;31,2;13,8;1;5,8;51.518865;7.143835
+HE-081;Freifläche / Garten;Königstraße 81 a;Wanne-Eickel;40;464;05112804000464______;224;8,3;33,4;9,4;1;5,8;51.520415;7.17881
+HE-082;Baulücke;Ludwig-Steil-Straße;Wanne-Eickel;31;441;05112803100441______;250;5,7;52,1;6,0;2;5,8;51.530609;7.198371
+HE-083;Freifläche / Garten;Schillerstraße 32;Herne;15;507;05113201500507______;343;13,6;30,4;10,1;1;5,8;51.537931;7.234008
+HE-084;Baulücke;Mont-Cenis-Straße;Börnig;14;125;05125001400125______;117;5,3;22,2;6,2;3;5,8;51.539473;7.26112
+HE-085;Freifläche / Garten;Tillmanns Hof 10;Holthausen;14;335;05126101400335______;141;11,2;13,4;13,5;1;5,8;51.546405;7.278301
+HE-086;Garagengrundstück;Hermannstraße;Wanne-Eickel;9;180;05112800900180______;620;11,5;54,5;12,5;2;5,7;51.534779;7.159635
+HE-087;Baulücke;Kurhausstraße 75 a;Wanne-Eickel;55;213;05112805500213______;119;4,8;26,5;5,4;2;5,7;51.523888;7.167883
+HE-088;Garagengrundstück;Beckumer Straße 2 a, 2 b;Wanne-Eickel;29;690;05112802900690______;106;8,0;20,4;9,1;1;5,7;51.536249;7.194549
+HE-089;Freifläche / Garten;Unser-Fritz-Straße 18;Wanne-Eickel;7;158;05112800700158______;230;7,7;33,2;8,7;1;5,7;51.540924;7.155116
+HE-090;Freifläche / Garten;Edmund-Weber-Straße 238;Wanne-Eickel;64;112;05112806400112______;115;8,2;14,2;9,1;1;5,7;51.514416;7.149542
+HE-091;Garagengrundstück;Unser-Fritz-Straße 162, 164;Wanne-Eickel;3;125;05112800300125______;368;7,4;50,5;8,1;1;5,6;51.542355;7.137636
+HE-092;Freifläche / Garten;Poststraße 16;Herne;8;165;05113200800165______;129;9,0;16,3;8,3;1;5,6;51.541152;7.219293
+HE-093;Freifläche / Garten;Bielefelder Straße 200;Wanne-Eickel;29;745;05112802900745______;353;11,0;32,6;12,0;1;5,6;51.535551;7.194561
+HE-094;Freifläche / Garten;Hegelweg 11;Sodingen;3;839;05125800300839______;110;7,2;15,2;8,2;1;5,6;51.542112;7.250493
+HE-095;Garagengrundstück;Zietenstraße;Horsthausen;4;897;05113500400897______;376;15,7;32,1;23,1;2;5,5;51.559145;7.233178
+HE-096;Freifläche / Garten;Mont-Cenis-Straße 57 a;Herne;15;520;05113201500520______;147;5,0;29,9;30,4;1;5,5;51.539685;7.23172
+HE-097;Garagengrundstück;Detmolder Ring 30;Wanne-Eickel;28;445;05112802800445______;94;10,5;12,4;17,3;1;5,5;51.537377;7.187393
+HE-098;Garagengrundstück;Freisenstraße 22;Wanne-Eickel;11;379;05112801100379______;169;5,1;36,9;7,4;1;5,5;51.528249;7.158021
+HE-099;Freifläche / Garten;Börniger Straße;Holthausen;1;248;05126100100248______;120;6,7;23,0;27,9;1;5,5;51.552957;7.274628
+HE-100;Freifläche / Garten;Am Großmarkt;Baukau;15;556;05112701500556______;188;6,0;31,4;32,4;1;5,5;51.541685;7.19253
+HE-101;Garagengrundstück;Grüner Ring;Wanne-Eickel;11;454;05112801100454______;119;6,3;19,3;20,1;1;5,5;51.5296;7.153815
+HE-102;Garagengrundstück;Hauptstraße 287;Wanne-Eickel;10;74;05112801000074______;397;19,7;21,0;22,0;1;5,5;51.534302;7.156437
+HE-103;Freifläche / Garten;Paulstraße;Wanne-Eickel;18;465;05112801800465______;266;9,8;37,1;48,2;1;5,5;51.539573;7.1426
+HE-104;Freifläche / Garten;Wiedehopfstraße;Wanne-Eickel;1;474;05112800100474______;229;7,2;39,5;32,0;1;5,5;51.547592;7.137061
+HE-105;Freifläche / Garten;Königsberger Straße;Wanne-Eickel;20;700;05112802000700______;100;5,1;19,9;20,9;1;5,5;51.529259;7.137534
+HE-106;Freifläche / Garten;Emscherstraße;Wanne-Eickel;18;435;05112801800435______;192;8,2;30,9;40,2;1;5,5;51.540039;7.145871
+HE-107;Freifläche / Garten;"Stöckstraße; Freisenstraße 22";Wanne-Eickel;11;609;05112801100609______;364;18,5;20,4;18,6;1;5,5;51.528249;7.15784
+HE-108;Garagengrundstück;Grüner Weg;Sodingen;12;232;05125801200232______;208;13,6;15,4;16,4;1;5,5;51.538575;7.251056
+HE-109;Freifläche / Garten;Bebelstraße;Herne;5;106;05113200500106______;312;7,1;70,2;73,1;1;5,5;51.538015;7.218147
+HE-110;Garagengrundstück;Im Hasenkamp;Wanne-Eickel;31;231;05112803100231______;186;11,9;17,1;18,0;1;5,5;51.530783;7.200514
+HE-111;Freifläche / Garten;Max-Planck-Straße 61;Wanne-Eickel;29;426;05112802900426______;83;5,4;16,7;17,3;1;5,5;51.537628;7.20027
+HE-112;Freifläche / Garten;Auf dem Rohde;Sodingen;11;189;05125801100189______;209;9,0;31,5;32,5;1;5,5;51.538758;7.249496
+HE-113;Freifläche / Garten;Poststraße;Herne;3;290;05113200300290______;251;10,9;25,7;35,5;1;5,5;51.542491;7.218757
+HE-114;Garagengrundstück;Brackweder Straße;Wanne-Eickel;28;485;05112802800485______;170;12,2;13,9;25,6;1;5,5;51.536693;7.1883
+HE-115;Freifläche / Garten;Bebelstraße;Herne;5;112;05113200500112______;155;9,1;20,4;34,5;1;5,5;51.537665;7.218326
+HE-116;Freifläche / Garten;Laurentiusstraße 21;Wanne-Eickel;6;514;05112800600514______;145;5,0;29,8;39,7;1;5,5;51.5384;7.153459
+HE-117;Garagengrundstück;(HER) Mülhauser Straße 1;Herne;22;248;05113202200248______;205;10,1;27,9;11,1;1;5,5;51.528027;7.251666
+HE-118;Freifläche / Garten;Am Wendebecken 1;Wanne-Eickel;3;451;05112800300451______;84;6,3;16,0;20,1;1;5,5;51.543796;7.137371
+HE-119;Freifläche / Garten;Lemgoer Straße 20;Wanne-Eickel;28;487;05112802800487______;96;6,9;16,3;20,9;1;5,5;51.536864;7.18817
+HE-120;Freifläche / Garten;Bismarckstraße;Baukau;10;569;05112701000569______;350;9,5;37,2;48,8;1;5,5;51.546087;7.209813
+HE-121;Freifläche / Garten;Schüchtermannstraße;Horsthausen;11;666;05113501100666______;145;11,2;18,0;20,5;1;5,5;51.549003;7.229374
+HE-122;Freifläche / Garten;Börsinghauser Straße 17 b;Holthausen;14;667;05126101400667______;368;17,3;22,7;18,4;1;5,5;51.544826;7.276096
+HE-123;Garagengrundstück;Auguststraße;Baukau;7;619;05112700700619______;344;13,9;33,7;22,2;1;5,5;51.553339;7.219769
+HE-124;Garagengrundstück;Kirchstraße 123;Börnig;11;228;05125001100228______;203;6,3;33,2;7,3;1;5,5;51.548015;7.261738
+HE-125;Freifläche / Garten;Luisenstraße;Horsthausen;11;494;05113501100494______;237;12,5;20,6;21,5;1;5,5;51.549599;7.223104
+HE-126;Freifläche / Garten;Heinrich-Imbusch-Straße;Wanne-Eickel;57;436;05112805700436______;305;12,5;24,7;48,1;1;5,5;51.520207;7.141908
+HE-127;Garagengrundstück;Distelkamp;Wanne-Eickel;62;282;05112806200282______;362;14,0;27,1;32,7;1;5,5;51.515127;7.161176
+HE-128;Freifläche / Garten;Fliederweg;Wanne-Eickel;42;903;05112804200903______;120;5,5;24,7;24,9;1;5,5;51.522904;7.18612
+HE-129;Freifläche / Garten;Börniger Straße 2;Börnig;6;155;05125000600155______;111;5,5;25,0;6,7;1;5,4;51.553684;7.270175
+HE-130;Freifläche / Garten;Holsterhauser Straße 25;Wanne-Eickel;41;478;05112804100478______;361;11,1;49,9;6,8;1;5,4;51.522946;7.182764
+HE-131;Freifläche / Garten;Börsinghauser Straße 30;Holthausen;14;126;05126101400126______;372;7,2;59,8;6,7;1;5,4;51.544539;7.276668
+HE-132;Freifläche / Garten;Walter-Bälz-Straße 95;Herne;36;207;05113203600207______;237;6,0;40,2;7,1;1;5,4;51.528308;7.210673
+HE-133;Garagengrundstück;Viktor-Reuter-Straße 37 a;Herne;10;160;05113201000160______;370;17,7;25,1;14,2;1;5,4;51.543328;7.226202
+HE-134;Garagengrundstück;In der Helle;Herne;4;827;05113200400827______;363;13,1;28,0;14,2;1;5,4;51.536359;7.216915
+HE-135;Garagengrundstück;Blumenplatz 10;Wanne-Eickel;42;515;05112804200515______;141;5,2;27,3;6,1;1;5,3;51.521012;7.184126
+HE-136;Garagengrundstück;Michaelstraße;Wanne-Eickel;20;604;05112802000604______;424;12,8;34,2;13,8;1;5,3;51.528716;7.142764
+HE-137;Garagengrundstück;Von-Velsen-Straße;Herne;34;630;05113203400630______;169;12,0;15,2;13,2;1;5,3;51.52882;7.217516
+HE-138;Freifläche / Garten;Reichsstraße 21;Wanne-Eickel;51;185;05112805100185______;188;6,6;40,7;6,1;1;5,3;51.516316;7.170262
+HE-139;Garagengrundstück;Von-Velsen-Straße;Herne;34;627;05113203400627______;162;12,0;13,7;13,0;1;5,2;51.529056;7.217335
+HE-140;Garagengrundstück;Alte Kolonie;Wanne-Eickel;56;328;05112805600328______;319;13,0;25,9;12,8;1;5,2;51.507947;7.166879
+HE-141;Garagengrundstück;Königsgruber Straße 11, 13, 15;Wanne-Eickel;62;657;05112806200657______;127;5,2;32,5;5,0;1;5,2;51.511402;7.160187
+HE-142;Garagengrundstück;Castroper Straße 60;Horsthausen;9;266;05113500900266______;250;9,0;40,5;5,0;1;5,2;51.549598;7.248366
+HE-143;Freifläche / Garten;Bielefelder Straße;Wanne-Eickel;39;348;05112803900348______;271;10,9;26,2;13,0;1;5,2;51.529081;7.18483
+HE-144;Freifläche / Garten;Berkelstraße 22 c, 22 d, 22 e, 22 f;Börnig;6;300;05125000600300______;183;14,2;21,0;12,4;1;5,2;51.553197;7.266828
+HE-145;Freifläche / Garten;Robert-Grabski-Straße;Baukau;7;759;05112700700759______;282;11,5;34,1;12,3;1;5,1;51.555867;7.213072
+HE-146;Freifläche / Garten;Alleestraße;Wanne-Eickel;3;755;05112800300755______;197;10,7;19,6;11,7;1;5,1;51.542605;7.136538
+HE-147;Garagengrundstück;Im Braunskamp;Börnig;14;170;05125001400170______;405;13,3;37,1;12,3;1;5,1;51.538425;7.262758
+HE-148;Freifläche / Garten;Goethestraße;Herne;13;187;05113201300187______;173;11,0;17,4;12,0;1;5,1;51.538146;7.229808
+HE-149;Freifläche / Garten;Emsring 57;Horsthausen;3;1670;05113500301670______;282;8,2;37,3;32,7;0;5,0;51.566536;7.243639
+HE-150;Freifläche / Garten;Wasserstraße 6;Wanne-Eickel;27;440;05112802700440______;358;21,3;21,4;23,7;1;5,0;51.54288;7.178641
+HE-151;Freifläche / Garten;Im Dannekamp 15;Wanne-Eickel;25;379;05112802500379______;179;9,9;18,9;19,8;0;5,0;51.550369;7.145831
+HE-152;Freifläche / Garten;Berkelstraße 24;Börnig;6;195;05125000600195______;203;9,1;25,3;26,3;0;5,0;51.553271;7.267289
+HE-153;Garagengrundstück;Röhlinghauser Straße 60;Wanne-Eickel;53;120;05112805300120______;116;11,2;15,1;21,4;0;5,0;51.5178;7.161574
+HE-154;Garagengrundstück;Kurfürstenstraße;Herne;30;420;05113203000420______;573;18,0;32,4;19,0;3;5,0;51.531493;7.223893
+HE-155;Freifläche / Garten;Am Holzplatz 35;Holthausen;13;293;05126101300293______;132;10,3;15,2;23,8;0;5,0;51.543528;7.26962
+HE-156;Freifläche / Garten;Von-Waldthausen-Straße 197;Horsthausen;6;1392;05113500601392______;127;8,0;16,0;16,8;0;5,0;51.556121;7.245995
+HE-157;Garagengrundstück;Mont-Cenis-Straße;Holthausen;5;278;05126100500278______;111;9,6;14,2;10,9;1;5,0;51.541145;7.288139
+HE-158;Baulücke;Breddestraße;Herne;13;71;05113201300071______;658;25,6;32,9;46,2;2;5,0;51.537171;7.227123
+HE-159;Freifläche / Garten;"Von-Waldthausen-Straße; Honkenbergstraße 32";Horsthausen;6;1357;05113500601357______;336;6,4;59,0;66,2;0;5,0;51.552754;7.23828
+HE-160;Freifläche / Garten;Dorstener Straße;Wanne-Eickel;35;144;05112803500144______;268;9,3;31,7;10,9;1;5,0;51.522927;7.192271
+HE-161;Freifläche / Garten;Bahnhofstraße 271, 273;Baukau;6;323;05112700600323______;157;6,0;28,8;27,8;0;5,0;51.557338;7.209787
+HE-162;Freifläche / Garten;Max-Planck-Straße 86;Wanne-Eickel;30;361;05112803000361______;139;10,2;16,3;17,0;0;5,0;51.538221;7.198902
+HE-163;Freifläche / Garten;Ringstraße 138, 140, 142, 144;Börnig;11;1178;05125001101178______;195;5,3;40,0;46,3;0;5,0;51.544052;7.265688
+HE-164;Baulücke;"Hénin-Beaumont-Straße; Kirchstraße";Sodingen;3;779;05125800300779______;500;24,8;32,0;57,8;2;5,0;51.542081;7.257936
+HE-165;Freifläche / Garten;Edmund-Weber-Straße 258, 260, 262, 262 a;Wanne-Eickel;64;300;05112806400300______;295;10,0;47,1;14,7;0;5,0;51.515153;7.147389
+HE-166;Baulücke;Rottbruchstraße;Wanne-Eickel;30;89;05112803000089______;526;14,7;35,8;15,7;2;5,0;51.537911;7.201261
+HE-167;Garagengrundstück;Robert-Koch-Straße;Wanne-Eickel;9;939;05112800900939______;90;5,9;16,6;7,5;2;5,0;51.53823;7.160327
+HE-168;Freifläche / Garten;Josef-Prenger-Straße 3;Börnig;12;82;05125001200082______;118;6,5;20,3;19,4;0;5,0;51.541976;7.26279
+HE-169;Garagengrundstück;Neue Kampstraße 29;Wanne-Eickel;43;464;05112804300464______;112;10,7;12,9;19,8;0;5,0;51.518113;7.174334
+HE-170;Freifläche / Garten;Rottbruchstraße 66;Wanne-Eickel;29;615;05112802900615______;590;8,0;87,0;88,1;1;5,0;51.538389;7.196848
+HE-171;Freifläche / Garten;Katharinastraße 1;Horsthausen;3;390;05113500300390______;103;5,3;30,7;21,9;0;5,0;51.571288;7.240865
+HE-172;Freifläche / Garten;Holper Heide 5 b;Baukau;7;479;05112700700479______;142;7,6;18,8;19,8;0;5,0;51.555607;7.217341
+HE-173;Freifläche / Garten;Eickeler Bruch 157;Wanne-Eickel;14;206;05112801400206______;113;10,2;14,1;15,2;0;5,0;51.522754;7.158774
+HE-174;Freifläche / Garten;Bahnhofstraße 275, 277;Baukau;6;432;05112700600432______;142;5,7;27,0;26,0;0;5,0;51.557506;7.209648
+HE-175;Freifläche / Garten;Werderstraße 1;Horsthausen;11;902;05113501100902______;392;11,5;41,0;15,5;0;5,0;51.550461;7.233058
+HE-176;Freifläche / Garten;Pantrings Hof 9;Horsthausen;3;1115;05113500301115______;123;10,4;18,0;20,9;0;5,0;51.569429;7.236548
+HE-177;Garagengrundstück;Emscherstraße;Wanne-Eickel;3;774;05112800300774______;684;26,7;27,5;27,7;2;5,0;51.54311;7.145004
+HE-178;Baulücke;"Am Vogelsang; Harkortstraße";Wanne-Eickel;54;789;05112805400789______;645;28,6;32,8;32,1;2;5,0;51.521547;7.163121
+HE-179;Baulücke;Claudiusstraße;Wanne-Eickel;9;380;05112800900380______;660;15,9;41,3;16,7;7;5,0;51.533627;7.158367
+HE-180;Baulücke;Rolandstraße;Wanne-Eickel;59;578;05112805900578______;694;4,7;156,1;162,5;5;5,0;51.517287;7.144311
+HE-181;Freifläche / Garten;Hauptstraße 178;Wanne-Eickel;13;217;05112801300217______;155;12,6;12,8;24,7;0;5,0;51.525257;7.162754
+HE-182;Garagengrundstück;Eickeler Straße;Wanne-Eickel;46;583;05112804600583______;636;17,0;37,8;17,9;3;5,0;51.507954;7.18307
+HE-183;Garagengrundstück;Im Wildholz 23;Baukau;11;452;05112701100452______;334;13,6;25,4;26,2;0;5,0;51.547711;7.209207
+HE-184;Garagengrundstück;Cranger Heide 31;Wanne-Eickel;8;1182;05112800801182______;313;15,0;21,6;16,0;1;5,0;51.541802;7.166424
+HE-185;Freifläche / Garten;Gustavstraße 51;Wanne-Eickel;66;636;05112806600636______;122;6,6;20,5;7,6;1;5,0;51.504187;7.152
+HE-186;Freifläche / Garten;Rökenstraße 18;Wanne-Eickel;18;448;05112801800448______;165;7,0;24,1;16,0;0;5,0;51.539469;7.144427
+HE-187;Freifläche / Garten;Brackweder Straße;Wanne-Eickel;28;255;05112802800255______;142;9,0;16,1;24,1;1;5,0;51.536098;7.187523
+HE-188;Freifläche / Garten;Bergmannstraße 45;Wanne-Eickel;63;704;05112806300704______;242;13,3;20,7;15,2;0;5,0;51.511114;7.158049
+HE-189;Freifläche / Garten;Flottmannstraße;Herne;44;599;05113204400599______;172;8,3;24,1;10,9;1;5,0;51.520516;7.22689
+HE-190;Freifläche / Garten;Distelkamp 23;Wanne-Eickel;52;341;05112805200341______;389;11,5;39,4;16,9;0;5,0;51.516212;7.16117
+HE-191;Freifläche / Garten;Nordstraße 178;Horsthausen;12;644;05113501200644______;200;12,9;24,8;20,6;0;5,0;51.55579;7.229765
+HE-192;Freifläche / Garten;Corneliusstraße 3;Wanne-Eickel;27;394;05112802700394______;273;12,4;24,2;22,7;0;5,0;51.539336;7.178219
+HE-193;Freifläche / Garten;Westfalenstraße 51;Wanne-Eickel;63;441;05112806300441______;140;9,4;14,9;15,8;0;5,0;51.509655;7.155024
+HE-194;Freifläche / Garten;Koppelheide 3;Baukau;19;239;05112701900239______;167;8,5;24,4;31,3;0;5,0;51.539736;7.185437
+HE-195;Freifläche / Garten;Pestalozzistraße 4, 6, 8, 10, 12, 14;Wanne-Eickel;61;378;05112806100378______;252;8,0;32,2;18,1;0;5,0;51.517245;7.15302
+HE-196;Freifläche / Garten;Im Dannekamp 19;Wanne-Eickel;25;363;05112802500363______;374;13,9;31,8;14,9;0;5,0;51.550468;7.145312
+HE-197;Freifläche / Garten;Westfalenstraße 53;Wanne-Eickel;63;440;05112806300440______;102;9,3;13,9;14,9;0;5,0;51.509552;7.155089
+HE-198;Freifläche / Garten;Castroper Straße 231;Börnig;10;457;05125001000457______;135;10,9;16,8;17,9;0;5,0;51.548099;7.268404
+HE-199;Garagengrundstück;Cranger Heide 13;Wanne-Eickel;8;1319;05112800801319______;148;8,7;25,8;26,6;0;5,0;51.541677;7.164035
+HE-200;Garagengrundstück;Bielefelder Straße 182;Wanne-Eickel;37;504;05112803700504______;264;6,0;44,0;50,9;0;5,0;51.534037;7.193033
+HE-201;Freifläche / Garten;Werftstraße 1 a;Horsthausen;3;543;05113500300543______;147;8,0;21,6;26,9;0;5,0;51.568182;7.240752
+HE-202;Freifläche / Garten;Vor dem Hofe 26;Baukau;15;881;05112701500881______;282;15,0;19,9;20,2;1;5,0;51.541908;7.187977
+HE-203;Garagengrundstück;Plutostraße 55;Wanne-Eickel;60;414;05112806000414______;200;9,1;33,2;34,2;0;5,0;51.518633;7.156369
+HE-204;Freifläche / Garten;Grimberger Feld 58;Wanne-Eickel;1;390;05112800100390______;175;11,5;18,2;25,6;0;5,0;51.546945;7.130392
+HE-205;Freifläche / Garten;Im Dannekamp 17;Wanne-Eickel;25;355;05112802500355______;222;10,8;21,6;32,9;0;5,0;51.550548;7.145878
+HE-206;Garagengrundstück;Bickernstraße 119;Wanne-Eickel;19;18;05112801900018______;255;6,5;41,3;46,0;0;5,0;51.528592;7.136292
+HE-207;Garagengrundstück;Hauptstraße 314;Wanne-Eickel;6;421;05112800600421______;129;10,9;11,9;23,7;0;5,0;51.536621;7.156301
+HE-208;Freifläche / Garten;Bickernstraße 113, 115, 117;Wanne-Eickel;19;16;05112801900016______;371;6,8;57,4;57,0;0;5,0;51.528536;7.137018
+HE-209;Garagengrundstück;An der Ziegelei 21;Wanne-Eickel;29;450;05112802900450______;181;12,9;17,7;26,9;0;5,0;51.537865;7.197177
+HE-210;Freifläche / Garten;Gartenstraße 28;Wanne-Eickel;31;268;05112803100268______;104;5,4;21,8;22,8;0;5,0;51.532387;7.193307
+HE-211;Freifläche / Garten;Holsterhauser Straße 148, 150, 152;Wanne-Eickel;32;295;05112803200295______;116;5,5;29,4;31,7;0;5,0;51.528464;7.198781
+HE-212;Freifläche / Garten;Michaelstraße 9, 11;Wanne-Eickel;16;390;05112801600390______;161;11,5;17,8;19,0;0;5,0;51.527134;7.146718
+HE-213;Freifläche / Garten;Gartenstraße 76;Wanne-Eickel;29;865;05112802900865______;111;9,6;17,7;27,6;0;5,0;51.535013;7.194782
+HE-214;Baulücke;Lortzingstraße;Wanne-Eickel;10;12;05112801000012______;641;20,6;41,8;44,0;2;5,0;51.535668;7.154919
+HE-215;Freifläche / Garten;Pestalozzistraße 41;Wanne-Eickel;61;457;05112806100457______;117;6,0;19,7;26,5;0;5,0;51.516582;7.154856
+HE-216;Freifläche / Garten;Viktor-Reuter-Straße 37 b;Herne;10;166;05113201000166______;186;8,4;27,6;7,0;1;4,9;51.543396;7.226578
+HE-217;Garagengrundstück;Detmolder Ring;Wanne-Eickel;28;486;05112802800486______;85;6,1;13,8;6,9;2;4,9;51.536757;7.188223
+HE-218;Freifläche / Garten;Grenzweg 4 a;Herne;2;314;05113200200314______;219;6,7;39,5;6,7;1;4,9;51.541469;7.207779
+HE-219;Freifläche / Garten;Kaiserstraße;Baukau;13;155;05112701300155______;133;9,3;17,2;10,3;1;4,9;51.54651;7.20435
+HE-220;Freifläche / Garten;Mozartstraße 13;Wanne-Eickel;10;42;05112801000042______;294;12,2;24,3;13,3;0;4,8;51.535189;7.154814
+HE-221;Garagengrundstück;Eiselenstraße 10;Herne;43;622;05113204300622______;196;5,0;39,2;6,0;1;4,8;51.526213;7.22885
+HE-222;Baulücke;Museumsstraße;Herne;6;124;05113200600124______;389;5,0;78,0;6,0;2;4,8;51.536892;7.224119
+HE-223;Garagengrundstück;Hermann-Löns-Straße;Herne;13;30;05113201300030______;276;9,0;31,1;9,9;1;4,8;51.539099;7.228702
+HE-224;Garagengrundstück;(HER) Magdeburger Straße;Wanne-Eickel;48;240;05112804800240______;104;9,0;11,6;10,0;1;4,8;51.50495;7.170273
+HE-225;Freifläche / Garten;Jürgens Hof 54;Horsthausen;6;1459;05113500601459______;263;12,3;23,6;13,3;0;4,8;51.555598;7.238153
+HE-226;Freifläche / Garten;Von-Waldthausen-Straße 189;Horsthausen;6;1388;05113500601388______;100;8,0;12,6;13,6;0;4,8;51.555939;7.245564
+HE-227;Baulücke;Gneisenaustraße;Horsthausen;12;893;05113501200893______;117;4,9;24,0;5,9;2;4,8;51.557858;7.233614
+HE-228;Freifläche / Garten;Drosselweg;Wanne-Eickel;36;890;05112803600890______;190;10,7;19,9;9,5;1;4,8;51.531145;7.188528
+HE-229;Freifläche / Garten;Hasenhorst 16;Wanne-Eickel;65;292;05112806500292______;181;12,7;15,0;13,7;0;4,8;51.508251;7.15025
+HE-230;Garagengrundstück;Gustavstraße 40 a;Wanne-Eickel;66;501;05112806600501______;154;5,1;30,8;5,6;1;4,7;51.505063;7.15169
+HE-231;Freifläche / Garten;Eickeler Bruch 35 a;Wanne-Eickel;62;665;05112806200665______;110;9,4;16,7;12,9;0;4,7;51.513763;7.164031
+HE-232;Freifläche / Garten;Stöckstraße 28;Wanne-Eickel;11;279;05112801100279______;188;12,1;15,6;13,0;0;4,7;51.530854;7.156921
+HE-233;Freifläche / Garten;In der Tennscheuer 17;Sodingen;10;540;05125801000540______;157;9,9;26,0;12,6;0;4,7;51.536278;7.251243
+HE-234;Freifläche / Garten;Heinrich-Funcke-Straße;Wanne-Eickel;8;1038;05112800801038______;162;11,6;16,6;12,7;1;4,7;51.540719;7.164616
+HE-235;Freifläche / Garten;In der Helle;Herne;4;719;05113200400719______;169;9,8;18,6;9,0;1;4,7;51.536509;7.217743
+HE-236;Garagengrundstück;Honkenbergstraße 1;Horsthausen;6;1057;05113500601057______;172;10,8;15,8;11,8;0;4,6;51.553565;7.235884
+HE-237;Freifläche / Garten;Eickeler Bruch 99;Wanne-Eickel;53;219;05112805300219______;109;10,8;12,7;12,3;0;4,6;51.518933;7.16254
+HE-238;Freifläche / Garten;Buschkampstraße 10, 12;Wanne-Eickel;30;491;05112803000491______;121;11,1;13,4;12,1;0;4,6;51.539072;7.200887
+HE-239;Freifläche / Garten;Kolpingstraße 38;Wanne-Eickel;9;980;05112800900980______;129;10,7;14,1;11,7;0;4,6;51.536132;7.16129
+HE-240;Baulücke;Schillerstraße 2;Herne;14;508;05113201400508______;96;4,5;22,3;4,8;2;4,6;51.534692;7.23279
+HE-241;Garagengrundstück;Harpener Weg 34;Baukau;10;405;05112701000405______;138;12,1;12,2;11,7;0;4,6;51.544316;7.20961
+HE-242;Freifläche / Garten;Gewerkenstraße 17;Börnig;8;523;05125000800523______;663;12,6;68,5;7,9;1;4,6;51.545261;7.254866
+HE-243;Garagengrundstück;Beckumer Straße 14;Wanne-Eickel;29;648;05112802900648______;253;11,9;23,8;11,8;0;4,6;51.537409;7.193273
+HE-244;Freifläche / Garten;Horststraße;Wanne-Eickel;36;509;05112803600509______;396;10,9;37,8;11,8;1;4,6;51.531967;7.191715
+HE-245;Garagengrundstück;Bielefelder Straße 183 c, 183 d;Wanne-Eickel;29;691;05112802900691______;166;11,1;19,5;26,4;0;4,5;51.536195;7.194562
+HE-246;Freifläche / Garten;Stöckstraße;Wanne-Eickel;15;454;05112801500454______;96;5,0;19,2;20,2;1;4,5;51.52755;7.157865
+HE-247;Freifläche / Garten;Mulvanystraße;Herne;2;98;05113200200098______;540;13,7;42,4;14,8;1;4,5;51.538487;7.208481
+HE-248;Freifläche / Garten;Im Ostenfeld 3;Holthausen;2;249;05126100200249______;471;10,0;47,0;11,0;1;4,5;51.546438;7.28269
+HE-249;Garagengrundstück;Burgstraße;Wanne-Eickel;52;222;05112805200222______;342;15,5;24,6;16,7;1;4,5;51.51419;7.164077
+HE-250;Freifläche / Garten;Im Hasenkamp;Wanne-Eickel;31;486;05112803100486______;415;17,5;28,2;15,6;1;4,5;51.531547;7.201666
+HE-251;Garagengrundstück;Bobenfeld;Wanne-Eickel;40;245;05112804000245______;439;14,4;35,8;40,2;1;4,5;51.52705;7.178103
+HE-252;Freifläche / Garten;Bergstraße;Herne;27;118;05113202700118______;98;6,0;16,5;17,5;1;4,5;51.52625;7.230795
+HE-253;Freifläche / Garten;Cranger Straße;Baukau;17;789;05112701700789______;450;18,2;31,1;42,1;1;4,5;51.543517;7.185548
+HE-254;Freifläche / Garten;Am Weustenbusch 17;Wanne-Eickel;43;846;05112804300846______;635;20,6;31,6;29,5;1;4,5;51.520217;7.175577
+HE-255;Freifläche / Garten;Cranger Straße;Baukau;17;788;05112701700788______;211;14,1;19,4;32,4;1;4,5;51.543517;7.185287
+HE-256;Garagengrundstück;Hüller Straße;Wanne-Eickel;16;649;05112801600649______;359;19,7;21,3;36,5;1;4,5;51.525372;7.143354
+HE-257;Garagengrundstück;(HER) Hordeler Straße;Wanne-Eickel;48;400;05112804800400______;254;14,0;22,2;15,1;1;4,5;51.508917;7.171457
+HE-258;Freifläche / Garten;Stöckstraße;Wanne-Eickel;15;453;05112801500453______;147;5,0;32,3;36,8;1;4,5;51.527252;7.157933
+HE-259;Garagengrundstück;"Albert-Klein-Straße; Luisenstraße";Horsthausen;11;663;05113501100663______;92;8,4;11,1;20,4;1;4,5;51.550139;7.22513
+HE-260;Freifläche / Garten;Otto-Hue-Straße;Herne;33;432;05113203300432______;332;16,1;23,7;15,0;1;4,5;51.533067;7.222017
+HE-261;Freifläche / Garten;Pieperstraße 1 b;Herne;23;826;05113202300826______;198;10,6;21,3;11,6;0;4,5;51.525602;7.24708
+HE-262;Garagengrundstück;Am Schmiedesbach 17;Wanne-Eickel;29;180;05112802900180______;88;6,8;13,9;7,8;1;4,5;51.535479;7.197214
+HE-263;Freifläche / Garten;Röttgersbankstraße 88;Horsthausen;3;1516;05113500301516______;239;13,9;17,7;14,9;0;4,5;51.56895;7.239255
+HE-264;Garagengrundstück;Hotteroth 12;Holthausen;2;369;05126100200369______;103;10,0;10,4;11,0;0;4,5;51.547484;7.281421
+HE-265;Freifläche / Garten;"Von-der-Heydt-Straße 39; Westring 124";Herne;8;187;05113200800187______;631;19,4;34,4;19,6;1;4,5;51.541494;7.218067
+HE-266;Freifläche / Garten;Am Freibad 34;Wanne-Eickel;8;147;05112800800147______;336;13,4;37,2;45,8;0;4,5;51.539948;7.168817
+HE-267;Freifläche / Garten;Am Wendebecken;Wanne-Eickel;3;523;05112800300523______;426;16,8;29,5;17,9;1;4,5;51.544156;7.141199
+HE-268;Freifläche / Garten;Antonstraße 18;Wanne-Eickel;8;1360;05112800801360______;496;20,5;37,2;40,4;1;4,5;51.534291;7.170722
+HE-269;Garagengrundstück;Rathausstraße;Wanne-Eickel;8;1317;05112800801317______;345;16,1;22,7;18,3;1;4,5;51.543333;7.163079
+HE-270;Garagengrundstück;Lötzener Straße 7;Wanne-Eickel;10;228;05112801000228______;283;9,3;40,4;11,6;0;4,5;51.530164;7.150187
+HE-271;Garagengrundstück;Von-Velsen-Straße;Herne;34;632;05113203400632______;234;15,4;18,5;17,6;1;4,5;51.528567;7.217625
+HE-272;Freifläche / Garten;Berkelstraße 22 c, 22 d, 22 e, 22 f;Börnig;6;299;05125000600299______;81;6,3;16,6;7,5;1;4,5;51.553129;7.266921
+HE-273;Freifläche / Garten;Baumstraße 6, 8;Herne;10;517;05113201000517______;195;6,1;40,9;44,3;0;4,5;51.544345;7.223498
+HE-274;Garagengrundstück;Rosenring 14;Wanne-Eickel;42;1208;05112804201208______;113;9,5;12,9;10,7;0;4,4;51.520004;7.181772
+HE-275;Freifläche / Garten;Am Kricken 26;Sodingen;10;533;05125801000533______;194;9,2;23,3;10,6;0;4,4;51.535222;7.254537
+HE-276;Freifläche / Garten;Werftstraße 1 a;Horsthausen;3;542;05113500300542______;226;13,8;19,4;10,5;0;4,4;51.568277;7.240826
+HE-277;Garagengrundstück;Kremerstraße 1;Horsthausen;11;941;05113501100941______;285;9,8;29,6;10,8;0;4,4;51.548334;7.22404
+HE-278;Freifläche / Garten;Kirchstraße;Börnig;11;674;05125001100674______;170;6,0;28,6;7,0;1;4,4;51.546002;7.260762
+HE-279;Freifläche / Garten;Eiselenstraße 1;Herne;43;93;05113204300093______;217;13,2;17,5;14,3;0;4,4;51.526953;7.229713
+HE-280;Freifläche / Garten;A 42 (Emscherschnellweg);Wanne-Eickel;7;610;05112800700610______;80;8,2;11,8;10,2;1;4,4;51.541706;7.156583
+HE-281;Garagengrundstück;Voßstraße 3;Herne;22;256;05113202200256______;83;5,0;19,1;6,0;1;4,3;51.527494;7.252552
+HE-282;Garagengrundstück;Hotteroth 10;Holthausen;2;370;05126100200370______;103;8,7;11,9;9,7;0;4,3;51.547458;7.281995
+HE-283;Garagengrundstück;Karlstraße;Wanne-Eickel;17;327;05112801700327______;183;5,1;36,1;6,1;1;4,3;51.536616;7.147776
+HE-284;Freifläche / Garten;Im Dannekamp 22;Wanne-Eickel;25;186;05112802500186______;194;8,8;27,4;9,7;0;4,3;51.55085;7.145286
+HE-285;Freifläche / Garten;Im Stückenbruch 14, 16;Börnig;6;267;05125000600267______;184;8,0;24,4;9,5;0;4,3;51.553707;7.269673
+HE-286;Freifläche / Garten;Fleiges Hof;Herne;2;366;05113200200366______;145;5,2;28,1;6,2;1;4,3;51.539414;7.208546
+HE-287;Freifläche / Garten;Fleiges Hof;Herne;2;364;05113200200364______;143;5,2;27,6;6,2;1;4,3;51.539453;7.20841
+HE-288;Freifläche / Garten;Am Böckenbusch 7 a;Wanne-Eickel;39;32;05112803900032______;115;5,0;29,4;6,0;1;4,3;51.531699;7.175271
+HE-289;Freifläche / Garten;Ringstraße 60 f;Holthausen;12;541;05126101200541______;244;9,0;30,3;10,1;0;4,3;51.538009;7.264064
+HE-290;Freifläche / Garten;Plutostraße 57;Wanne-Eickel;60;416;05112806000416______;109;4,5;26,7;5,7;1;4,3;51.51843;7.156353
+HE-291;Freifläche / Garten;Alte Kolonie 7;Wanne-Eickel;56;370;05112805600370______;111;9,5;11,9;12,8;0;4,2;51.508066;7.16696
+HE-292;Freifläche / Garten;Claudiusstraße 13;Wanne-Eickel;9;885;05112800900885______;116;8,3;14,6;9,3;0;4,2;51.534227;7.159047
+HE-293;Garagengrundstück;An der Markscheide 11;Horsthausen;3;1193;05113500301193______;163;8,1;20,8;9,3;0;4,2;51.571052;7.238135
+HE-294;Garagengrundstück;Holthauser Straße 28 a, 28 b, 28 c, 28 d;Holthausen;8;194;05126100800194______;159;8,1;22,1;9,1;0;4,2;51.524723;7.279806
+HE-295;Garagengrundstück;Stöckstraße 118;Wanne-Eickel;6;359;05112800600359______;116;4,5;28,1;5,5;1;4,2;51.540108;7.151765
+HE-296;Freifläche / Garten;Pestalozzistraße 1;Wanne-Eickel;61;520;05112806100520______;162;7,9;20,8;8,9;0;4,2;51.517279;7.153544
+HE-297;Garagengrundstück;Goethestraße 58 a;Herne;15;183;05113201500183______;177;4,7;43,3;5,0;1;4,2;51.540685;7.22982
+HE-298;Garagengrundstück;Cranger Heide 27, 29;Wanne-Eickel;8;1267;05112800801267______;285;13,9;28,0;9,4;0;4,2;51.5417;7.165507
+HE-299;Freifläche / Garten;Mont-Cenis-Straße 407;Holthausen;14;853;05126101400853______;137;8,0;26,2;9,1;0;4,2;51.543095;7.272896
+HE-300;Freifläche / Garten;Mont-Cenis-Straße 509 a;Holthausen;4;114;05126100400114______;106;10,1;12,4;9,2;0;4,2;51.541949;7.286746
+HE-301;Freifläche / Garten;Berkelstraße;Börnig;6;160;05125000600160______;435;18,4;30,5;12,4;1;4,2;51.553785;7.267985
+HE-302;Freifläche / Garten;An der Markscheide 15;Horsthausen;3;1194;05113500301194______;164;8,2;20,8;9,2;0;4,2;51.570857;7.23772
+HE-303;Baulücke;Eckstraße 14;Herne;4;1040;05113200401040______;93;4,5;20,5;5,5;2;4,2;51.539292;7.216647
+HE-304;Freifläche / Garten;Veilchenweg 9;Wanne-Eickel;42;1486;05112804201486______;166;10,6;19,1;8,4;0;4,1;51.519895;7.183722
+HE-305;Freifläche / Garten;Sudkamps Hof 87;Horsthausen;7;288;05113500700288______;166;10,2;18,5;12,3;0;4,1;51.553829;7.233593
+HE-306;Freifläche / Garten;Am Böckenbusch 1 a;Wanne-Eickel;39;763;05112803900763______;542;14,5;38,6;11,6;1;4,1;51.525989;7.174634
+HE-307;Freifläche / Garten;Holper Heide 16 a;Baukau;7;650;05112700700650______;207;7,3;29,5;8,0;0;4,1;51.556426;7.21951
+HE-308;Freifläche / Garten;Cranger Straße 44;Baukau;15;254;05112701500254______;407;12,0;37,0;11,9;0;4,1;51.542867;7.189817
+HE-309;Garagengrundstück;Castroper Straße 175;Börnig;9;591;05125000900591______;112;6,9;21,6;7,9;0;4,1;51.549113;7.261839
+HE-310;Freifläche / Garten;"Sternstraße; Resser Straße 103";Wanne-Eickel;1;810;05112800100810______;193;7,2;37,6;8,2;0;4,1;51.550447;7.141136
+HE-311;Freifläche / Garten;Sudkamps Hof 85;Horsthausen;7;289;05113500700289______;116;10,0;13,7;11,9;0;4,1;51.553758;7.233625
+HE-312;Freifläche / Garten;Emscherstraße;Wanne-Eickel;17;333;05112801700333______;463;13,4;37,5;12,0;1;4,1;51.536091;7.147243
+HE-313;Garagengrundstück;Lotsenweg 10;Horsthausen;3;1725;05113500301725______;107;5,8;19,6;8,5;0;4,1;51.568874;7.241785
+HE-314;Freifläche / Garten;Dorstener Straße 125;Wanne-Eickel;35;313;05112803500313______;415;16,9;26,4;16,5;0;4,0;51.522612;7.190768
+HE-315;Freifläche / Garten;Behrensstraße;Herne;4;958;05113200400958______;144;5,5;26,2;27,2;0;4,0;51.538412;7.215145
+HE-316;Freifläche / Garten;Behrensstraße;Herne;4;956;05113200400956______;104;5,5;19,5;25,0;0;4,0;51.538406;7.214816
+HE-317;Garagengrundstück;Grenzweg 66;Herne;1;168;05113200100168______;98;6,4;18,0;18,9;0;4,0;51.535976;7.207248
+HE-318;Freifläche / Garten;Eickeler Bruch 93;Wanne-Eickel;53;196;05112805300196______;107;4,7;32,3;26,7;0;4,0;51.518614;7.163305
+HE-319;Freifläche / Garten;Friedgrasstraße;Wanne-Eickel;43;528;05112804300528______;108;5,3;20,4;21,2;0;4,0;51.517428;7.176725
+HE-320;Freifläche / Garten;Dahlhauser Straße 29;Wanne-Eickel;56;461;05112805600461______;332;17,6;19,5;18,7;0;4,0;51.506405;7.167921
+HE-321;Freifläche / Garten;Holbeinstraße 4;Wanne-Eickel;51;161;05112805100161______;84;7,3;16,4;19,7;0;4,0;51.516608;7.171257
+HE-322;Freifläche / Garten;Katharinastraße 11;Horsthausen;3;403;05113500300403______;226;16,3;17,3;17,4;0;4,0;51.571654;7.241502
+HE-323;Freifläche / Garten;Mont-Cenis-Straße 391;Holthausen;13;376;05126101300376______;95;5,4;17,7;18,7;0;4,0;51.542577;7.270968
+HE-324;Garagengrundstück;Hiberniastraße 61;Herne;35;240;05113203500240______;89;6,7;14,7;16,0;0;4,0;51.533227;7.21586
+HE-325;Freifläche / Garten;Bergmannstraße 41;Wanne-Eickel;63;703;05112806300703______;204;14,4;20,2;22,6;0;4,0;51.511125;7.157828
+HE-326;Freifläche / Garten;Schüchtermannstraße;Horsthausen;11;616;05113501100616______;134;8,1;19,2;20,4;0;4,0;51.548702;7.228679
+HE-327;Garagengrundstück;Lützowstraße;Horsthausen;4;386;05113500400386______;204;11,5;18,2;19,1;0;4,0;51.560114;7.230727
+HE-328;Garagengrundstück;Holsterhauser Straße, Ortsteil Holsterhausen;Herne;33;340;05113203300340______;311;12,9;26,7;27,8;0;4,0;51.533487;7.216744
+HE-329;Freifläche / Garten;Juri-Gerus-Weg;Horsthausen;11;920;05113501100920______;380;13,8;36,7;45,6;0;4,0;51.545204;7.22868
+HE-330;Garagengrundstück;Geschwister-Scholl-Straße;Herne;16;246;05113201600246______;445;13,6;34,4;15,2;0;4,0;51.544686;7.232133
+HE-331;Freifläche / Garten;Sandweg;Wanne-Eickel;20;214;05112802000214______;118;8,7;15,0;31,7;0;4,0;51.530409;7.138958
+HE-332;Freifläche / Garten;Rathausstraße;Wanne-Eickel;7;655;05112800700655______;229;8,6;42,1;46,5;0;4,0;51.54033;7.162088
+HE-333;Garagengrundstück;Paulstraße;Wanne-Eickel;18;385;05112801800385______;250;12,0;21,0;33,9;0;4,0;51.538711;7.144643
+HE-334;Garagengrundstück;Lemgoer Straße 12;Wanne-Eickel;28;598;05112802800598______;84;5,8;16,0;21,5;0;4,0;51.536362;7.187167
+HE-335;Freifläche / Garten;Holbeinstraße 1;Wanne-Eickel;51;179;05112805100179______;83;7,4;17,8;25,5;0;4,0;51.516329;7.172191
+HE-336;Freifläche / Garten;Röhlinghauser Straße;Wanne-Eickel;52;305;05112805200305______;269;8,4;37,9;46,7;0;4,0;51.517217;7.162951
+HE-337;Freifläche / Garten;Sodinger Straße;Börnig;15;225;05125001500225______;171;13,3;17,2;25,3;0;4,0;51.537372;7.263649
+HE-338;Freifläche / Garten;Röttgersbankstraße 90;Horsthausen;3;1520;05113500301520______;211;14,1;15,5;16,5;0;4,0;51.569142;7.23943
+HE-339;Garagengrundstück;Juri-Gerus-Weg;Horsthausen;11;915;05113501100915______;418;13,0;35,5;16,8;0;4,0;51.545844;7.228035
+HE-340;Garagengrundstück;Henri-Dunant-Straße;Wanne-Eickel;52;194;05112805200194______;256;10,0;29,9;18,0;0;4,0;51.515282;7.163012
+HE-341;Garagengrundstück;Bruno-Danek-Weg;Sodingen;3;880;05125800300880______;185;13,4;15,1;15,6;0;4,0;51.543563;7.259145
+HE-342;Freifläche / Garten;Im Emscherbruch;Wanne-Eickel;1;948;05112800100948______;331;5,4;62,8;63,9;0;4,0;51.548382;7.138374
+HE-343;Freifläche / Garten;Auf der Wilbe;Wanne-Eickel;61;718;05112806100718______;143;12,2;17,5;15,9;0;4,0;51.517582;7.156635
+HE-344;Garagengrundstück;Sennestraße;Wanne-Eickel;39;284;05112803900284______;301;10,5;29,3;30,3;0;4,0;51.526144;7.180897
+HE-345;Freifläche / Garten;Lenaustraße 4;Wanne-Eickel;36;634;05112803600634______;347;15,2;27,2;30,6;0;4,0;51.526254;7.191247
+HE-346;Freifläche / Garten;(HER) Hordeler Straße 65;Wanne-Eickel;56;116;05112805600116______;244;9,0;40,1;7,3;0;4,0;51.506658;7.166965
+HE-347;Freifläche / Garten;"Im Stückenbruch; Schadeburgstraße 82, 84";Börnig;6;49;05125000600049______;95;5,0;19,1;25,1;0;4,0;51.552813;7.268246
+HE-348;Garagengrundstück;Josefinenstraße 97;Horsthausen;6;551;05113500600551______;194;7,0;30,9;7,9;0;4,0;51.555273;7.245699
+HE-349;Freifläche / Garten;Dorstener Straße 237;Wanne-Eickel;41;510;05112804100510______;438;20,4;25,2;23,1;0;4,0;51.53002;7.18619
+HE-350;Freifläche / Garten;Aschebrock;Wanne-Eickel;36;408;05112803600408______;395;6,5;61,7;69,4;0;4,0;51.528695;7.191583
+HE-351;Freifläche / Garten;Lortzingstraße 17;Wanne-Eickel;10;347;05112801000347______;83;5,7;22,5;23,1;0;4,0;51.535186;7.15428
+HE-352;Freifläche / Garten;Rathausstraße 134;Wanne-Eickel;8;1252;05112800801252______;256;15,1;18,8;16,5;0;4,0;51.543472;7.163124
+HE-353;Freifläche / Garten;Burgstraße;Wanne-Eickel;62;330;05112806200330______;129;12,2;15,0;17,4;0;4,0;51.513973;7.162681
+HE-354;Freifläche / Garten;Anton-Wandzioch-Weg;Wanne-Eickel;63;775;05112806300775______;199;11,6;19,4;32,1;0;4,0;51.507807;7.153841
+HE-355;Freifläche / Garten;Op der Heide 4;Wanne-Eickel;28;504;05112802800504______;318;16,7;30,9;52,1;0;4,0;51.538685;7.180162
+HE-356;Garagengrundstück;Eickeler Bruch 29;Wanne-Eickel;52;232;05112805200232______;633;12,8;52,4;14,9;0;4,0;51.513167;7.164761
+HE-357;Freifläche / Garten;Görlitzer Weg;Herne;40;97;05113204000097______;130;6,2;33,6;35,4;0;4,0;51.524901;7.213988
+HE-358;Freifläche / Garten;Wiesenstraße 5;Baukau;19;222;05112701900222______;97;7,4;15,3;22,3;0;4,0;51.539202;7.188347
+HE-359;Garagengrundstück;Lessingstraße 21;Wanne-Eickel;51;350;05112805100350______;469;12,5;42,2;41,8;0;4,0;51.51658;7.173055
+HE-360;Freifläche / Garten;Heyerstraße 21;Herne;17;347;05113201700347______;81;5,9;13,9;20,8;0;4,0;51.541227;7.242137
+HE-361;Freifläche / Garten;Behrensstraße;Herne;4;963;05113200400963______;148;6,4;23,7;24,8;0;4,0;51.538418;7.216671
+HE-362;Freifläche / Garten;Gneisenaustraße;Horsthausen;4;849;05113500400849______;117;11,7;12,4;21,5;0;4,0;51.558141;7.235241
+HE-363;Freifläche / Garten;Kurt-Edelhagen-Platz;Börnig;14;230;05125001400230______;219;7,3;30,2;38,8;0;4,0;51.539219;7.260615
+HE-364;Freifläche / Garten;Altenhöfener Straße;Herne;43;39;05113204300039______;230;13,8;19,1;17,9;0;4,0;51.525917;7.227144
+HE-365;Freifläche / Garten;Behrensstraße;Herne;4;929;05113200400929______;347;13,9;25,0;14,9;0;4,0;51.538684;7.216683
+HE-366;Freifläche / Garten;Walter-Bälz-Straße;Herne;34;236;05113203400236______;421;13,0;32,8;46,8;0;4,0;51.529935;7.214792
+HE-367;Freifläche / Garten;Jobststraße;Horsthausen;12;614;05113501200614______;314;19,6;20,5;20,6;1;4,0;51.554744;7.221272
+HE-368;Garagengrundstück;Paulstraße;Wanne-Eickel;18;379;05112801800379______;252;12,0;21,0;22,0;0;4,0;51.538518;7.143744
+HE-369;Freifläche / Garten;Paderborner Straße;Wanne-Eickel;28;167;05112802800167______;151;8,4;25,8;34,9;0;4,0;51.536829;7.188497
+HE-370;Freifläche / Garten;Rathausstraße;Wanne-Eickel;8;1305;05112800801305______;218;7,9;28,9;38,1;0;4,0;51.540701;7.162123
+HE-371;Freifläche / Garten;Corneliusstraße;Wanne-Eickel;27;580;05112802700580______;208;9,1;33,2;17,5;0;4,0;51.543032;7.180324
+HE-372;Freifläche / Garten;Bickernstraße 113, 115, 117;Wanne-Eickel;19;15;05112801900015______;92;6,8;14,6;22,5;0;4,0;51.528504;7.137487
+HE-373;Freifläche / Garten;Lortzingstraße;Wanne-Eickel;10;13;05112801000013______;214;6,8;31,0;38,8;0;4,0;51.535638;7.155089
+HE-374;Freifläche / Garten;Riemker Straße;Herne;36;331;05113203600331______;176;6,2;39,9;43,5;0;4,0;51.523442;7.209771
+HE-375;Garagengrundstück;Dahlienweg 10 a;Wanne-Eickel;42;1509;05112804201509______;193;14,0;14,1;15,1;0;4,0;51.518758;7.181975
+HE-376;Freifläche / Garten;Steinbergstraße;Wanne-Eickel;15;626;05112801500626______;226;6,3;44,8;42,8;0;4,0;51.523605;7.154534
+HE-377;Freifläche / Garten;Richard-Wagner-Straße 19;Wanne-Eickel;46;81;05112804600081______;302;15,0;30,3;33,3;0;4,0;51.511972;7.177552
+HE-378;Freifläche / Garten;Molenweg;Horsthausen;3;556;05113500300556______;180;9,0;26,2;29,1;0;4,0;51.567474;7.241496
+HE-379;Freifläche / Garten;Händelstraße;Sodingen;5;301;05125800500301______;129;7,8;22,2;22,5;0;4,0;51.536142;7.259429
+HE-380;Garagengrundstück;Schwarzer Weg;Sodingen;3;432;05125800300432______;267;12,1;33,3;37,9;0;4,0;51.540912;7.249251
+HE-381;Freifläche / Garten;Mont-Cenis-Straße 256, 258;Sodingen;12;370;05125801200370______;95;8,2;19,1;28,9;0;4,0;51.538271;7.254056
+HE-382;Freifläche / Garten;Max-Planck-Straße;Wanne-Eickel;30;325;05112803000325______;265;13,7;28,9;29,2;0;4,0;51.537698;7.201139
+HE-383;Freifläche / Garten;Liebigstraße;Sodingen;10;291;05125801000291______;142;6,9;32,3;33,9;0;4,0;51.535888;7.252175
+HE-384;Garagengrundstück;Schnittstraße;Baukau;17;656;05112701700656______;117;12,9;13,4;14,9;0;4,0;51.546757;7.185799
+HE-385;Garagengrundstück;Horststraße;Wanne-Eickel;32;310;05112803200310______;287;13,0;26,8;35,1;0;4,0;51.528407;7.197005
+HE-386;Garagengrundstück;Michaelstraße;Wanne-Eickel;20;797;05112802000797______;352;14,0;25,2;15,0;0;4,0;51.528967;7.143022
+HE-387;Freifläche / Garten;Sodinger Straße 123;Herne;19;134;05113201900134______;337;16,7;29,8;24,3;0;4,0;51.537274;7.244165
+HE-388;Freifläche / Garten;Schleusenweg;Horsthausen;3;1771;05113500301771______;316;11,1;41,0;38,4;0;4,0;51.566599;7.244971
+HE-389;Freifläche / Garten;Schleusenweg;Horsthausen;3;1772;05113500301772______;277;8,9;36,2;35,6;0;4,0;51.566594;7.244469
+HE-390;Freifläche / Garten;Kolpingstraße 28;Wanne-Eickel;9;122;05112800900122______;371;18,3;22,0;21,3;0;4,0;51.535808;7.160388
+HE-391;Freifläche / Garten;Recklinghauser Straße;Wanne-Eickel;4;668;05112800400668______;162;7,5;28,5;32,9;0;4,0;51.544665;7.150205
+HE-392;Freifläche / Garten;Behrensstraße;Herne;4;959;05113200400959______;450;5,6;80,9;81,9;0;4,0;51.538415;7.215917
+HE-393;Freifläche / Garten;Mont-Cenis-Straße 529;Holthausen;4;167;05126100400167______;257;14,6;24,8;14,9;0;4,0;51.541722;7.287391
+HE-394;Freifläche / Garten;Paderborner Straße 20 a;Wanne-Eickel;28;515;05112802800515______;226;14,6;17,2;15,6;0;4,0;51.537663;7.189829
+HE-395;Freifläche / Garten;Op der Heide 4;Wanne-Eickel;28;557;05112802800557______;359;17,8;25,6;30,3;0;4,0;51.538283;7.1802
+HE-396;Freifläche / Garten;Schleusenweg;Horsthausen;3;1757;05113500301757______;175;10,5;20,6;18,4;0;4,0;51.566572;7.244084
+HE-397;Garagengrundstück;Königsberger Straße 44;Wanne-Eickel;19;465;05112801900465______;100;6,4;16,7;7,8;0;4,0;51.527616;7.137724
+HE-398;Garagengrundstück;Grenzweg 44;Herne;2;472;05113200200472______;334;18,3;19,4;20,5;0;4,0;51.538271;7.206804
+HE-399;Freifläche / Garten;Am Holzplatz 33;Holthausen;13;292;05126101300292______;219;14,6;15,2;30,6;0;4,0;51.543473;7.269481
+HE-400;Freifläche / Garten;Ringstraße;Holthausen;12;395;05126101200395______;209;9,9;21,7;37,0;0;4,0;51.539128;7.264418
+HE-401;Freifläche / Garten;Königsberger Straße;Wanne-Eickel;19;325;05112801900325______;234;9,2;25,3;26,3;0;4,0;51.527109;7.139787
+HE-402;Garagengrundstück;Werderstraße;Horsthausen;12;1179;05113501201179______;215;12,2;28,3;15,6;0;4,0;51.554436;7.230644
+HE-403;Freifläche / Garten;Schüchtermannstraße;Horsthausen;11;631;05113501100631______;158;6,5;26,1;27,2;0;4,0;51.548802;7.229009
+HE-404;Garagengrundstück;Zechenweg;Wanne-Eickel;15;177;05112801500177______;131;7,0;19,8;34,0;0;4,0;51.525699;7.156462
+HE-405;Freifläche / Garten;Mont-Cenis-Straße 395;Holthausen;13;378;05126101300378______;97;5,8;17,7;23,5;0;4,0;51.542705;7.271425
+HE-406;Freifläche / Garten;Pieperstraße 1 a;Herne;23;825;05113202300825______;188;16,1;17,7;22,0;0;4,0;51.525595;7.246936
+HE-407;Freifläche / Garten;Mont-Cenis-Straße 389;Holthausen;13;375;05126101300375______;95;5,4;17,8;18,8;0;4,0;51.54251;7.270736
+HE-408;Freifläche / Garten;Mont-Cenis-Straße 393;Holthausen;13;377;05126101300377______;97;5,6;17,7;18,7;0;4,0;51.542642;7.2712
+HE-409;Freifläche / Garten;Bromberger Straße;Holthausen;12;254;05126101200254______;300;12,2;29,8;51,6;0;4,0;51.538386;7.264711
+HE-410;Freifläche / Garten;Am lütgen Horst 1;Horsthausen;6;1082;05113500601082______;129;9,6;16,4;7,6;0;4,0;51.555996;7.241237
+HE-411;Freifläche / Garten;Laurastraße 1;Wanne-Eickel;56;460;05112805600460______;113;6,3;19,0;6,7;0;3,9;51.506505;7.167883
+HE-412;Freifläche / Garten;Luisenstraße;Horsthausen;11;412;05113501100412______;551;9,2;61,0;10,2;1;3,9;51.549576;7.224511
+HE-413;Freifläche / Garten;Dorstener Straße 121;Wanne-Eickel;35;314;05112803500314______;158;5,9;26,9;6,9;0;3,9;51.522517;7.1908
+HE-414;Freifläche / Garten;Jobststraße 57;Horsthausen;12;1187;05113501201187______;120;6,2;20,0;7,0;0;3,9;51.55504;7.220204
+HE-415;Freifläche / Garten;Gelsenkircher Straße;Wanne-Eickel;15;491;05112801500491______;115;6,0;20,1;14,4;0;3,9;51.526788;7.159428
+HE-416;Freifläche / Garten;Voßnacken 26;Börnig;8;135;05125000800135______;136;8,6;23,2;6,9;0;3,9;51.551505;7.255146
+HE-417;Freifläche / Garten;Lotsenweg;Horsthausen;3;787;05113500300787______;303;12,9;33,9;13,9;0;3,9;51.568534;7.240399
+HE-418;Freifläche / Garten;Holthauser Straße 28 a, 28 b, 28 c, 28 d;Holthausen;8;279;05126100800279______;143;7,3;22,2;6,6;0;3,9;51.524792;7.279809
+HE-419;Freifläche / Garten;Kirchstraße 63;Börnig;11;613;05125001100613______;128;6,0;21,6;7,0;0;3,9;51.5438;7.25911
+HE-420;Freifläche / Garten;Im Dannekamp 19;Wanne-Eickel;25;42;05112802500042______;173;6,0;29,8;7,1;0;3,9;51.550506;7.145181
+HE-421;Freifläche / Garten;Ritterstraße 20 a;Baukau;11;432;05112701100432______;656;12,1;58,1;14,5;0;3,9;51.546793;7.206446
+HE-422;Freifläche / Garten;Unser-Fritz-Straße 99;Wanne-Eickel;18;785;05112801800785______;116;6,0;20,7;7,0;0;3,9;51.542274;7.144406
+HE-423;Garagengrundstück;"Bromberger Straße 1; Ringstraße 66";Holthausen;12;143;05126101200143______;174;5,5;32,0;6,4;0;3,9;51.538988;7.263827
+HE-424;Garagengrundstück;(HER) Bochumer Straße 161, 163, 165;Herne;42;213;05113204200213______;350;5,8;60,1;6,8;0;3,9;51.526014;7.217347
+HE-425;Freifläche / Garten;Im Dannekamp 24;Wanne-Eickel;25;176;05112802500176______;171;6,0;28,4;6,6;0;3,9;51.55085;7.145161
+HE-426;Freifläche / Garten;Tillmanns Hof 6;Holthausen;14;339;05126101400339______;105;9,3;12,1;10,3;0;3,9;51.546253;7.278141
+HE-427;Freifläche / Garten;Tillmanns Hof 8;Holthausen;14;337;05126101400337______;104;9,2;12,0;10,3;0;3,9;51.546323;7.278215
+HE-428;Garagengrundstück;Neue Kampstraße;Wanne-Eickel;43;551;05112804300551______;130;12,5;12,6;13,8;0;3,8;51.516683;7.174899
+HE-429;Freifläche / Garten;Bahnhofstraße 28, 28 a, 30;Herne;12;185;05113201200185______;145;5,0;29,0;6,0;0;3,8;51.53912;7.2249
+HE-430;Freifläche / Garten;Hölkeskampring 127;Herne;14;340;05113201400340______;201;5,0;40,3;6,0;0;3,8;51.534515;7.236611
+HE-431;Freifläche / Garten;Richard-Wagner-Straße;Wanne-Eickel;47;117;05112804700117______;320;11,6;45,9;13,4;0;3,8;51.507801;7.176837
+HE-432;Garagengrundstück;Karolinenstraße;Wanne-Eickel;8;1155;05112800801155______;231;14,1;18,2;9,8;1;3,8;51.534329;7.168779
+HE-433;Freifläche / Garten;Gelsenkircher Straße 135;Wanne-Eickel;58;125;05112805800125______;274;6,3;55,1;6,0;0;3,8;51.521514;7.147685
+HE-434;Garagengrundstück;Am Bollwerk 12;Wanne-Eickel;63;414;05112806300414______;138;4,7;31,2;5,7;1;3,8;51.508813;7.155481
+HE-435;Freifläche / Garten;Lortzingstraße;Wanne-Eickel;10;45;05112801000045______;313;12,5;25,8;13,6;0;3,8;51.535108;7.154666
+HE-436;Garagengrundstück;Am Wiesengrund 7;Wanne-Eickel;29;205;05112802900205______;190;9,0;23,1;10,0;0;3,8;51.53548;7.198179
+HE-437;Freifläche / Garten;Am Rottfeld 20, 22 a, 22 b, 24, 26;Wanne-Eickel;11;600;05112801100600______;83;8,0;10,5;13,2;0;3,8;51.526829;7.15299
+HE-438;Freifläche / Garten;Am Luftschacht;Holthausen;2;1067;05126100201067______;449;7,9;87,8;6,0;1;3,8;51.549771;7.279102
+HE-439;Garagengrundstück;Am Bollwerk 8;Wanne-Eickel;63;415;05112806300415______;146;4,7;32,9;5,7;1;3,8;51.50885;7.155513
+HE-440;Freifläche / Garten;Am Holzplatz 39;Holthausen;13;291;05126101300291______;98;11,6;11,7;13,4;0;3,8;51.54368;7.269943
+HE-441;Garagengrundstück;Am Stadtgarten 43;Herne;16;136;05113201600136______;158;4,9;32,5;5,9;1;3,8;51.542918;7.233876
+HE-442;Freifläche / Garten;Kantstraße 40;Sodingen;3;466;05125800300466______;246;7,9;38,5;6,0;0;3,8;51.540788;7.251861
+HE-443;Freifläche / Garten;Heinrich-Funcke-Straße 11;Wanne-Eickel;8;918;05112800800918______;93;10,1;11,6;13,5;0;3,8;51.540787;7.163855
+HE-444;Garagengrundstück;Feldkampstraße;Herne;36;307;05113203600307______;435;13,2;35,5;12,8;0;3,7;51.526277;7.211802
+HE-445;Freifläche / Garten;Flottmannstraße 26;Herne;42;228;05113204200228______;105;5,2;26,4;5,0;0;3,7;51.527094;7.221764
+HE-446;Garagengrundstück;Wilhelmstraße 117;Wanne-Eickel;18;616;05112801800616______;110;5,8;20,4;5,4;0;3,7;51.530076;7.143878
+HE-447;Garagengrundstück;Schürenkamp;Herne;33;395;05113203300395______;135;11,4;11,9;12,9;0;3,7;51.533144;7.218621
+HE-448;Freifläche / Garten;Stapelweg 8, 10;Wanne-Eickel;62;489;05112806200489______;126;5,1;33,2;4,9;0;3,7;51.510402;7.163256
+HE-449;Garagengrundstück;An der Markscheide 19;Horsthausen;3;1198;05113500301198______;165;8,2;20,8;9,3;0;3,7;51.570655;7.237316
+HE-450;Garagengrundstück;Bramstraße;Horsthausen;11;1083;05113501101083______;164;11,3;22,0;12,9;0;3,7;51.55224;7.230063
+HE-451;Freifläche / Garten;Siepenstraße;Herne;30;415;05113203000415______;357;14,7;26,6;8,3;1;3,6;51.532088;7.224269
+HE-452;Freifläche / Garten;Röttgersbankstraße;Horsthausen;3;1245;05113500301245______;222;11,5;30,3;11,7;0;3,6;51.568183;7.238117
+HE-453;Freifläche / Garten;Fred-Endrikat-Straße 8;Wanne-Eickel;7;404;05112800700404______;85;5,2;23,2;11,8;0;3,6;51.542425;7.160651
+HE-454;Garagengrundstück;Gaußstraße;Wanne-Eickel;31;275;05112803100275______;112;10,1;11,4;12,4;0;3,6;51.530997;7.195861
+HE-455;Freifläche / Garten;Dorneburger Straße;Wanne-Eickel;39;797;05112803900797______;338;12,5;34,1;12,3;0;3,6;51.524973;7.172879
+HE-456;Freifläche / Garten;Emsring;Horsthausen;3;1571;05113500301571______;166;9,4;22,9;12,3;0;3,6;51.56736;7.243711
+HE-457;Freifläche / Garten;Stormstraße 42;Wanne-Eickel;51;640;05112805100640______;171;7,0;24,5;8,0;0;3,6;51.51765;7.16819
+HE-458;Freifläche / Garten;Rathausstraße;Wanne-Eickel;8;1466;05112800801466______;174;11,2;16,3;12,3;0;3,6;51.538098;7.162261
+HE-459;Freifläche / Garten;Stöckstraße;Wanne-Eickel;10;543;05112801000543______;308;11,8;28,5;12,4;0;3,6;51.53184;7.155469
+HE-460;Freifläche / Garten;Röttgersbankstraße;Horsthausen;3;1271;05113500301271______;168;10,6;24,7;11,8;0;3,6;51.568389;7.238562
+HE-461;Garagengrundstück;Henri-Dunant-Straße;Wanne-Eickel;52;193;05112805200193______;224;10,0;26,6;12,0;0;3,6;51.515376;7.162903
+HE-462;Freifläche / Garten;Von-Waldthausen-Straße 195;Horsthausen;6;1391;05113500601391______;86;8,0;11,0;11,8;0;3,6;51.556054;7.245836
+HE-463;Garagengrundstück;Jobststraße;Horsthausen;12;312;05113501200312______;113;9,0;14,1;11,9;0;3,6;51.555177;7.221092
+HE-464;Garagengrundstück;Laurastraße 1;Wanne-Eickel;56;83;05112805600083______;390;18,9;21,0;22,0;0;3,5;51.506596;7.167849
+HE-465;Garagengrundstück;Von-Waldthausen-Straße;Horsthausen;6;1513;05113500601513______;176;11,2;16,0;16,7;0;3,5;51.555563;7.245701
+HE-466;Freifläche / Garten;Löhner Straße;Wanne-Eickel;41;292;05112804100292______;489;16,0;34,2;21,3;1;3,5;51.525687;7.185572
+HE-467;Freifläche / Garten;Ritterstraße 20 a;Baukau;11;431;05112701100431______;572;13,0;53,7;19,0;0;3,5;51.546683;7.206497
+HE-468;Garagengrundstück;(HER) Almastraße;Wanne-Eickel;48;126;05112804800126______;675;20,2;44,7;28,6;1;3,5;51.505727;7.17497
+HE-469;Freifläche / Garten;Hénin-Beaumont-Straße;Sodingen;3;610;05125800300610______;83;6,5;12,7;7,5;1;3,5;51.542756;7.256487
+HE-470;Freifläche / Garten;Widumer Straße;Börnig;12;169;05125001200169______;597;17,7;44,3;18,7;1;3,5;51.543129;7.264046
+HE-471;Freifläche / Garten;(HER) Hordeler Straße 61;Wanne-Eickel;56;87;05112805600087______;400;19,4;20,8;20,4;0;3,5;51.506717;7.167454
+HE-472;Freifläche / Garten;Schulstraße;Herne;12;183;05113201200183______;544;15,7;34,7;16,7;1;3,5;51.540002;7.225563
+HE-473;Garagengrundstück;Zechenweg;Wanne-Eickel;15;151;05112801500151______;569;24,0;25,3;26,4;1;3,5;51.525843;7.155022
+HE-474;Freifläche / Garten;Josefinenstraße;Horsthausen;7;320;05113500700320______;457;19,6;26,3;41,7;1;3,5;51.550876;7.23522
+HE-475;Freifläche / Garten;Anna-Luise-Straße;Herne;43;594;05113204300594______;145;5,9;40,7;16,0;0;3,5;51.526373;7.225245
+HE-476;Garagengrundstück;"Ravensberger Straße 2, 4; Sennestraße 3, 5";Wanne-Eickel;40;344;05112804000344______;99;10,1;10,7;11,1;0;3,5;51.525899;7.181297
+HE-477;Freifläche / Garten;Wasserstraße 4;Wanne-Eickel;27;441;05112802700441______;406;17,0;25,8;15,5;0;3,5;51.542901;7.178916
+HE-478;Garagengrundstück;Riemker Straße;Herne;36;257;05113203600257______;175;9,3;19,0;20,0;0;3,5;51.525078;7.208825
+HE-479;Garagengrundstück;Cranger Heide;Wanne-Eickel;8;1266;05112800801266______;560;25,8;26,5;27,5;1;3,5;51.541709;7.165264
+HE-480;Freifläche / Garten;"Peterstraße; Emscherstraße 141";Wanne-Eickel;18;425;05112801800425______;307;14,5;31,2;38,1;0;3,5;51.54049;7.14542
+HE-481;Freifläche / Garten;Luisenstraße;Horsthausen;11;138;05113501100138______;599;18,7;33,1;52,1;1;3,5;51.549972;7.226342
+HE-482;Freifläche / Garten;Hénin-Beaumont-Straße;Sodingen;3;619;05125800300619______;83;6,5;12,7;7,5;1;3,5;51.542567;7.256636
+HE-483;Freifläche / Garten;Grenzweg 4 a;Herne;2;394;05113200200394______;142;5,7;38,9;7,5;0;3,5;51.541421;7.207844
+HE-484;Garagengrundstück;Shamrockstraße;Herne;33;663;05113203300663______;109;10,0;11,3;11,0;0;3,5;51.535342;7.220547
+HE-485;Garagengrundstück;"Im Stückenbruch; Schadeburgstraße 82, 84";Börnig;6;124;05125000600124______;411;13,0;40,3;7,3;0;3,5;51.553021;7.267766
+HE-486;Freifläche / Garten;Hammerschmidtstraße;Wanne-Eickel;10;574;05112801000574______;490;21,4;29,1;41,3;1;3,5;51.53186;7.151515
+HE-487;Garagengrundstück;Kirchstraße;Sodingen;3;282;05125800300282______;456;15,1;41,3;29,4;1;3,5;51.541365;7.258108
+HE-488;Freifläche / Garten;Emscherstraße;Wanne-Eickel;17;316;05112801700316______;666;24,5;30,5;51,8;1;3,5;51.537654;7.149046
+HE-489;Garagengrundstück;Von-Waldthausen-Straße;Horsthausen;6;1512;05113500601512______;173;11,0;15,7;16,7;0;3,5;51.555484;7.245511
+HE-490;Garagengrundstück;(HER) Vödestraße;Herne;45;213;05113204500213______;92;6,5;14,2;7,5;1;3,5;51.520278;7.235605
+HE-491;Freifläche / Garten;Wiescherstraße;Herne;14;654;05113201400654______;582;17,5;54,2;20,3;1;3,5;51.536315;7.230435
+HE-492;Freifläche / Garten;Im Dannekamp 21;Wanne-Eickel;25;381;05112802500381______;183;10,0;26,5;6,8;0;3,4;51.550266;7.145282
+HE-493;Freifläche / Garten;Löhner Straße 6;Wanne-Eickel;41;305;05112804100305______;243;6,4;40,5;6,6;0;3,4;51.525392;7.186771
+HE-494;Garagengrundstück;Börniger Straße;Börnig;6;265;05125000600265______;300;12,2;32,3;10,4;0;3,4;51.553603;7.270055
+HE-495;Garagengrundstück;Horststraße;Wanne-Eickel;32;241;05112803200241______;119;9,6;12,3;10,6;0;3,4;51.528885;7.195865
+HE-496;Freifläche / Garten;Im Dannekamp 21;Wanne-Eickel;25;39;05112802500039______;155;6,8;26,7;7,1;0;3,4;51.550267;7.145191
+HE-497;Freifläche / Garten;Viktoriastraße;Horsthausen;11;353;05113501100353______;298;9,1;35,1;10,3;0;3,4;51.550658;7.230119
+HE-498;Freifläche / Garten;Castroper Straße;Börnig;9;92;05125000900092______;308;12,9;24,9;14,1;0;3,4;51.548558;7.265336
+HE-499;Garagengrundstück;Gaußstraße;Wanne-Eickel;31;277;05112803100277______;112;8,8;13,2;9,9;0;3,3;51.531253;7.196292
+HE-500;Freifläche / Garten;Horststraße;Wanne-Eickel;37;384;05112803700384______;191;8,0;37,4;9,5;0;3,3;51.533205;7.187178
+HE-501;Freifläche / Garten;(HER) Almastraße;Wanne-Eickel;47;153;05112804700153______;341;8,0;66,4;9,4;0;3,3;51.505967;7.175801
+HE-502;Garagengrundstück;Kaiserstraße;Baukau;13;200;05112701300200______;106;8,6;12,6;9,5;0;3,3;51.546766;7.20415
+HE-503;Freifläche / Garten;Anton-Wandzioch-Weg;Wanne-Eickel;63;776;05112806300776______;168;13,2;16,6;9,4;0;3,3;51.507852;7.153986
+HE-504;Garagengrundstück;Sodinger Straße 541;Börnig;4;38;05125000400038______;125;6,5;19,7;6,2;0;3,3;51.557924;7.261992
+HE-505;Garagengrundstück;Königstraße;Wanne-Eickel;42;1120;05112804201120______;307;16,1;26,7;5,9;1;3,3;51.515888;7.181019
+HE-506;Freifläche / Garten;Bickernstraße;Wanne-Eickel;16;461;05112801600461______;122;9,0;13,6;9,5;0;3,3;51.52676;7.144617
+HE-507;Freifläche / Garten;Höttenbusch;Horsthausen;11;599;05113501100599______;121;6,2;27,0;9,5;0;3,3;51.552631;7.231175
+HE-508;Freifläche / Garten;Kurhausstraße;Wanne-Eickel;39;616;05112803900616______;340;9,0;37,9;10,0;0;3,3;51.52568;7.173555
+HE-509;Freifläche / Garten;Fleiges Hof;Herne;2;356;05113200200356______;248;11,3;28,0;9,4;0;3,3;51.539716;7.208848
+HE-510;Freifläche / Garten;Dorstener Straße;Wanne-Eickel;7;677;05112800700677______;120;9,0;13,6;9,7;0;3,3;51.54446;7.156704
+HE-511;Freifläche / Garten;Kantstraße;Sodingen;3;495;05125800300495______;287;4,9;59,6;5,9;1;3,3;51.541407;7.250763
+HE-512;Garagengrundstück;Gysenbergstraße 53, 53 c;Sodingen;10;387;05125801000387______;207;5,0;41,6;6,0;0;3,3;51.534161;7.250866
+HE-513;Freifläche / Garten;Nordstraße 184;Horsthausen;12;999;05113501200999______;92;5,5;24,4;9,5;0;3,3;51.556148;7.229639
+HE-514;Freifläche / Garten;Von-Waldthausen-Straße;Horsthausen;7;332;05113500700332______;356;8,7;41,4;9,7;0;3,3;51.551977;7.236788
+HE-515;Garagengrundstück;Zur-Nieden-Straße;Wanne-Eickel;50;456;05112805000456______;107;7,9;13,5;9,0;0;3,2;51.510822;7.174004
+HE-516;Freifläche / Garten;Margaretenstraße;Wanne-Eickel;46;424;05112804600424______;290;8,0;35,9;9,0;0;3,2;51.510062;7.181166
+HE-517;Freifläche / Garten;Werderstraße;Horsthausen;12;1057;05113501201057______;100;7,9;17,6;9,3;0;3,2;51.554536;7.229343
+HE-518;Freifläche / Garten;Sodinger Straße;Börnig;5;282;05125000500282______;108;8,2;13,9;9,4;0;3,2;51.554783;7.263914
+HE-519;Freifläche / Garten;Stefanstraße;Wanne-Eickel;7;611;05112800700611______;154;10,8;17,1;13,1;0;3,2;51.54168;7.156716
+HE-520;Freifläche / Garten;Heroldstraße;Holthausen;2;536;05126100200536______;116;8,0;14,5;9,0;0;3,2;51.545045;7.281571
+HE-521;Freifläche / Garten;Reichsstraße 28;Wanne-Eickel;51;611;05112805100611______;92;7,8;11,9;8,8;0;3,2;51.515501;7.168926
+HE-522;Freifläche / Garten;Alleestraße;Wanne-Eickel;3;759;05112800300759______;253;10,0;25,5;12,9;0;3,2;51.542775;7.137049
+HE-523;Freifläche / Garten;Am Luftschacht;Holthausen;2;1051;05126100201051______;114;4,5;25,3;5,5;1;3,2;51.549369;7.279381
+HE-524;Freifläche / Garten;Alleestraße;Wanne-Eickel;3;791;05112800300791______;631;14,9;44,5;12,9;1;3,2;51.542686;7.135352
+HE-525;Freifläche / Garten;Börsinghauser Straße;Holthausen;14;715;05126101400715______;116;7,2;17,7;8,1;0;3,1;51.545331;7.276886
+HE-526;Freifläche / Garten;Rathausstraße;Wanne-Eickel;7;654;05112800700654______;217;7,9;42,8;8,2;0;3,1;51.540368;7.162017
+HE-527;Freifläche / Garten;Jean-Vogel-Straße;Herne;43;274;05113204300274______;539;17,0;47,6;18,2;1;3,0;51.527596;7.227158
+HE-528;Garagengrundstück;Gysenbergstraße;Sodingen;10;557;05125801000557______;122;6,7;18,5;7,5;0;3,0;51.535687;7.250487
+HE-529;Freifläche / Garten;Alleestraße;Wanne-Eickel;3;761;05112800300761______;405;15,4;26,7;32,5;0;3,0;51.542539;7.136912
+HE-530;Freifläche / Garten;Holsterhauser Straße, Ortsteil Holsterhausen;Wanne-Eickel;31;301;05112803100301______;379;19,2;21,4;18,0;0;3,0;51.53219;7.20556
+HE-531;Garagengrundstück;Bramstraße;Horsthausen;11;696;05113501100696______;299;16,9;18,5;17,5;0;3,0;51.552349;7.230086
+HE-532;Freifläche / Garten;Paul-Gerhardt-Straße;Horsthausen;3;1155;05113500301155______;327;19,5;25,4;15,6;0;3,0;51.571743;7.239721
+HE-533;Freifläche / Garten;Röhlinghauser Straße 51, 53;Wanne-Eickel;52;24;05112805200024______;559;22,0;27,4;23,1;0;3,0;51.517249;7.161993
+HE-534;Garagengrundstück;Hoheneickstraße;Herne;4;902;05113200400902______;447;18,1;25,4;19,1;0;3,0;51.538588;7.211988
+HE-535;Freifläche / Garten;Ringstraße;Holthausen;12;221;05126101200221______;503;11,5;71,0;44,7;0;3,0;51.539546;7.264369
+HE-536;Garagengrundstück;Bruno-Danek-Weg;Sodingen;3;884;05125800300884______;328;17,4;19,5;35,7;0;3,0;51.543745;7.258177
+HE-537;Freifläche / Garten;Börniger Straße;Holthausen;1;247;05126100100247______;259;17,6;22,5;15,1;0;3,0;51.552949;7.274548
+HE-538;Freifläche / Garten;Sodinger Straße;Herne;14;687;05113201400687______;534;20,7;26,1;21,7;1;3,0;51.536487;7.235972
+HE-539;Freifläche / Garten;Bielefelder Straße;Wanne-Eickel;37;1161;05112803701161______;351;16,6;22,3;17,6;0;3,0;51.535603;7.193437
+HE-540;Garagengrundstück;Schreberstraße;Holthausen;1;128;05126100100128______;274;16,5;17,0;17,5;0;3,0;51.55222;7.272109
+HE-541;Freifläche / Garten;Jobststraße;Baukau;7;617;05112700700617______;224;4,6;53,2;59,5;0;3,0;51.553665;7.219709
+HE-542;Freifläche / Garten;Am Rottfeld 4;Wanne-Eickel;11;471;05112801100471______;540;19,8;44,9;46,2;0;3,0;51.52863;7.15155
+HE-543;Garagengrundstück;Am Rottfeld;Wanne-Eickel;11;642;05112801100642______;399;19,9;21,0;21,1;0;3,0;51.528325;7.152122
+HE-544;Garagengrundstück;Voßstraße;Herne;22;260;05113202200260______;396;15,6;27,4;16,7;0;3,0;51.526739;7.251662
+HE-545;Freifläche / Garten;Flottmannstraße;Herne;44;309;05113204400309______;395;19,4;30,1;20,4;0;3,0;51.521908;7.226096
+HE-546;Freifläche / Garten;Biesewinkel;Baukau;17;600;05112701700600______;372;15,8;31,5;46,9;0;3,0;51.545528;7.182685
+HE-547;Freifläche / Garten;Dorstener Straße;Wanne-Eickel;8;1509;05112800801509______;387;21,0;23,3;24,3;0;3,0;51.542901;7.165906
+HE-548;Garagengrundstück;Börsinghauser Straße;Holthausen;14;714;05126101400714______;84;5,8;15,5;20,7;0;3,0;51.545373;7.276821
+HE-549;Garagengrundstück;Unser-Fritz-Straße, Ortsteil Unser Fritz;Wanne-Eickel;4;729;05112800400729______;377;18,1;22,4;35,5;0;3,0;51.542836;7.148117
+HE-550;Garagengrundstück;Im Emscherbruch;Wanne-Eickel;1;930;05112800100930______;367;18,0;20,4;18,7;0;3,0;51.549052;7.138096
+HE-551;Garagengrundstück;Am Rottfeld;Wanne-Eickel;11;639;05112801100639______;323;16,2;19,9;17,2;0;3,0;51.528499;7.152035
+HE-552;Freifläche / Garten;Börniger Straße;Holthausen;1;186;05126100100186______;263;17,9;22,5;15,1;0;3,0;51.553031;7.273648
+HE-553;Freifläche / Garten;Tillmanns Hof;Holthausen;14;554;05126101400554______;145;15,1;15,5;16,4;0;3,0;51.545838;7.277149
+HE-554;Freifläche / Garten;"Am Schiefen Berge; Lange Straße";Holthausen;10;82;05126101000082______;321;11,2;40,1;7,2;0;3,0;51.534373;7.274688
+HE-555;Freifläche / Garten;Distelkamp;Wanne-Eickel;62;300;05112806200300______;90;5,2;18,2;22,6;0;3,0;51.515087;7.161498
+HE-556;Garagengrundstück;Brauwasserweg;Wanne-Eickel;44;207;05112804400207______;82;5,9;16,7;15,3;0;3,0;51.516602;7.17814
+HE-557;Freifläche / Garten;Kronenstraße;Herne;23;564;05113202300564______;427;22,0;29,6;23,1;0;3,0;51.526588;7.245722
+HE-558;Freifläche / Garten;Börsinghauser Straße;Holthausen;14;858;05126101400858______;369;16,0;27,4;19,0;0;3,0;51.545307;7.27633
+HE-559;Freifläche / Garten;Am Trimbuschhof 8 a;Sodingen;1;279;05125800100279______;593;23,1;25,9;26,8;0;3,0;51.546659;7.238357
+HE-560;Garagengrundstück;Kantstraße;Sodingen;3;306;05125800300306______;354;18,0;20,1;20,9;0;3,0;51.541108;7.250127
+HE-561;Freifläche / Garten;An der Kreuzkirche;Herne;31;1;05113203100001______;431;19,0;28,3;27,6;0;3,0;51.536941;7.227002
+HE-562;Freifläche / Garten;Langekampstraße 52;Wanne-Eickel;13;11;05112801300011______;599;15,0;40,2;16,0;0;3,0;51.526832;7.165296
+HE-563;Garagengrundstück;Am Landwehrbach;Horsthausen;6;1123;05113500601123______;440;17,9;26,4;18,9;0;3,0;51.556761;7.249987
+HE-564;Freifläche / Garten;Kronprinzenstraße;Herne;33;609;05113203300609______;287;15,2;24,1;16,2;0;3,0;51.533996;7.224557
+HE-565;Freifläche / Garten;Ulmenstraße;Wanne-Eickel;14;152;05112801400152______;261;18,2;18,9;38,2;0;3,0;51.524015;7.156829
+HE-566;Garagengrundstück;Bahnhofstraße 90;Herne;9;368;05113200900368______;345;19,1;19,2;11,1;0;3,0;51.543608;7.220992
+HE-567;Freifläche / Garten;Koksstraße;Herne;4;575;05113200400575______;294;15,1;23,0;24,0;0;3,0;51.538079;7.210995
+HE-568;Freifläche / Garten;Jürgens Hof, Ortsteil Horsthausen;Horsthausen;6;1469;05113500601469______;276;7,5;42,9;7,5;0;3,0;51.555907;7.239069
+HE-569;Freifläche / Garten;Bruno-Danek-Weg;Börnig;11;1301;05125001101301______;449;21,8;22,2;23,4;0;3,0;51.543937;7.258494
+HE-570;Freifläche / Garten;Berkelstraße;Börnig;6;323;05125000600323______;190;15,2;16,1;17,3;0;3,0;51.554113;7.267416
+HE-571;Garagengrundstück;An der Barbarakirche;Horsthausen;6;1385;05113500601385______;219;16,2;16,3;27,0;0;3,0;51.555094;7.239502
+HE-572;Garagengrundstück;Buschkampstraße 17;Wanne-Eickel;30;490;05112803000490______;83;6,1;13,9;7,1;0;3,0;51.539085;7.200776
+HE-573;Garagengrundstück;Thiesstraße 15 a;Wanne-Eickel;20;154;05112802000154______;90;6,3;14,9;7,3;0;3,0;51.529113;7.14344
+HE-574;Freifläche / Garten;Lackmanns Hof;Baukau;12;331;05112701200331______;402;17,3;29,7;22,6;0;3,0;51.550962;7.199457
+HE-575;Freifläche / Garten;Leplershof;Wanne-Eickel;16;599;05112801600599______;160;6,5;24,8;7,5;0;3,0;51.527168;7.145011
+HE-576;Freifläche / Garten;Arndtstraße;Herne;15;637;05113201500637______;330;16,1;25,7;17,4;0;3,0;51.54019;7.235963
+HE-577;Freifläche / Garten;Holsterhauser Straße, Ortsteil Holsterhausen;Wanne-Eickel;31;189;05112803100189______;319;19,9;19,9;54,5;0;3,0;51.532213;7.20588
+HE-578;Garagengrundstück;Detmolder Ring;Wanne-Eickel;28;356;05112802800356______;80;7,3;12,2;18,3;0;3,0;51.53555;7.186871
+HE-579;Freifläche / Garten;Ostbachtal;Herne;14;146;05113201400146______;568;19,0;30,1;20,0;1;3,0;51.537406;7.23582
+HE-580;Garagengrundstück;Mont-Cenis-Straße;Herne;15;608;05113201500608______;443;19,5;23,8;19,9;0;3,0;51.541059;7.235189
+HE-581;Freifläche / Garten;Jürgens Hof, Ortsteil Horsthausen;Horsthausen;6;1465;05113500601465______;275;7,7;42,9;7,4;0;3,0;51.555669;7.238656
+HE-582;Garagengrundstück;Deichweg;Horsthausen;3;1630;05113500301630______;255;15,0;24,5;20,0;0;3,0;51.568394;7.243895
+HE-583;Freifläche / Garten;Kleine Dürerstraße;Wanne-Eickel;60;345;05112806000345______;94;9,6;10,8;29,1;0;3,0;51.519376;7.158867
+HE-584;Freifläche / Garten;Hauptstraße 11;Wanne-Eickel;46;11;05112804600011______;595;20,5;33,3;19,9;0;3,0;51.514674;7.176496
+HE-585;Freifläche / Garten;Heinitzstraße;Wanne-Eickel;4;267;05112800400267______;261;5,0;54,4;6,6;0;2,9;51.542593;7.154297
+HE-586;Freifläche / Garten;Von-Waldthausen-Straße;Horsthausen;6;1546;05113500601546______;137;5,7;24,2;6,8;0;2,9;51.552301;7.23795
+HE-587;Freifläche / Garten;Am Förderturm;Holthausen;2;880;05126100200880______;430;12,8;38,1;6,6;0;2,9;51.550942;7.279517
+HE-588;Freifläche / Garten;Grenzweg;Herne;1;202;05113200100202______;202;5,8;58,4;7,0;0;2,9;51.533127;7.209286
+HE-589;Freifläche / Garten;Von-Waldthausen-Straße;Horsthausen;7;328;05113500700328______;252;5,9;43,2;6,9;0;2,9;51.551877;7.23614
+HE-590;Freifläche / Garten;Kantstraße;Sodingen;3;650;05125800300650______;204;5,5;37,2;6,5;0;2,9;51.540527;7.252446
+HE-591;Freifläche / Garten;Reichsstraße;Wanne-Eickel;49;358;05112804900358______;201;5,5;36,5;6,5;0;2,9;51.509536;7.169797
+HE-592;Freifläche / Garten;Von-Waldthausen-Straße;Horsthausen;7;335;05113500700335______;138;5,6;25,1;6,6;0;2,9;51.552112;7.23738
+HE-593;Freifläche / Garten;Max-Planck-Straße 88;Wanne-Eickel;30;362;05112803000362______;83;6,7;14,0;6,7;0;2,9;51.538294;7.198912
+HE-594;Freifläche / Garten;Anschlußbahn;Wanne-Eickel;41;338;05112804100338______;125;5,9;24,5;6,9;0;2,9;51.526707;7.184286
+HE-595;Freifläche / Garten;Von-Waldthausen-Straße;Horsthausen;6;1549;05113500601549______;131;5,8;23,0;6,9;0;2,9;51.552505;7.238486
+HE-596;Garagengrundstück;Thiesstraße 11;Wanne-Eickel;20;153;05112802000153______;93;6,6;14,8;7,1;0;2,9;51.529076;7.143377
+HE-597;Freifläche / Garten;Im Brink;Wanne-Eickel;20;672;05112802000672______;209;6,0;34,7;7,0;0;2,9;51.529994;7.141284
+HE-598;Freifläche / Garten;Schlachthofstraße 49;Wanne-Eickel;11;676;05112801100676______;81;5,9;14,0;6,9;0;2,9;51.530144;7.15179
+HE-599;Freifläche / Garten;Eichendorffstraße;Wanne-Eickel;61;694;05112806100694______;386;21,2;23,0;13,4;0;2,8;51.516464;7.157438
+HE-600;Freifläche / Garten;Wittenbergstraße;Wanne-Eickel;61;843;05112806100843______;206;9,2;30,1;6,2;0;2,8;51.514076;7.153194
+HE-601;Freifläche / Garten;Schüchtermannstraße;Horsthausen;11;681;05113501100681______;196;5,0;40,1;6,3;0;2,8;51.550049;7.232092
+HE-602;Freifläche / Garten;Löhner Straße;Wanne-Eickel;41;524;05112804100524______;191;7,0;37,8;5,9;0;2,8;51.526184;7.185999
+HE-603;Freifläche / Garten;Hoverskamp;Baukau;6;294;05112700600294______;287;6,3;51,2;5,7;0;2,8;51.557299;7.211082
+HE-604;Freifläche / Garten;Fleiges Hof;Herne;2;365;05113200200365______;144;5,2;27,9;6,2;0;2,8;51.539434;7.208478
+HE-605;Freifläche / Garten;Hénin-Beaumont-Straße;Sodingen;3;697;05125800300697______;212;8,3;30,3;5,8;0;2,8;51.542555;7.258278
+HE-606;Freifläche / Garten;Von-Waldthausen-Straße;Horsthausen;6;1525;05113500601525______;84;6,9;12,3;13,2;0;2,8;51.553216;7.239368
+HE-607;Freifläche / Garten;Josefinenstraße;Horsthausen;6;168;05113500600168______;206;5,0;40,9;6,0;0;2,8;51.554143;7.243614
+HE-608;Freifläche / Garten;Unser-Fritz-Straße, Ortsteil Unser Fritz;Wanne-Eickel;20;718;05112802000718______;86;7,0;12,6;13,5;0;2,8;51.541853;7.136533
+HE-609;Freifläche / Garten;Antonstraße;Wanne-Eickel;8;681;05112800800681______;210;4,8;46,5;13,3;0;2,8;51.533864;7.171148
+HE-610;Freifläche / Garten;Fleiges Hof;Herne;2;355;05113200200355______;145;5,2;28,0;6,2;0;2,8;51.539702;7.208729
+HE-611;Garagengrundstück;Ernststraße 9;Horsthausen;6;1626;05113500601626______;84;5,1;16,4;6,4;0;2,8;51.556176;7.244393
+HE-612;Freifläche / Garten;Kirchstraße 161 a, 161 b;Börnig;9;642;05125000900642______;258;5,0;52,2;6,0;0;2,8;51.551033;7.262429
+HE-613;Freifläche / Garten;Am Knie 13, 15, 17;Holthausen;2;1072;05126100201072______;197;4,9;50,0;5,9;0;2,8;51.55001;7.278335
+HE-614;Freifläche / Garten;Schaeferstraße;Herne;16;309;05113201600309______;248;5,6;45,3;6,3;0;2,8;51.544295;7.235495
+HE-615;Freifläche / Garten;Zu den Obstwiesen;Baukau;7;793;05112700700793______;197;7,8;26,3;5,1;0;2,7;51.554263;7.21504
+HE-616;Garagengrundstück;Heinitzstraße;Wanne-Eickel;4;260;05112800400260______;363;13,7;29,9;5,2;0;2,7;51.542676;7.154881
+HE-617;Freifläche / Garten;Holper Heide;Baukau;7;711;05112700700711______;256;12,0;24,1;5,6;0;2,7;51.555224;7.216568
+HE-618;Freifläche / Garten;"Feldkampstraße 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13; (HER) Bochumer Straße 166, 168";Herne;34;642;05113203400642______;383;19,0;24,1;5,0;0;2,7;51.525543;7.214988
+HE-619;Freifläche / Garten;Bunsenstraße;Wanne-Eickel;31;308;05112803100308______;106;8,0;14,5;4,5;0;2,6;51.531361;7.200623
+HE-620;Freifläche / Garten;Bönninghauser Straße;Wanne-Eickel;53;313;05112805300313______;147;5,4;40,7;4,5;0;2,6;51.51833;7.16299
+HE-621;Garagengrundstück;Schmiedes Hof;Baukau;17;634;05112701700634______;107;6,5;18,5;7,8;0;2,5;51.542248;7.183593
+HE-622;Garagengrundstück;Dorstener Straße;Wanne-Eickel;35;339;05112803500339______;325;15,5;22,8;23,2;0;2,5;51.522204;7.190779
+HE-623;Garagengrundstück;Langforthstraße 7;Horsthausen;6;1499;05113500601499______;494;22,2;23,5;21,2;0;2,5;51.554576;7.240724
+HE-624;Garagengrundstück;Hochstraße 35;Wanne-Eickel;46;269;05112804600269______;653;15,3;42,9;16,3;0;2,5;51.508873;7.179626
+HE-625;Freifläche / Garten;Jürgens Hof, Ortsteil Horsthausen;Horsthausen;6;1458;05113500601458______;274;7,7;42,7;7,4;0;2,5;51.55556;7.238044
+HE-626;Freifläche / Garten;Auf der Wilbe;Wanne-Eickel;60;340;05112806000340______;290;15,0;20,2;21,2;0;2,5;51.518851;7.153664
+HE-627;Garagengrundstück;Schlachthofstraße 41;Wanne-Eickel;11;684;05112801100684______;463;15,5;39,6;11,4;0;2,5;51.529804;7.150962
+HE-628;Garagengrundstück;Henri-Dunant-Straße;Wanne-Eickel;52;199;05112805200199______;95;10,0;10,1;11,0;0;2,5;51.515385;7.163132
+HE-629;Garagengrundstück;Von-Waldthausen-Straße;Horsthausen;6;1266;05113500601266______;437;25,6;28,3;33,2;0;2,5;51.557948;7.250108
+HE-630;Freifläche / Garten;Von-Waldthausen-Straße;Horsthausen;6;1552;05113500601552______;286;15,6;22,8;11,2;0;2,5;51.552724;7.239071
+HE-631;Garagengrundstück;Tiefenbruchstraße 60;Wanne-Eickel;59;688;05112805900688______;561;20,7;35,7;14,6;0;2,4;51.515589;7.142692
+HE-632;Freifläche / Garten;Castroper Straße;Börnig;9;91;05125000900091______;129;5,8;23,0;6,8;0;2,4;51.548545;7.265469
+HE-633;Freifläche / Garten;Moßkampweg 12;Wanne-Eickel;16;669;05112801600669______;405;18,2;26,2;6,5;0;2,4;51.523922;7.143992
+HE-634;Freifläche / Garten;Holsterhauser Straße, Ortsteil Holsterhausen;Wanne-Eickel;36;839;05112803600839______;134;4,5;31,0;10,4;0;2,4;51.527099;7.194957
+HE-635;Freifläche / Garten;Wallburgstraße;Baukau;11;381;05112701100381______;404;20,3;22,5;13,2;0;2,3;51.550265;7.205721
+HE-636;Garagengrundstück;Schnittstraße;Baukau;17;667;05112701700667______;81;8,9;11,0;9,9;0;2,3;51.546088;7.18615
+HE-637;Freifläche / Garten;Paderborner Straße 27 a, 27 b;Wanne-Eickel;29;16;05112802900016______;486;23,2;28,0;13,2;0;2,3;51.538783;7.192303
+HE-638;Garagengrundstück;Schüchtermannstraße;Horsthausen;11;1007;05113501101007______;97;9,0;10,8;10,0;0;2,3;51.548388;7.225044
+HE-639;Garagengrundstück;Baltzstraße;Wanne-Eickel;39;751;05112803900751______;463;20,4;36,2;6,0;1;2,3;51.525297;7.168516
+HE-640;Freifläche / Garten;Unser-Fritz-Straße 125;Wanne-Eickel;18;707;05112801800707______;135;5,0;27,3;6,0;0;2,3;51.542063;7.141429
+HE-641;Garagengrundstück;Mont-Cenis-Straße 476;Holthausen;3;224;05126100300224______;151;4,9;50,2;5,8;0;2,3;51.542028;7.279773
+HE-642;Freifläche / Garten;Dorneburger Straße;Wanne-Eickel;39;798;05112803900798______;460;12,0;45,6;13,0;0;2,2;51.524968;7.173064
+HE-643;Garagengrundstück;Leibnizstraße;Baukau;7;593;05112700700593______;110;5,0;25,3;12,5;0;2,2;51.552116;7.220784
+HE-644;Garagengrundstück;Honkenbergstraße;Horsthausen;6;601;05113500600601______;90;9,2;13,7;8,9;0;2,2;51.553449;7.237343
+HE-645;Freifläche / Garten;Grimberger Feld 56;Wanne-Eickel;1;389;05112800100389______;250;15,0;16,7;4,5;0;2,1;51.547089;7.130334
+HE-646;Freifläche / Garten;Wallburgstraße;Baukau;11;423;05112701100423______;86;7,5;11,5;8,5;0;2,1;51.55042;7.205685
+HE-647;Freifläche / Garten;Eschstraße;Baukau;8;102;05112700800102______;476;13,3;40,6;11,7;0;2,1;51.547817;7.221402
+HE-648;Freifläche / Garten;Ostbachtal;Herne;15;505;05113201500505______;599;16,1;45,1;44,2;0;2,0;51.537728;7.23452
+HE-649;Garagengrundstück;Leibnizstraße;Horsthausen;12;920;05113501200920______;588;17,7;36,0;19,5;0;2,0;51.553626;7.223148
+HE-650;Garagengrundstück;Otto-Hue-Straße;Herne;33;116;05113203300116______;560;14,4;42,6;15,4;0;2,0;51.53413;7.222646
+HE-651;Freifläche / Garten;Am Stadtgarten, Ortsteil Herne-Mitte;Herne;16;286;05113201600286______;682;22,1;31,2;52,4;0;2,0;51.543681;7.234335
+HE-652;Freifläche / Garten;Gerther Straße;Börnig;15;26;05125001500026______;473;15,6;31,6;18,3;0;2,0;51.535673;7.265565
+HE-653;Freifläche / Garten;"Buschkampstraße; Rottbruchstraße";Wanne-Eickel;30;539;05112803000539______;485;21,8;34,8;43,2;0;2,0;51.538603;7.201934
+HE-654;Freifläche / Garten;Michaelstraße;Wanne-Eickel;16;389;05112801600389______;90;6,5;18,9;7,7;0;2,0;51.52738;7.146754
+HE-655;Freifläche / Garten;Dornstraße;Baukau;8;343;05112700800343______;677;31,1;32,2;24,4;0;2,0;51.547133;7.218074
+HE-656;Freifläche / Garten;Scharnhorststraße;Horsthausen;2;193;05113500200193______;652;17,4;45,6;17,3;0;2,0;51.562899;7.232789
+HE-657;Freifläche / Garten;Wiesenstraße, Ortsteil Baukau-West;Wanne-Eickel;27;549;05112802700549______;647;24,7;28,0;25,7;0;2,0;51.540833;7.180634
+HE-658;Freifläche / Garten;Josefinenstraße;Horsthausen;7;322;05113500700322______;552;22,8;25,8;33,9;0;2,0;51.551329;7.235136
+HE-659;Freifläche / Garten;Am Stadtgarten, Ortsteil Herne-Mitte;Herne;16;295;05113201600295______;486;18,0;27,0;19,0;0;2,0;51.543478;7.234411
+HE-660;Freifläche / Garten;Am Stadtgarten, Ortsteil Herne-Mitte;Herne;16;307;05113201600307______;577;27,4;31,3;32,4;0;2,0;51.542817;7.234728
+HE-661;Freifläche / Garten;Vellwigstraße;Börnig;10;403;05125001000403______;620;16,8;39,0;18,1;0;2,0;51.551467;7.26746
+HE-662;Garagengrundstück;Paulstraße;Wanne-Eickel;18;408;05112801800408______;475;14,9;32,3;47,8;0;2,0;51.538216;7.143573
+HE-663;Garagengrundstück;Ortelsburger Straße;Wanne-Eickel;19;354;05112801900354______;488;23,0;23,2;41,6;0;2,0;51.525803;7.138877
+HE-664;Freifläche / Garten;Auf'm Kolm;Holthausen;14;286;05126101400286______;543;22,9;24,6;47,1;0;2,0;51.544;7.27511
+HE-665;Freifläche / Garten;(HER) Almastraße;Wanne-Eickel;48;657;05112804800657______;659;21,9;31,7;25,6;0;2,0;51.505359;7.174353
+HE-666;Freifläche / Garten;Riemker Straße;Herne;36;319;05113203600319______;663;20,2;43,0;21,9;0;2,0;51.528228;7.209621
+HE-667;Freifläche / Garten;Rottstraße;Baukau;17;575;05112701700575______;493;19,4;26,3;20,4;0;2,0;51.545205;7.180975
+HE-668;Freifläche / Garten;Schnittstraße;Baukau;17;710;05112701700710______;543;16,7;33,9;34,9;0;2,0;51.547092;7.185432
+HE-669;Freifläche / Garten;"Rottstraße; Schnittstraße";Baukau;17;709;05112701700709______;482;20,7;28,6;49,9;0;2,0;51.547405;7.185445
+HE-670;Freifläche / Garten;Ewaldstraße;Herne;41;89;05113204100089______;597;27,7;29,7;17,2;0;2,0;51.522494;7.216049
+HE-671;Freifläche / Garten;Am Stadtgarten, Ortsteil Herne-Mitte;Herne;16;301;05113201600301______;569;18,0;33,6;19,0;0;2,0;51.542997;7.235372
+HE-672;Garagengrundstück;Gräffstraße;Herne;35;126;05113203500126______;590;15,9;37,4;16,8;0;2,0;51.532559;7.215899
+HE-673;Freifläche / Garten;La-Roche-Straße;Baukau;10;547;05112701000547______;488;22,6;28,6;29,7;0;2,0;51.544266;7.203263
+HE-674;Garagengrundstück;Bruchstraße;Holthausen;2;1116;05126100201116______;593;18,8;33,5;53,6;0;2,0;51.551061;7.284633
+HE-675;Freifläche / Garten;Börsinghauser Straße;Holthausen;14;859;05126101400859______;483;19,1;29,3;16,4;0;2,0;51.545192;7.276454
+HE-676;Freifläche / Garten;Dorstener Straße;Wanne-Eickel;8;1014;05112800801014______;647;16,2;50,6;73,1;0;2,0;51.543007;7.167096
+HE-677;Freifläche / Garten;Holsterhauser Straße, Ortsteil Holsterhausen;Wanne-Eickel;36;834;05112803600834______;511;18,9;33,2;41,7;0;2,0;51.527028;7.194833
+HE-678;Freifläche / Garten;Am Stadtgarten, Ortsteil Herne-Mitte;Herne;16;299;05113201600299______;477;19,2;30,3;21,2;0;2,0;51.542953;7.234849
+HE-679;Freifläche / Garten;Josefinenstraße;Horsthausen;7;321;05113500700321______;528;23,1;24,8;25,8;0;2,0;51.551107;7.235178
+HE-680;Freifläche / Garten;Wilhelmstraße;Wanne-Eickel;20;241;05112802000241______;492;14,9;45,0;50,4;0;2,0;51.530426;7.138726
+HE-681;Freifläche / Garten;Friedgrasstraße 18 e;Wanne-Eickel;43;819;05112804300819______;96;4,8;20,2;5,8;0;1,8;51.517307;7.177073
+HE-682;Freifläche / Garten;Bielefelder Straße;Wanne-Eickel;41;168;05112804100168______;189;4,5;43,4;6,1;0;1,8;51.527035;7.184629
+HE-683;Freifläche / Garten;Das Tiefenbrucher Feld;Wanne-Eickel;59;615;05112805900615______;96;5,2;21,6;6,2;0;1,8;51.518268;7.149958
+HE-684;Freifläche / Garten;Schüchtermannstraße;Horsthausen;11;676;05113501100676______;207;4,9;41,5;5,9;0;1,8;51.550332;7.232254
+HE-685;Freifläche / Garten;Hoverskamp;Horsthausen;1;9;05113500100009______;170;4,7;36,0;5,7;0;1,8;51.559157;7.216081
+HE-686;Freifläche / Garten;Erlenweg;Herne;26;555;05113202600555______;102;4,7;23,6;5,5;0;1,7;51.520647;7.23151
+HE-687;Freifläche / Garten;(HER) Bochumer Straße;Herne;40;252;05113204000252______;215;4,5;47,9;5,5;0;1,7;51.523553;7.214957
+HE-688;Garagengrundstück;(HER) Hordeler Straße;Wanne-Eickel;56;345;05112805600345______;534;20,4;33,3;21,6;0;1,5;51.506133;7.165384
+HE-689;Freifläche / Garten;Hochstraße;Wanne-Eickel;46;265;05112804600265______;510;15,2;43,0;16,3;0;1,5;51.508466;7.180084
+HE-690;Freifläche / Garten;Adalbertstraße;Herne;33;107;05113203300107______;473;15,6;33,2;16,6;0;1,5;51.534281;7.223605
+HE-691;Freifläche / Garten;Von-Bodelschwingh-Straße;Holthausen;14;467;05126101400467______;477;23,4;29,6;18,5;0;1,5;51.54701;7.275251
+HE-692;Garagengrundstück;Werderstraße;Horsthausen;11;878;05113501100878______;488;14,0;43,2;58,5;0;1,5;51.55155;7.232681
+HE-693;Freifläche / Garten;Rottstraße;Baukau;17;571;05112701700571______;479;15,0;32,6;16,1;0;1,5;51.546791;7.182488
+HE-694;Freifläche / Garten;Landwehrweg;Herne;21;86;05113202100086______;616;16,2;40,3;17,2;0;1,5;51.527341;7.255409
+HE-695;Freifläche / Garten;Auf der Insel;Herne;15;454;05113201500454______;511;18,5;30,9;19,5;0;1,5;51.539707;7.231297
+HE-696;Freifläche / Garten;Blücherstraße;Horsthausen;4;588;05113500400588______;585;22,4;30,3;25,4;0;1,5;51.559825;7.238639
+HE-697;Freifläche / Garten;Eschstraße;Herne;10;529;05113201000529______;699;14,7;49,9;14,3;0;1,4;51.547405;7.222406
+HE-698;Freifläche / Garten;Koloniestraße 26;Wanne-Eickel;48;524;05112804800524______;93;5,0;18,7;6,0;0;1,3;51.506233;7.169399
+HE-699;Freifläche / Garten;Hammerschmidtstraße;Wanne-Eickel;17;346;05112801700346______;451;14,2;35,4;9,5;0;0,8;51.536367;7.149103
+HE-700;Freifläche / Garten;Höttenbusch;Horsthausen;11;574;05113501100574______;87;4,5;28,8;6,2;0;0,8;51.552004;7.232095
+HE-701;Freifläche / Garten;Gustavstraße;Wanne-Eickel;66;526;05112806600526______;657;20,2;34,1;4,6;0;0,6;51.504478;7.152176
+HE-702;Garagengrundstück;Max-Planck-Straße;Wanne-Eickel;29;854;05112802900854______;699;15,5;45,8;5,1;0;0,2;51.538209;7.197486

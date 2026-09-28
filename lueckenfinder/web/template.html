@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lückenfinder Herne</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --street:#FBFBF8;--ground:#E6EAE2;--green:#D3DECF;--paper:#FAFAF7;--ink:#1D2622;--muted:#5C6862;
+  --line:#AEB8B0;--parcel:#B9C1B9;--bldg:#BFC6BD;--bldg-edge:#9AA39B;--accent:#D9481B;--accent-ink:#FFFFFF;
+  --gar:#8A5CC2;--free:#C9912A;--ok:#2F7A4E;--card:#FFFFFF;--focus:#1F6FD1;--outside:#EEF0EB;
+  --sans:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --street:#222A26;--ground:#151B18;--green:#1A2A1F;--paper:#161C19;--ink:#E4E9E5;--muted:#9AA59F;
+    --line:#3E4A43;--parcel:#34403A;--bldg:#39443E;--bldg-edge:#4E5B53;--accent:#F0673A;--accent-ink:#1A0E08;
+    --gar:#B08BE6;--free:#E0B25A;--ok:#62C48C;--card:#1E2622;--focus:#6AA8FF;--outside:#101512;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --street:#222A26;--ground:#151B18;--green:#1A2A1F;--paper:#161C19;--ink:#E4E9E5;--muted:#9AA59F;
+  --line:#3E4A43;--parcel:#34403A;--bldg:#39443E;--bldg-edge:#4E5B53;--accent:#F0673A;--accent-ink:#1A0E08;
+  --gar:#B08BE6;--free:#E0B25A;--ok:#62C48C;--card:#1E2622;--focus:#6AA8FF;--outside:#101512;
+}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
+*{box-sizing:border-box}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 400px;height:100%}
+.mapwrap{position:relative;background:var(--outside);overflow:hidden;min-height:0}
+#cv{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#cv.drag{cursor:grabbing}
+.tags{position:absolute;top:16px;left:16px;right:72px;display:flex;flex-wrap:wrap;gap:8px;pointer-events:none}
+.tag{font-family:var(--mono);font-size:11.5px;background:var(--card);color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:3px}
+.ctrls{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:6px}
+.ctrls button{width:40px;height:40px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 18px/1 var(--sans);border-radius:4px;cursor:pointer}
+.ctrls button:hover{border-color:var(--ink)}
+.ctrls .small{font:500 11px var(--mono)}
+.legend{position:absolute;left:16px;bottom:16px;display:flex;flex-wrap:wrap;gap:6px 14px;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:8px 12px;font-size:12.5px;color:var(--muted);max-width:calc(100% - 32px)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:12px;height:12px;border-radius:2px}
+.attr{position:absolute;right:16px;bottom:16px;font-family:var(--mono);font-size:10.5px;color:var(--muted);background:var(--card);border:1px solid var(--line);padding:3px 6px;border-radius:3px}
+.side{overflow:auto;padding-block:22px 28px;padding-inline:22px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:16px;min-height:0}
+h1{margin:0;font-size:26px;line-height:1.1;font-weight:700;text-wrap:balance}
+.lead{margin:4px 0 0;color:var(--muted);font-size:14.5px;max-width:60ch}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:var(--card);text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.stat:hover{border-color:var(--ink)}
+.stat b{display:block;font:500 20px var(--mono);font-variant-numeric:tabular-nums}
+.stat span{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+fieldset{border:1px solid var(--line);border-radius:4px;margin:0;padding:12px 14px 14px;display:grid;gap:12px}
+legend{padding:0 6px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+label{font-size:14px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.val{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:3px;padding:6px 8px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.count{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.item{width:100%;text-align:left;display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center;padding:9px 11px;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.item:hover{border-color:var(--ink)}
+.item.sel{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.dot{width:10px;height:10px;border-radius:2px;grid-row:span 2}
+.item .ad{font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .sc{font:500 13px var(--mono);grid-row:span 2}
+.item .mt{font-family:var(--mono);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.more{border:1px dashed var(--line);background:transparent;color:var(--ink);font:inherit;padding:8px;border-radius:4px;cursor:pointer}
+.detail{border:1px solid var(--ink);border-radius:4px;background:var(--card);padding:16px;display:grid;gap:12px}
+.dhead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.kind{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.dhead h2{margin:2px 0 0;font-size:21px;line-height:1.2;text-wrap:balance}
+.close{border:1px solid var(--line);background:transparent;color:var(--ink);width:32px;height:32px;border-radius:4px;font-size:18px;cursor:pointer;flex:none}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:14px}
+dt{color:var(--muted)}
+dd{margin:0;font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-size:13px}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--paper);color:var(--ink);text-decoration:none;font:500 13.5px var(--sans);padding:7px 10px;border-radius:4px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.note{margin:0;font-size:13px;color:var(--muted);border-left:2px solid var(--accent);padding-left:10px}
+.foot{font-size:12.5px;color:var(--muted);margin:0;max-width:60ch}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;height:auto}
+  .mapwrap{height:58vh;min-height:340px}
+  .side{border-left:0;border-top:1px solid var(--line);padding-inline:16px}
+  .attr{display:none}
+}
+</style>
+
+<div class="app">
+  <section class="mapwrap" aria-label="Karte von Herne">
+    <canvas id="cv" aria-label="Karte mit Gebäuden, Straßen und markierten Potenzialflächen"></canvas>
+    <div class="tags"><span class="tag">Automatisch ermittelt · noch nicht vor Ort geprüft</span></div>
+    <div class="ctrls">
+      <button id="zin" type="button" aria-label="Hineinzoomen">+</button>
+      <button id="zout" type="button" aria-label="Herauszoomen">−</button>
+      <button id="zall" type="button" class="small" aria-label="Ganz Herne zeigen">ALL</button>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--accent)"></i>Baulücke</span>
+      <span><i class="sw" style="background:var(--gar)"></i>Garagengrundstück</span>
+      <span><i class="sw" style="background:var(--free)"></i>Freifläche / Garten</span>
+    </div>
+    <div class="attr">Daten: Geobasis NRW, dl-de/zero-2-0 · Stand 07/2026</div>
+  </section>
+
+  <aside class="side">
+    <div>
+      <h1>Lückenfinder Herne</h1>
+      <p class="lead">Unbebaute Wohnbau-Flurstücke mit Straßenzugang, 80–700 m², mindestens 4,5 m breit. Ermittelt aus dem amtlichen Liegenschaftskataster.</p>
+    </div>
+    <div class="stats" id="stats"></div>
+    <fieldset>
+      <legend>Filter</legend>
+      <div class="row"><label for="typ">Flächentyp</label>
+        <select id="typ"><option value="alle">Alle</option><option>Baulücke</option><option>Garagengrundstück</option><option>Freifläche / Garten</option></select>
+      </div>
+      <div>
+        <div class="row"><label for="minb">Mindestbreite</label><span class="val" id="minbv"></span></div>
+        <input id="minb" type="range" min="4.5" max="12" step="0.5" value="4.5">
+      </div>
+      <div>
+        <div class="row"><label for="mins">Mindest-Eignung</label><span class="val" id="minsv"></span></div>
+        <input id="mins" type="range" min="0" max="8" step="0.5" value="0">
+      </div>
+    </fieldset>
+    <div id="detail" hidden></div>
+    <div class="row"><span class="count" id="count"></span><span class="count">sortiert nach Eignung</span></div>
+    <ul class="list" id="list"></ul>
+    <p class="foot">Eignung (0–8 Punkte): Länge der Straßenfront, Gebäude direkt an der Grenze, eigene Hausnummer, Breite 5–14 m, Größe 100–450 m². Viele Freiflächen sind Gärten, die zum Nachbarhaus gehören. Jede Fläche vor einer Ansprache auf dem Luftbild und vor Ort prüfen.</p>
+  </aside>
+</div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(function(){
+  const D = JSON.parse(document.getElementById("data").textContent);
+  const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+  const $ = id => document.getElementById(id);
+  const fmt = (n,d=1) => Number(n).toLocaleString("de-DE",{maximumFractionDigits:d});
+  const COLORVAR = {"Baulücke":"--accent","Garagengrundstück":"--gar","Freifläche / Garten":"--free"};
+
+  // decode delta-encoded half-metre polygons into Path2D (world units = half metres, y up)
+  function toPath(list, into){
+    const p = into || new Path2D();
+    for(const a of list){
+      let x=a[0], y=a[1]; p.moveTo(x,y);
+      for(let i=2;i<a.length;i+=2){ x+=a[i]; y+=a[i+1]; p.lineTo(x,y); }
+      p.closePath();
+    }
+    return p;
+  }
+  const P = {city:toPath(D.city), green:toPath(D.green), road:toPath(D.road), bld:toPath(D.bld), parc:toPath(D.parc)};
+  D.c.forEach(c=>{
+    c.path = toPath(c.g);
+    let sx=0, sy=0, n=0, x=c.g[0][0], y=c.g[0][1], pts=[[x,y]];
+    for(let i=2;i<c.g[0].length;i+=2){ x+=c.g[0][i]; y+=c.g[0][i+1]; pts.push([x,y]); }
+    pts.forEach(p=>{sx+=p[0];sy+=p[1];n++;});
+    c.cx=sx/n; c.cy=sy/n;
+  });
+  const W = D.w*2, H = D.h*2;
+
+  // colors
+  let C = {};
+  function readColors(){
+    const cs = getComputedStyle(document.documentElement);
+    ["--street","--ground","--green","--outside","--parcel","--bldg","--bldg-edge","--accent","--gar","--free","--ink","--card"].forEach(k=>C[k]=cs.getPropertyValue(k).trim());
+    draw();
+  }
+
+  // view: world point at canvas center + scale (px per world unit)
+  const view = {x:W/2, y:H/2, s:0.05};
+  let cw=0, ch=0, dpr=1;
+  function fitAll(){ view.x=W/2; view.y=H/2; view.s=Math.min(cw/W, ch/H)*0.95; draw(); }
+  function resize(){
+    const r = cv.getBoundingClientRect(); dpr = window.devicePixelRatio||1;
+    const first = cw===0;
+    cw=r.width; ch=r.height; cv.width=Math.round(cw*dpr); cv.height=Math.round(ch*dpr);
+    if(first) fitAll(); else draw();
+  }
+  function toWorld(px,py){ return [view.x + (px-cw/2)/view.s, view.y - (py-ch/2)/view.s]; }
+  function toScreen(wx,wy){ return [cw/2 + (wx-view.x)*view.s, ch/2 - (wy-view.y)*view.s]; }
+
+  const state = {typ:"alle", minb:4.5, mins:0, sel:null, shown:50};
+  const match = c => (state.typ==="alle"||c.typ===state.typ) && c.b>=state.minb && c.s>=state.mins;
+
+  let raf=0;
+  function draw(){ if(!raf) raf=requestAnimationFrame(render); }
+  function render(){
+    raf=0; if(!cw) return;
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.fillStyle=C["--outside"]; ctx.fillRect(0,0,cv.width,cv.height);
+    const s=view.s*dpr;
+    ctx.setTransform(s,0,0,-s, (cw/2 - view.x*view.s)*dpr, (ch/2 + view.y*view.s)*dpr);
+    ctx.fillStyle=C["--ground"]; ctx.fill(P.city);
+    ctx.fillStyle=C["--green"]; ctx.fill(P.green);
+    ctx.fillStyle=C["--street"]; ctx.fill(P.road);
+    if(view.s>0.9){ ctx.strokeStyle=C["--parcel"]; ctx.lineWidth=1/view.s; ctx.stroke(P.parc); }
+    ctx.fillStyle=C["--bldg"]; ctx.fill(P.bld);
+    if(view.s>1.2){ ctx.strokeStyle=C["--bldg-edge"]; ctx.lineWidth=0.8/view.s; ctx.stroke(P.bld); }
+    const vis = D.c.filter(match);
+    vis.forEach(c=>{ ctx.fillStyle=C[COLORVAR[c.typ]]; ctx.globalAlpha=0.85; ctx.fill(c.path); });
+    ctx.globalAlpha=1;
+    const sel = D.c.find(c=>c.id===state.sel);
+    if(sel){ ctx.strokeStyle=C["--ink"]; ctx.lineWidth=2.5/view.s; ctx.stroke(sel.path); }
+    // markers when zoomed out
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    if(view.s<0.6){
+      vis.forEach(c=>{
+        const [x,y]=toScreen(c.cx,c.cy);
+        if(x<-10||y<-10||x>cw+10||y>ch+10) return;
+        ctx.beginPath(); ctx.arc(x,y,c===sel?6:3.6,0,Math.PI*2);
+        ctx.fillStyle=C[COLORVAR[c.typ]]; ctx.fill();
+        ctx.lineWidth=1; ctx.strokeStyle=C["--card"]; ctx.stroke();
+      });
+      if(sel){ const [x,y]=toScreen(sel.cx,sel.cy); ctx.beginPath(); ctx.arc(x,y,9,0,Math.PI*2); ctx.lineWidth=2; ctx.strokeStyle=C["--ink"]; ctx.stroke(); }
+    }
+    // scale bar
+    const target = 100/view.s; const nice=[1,2,5,10,20,50,100,200,500,1000,2000,5000];
+    const meters = nice.find(m=>m*2>=target*0.6) || 5000; const px = meters*2*view.s;
+    ctx.fillStyle=C["--ink"]; ctx.fillRect(16, ch-62, px, 2);
+    ctx.font="500 11px "+getComputedStyle(document.body).getPropertyValue("--mono");
+    ctx.fillText(meters>=1000?(meters/1000)+" km":meters+" m", 16, ch-68);
+  }
+
+  function zoom(f, px=cw/2, py=ch/2){
+    const [wx,wy]=toWorld(px,py);
+    view.s = Math.min(Math.max(view.s*f, Math.min(cw/W,ch/H)*0.5), 12);
+    view.x = wx - (px-cw/2)/view.s; view.y = wy + (py-ch/2)/view.s;
+    draw();
+  }
+  $("zin").onclick=()=>zoom(1.6); $("zout").onclick=()=>zoom(1/1.6); $("zall").onclick=fitAll;
+  cv.addEventListener("wheel",e=>{ e.preventDefault(); const r=cv.getBoundingClientRect(); zoom(e.deltaY<0?1.2:1/1.2, e.clientX-r.left, e.clientY-r.top); },{passive:false});
+
+  const ptrs=new Map(); let moved=false, pinch=null;
+  cv.addEventListener("pointerdown",e=>{ cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY}); moved=false;
+    if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}; } });
+  cv.addEventListener("pointermove",e=>{
+    const p=ptrs.get(e.pointerId); if(!p) return;
+    const dx=e.clientX-p.x, dy=e.clientY-p.y; p.x=e.clientX; p.y=e.clientY;
+    if(Math.hypot(e.clientX-p.sx,e.clientY-p.sy)>4){ moved=true; cv.classList.add("drag"); }
+    if(ptrs.size===2 && pinch){
+      const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y); const r=cv.getBoundingClientRect();
+      zoom(d/pinch.d, (a.x+b.x)/2-r.left, (a.y+b.y)/2-r.top); pinch.d=d; return;
+    }
+    if(moved && ptrs.size===1){ view.x-=dx/view.s; view.y+=dy/view.s; draw(); }
+  });
+  function up(e){
+    const was = ptrs.get(e.pointerId); ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null; cv.classList.remove("drag");
+    if(was && !moved && e.type==="pointerup"){ const r=cv.getBoundingClientRect(); pick(e.clientX-r.left, e.clientY-r.top); }
+  }
+  cv.addEventListener("pointerup",up); cv.addEventListener("pointercancel",up);
+
+  function pick(px,py){
+    const [wx,wy]=toWorld(px,py);
+    ctx.setTransform(1,0,0,1,0,0);
+    let hit = D.c.filter(match).find(c=>ctx.isPointInPath(c.path,wx,wy));
+    if(!hit){
+      let best=null, bd=14;
+      D.c.filter(match).forEach(c=>{ const [x,y]=toScreen(c.cx,c.cy); const d=Math.hypot(x-px,y-py); if(d<bd){bd=d;best=c;} });
+      hit=best;
+    }
+    if(hit) select(hit.id,false);
+  }
+
+  function focusOn(c){ view.x=c.cx; view.y=c.cy; view.s=Math.max(view.s, Math.min(cw,ch)/260); draw(); }
+
+  function renderStats(){
+    const n = t => D.c.filter(c=>c.typ===t).length;
+    $("stats").innerHTML = ["Baulücke","Garagengrundstück","Freifläche / Garten"].map(t=>
+      `<button type="button" class="stat" data-t="${t}"><b>${n(t)}</b><span><i class="sw" style="background:var(${COLORVAR[t]})"></i>${t==="Freifläche / Garten"?"Freiflächen":t==="Garagengrundstück"?"Garagen­grundstücke":"Baulücken"}</span></button>`).join("");
+    $("stats").querySelectorAll(".stat").forEach(b=>b.onclick=()=>{ state.typ=b.dataset.t; $("typ").value=b.dataset.t; state.shown=50; renderList(); draw(); });
+  }
+
+  function renderList(){
+    $("minbv").textContent = "ab "+fmt(state.minb)+" m";
+    $("minsv").textContent = "ab "+fmt(state.mins)+" Pkt.";
+    const vis = D.c.filter(match);
+    $("count").textContent = vis.length+" Flächen";
+    const items = vis.slice(0,state.shown).map(c=>`
+      <li><button type="button" class="item${state.sel===c.id?" sel":""}" data-id="${c.id}">
+        <i class="dot" style="background:var(${COLORVAR[c.typ]})"></i>
+        <span class="ad">${esc(c.adr)}</span>
+        <span class="sc">${fmt(c.s)}</span>
+        <span class="mt">${c.a} m² · ${fmt(c.b)} m breit · ${c.id}</span>
+      </button></li>`).join("");
+    $("list").innerHTML = items + (vis.length>state.shown ? `<li><button type="button" class="more" id="more" style="width:100%">Weitere ${Math.min(50,vis.length-state.shown)} anzeigen</button></li>` : "");
+    $("list").querySelectorAll(".item").forEach(b=>b.onclick=()=>select(b.dataset.id,true));
+    const m=$("more"); if(m) m.onclick=()=>{ state.shown+=50; renderList(); };
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch])); }
+
+  function renderDetail(){
+    const d=$("detail"); const c=D.c.find(x=>x.id===state.sel);
+    if(!c){ d.hidden=true; d.innerHTML=""; return; }
+    d.hidden=false;
+    const g = `https://www.google.com/maps/@${c.lat},${c.lon},90m/data=!3m1!1e3`;
+    const o = `https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=19/${c.lat}/${c.lon}`;
+    const houses = c.b>=9 ? "zwei Lückenhäuser nebeneinander" : c.b>=5.5 ? "Lückenhaus 6,0" : "Lückenhaus 4,5";
+    const note = c.typ==="Garagengrundstück" ? `Auf der Fläche stehen Garagen oder Carports (ca. ${c.gar} m²). Eigentümer vermieten die oft; ein Haus mit integriertem Stellplatz kann für sie attraktiver sein.`
+      : c.typ==="Baulücke" ? "Mindestens zwei Nachbargebäude stehen direkt an der Grenze. Das spricht für eine echte Lücke in einer Häuserzeile."
+      : "Keine Bebauung an beiden Grenzen. Häufig ein Seitengarten des Nachbarhauses. Auf dem Luftbild prüfen.";
+    d.innerHTML = `<div class="detail">
+      <div class="dhead"><div><div class="kind" style="color:var(${COLORVAR[c.typ]})">${c.typ}</div><h2>${esc(c.adr)}</h2></div>
+      <button type="button" class="close" id="dclose" aria-label="Details schließen">×</button></div>
+      <dl>
+        <dt>Flurstück</dt><dd class="mono">${esc(c.gem)}, Flur ${c.flur}, Nr. ${esc(c.nr)}</dd>
+        <dt>Fläche</dt><dd class="mono">${c.a} m²</dd>
+        <dt>Breite × Länge</dt><dd class="mono">${fmt(c.b)} × ${fmt(c.l)} m</dd>
+        <dt>Straßenfront</dt><dd class="mono">${fmt(c.fr)} m</dd>
+        <dt>Gebäude an Grenze</dt><dd class="mono">${c.n}</dd>
+        <dt>Eignung</dt><dd class="mono">${fmt(c.s)} von 8</dd>
+        <dt>Hauskonzept</dt><dd>${houses}</dd>
+      </dl>
+      <p class="note">${note}</p>
+      <div class="links">
+        <a class="btn primary" href="${g}" target="_blank" rel="noopener">Luftbild öffnen</a>
+        <a class="btn" href="${o}" target="_blank" rel="noopener">OpenStreetMap</a>
+        <button type="button" class="btn" id="copy">Kennzeichen kopieren</button>
+      </div>
+      <p class="mono" id="kz" style="margin:0;color:var(--muted);font-size:12px">Flurstückskennzeichen: ${esc(c.fl)}</p>
+    </div>`;
+    $("dclose").onclick=()=>{ state.sel=null; renderDetail(); renderList(); draw(); };
+    $("copy").onclick=()=>{
+      const b=$("copy");
+      navigator.clipboard.writeText(c.fl).then(()=>{ b.textContent="Kopiert"; }).catch(()=>{
+        const r=document.createRange(); r.selectNodeContents($("kz")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent="Markiert, bitte kopieren";
+      });
+    };
+  }
+
+  function select(id, fromList){
+    state.sel=id; renderList(); renderDetail();
+    const c=D.c.find(x=>x.id===id);
+    if(fromList && c) focusOn(c); else draw();
+    if(!fromList) $("detail").scrollIntoView({block:"nearest",behavior:"smooth"});
+  }
+
+  $("typ").onchange=e=>{ state.typ=e.target.value; state.shown=50; renderList(); draw(); };
+  $("minb").oninput=e=>{ state.minb=+e.target.value; state.shown=50; renderList(); draw(); };
+  $("mins").oninput=e=>{ state.mins=+e.target.value; state.shown=50; renderList(); draw(); };
+
+  new ResizeObserver(resize).observe(cv);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change",readColors);
+  new MutationObserver(readColors).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+  readColors(); renderStats(); renderList();
+  state.sel = D.c[0].id; renderDetail(); renderList();
+})();
+</script>
