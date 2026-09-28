@@ -131,6 +131,30 @@ dd{margin:0}
 .t-free{--tc:var(--t-free);--tci:var(--t-free-ink)}
 .t-all{--tc:var(--ink);--tci:var(--paper)}
 
+/* micro-animations */
+@keyframes lf-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes lf-pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes lf-spin{from{opacity:0;transform:rotate(-100deg) scale(.5)}to{opacity:1;transform:none}}
+@keyframes lf-fade{from{opacity:0}to{opacity:1}}
+@keyframes lf-draw{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+.stat,.item,.btn,.iconbtn,.ctrls button,.filterbtn,.dd-btn,.bgswitch button,.close,.more{transition:transform .12s ease,border-color .15s,background-color .15s,box-shadow .2s,color .15s}
+.stat:active,.item:active,.btn:active,.iconbtn:active,.ctrls button:active,.filterbtn:active,.dd-btn:active,.bgswitch button:active,.close:active,.more:active{transform:scale(.97)}
+.stat:hover,.item:hover{transform:translateY(-1px)}
+.stat .sw,.dot{transition:transform .2s cubic-bezier(.3,1.6,.5,1)}
+.stat:hover .sw,.item:hover .dot,.stat[aria-pressed="true"] .sw{transform:scale(1.3)}
+.iconbtn svg{animation:lf-spin .45s cubic-bezier(.2,.8,.2,1)}
+.panel:not([hidden]){animation:lf-in .22s ease-out}
+.dd-list:not([hidden]){animation:lf-pop .16s ease-out;transform-origin:top center}
+.detail{animation:lf-in .3s cubic-bezier(.2,.7,.2,1)}
+.list li.in{animation:lf-in .32s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i) * 22ms)}
+.filterbtn .badge:not([hidden]){animation:lf-pop .2s ease-out}
+.bgmsg:not([hidden]){animation:lf-fade .2s ease-out}
+.btn.done{border-color:var(--ink)}
+.btn .tick{width:15px;height:15px;stroke-dasharray:24;animation:lf-draw .35s ease-out both}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+
 @media (max-width:860px){
   html,body{height:auto}
   .app{display:flex;flex-direction:column;height:auto}
@@ -282,7 +306,12 @@ dd{margin:0}
   // view: world point at canvas centre + scale (px per world unit)
   const view = {x:0, y:0, s:0.05};
   let cw=0, ch=0, dpr=1;
-  function fitAll(){ if(!D) return; view.x=W/2; view.y=H/2; view.s=Math.min(cw/W, ch/H)*0.95; draw(); }
+  function fitAll(glide){
+    if(!D) return;
+    const s=Math.min(cw/W, ch/H)*0.95;
+    if(glide) return flyTo(W/2, H/2, s, 600);
+    anim.cam=null; view.x=W/2; view.y=H/2; view.s=s; draw();
+  }
   function resize(){
     const r = cv.getBoundingClientRect(); dpr = window.devicePixelRatio||1;
     const first = cw===0;
@@ -325,10 +354,37 @@ dd{margin:0}
     for(const c of cells){ const b=c.b; if(b[2]<vb[0]||b[0]>vb[2]||b[3]<vb[1]||b[1]>vb[3]) continue; how==="fill"?ctx.fill(c.p):ctx.stroke(c.p); }
   }
 
+  // ---- micro-animations (all skipped with prefers-reduced-motion) ----
+  const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+  const anim = {cam:null, pulse:0, pulseId:null, fade:0};
+  // camera glide: centre moves linearly in screen space while the scale changes geometrically
+  function flyTo(x, y, s, dur=520){
+    if(RM){ view.x=x; view.y=y; view.s=s; anim.cam=null; draw(); return; }
+    anim.cam = {x0:view.x, y0:view.y, s0:view.s, x, y, s, t0:performance.now(), dur};
+    draw();
+  }
+  function stepAnim(now){
+    let busy=false;
+    const a=anim.cam;
+    if(a){
+      const t=Math.min(1,(now-a.t0)/a.dur), e=ease(t);
+      view.s = a.s0*Math.pow(a.s/a.s0, e);
+      view.x = a.x0+(a.x-a.x0)*e; view.y = a.y0+(a.y-a.y0)*e;
+      if(t>=1) anim.cam=null; else busy=true;
+    }
+    if(anim.pulse && now-anim.pulse<1100) busy=true;
+    if(anim.fade && now-anim.fade<600) busy=true;
+    return busy;
+  }
+  function pulse(id){ anim.pulseId=id; anim.pulse = RM ? 0 : performance.now(); draw(); }
+
   let raf=0;
   function draw(){ if(!raf) raf=requestAnimationFrame(render); requestSat(); }
-  function render(){
+  function render(now){
     raf=0; if(!cw) return;
+    now = now || performance.now();
+    if(stepAnim(now)) raf=requestAnimationFrame(render);
     ctx.setTransform(1,0,0,1,0,0);
     ctx.fillStyle=C["--outside"]; ctx.fillRect(0,0,cv.width,cv.height);
     if(!D) return;
@@ -353,9 +409,11 @@ dd{margin:0}
       if(view.s>0.08){ ctx.fillStyle=C["--bldg"]; paint(P.bld,"fill"); }
       if(view.s>1.2){ ctx.strokeStyle=C["--bldg-edge"]; ctx.lineWidth=0.8/view.s; paint(P.bld,"stroke"); }
     }
+    // candidates fade in after a city loads or a filter changes
+    const fa = anim.fade ? ease(Math.min(1,(now-anim.fade)/600)) : 1;
     const vis = D.c.filter(match);
-    vis.forEach(c=>{ const col=tcol(c); ctx.fillStyle=col; ctx.globalAlpha=sat.on?0.4:0.88; ctx.fill(c.path);
-      if(sat.on){ ctx.globalAlpha=1; ctx.strokeStyle=col; ctx.lineWidth=2/view.s; ctx.stroke(c.path); } });
+    vis.forEach(c=>{ const col=tcol(c); ctx.fillStyle=col; ctx.globalAlpha=(sat.on?0.4:0.88)*fa; ctx.fill(c.path);
+      if(sat.on){ ctx.globalAlpha=fa; ctx.strokeStyle=col; ctx.lineWidth=2/view.s; ctx.stroke(c.path); } });
     ctx.globalAlpha=1;
     const sel = D.c.find(c=>c.id===state.sel);
     const hi = sat.on ? "#fff" : C["--ink"];
@@ -366,11 +424,21 @@ dd{margin:0}
       vis.forEach(c=>{
         const [x,y]=toScreen(c.cx,c.cy);
         if(x<-10||y<-10||x>cw+10||y>ch+10) return;
-        ctx.beginPath(); ctx.arc(x,y,c===sel?6:3.6,0,Math.PI*2);
-        ctx.fillStyle=tcol(c); ctx.fill();
+        ctx.beginPath(); ctx.arc(x,y,(c===sel?6:3.6)*(0.4+0.6*fa),0,Math.PI*2);
+        ctx.fillStyle=tcol(c); ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
         ctx.lineWidth=1; ctx.strokeStyle=C["--card"]; ctx.stroke();
       });
       if(sel){ const [x,y]=toScreen(sel.cx,sel.cy); ctx.beginPath(); ctx.arc(x,y,9,0,Math.PI*2); ctx.lineWidth=2; ctx.strokeStyle=hi; ctx.stroke(); }
+    }
+    // selection ripple: two rings expand from the chosen area in its type colour
+    if(sel && anim.pulse && anim.pulseId===sel.id){
+      const [x,y]=toScreen(sel.cx,sel.cy);
+      for(const d of [0,260]){
+        const t=(now-anim.pulse-d)/800; if(t<0||t>1) continue;
+        ctx.beginPath(); ctx.arc(x,y,8+34*ease(t),0,Math.PI*2);
+        ctx.globalAlpha=1-t; ctx.lineWidth=2.5; ctx.strokeStyle=tcol(sel); ctx.stroke();
+      }
+      ctx.globalAlpha=1;
     }
     // scale bar
     const target = 100/view.s; const nice=[1,2,5,10,20,50,100,200,500,1000,2000,5000];
@@ -390,11 +458,16 @@ dd{margin:0}
     view.x = wx - (px-cw/2)/view.s; view.y = wy + (py-ch/2)/view.s;
     draw();
   }
-  $("zin").onclick=()=>zoom(1.6); $("zout").onclick=()=>zoom(1/1.6); $("zall").onclick=fitAll;
-  cv.addEventListener("wheel",e=>{ e.preventDefault(); const r=cv.getBoundingClientRect(); zoom(e.deltaY<0?1.2:1/1.2, e.clientX-r.left, e.clientY-r.top); },{passive:false});
+  function zoomBtn(f){
+    if(!D) return;
+    const t = anim.cam || view;   // chain presses onto the running glide
+    flyTo(t.x, t.y, Math.min(Math.max(t.s*f, Math.min(cw/W,ch/H)*0.5), 12), 260);
+  }
+  $("zin").onclick=()=>zoomBtn(1.6); $("zout").onclick=()=>zoomBtn(1/1.6); $("zall").onclick=()=>fitAll(true);
+  cv.addEventListener("wheel",e=>{ e.preventDefault(); anim.cam=null; const r=cv.getBoundingClientRect(); zoom(e.deltaY<0?1.2:1/1.2, e.clientX-r.left, e.clientY-r.top); },{passive:false});
 
   const ptrs=new Map(); let moved=false, pinch=null;
-  cv.addEventListener("pointerdown",e=>{ cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY}); moved=false;
+  cv.addEventListener("pointerdown",e=>{ anim.cam=null; cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY}); moved=false;
     if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}; } });
   cv.addEventListener("pointermove",e=>{
     const p=ptrs.get(e.pointerId); if(!p) return;
@@ -424,14 +497,23 @@ dd{margin:0}
     }
     if(hit) select(hit.id,false);
   }
-  function focusOn(c){ view.x=c.cx; view.y=c.cy; view.s=Math.max(view.s, Math.min(cw,ch)/260); draw(); }
+  function focusOn(c){ flyTo(c.cx, c.cy, Math.max(view.s, Math.min(cw,ch)/260), 700); }
 
   // ---- side panel ----
-  function renderStats(){
+  function renderStats(countUp){
     const n = t => D.c.filter(c=>c.typ===t).length;
     $("stats").innerHTML = TYPES.map(t=>
-      `<button type="button" class="stat ${t.cls}" data-t="${t.v}" aria-pressed="${state.typ===t.v}"><b>${n(t.v)}</b><span><i class="sw"></i>${t.plural}</span></button>`).join("");
+      `<button type="button" class="stat ${t.cls}" data-t="${t.v}" aria-pressed="${state.typ===t.v}"><b data-n="${n(t.v)}">${n(t.v)}</b><span><i class="sw"></i>${t.plural}</span></button>`).join("");
     $("stats").querySelectorAll(".stat").forEach(b=>b.onclick=()=>setTyp(state.typ===b.dataset.t ? "alle" : b.dataset.t));
+    if(countUp && !RM){
+      // numbers count up once per city load
+      const els=[...$("stats").querySelectorAll("b")], t0=performance.now();
+      (function tick(now){
+        const e=ease(Math.min(1,(now-t0)/700));
+        els.forEach(b=>b.textContent=Math.round(+b.dataset.n*e));
+        if(e<1) requestAnimationFrame(tick);
+      })(t0);
+    }
   }
 
   // area-type dropdown (custom, so each option can carry its colour)
@@ -461,7 +543,7 @@ dd{margin:0}
   document.addEventListener("pointerdown",e=>{ if(!$("dd").contains(e.target)) ddOpen(false); });
 
   function setTyp(v){ state.typ=v; state.shown=50; refresh(); }
-  function refresh(){ renderStats(); renderDd(); renderFilterState(); renderList(); draw(); }
+  function refresh(countUp, stagger=true){ renderStats(countUp); renderDd(); renderFilterState(); renderList(stagger); draw(); }
   function renderFilterState(){
     const n = (state.typ!=="alle") + (state.minb>4.5) + (state.mins>0);
     $("fbadge").textContent=n+" aktiv"; $("fbadge").hidden=!n;
@@ -470,15 +552,17 @@ dd{margin:0}
     $("minb").value=state.minb; $("mins").value=state.mins;
   }
   $("filterbtn").onclick=()=>{ const open=$("panel").hidden; $("panel").hidden=!open; $("filterbtn").setAttribute("aria-expanded",String(open)); };
-  $("minb").oninput=e=>{ state.minb=+e.target.value; state.shown=50; refresh(); };
-  $("mins").oninput=e=>{ state.mins=+e.target.value; state.shown=50; refresh(); };
+  // sliders fire continuously while dragging, so the list doesn't re-stagger on every step
+  $("minb").oninput=e=>{ state.minb=+e.target.value; state.shown=50; refresh(false,false); };
+  $("mins").oninput=e=>{ state.mins=+e.target.value; state.shown=50; refresh(false,false); };
   $("reset").onclick=()=>{ state.typ="alle"; state.minb=4.5; state.mins=0; state.shown=50; refresh(); };
 
-  function renderList(){
+  // stagger=true when the result set changes (filter, city); plain re-renders stay still
+  function renderList(stagger){
     const vis = D.c.filter(match);
     $("count").textContent = vis.length+" Flächen";
-    const items = vis.slice(0,state.shown).map(c=>`
-      <li><button type="button" class="item ${T[c.typ].cls}${state.sel===c.id?" sel":""}" data-id="${c.id}">
+    const items = vis.slice(0,state.shown).map((c,i)=>`
+      <li${stagger && i<14 ? ` class="in" style="--i:${i}"` : ""}><button type="button" class="item ${T[c.typ].cls}${state.sel===c.id?" sel":""}" data-id="${c.id}">
         <i class="dot"></i>
         <span class="ad">${esc(c.adr)}</span>
         <span class="sc">${fmt(c.s)}</span>
@@ -523,14 +607,14 @@ dd{margin:0}
     $("dclose").onclick=()=>{ state.sel=null; renderDetail(); renderList(); draw(); };
     $("copy").onclick=()=>{
       const b=$("copy");
-      navigator.clipboard.writeText(c.fl).then(()=>{ b.textContent="Kopiert"; }).catch(()=>{
+      navigator.clipboard.writeText(c.fl).then(()=>{ b.innerHTML='<svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Kopiert'; b.classList.add("done"); }).catch(()=>{
         const r=document.createRange(); r.selectNodeContents($("kz")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent="Markiert, bitte kopieren";
       });
     };
   }
 
   function select(id, fromList){
-    state.sel=id; renderList(); renderDetail();
+    state.sel=id; renderList(); renderDetail(); pulse(id);
     const c=D.c.find(x=>x.id===id);
     if(fromList && c){ focusOn(c); if(matchMedia("(max-width:860px)").matches) $("mapwrap").scrollIntoView({block:"start",behavior:"smooth"}); } else draw();
     if(!fromList) $("detail").scrollIntoView({block:"nearest",behavior:"smooth"});
@@ -565,7 +649,8 @@ dd{margin:0}
       D = d; P = d.P; W = d.w*2; H = d.h*2;
       sat.img = null; sat.seq++;
       state.sel = D.c[0] ? D.c[0].id : null; state.shown = 50;
-      msg(prev); fitAll(); refresh(); renderDetail();
+      anim.fade = RM ? 0 : performance.now();
+      msg(prev); fitAll(); refresh(true); renderDetail();
     }catch(e){
       delete cache[meta.id];
       msg("Karte konnte nicht geladen werden");

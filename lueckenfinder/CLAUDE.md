@@ -25,6 +25,12 @@
 - Performance: Gebäude, Straßen, Grün und Flurstücke werden in ~500-m-Zellen gebündelt, gezeichnet
   werden nur sichtbare Zellen; in der Gesamtansicht keine Einzelgebäude. Ohne das hängt Bochum
   (142.000 Gebäude) beim Laden.
+- Mikroanimationen (alle aus bei `prefers-reduced-motion`): Kamerafahrt beim Antippen eines
+  Listeneintrags, bei +/−/ALL (zoomt weich, mehrfaches Tippen addiert sich); doppelter Ring-Puls in
+  Typfarbe um die gewählte Fläche; Flächen blenden nach dem Laden einer Stadt ein, Kennzahlen zählen
+  hoch; Liste erscheint gestaffelt bei Filter-/Stadtwechsel (nicht beim Schieberegler-Ziehen);
+  Details, Filter-Panel und Dropdown gleiten/ploppen auf; Design-Symbol dreht sich beim Umschalten;
+  „Kennzeichen kopieren“ zeichnet einen Haken; Knöpfe geben beim Drücken leicht nach.
 - Tech-Stack: Python (geopandas, shapely) für die Pipeline; Canvas 2D + Vanilla JS für die Karte.
 
 ## Worum es geht
