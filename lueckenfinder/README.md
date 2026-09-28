@@ -10,7 +10,8 @@ Findet unbebaute Wohnbaugrundstücke (Baulücken) im amtlichen Kataster und zeig
 | `scripts/analyse.py` | Sucht die Kandidaten aus den Katasterdaten heraus. |
 | `scripts/export.py` | Bereitet Karte und Kandidaten einer Stadt für die Webseite auf (`karten/<stadt>.json`). |
 | `scripts/build.py` | Aktualisiert die Stadtliste `karten/staedte.json`. |
-| `karten/` | Kartendaten je Stadt (Herne, Bochum) und die Stadtliste. |
+| `scripts/csv_export.py` | Schreibt die Kandidatentabelle einer Stadt als CSV. |
+| `karten/` | Kartendaten je Stadt (Herne, Bochum, Gelsenkirchen, Dortmund) und die Stadtliste. |
 | `index.html` | Die Kartenseite „Baulückenfinder“ (live: https://hofmiker.github.io/Claude_Test/lueckenfinder/). |
 | `ergebnisse/` | Kandidatentabellen je Stadt (CSV). |
 | `daten/` | Hier kommen die heruntergeladenen Katasterdateien hin (leer). |

@@ -5,6 +5,16 @@
   "n": 1440
  },
  {
+  "id": "dortmund",
+  "name": "Dortmund",
+  "n": 2843
+ },
+ {
+  "id": "gelsenkirchen",
+  "name": "Gelsenkirchen",
+  "n": 1473
+ },
+ {
   "id": "herne",
   "name": "Herne",
   "n": 702

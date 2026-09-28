@@ -5,8 +5,9 @@
 ## Überblick
 - Seitentitel „Baulückenfinder“. `index.html` ist die Seite selbst (keine Vorlage/kein Build-Schritt
   mehr); sie lädt die gewählte Stadt per `fetch` aus `karten/<id>.json`, die Stadtauswahl aus
-  `karten/staedte.json`. Standard ist Herne; `#bochum` im URL wählt direkt eine Stadt.
-  Daten: Herne 3,9 MB, Bochum 8,7 MB (GitHub Pages liefert gzip-komprimiert aus).
+  `karten/staedte.json`. Städte: Herne (Standard), Bochum, Gelsenkirchen, Dortmund; `#dortmund` im
+  URL wählt direkt eine Stadt. Datengröße roh/gzip: Herne 3,9/1,4 MB, Gelsenkirchen 6,0/2,2 MB,
+  Bochum 8,7/3,2 MB, Dortmund 13,9/5,0 MB (GitHub Pages liefert gzip-komprimiert aus).
 - Gestaltung: sonst reines Schwarz-Weiß; Farbe tragen nur die drei Flächentypen (Baulücke
   orange-rot, Garagengrundstück violett, Freifläche/Garten ocker) – auf der Karte, in Liste,
   Kennzahlen, Flächentyp-Dropdown und im Haupt-Button der Detailansicht („Luftbild öffnen“).
@@ -24,7 +25,7 @@
   Sandbox gesperrt, getestet wurde mit einem lokalen Ersatzbild.
 - Performance: Gebäude, Straßen, Grün und Flurstücke werden in ~500-m-Zellen gebündelt, gezeichnet
   werden nur sichtbare Zellen; in der Gesamtansicht keine Einzelgebäude. Ohne das hängt Bochum
-  (142.000 Gebäude) beim Laden.
+  (142.000 Gebäude) beim Laden; Dortmund (213.000) läuft so mit ~60 fps.
 - Mikroanimationen (alle aus bei `prefers-reduced-motion`): Kamerafahrt beim Antippen eines
   Listeneintrags, bei +/−/ALL (zoomt weich, mehrfaches Tippen addiert sich); doppelter Ring-Puls in
   Typfarbe um die gewählte Fläche; Flächen blenden nach dem Laden einer Stadt ein, Kennzahlen zählen
@@ -71,21 +72,25 @@ Vermarktung und vermittle. Die Planung übernehmen Architekten mit Baulückenerf
    Kartendaten (Gebäude, Straßen, Grün, Flurstücke um Kandidaten; Koordinaten in halben Metern,
    delta-kodiert) samt Stadtname.
 3. `build.py` schreibt `karten/staedte.json` (Stadt-Dropdown) aus allen `karten/*.json`.
+4. `csv_export.py karten/<id>.json` schreibt `ergebnisse/baulücken_<id>.csv` (Excel-tauglich).
 
-Neue Stadt, z. B. Gelsenkirchen (aus diesem Ordner):
+Neue Stadt (Beispiel Gelsenkirchen, so bereits erledigt; aus diesem Ordner):
 ```bash
 curl -O https://www.opengeodata.nrw.de/produkte/geobasis/lk/akt/gru_vereinfacht_gpkg/gru_vereinf_05513000_Gelsenkirchen_EPSG25832_GeoPackage.zip
 unzip gru_vereinf_05513000_Gelsenkirchen_EPSG25832_GeoPackage.zip -d daten
 python scripts/analyse.py daten/gru_vereinf_05513000_Gelsenkirchen_EPSG25832.gpkg ergebnisse/kandidaten_gelsenkirchen.gpkg
 python scripts/export.py daten/gru_vereinf_05513000_Gelsenkirchen_EPSG25832.gpkg ergebnisse/kandidaten_gelsenkirchen.gpkg karten/gelsenkirchen.json GE Gelsenkirchen
 python scripts/build.py
+python scripts/csv_export.py karten/gelsenkirchen.json
 ```
-`www.opengeodata.nrw.de` ist in der Session-Umgebung freigeschaltet. Analyse Herne ca. 30 s, Bochum
+`www.opengeodata.nrw.de` ist in der Session-Umgebung freigeschaltet. Analyse Herne ca. 30 s, Dortmund
 wenige Minuten.
 
 Ergebnisse (Stand Kataster 07/2026):
 - Herne: 702 Kandidaten, davon 47 Baulücken, 204 Garagengrundstücke, 451 Freiflächen.
 - Bochum: 1440 Kandidaten, davon 71 Baulücken, 235 Garagengrundstücke, 1134 Freiflächen.
+- Gelsenkirchen: 1473 Kandidaten, davon 97 Baulücken, 472 Garagengrundstücke, 904 Freiflächen.
+- Dortmund: 2843 Kandidaten, davon 147 Baulücken, 406 Garagengrundstücke, 2290 Freiflächen.
 Tabellen: `ergebnisse/baulücken_<stadt>.csv`.
 
 ## Bekannte Grenzen / nächste Schritte
