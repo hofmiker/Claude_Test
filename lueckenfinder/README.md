@@ -8,11 +8,11 @@ Findet unbebaute Wohnbaugrundstücke (Baulücken) im amtlichen Kataster und zeig
 |---|---|
 | `CLAUDE.md` | Projektgedächtnis: Ziel, Entscheidungen, Datenquellen. Claude Code liest diese Datei automatisch. |
 | `scripts/analyse.py` | Sucht die Kandidaten aus den Katasterdaten heraus. |
-| `scripts/export.py` | Bereitet Karte und Kandidaten für die Webseite auf. |
-| `scripts/build.py` | Baut daraus eine fertige HTML-Karte. |
-| `web/template.html` | Vorlage der Kartenseite. |
-| `index.html` | Fertige Karte für Herne (live: https://hofmiker.github.io/Claude_Test/lueckenfinder/). |
-| `ergebnisse/` | Kandidatentabelle für Herne (CSV). |
+| `scripts/export.py` | Bereitet Karte und Kandidaten einer Stadt für die Webseite auf (`karten/<stadt>.json`). |
+| `scripts/build.py` | Aktualisiert die Stadtliste `karten/staedte.json`. |
+| `karten/` | Kartendaten je Stadt (Herne, Bochum) und die Stadtliste. |
+| `index.html` | Die Kartenseite „Baulückenfinder“ (live: https://hofmiker.github.io/Claude_Test/lueckenfinder/). |
+| `ergebnisse/` | Kandidatentabellen je Stadt (CSV). |
 | `daten/` | Hier kommen die heruntergeladenen Katasterdateien hin (leer). |
 
 ## Weitermachen mit Claude Code
@@ -44,11 +44,12 @@ pip install geopandas pyogrio shapely pyproj
 # 2. Kandidaten finden
 python scripts/analyse.py daten/gru_vereinf_05916000_Herne_EPSG25832.gpkg ergebnisse/kandidaten.gpkg
 
-# 3. Kartendaten erzeugen (letztes Argument = Kürzel für die IDs)
-python scripts/export.py daten/gru_vereinf_05916000_Herne_EPSG25832.gpkg ergebnisse/kandidaten.gpkg ergebnisse/karte.json HE
+# 3. Kartendaten erzeugen (Kürzel für die IDs, dann Anzeigename)
+python scripts/export.py daten/gru_vereinf_05916000_Herne_EPSG25832.gpkg ergebnisse/kandidaten.gpkg karten/herne.json HE Herne
 
-# 4. HTML-Karte bauen (überschreibt die Live-Seite index.html)
-python scripts/build.py ergebnisse/karte.json index.html
+# 4. Stadtliste aktualisieren, dann index.html über einen lokalen Webserver öffnen
+python scripts/build.py
+python -m http.server   # http://localhost:8000/
 ```
 
 Laufzeit für Herne: etwa ein bis zwei Minuten.

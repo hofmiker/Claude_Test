@@ -1,21 +1,31 @@
-# Projekt: Lückenfinder
+# Projekt: Baulückenfinder (Ordner `lueckenfinder/`)
 
 **Live-URL:** https://hofmiker.github.io/Claude_Test/lueckenfinder/
 
 ## Überblick
-- `index.html`: eigenständige Karte für Herne. Gebäude, Straßen, Grün und Flurstücke aus dem
-  Kataster, dazu 702 markierte Potenzialflächen. Daten sind eingebettet (ca. 3,9 MB), es gibt
-  keine Kartenkacheln und keine Abhängigkeiten außer Google Fonts.
-- Bedienung: Mausrad oder Pinch zum Zoomen, Ziehen zum Verschieben, Klick auf eine Fläche oder einen
-  Listeneintrag öffnet die Details. Filter nach Typ, Mindestbreite und Eignung.
-- Hintergrund umschaltbar „Karte / Luftbild“ (Auswahl wird per localStorage gemerkt). Das Luftbild
-  kommt live vom WMS NW DOP (`https://www.wms.nrw.de/geobasis/wms_nw_dop`, Layer `nw_dop_rgb`):
-  pro zur Ruhe gekommener Ansicht ein GetMap direkt in EPSG:25832, kein Leaflet nötig.
-  Der WMS-Host ist in der Sandbox gesperrt, getestet wurde mit einem lokalen Ersatzbild.
-- Layout: Desktop Karte links, Seitenleiste rechts. Handy: Titel, Kennzahlen und Filter über der
-  Karte, Details und Liste darunter. Zahlen und Kleintexte in IBM Plex Serif (keine Monospace-Schrift).
+- Seitentitel „Baulückenfinder“. `index.html` ist die Seite selbst (keine Vorlage/kein Build-Schritt
+  mehr); sie lädt die gewählte Stadt per `fetch` aus `karten/<id>.json`, die Stadtauswahl aus
+  `karten/staedte.json`. Standard ist Herne; `#bochum` im URL wählt direkt eine Stadt.
+  Daten: Herne 3,9 MB, Bochum 8,7 MB (GitHub Pages liefert gzip-komprimiert aus).
+- Gestaltung: sonst reines Schwarz-Weiß; Farbe tragen nur die drei Flächentypen (Baulücke
+  orange-rot, Garagengrundstück violett, Freifläche/Garten ocker) – auf der Karte, in Liste,
+  Kennzahlen, Flächentyp-Dropdown und im Haupt-Button der Detailansicht („Luftbild öffnen“).
+  Schrift durchgehend IBM Plex Sans Condensed. Standard hell, Mondsymbol oben rechts schaltet auf
+  dunkel (per localStorage `lf-theme` gemerkt).
+- Seitenleiste: Titel + Design-Schalter, Stadt-Dropdown, Kurztext, drei Kennzahl-Kacheln (klickbar
+  als Schnellfilter), „Filter“-Knopf mit Trichter-Icon klappt Flächentyp (eigenes Dropdown mit
+  Farbfeldern), Mindestbreite und Mindest-Eignung auf. Darunter Details und Liste.
+  Handy: dieser Kopfteil steht über der Karte, Details und Liste darunter.
+- Bedienung Karte: Mausrad oder Pinch zum Zoomen, Ziehen zum Verschieben, Klick auf eine Fläche oder
+  einen Listeneintrag öffnet die Details.
+- Hintergrund umschaltbar „Karte / Luftbild“ (localStorage `lf-bg`). Das Luftbild kommt live vom
+  WMS NW DOP (`https://www.wms.nrw.de/geobasis/wms_nw_dop`, Layer `nw_dop_rgb`): pro zur Ruhe
+  gekommener Ansicht ein GetMap direkt in EPSG:25832, kein Leaflet nötig. Der WMS-Host ist in der
+  Sandbox gesperrt, getestet wurde mit einem lokalen Ersatzbild.
+- Performance: Gebäude, Straßen, Grün und Flurstücke werden in ~500-m-Zellen gebündelt, gezeichnet
+  werden nur sichtbare Zellen; in der Gesamtansicht keine Einzelgebäude. Ohne das hängt Bochum
+  (142.000 Gebäude) beim Laden.
 - Tech-Stack: Python (geopandas, shapely) für die Pipeline; Canvas 2D + Vanilla JS für die Karte.
-- Neu bauen: `python scripts/build.py ergebnisse/karte.json index.html` (aus diesem Ordner heraus).
 
 ## Worum es geht
 Geschäftsidee: Baulücken in Großstädten finden und Normalverdienern zusammen mit einem
@@ -51,13 +61,26 @@ Vermarktung und vermittle. Die Planung übernehmen Architekten mit Baulückenerf
    Länge ≥ 10 m (kleinstes umschließendes Rechteck), Kompaktheit ≥ 0,6, Straßenfront ≥ 4,5 m.
    Typen: Baulücke (≥ 2 Hauptgebäude an der Grenze), Garagengrundstück (Garagen > 10 % der Fläche),
    Freifläche / Garten. Eignung 0–8 Punkte.
-2. `export.py <gpkg> <kandidaten.gpkg> <karte.json> <ID-Präfix>` erzeugt kompakte Kartendaten
-   (Gebäude, Straßen, Grün, Flurstücke um Kandidaten; Koordinaten in halben Metern, delta-kodiert).
-3. `build.py <karte.json> <karte.html>` setzt die Daten in `web/template.html` ein.
-   Die Live-Seite ist `index.html` in diesem Ordner.
+2. `export.py <gpkg> <kandidaten.gpkg> karten/<id>.json <ID-Präfix> <Name>` erzeugt kompakte
+   Kartendaten (Gebäude, Straßen, Grün, Flurstücke um Kandidaten; Koordinaten in halben Metern,
+   delta-kodiert) samt Stadtname.
+3. `build.py` schreibt `karten/staedte.json` (Stadt-Dropdown) aus allen `karten/*.json`.
 
-Ergebnis Herne (Stand Kataster 07/2026): 702 Kandidaten, davon 47 Baulücken, 204 Garagengrundstücke,
-451 Freiflächen.
+Neue Stadt, z. B. Gelsenkirchen (aus diesem Ordner):
+```bash
+curl -O https://www.opengeodata.nrw.de/produkte/geobasis/lk/akt/gru_vereinfacht_gpkg/gru_vereinf_05513000_Gelsenkirchen_EPSG25832_GeoPackage.zip
+unzip gru_vereinf_05513000_Gelsenkirchen_EPSG25832_GeoPackage.zip -d daten
+python scripts/analyse.py daten/gru_vereinf_05513000_Gelsenkirchen_EPSG25832.gpkg ergebnisse/kandidaten_gelsenkirchen.gpkg
+python scripts/export.py daten/gru_vereinf_05513000_Gelsenkirchen_EPSG25832.gpkg ergebnisse/kandidaten_gelsenkirchen.gpkg karten/gelsenkirchen.json GE Gelsenkirchen
+python scripts/build.py
+```
+`www.opengeodata.nrw.de` ist in der Session-Umgebung freigeschaltet. Analyse Herne ca. 30 s, Bochum
+wenige Minuten.
+
+Ergebnisse (Stand Kataster 07/2026):
+- Herne: 702 Kandidaten, davon 47 Baulücken, 204 Garagengrundstücke, 451 Freiflächen.
+- Bochum: 1440 Kandidaten, davon 71 Baulücken, 235 Garagengrundstücke, 1134 Freiflächen.
+Tabellen: `ergebnisse/baulücken_<stadt>.csv`.
 
 ## Bekannte Grenzen / nächste Schritte
 - Viele „Freiflächen“ sind Seitengärten von Nachbarhäusern → manuelle Prüfung am Luftbild nötig.

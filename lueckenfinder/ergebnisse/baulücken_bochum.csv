@@ -1,0 +1,1441 @@
+﻿ID;Typ;Adresse;Gemarkung;Flur;Flurstück;Kennzeichen;Fläche m²;Breite m;Länge m;Straßenfront m;Gebäude an Grenze;Eignung;Breitengrad;Längengrad
+BO-001;Baulücke;Fahrenheitstr. 9;Dahlhausen;3;394;05111000300394______;207;13,4;16,8;17,1;2;8,0;51.433123;7.153717
+BO-002;Baulücke;Hofsteder Str. 87;Hamme;3;1914;05109700301914______;122;6,1;20,3;21,1;2;8,0;51.49389;7.20806
+BO-003;Baulücke;Im Krebsfeld 10;Langendreer;9;729;05113900900729______;191;11,4;18,9;23,1;3;8,0;51.471952;7.318611
+BO-004;Garagengrundstück;Eiberger Str. 18;Dahlhausen;12;57;05111001200057______;194;14,0;19,6;27,4;2;8,0;51.429421;7.140465
+BO-005;Baulücke;Eppendorfer Feld 5;Weitmar;6;1477;05110500601477______;130;13,3;14,6;18,2;2;8,0;51.45061;7.182961
+BO-006;Garagengrundstück;Kruppstr. 9;Günnigfeld;3;698;05114900300698______;192;13,8;14,0;15,0;2;8,0;51.495661;7.149201
+BO-007;Baulücke;Hauptstr. 295, 297;Langendreer;14;898;05113901400898______;240;5,7;42,8;43,8;2;8,0;51.464381;7.321022
+BO-008;Baulücke;Heinrich-König-Str. 30;Weitmar;9;264;05110500900264______;197;12,7;15,8;16,8;2;8,0;51.438915;7.207789
+BO-009;Garagengrundstück;Gustavstr. 2;Bochum;2;385;05110700200385______;165;13,4;14,9;14,7;2;8,0;51.489678;7.204671
+BO-010;Garagengrundstück;Harkortstr.; Harkortstr. 9;Wattenscheid;28;34;05115902800034______;174;13,1;13,4;15,8;2;8,0;51.479197;7.147534
+BO-011;Baulücke;Kreuzkamp 9, 11;Altenbochum;7;246;05109100700246______;200;5,5;45,6;49,0;2;8,0;51.474258;7.248584
+BO-012;Garagengrundstück;Mengeder Str. 33;Gerthe;20;389;05109402000389______;139;9,3;15,8;16,8;2;8,0;51.522844;7.282513
+BO-013;Baulücke;Bruchstr. 5;Wiemelhausen;10;11;05110601000011______;117;8,4;13,9;14,9;2;8,0;51.454945;7.228908
+BO-014;Baulücke;An der Holtbrügge 76;Weitmar;7;989;05110500700989______;185;12,3;21,4;14,4;2;7,9;51.449452;7.209241
+BO-015;Baulücke;Bruchstr. 7;Wiemelhausen;10;14;05110601000014______;102;8,8;12,6;13,7;2;7,8;51.454842;7.228993
+BO-016;Garagengrundstück;Schöllmannstr. 36;Riemke;10;93;05110301000093______;317;12,2;26,1;13,2;3;7,8;51.510802;7.204957
+BO-017;Baulücke;Hammer Str. 6;Wattenscheid;31;251;05115903100251______;385;13,4;30,0;13,5;2;7,8;51.482698;7.163976
+BO-018;Baulücke;Bruchstr. 11;Wiemelhausen;10;18;05110601000018______;103;8,7;12,4;13,3;2;7,8;51.454709;7.229141
+BO-019;Baulücke;Im Krebsfeld 12;Langendreer;9;303;05113900900303______;139;11,7;12,0;13,0;2;7,7;51.471826;7.318717
+BO-020;Garagengrundstück;Vereinsstr. 30;Weitmar;2;67;05110500200067______;231;12,1;25,2;13,1;3;7,7;51.47868;7.190795
+BO-021;Baulücke;Joachimstr. 12;Wiemelhausen;30;55;05110603000055______;278;10,8;25,6;11,7;3;7,6;51.470988;7.222042
+BO-022;Baulücke;Poststr. 18;Hofstede;7;49;05109900700049______;194;6,3;47,4;49,6;2;7,5;51.501485;7.209869
+BO-023;Baulücke;Ortelsburger Str. 92;Hofstede;16;618;05109901600618______;321;10,0;34,5;11,2;2;7,5;51.503524;7.182044
+BO-024;Baulücke;Karl-Wagener-Str. 137;Dahlhausen;6;993;05111000600993______;123;9,0;17,9;11,1;2;7,5;51.438536;7.170174
+BO-025;Baulücke;Heidestr. 74 a;Wattenscheid;14;468;05115901400468______;202;11,5;19,4;10,4;2;7,4;51.479583;7.161803
+BO-026;Baulücke;Baroper Str. 20;Langendreer;7;249;05113900700249______;399;8,4;49,5;9,8;2;7,3;51.462251;7.301278
+BO-027;Baulücke;Rosenbaumweg 42;Harpen;2;1669;05109800201669______;112;9,0;13,2;10,1;2;7,3;51.502469;7.28681
+BO-028;Baulücke;Keltenweg 15;Westenfeld;10;715;05116001000715______;285;9,0;32,0;10,0;3;7,3;51.468109;7.153503
+BO-029;Baulücke;Hattinger Str. 775;Linden;10;44;05111401000044______;338;7,4;48,5;8,4;2;7,1;51.428925;7.166344
+BO-030;Baulücke;Overbergstr. 1;Querenburg;6;964;05110200600964______;385;11,1;34,8;12,1;2;7,1;51.449973;7.263215
+BO-031;Baulücke;Hattinger Str. 134;Weitmar;3;236;05110500300236______;88;6,0;14,7;15,7;3;7,0;51.46606;7.206146
+BO-032;Baulücke;Hattinger Str. 136;Weitmar;3;237;05110500300237______;88;6,0;14,7;15,7;3;7,0;51.465903;7.206125
+BO-033;Baulücke;Dannenbaumstr. 30;Laer;6;43;05110100600043______;525;13,8;38,3;14,8;2;7,0;51.470625;7.261079
+BO-034;Garagengrundstück;Wittener Str. 73;Bochum;14;97;05110701400097______;536;11,3;53,1;46,4;3;7,0;51.477517;7.231755
+BO-035;Baulücke;Höhenweg 13;Dahlhausen;7;773;05111000700773______;88;9,8;11,1;18,0;2;7,0;51.437147;7.162939
+BO-036;Baulücke;Poststr.;Hofstede;17;363;05109901700363______;209;11,1;19,0;30,9;4;7,0;51.501938;7.195625
+BO-037;Garagengrundstück;Schülerweg;Wattenscheid;28;27;05115902800027______;187;13,8;13,9;14,6;2;7,0;51.479641;7.147485
+BO-038;Baulücke;Hattinger Str. 213; Vorm Kiwitt 3;Weitmar;5;2093;05110500502093______;192;15,1;18,4;34,1;2;7,0;51.463408;7.204247
+BO-039;Baulücke;Eislebener Str. 13;Langendreer;5;355;05113900500355______;380;14,2;27,5;15,2;2;7,0;51.474985;7.301609
+BO-040;Baulücke;Von-Waldthausen-Str.;Werne;5;417;05114200500417______;401;7,9;77,3;26,5;3;7,0;51.480416;7.295351
+BO-041;Baulücke;Hattinger Str. 138;Weitmar;3;441;05110500300441______;80;6,0;14,7;19,2;3;7,0;51.465827;7.206114
+BO-042;Baulücke;Auf den Holln 64;Werne;16;183;05114201600183______;284;15,1;30,0;49,5;2;7,0;51.479216;7.300739
+BO-043;Baulücke;In den Langenstuken;Langendreer;5;1189;05113900501189______;292;12,3;25,5;35,6;2;7,0;51.477429;7.305561
+BO-044;Garagengrundstück;Werner Hellweg 524;Werne;8;238;05114200800238______;399;16,0;33,5;24,7;2;7,0;51.491977;7.310393
+BO-045;Baulücke;Waldstr. 61;Eppendorf;7;63;05114500700063______;608;13,1;49,5;14,5;2;6,9;51.449131;7.174316
+BO-046;Baulücke;Hammer Str. 14;Wattenscheid;14;411;05115901400411______;225;5,0;45,1;6,0;2;6,8;51.483545;7.164135
+BO-047;Garagengrundstück;Mauritiusstr.;Bochum;16;445;05110701600445______;244;12,4;19,7;13,4;3;6,8;51.476781;7.224425
+BO-048;Baulücke;Alte Bahnhofstr. 208, 210, 212, 214;Langendreer;5;1256;05113900501256______;459;11,4;40,2;13,5;3;6,8;51.477621;7.30253
+BO-049;Baulücke;Haldenstr.;Bochum;3;278;05110700300278______;182;11,3;16,8;12,4;2;6,7;51.491805;7.210238
+BO-050;Garagengrundstück;Cheruskerstr.;Hamme;4;55;05109700400055______;430;12,3;42,8;13,0;2;6,7;51.479518;7.188403
+BO-051;Freifläche / Garten;Bleckstr. 121;Riemke;1;215;05110300100215______;380;5,3;73,5;77,2;1;6,5;51.5175;7.194475
+BO-052;Freifläche / Garten;Farnstr. 34;Wiemelhausen;31;281;05110603100281______;145;6,7;28,3;33,7;1;6,5;51.467763;7.218708
+BO-053;Freifläche / Garten;Wiemelhauser Str. 185;Wiemelhausen;8;546;05110600800546______;107;6,1;18,9;19,8;1;6,5;51.465125;7.227851
+BO-054;Baulücke;Wibbeltstr.;Westenfeld;5;79;05116000500079______;183;9,4;25,5;11,4;2;6,5;51.474856;7.143319
+BO-055;Garagengrundstück;Feldstr. 24 a;Wattenscheid;20;406;05115902000406______;303;11,9;33,1;18,9;1;6,5;51.4713;7.128035
+BO-056;Freifläche / Garten;Bochumer Str. 126;Wattenscheid;14;192;05115901400192______;149;5,8;33,6;37,9;1;6,5;51.48003;7.162788
+BO-057;Freifläche / Garten;Pfarrer-Kraemer-Str. 1;Weitmar;8;2416;05110500802416______;315;12,1;26,6;15,8;1;6,5;51.446239;7.208937
+BO-058;Freifläche / Garten;Weitmarer Str. 77, 79, 79 a, 89, 91, 93;Weitmar;4;1592;05110500401592______;268;12,9;33,3;15,3;1;6,5;51.45765;7.194172
+BO-059;Freifläche / Garten;Rudolfstr.; Hofstr. 2;Günnigfeld;3;1051;05114900301051______;348;13,8;36,5;24,0;1;6,5;51.498027;7.149935
+BO-060;Freifläche / Garten;Höfestr. 87;Laer;5;1866;05110100501866______;129;5,2;38,0;43,0;1;6,5;51.462003;7.26603
+BO-061;Freifläche / Garten;Finkenstr. 47;Eppendorf;4;463;05114500400463______;127;12,1;16,0;30,7;1;6,5;51.458904;7.180337
+BO-062;Freifläche / Garten;Hauptstr. 247;Langendreer;14;17;05113901400017______;126;5,6;30,0;24,6;1;6,5;51.468415;7.322838
+BO-063;Freifläche / Garten;Höntroper Str. 12;Höntrop;2;331;05115100200331______;260;7,0;40,8;14,8;1;6,5;51.462879;7.153046
+BO-064;Freifläche / Garten;Midgardweg 7;Gerthe;11;54;05109401100054______;165;12,2;19,7;14,8;1;6,5;51.507495;7.28989
+BO-065;Garagengrundstück;Friedhofstr. 25;Günnigfeld;2;172;05114900200172______;125;6,1;21,4;25,8;1;6,5;51.498321;7.145538
+BO-066;Freifläche / Garten;Haspelstrick 17;Altenbochum;14;278;05109101400278______;282;7,7;53,9;60,4;1;6,5;51.457653;7.239546
+BO-067;Freifläche / Garten;Hauptstr. 265;Langendreer;14;1307;05113901401307______;132;6,7;19,8;27,5;1;6,5;51.466922;7.322195
+BO-068;Baulücke;Hohe Eiche;Langendreer;5;366;05113900500366______;125;10,2;12,3;11,2;2;6,5;51.475205;7.30386
+BO-069;Freifläche / Garten;Unterstr. 157, 159;Langendreer;7;581;05113900700581______;149;6,0;25,1;30,8;1;6,5;51.46777;7.301031
+BO-070;Garagengrundstück;Ottostr. 30;Wattenscheid;20;425;05115902000425______;123;13,1;14,2;19,3;1;6,5;51.472709;7.126398
+BO-071;Freifläche / Garten;Castroper Str. 200 a;Bochum;12;704;05110701200704______;132;7,6;18,1;25,7;1;6,5;51.490404;7.243379
+BO-072;Freifläche / Garten;Wiemelhauser Str. 297;Wiemelhausen;9;6;05110600900006______;379;6,2;33,7;23,5;1;6,5;51.456621;7.22876
+BO-073;Garagengrundstück;Dr.-C.-Otto-Str. 131, 133, 133 a, 133 b;Dahlhausen;14;104;05111001400104______;377;13,6;41,5;21,5;1;6,5;51.426157;7.142904
+BO-074;Freifläche / Garten;Fahrenheitstr. 7;Dahlhausen;3;396;05111000300396______;265;12,7;22,8;34,8;1;6,5;51.43297;7.153841
+BO-075;Garagengrundstück;Kreyenfeldstr. 52;Werne;8;323;05114200800323______;243;13,4;21,9;14,7;1;6,5;51.488531;7.30913
+BO-076;Freifläche / Garten;An der Holtbrügge 67;Weitmar;7;898;05110500700898______;141;5,9;25,8;26,3;1;6,5;51.449703;7.208638
+BO-077;Freifläche / Garten;Im Kempken 34;Wiemelhausen;12;478;05110601200478______;198;11,5;26,4;27,4;1;6,5;51.448291;7.227225
+BO-078;Freifläche / Garten;Im Brauke 21;Wiemelhausen;7;331;05110600700331______;147;7,2;22,7;21,8;1;6,5;51.465696;7.234341
+BO-079;Freifläche / Garten;Zikadenweg 14;Stiepel;4;322;05108500400322______;116;7,4;18,9;19,1;1;6,5;51.437403;7.224399
+BO-080;Freifläche / Garten;Am Pappelbusch 22;Altenbochum;12;64;05109101200064______;202;6,4;34,5;39,7;1;6,5;51.470117;7.24184
+BO-081;Freifläche / Garten;Im Kempken 7;Wiemelhausen;12;83;05110601200083______;127;5,0;25,6;26,6;1;6,5;51.449797;7.228461
+BO-082;Freifläche / Garten;Wiemelhauser Str. 189 d;Wiemelhausen;8;726;05110600800726______;119;5,7;28,2;26,3;1;6,5;51.465018;7.228612
+BO-083;Freifläche / Garten;Wirmerstr. 8, 10;Altenbochum;1;177;05109100100177______;175;5,5;34,1;40,8;1;6,5;51.476155;7.245428
+BO-084;Freifläche / Garten;Suitbertweg 2 a, 2 b;Harpen;2;2232;05109800202232______;218;8,1;44,6;38,9;1;6,5;51.500729;7.281747
+BO-085;Garagengrundstück;Wasserstr. 61;Altenbochum;12;584;05109101200584______;618;13,4;51,3;11,4;2;6,5;51.467134;7.24193
+BO-086;Freifläche / Garten;Eulenbaumstr. 278; Overbergstr. 69;Querenburg;6;852;05110200600852______;262;9,2;36,6;39,2;1;6,5;51.452857;7.270865
+BO-087;Freifläche / Garten;Im Kempken 3;Wiemelhausen;12;87;05110601200087______;135;5,3;27,2;28,1;1;6,5;51.449984;7.229047
+BO-088;Freifläche / Garten;Springerplatz 40;Bochum;19;23;05110701900023______;191;12,6;18,3;14,7;1;6,5;51.478351;7.209854
+BO-089;Freifläche / Garten;Gaußstr. 30;Dahlhausen;3;429;05111000300429______;129;9,5;14,4;23,2;1;6,5;51.435437;7.156448
+BO-090;Freifläche / Garten;Schultesche Heide 1 a;Bergen;3;439;05109200300439______;266;13,0;20,5;14,0;1;6,4;51.515872;7.247217
+BO-091;Baulücke;Sudholzstr.;Dahlhausen;4;485;05111000400485______;250;12,8;29,1;10,1;3;6,4;51.442157;7.146952
+BO-092;Garagengrundstück;Wiemelhauser Str. 251;Wiemelhausen;9;755;05110600900755______;203;12,9;16,3;14,4;1;6,4;51.460245;7.228774
+BO-093;Freifläche / Garten;Springerplatz 19;Bochum;21;172;05110702100172______;134;11,9;13,5;14,4;1;6,4;51.477218;7.206825
+BO-094;Baulücke;Am Sonnenberg 51 a;Linden;7;501;05111400700501______;112;5,9;30,2;6,9;2;6,4;51.429832;7.18346
+BO-095;Baulücke;Vorwärtsstr. 2, 4, 6;Wattenscheid;2;111;05115900200111______;470;10,0;54,4;10,4;2;6,4;51.478944;7.125168
+BO-096;Freifläche / Garten;Poststr. 106;Hofstede;17;374;05109901700374______;225;12,0;18,9;12,9;1;6,2;51.502149;7.198808
+BO-097;Freifläche / Garten;Heintzmannsheide 5, 7;Weitmar;8;2001;05110500802001______;187;11,8;16,4;12,8;1;6,2;51.442996;7.220931
+BO-098;Freifläche / Garten;Dr.-C.-Otto-Str. 4;Linden;2;408;05111400200408______;162;11,5;15,9;12,6;1;6,2;51.425561;7.159498
+BO-099;Freifläche / Garten;Wehlaustr. 23;Hamme;1;1343;05109700101343______;328;11,9;27,7;12,7;1;6,2;51.496742;7.179126
+BO-100;Freifläche / Garten;Am Krüzweg 68 a;Linden;1;916;05111400100916______;412;12,0;35,1;12,9;1;6,2;51.423498;7.155335
+BO-101;Baulücke;Lewackerstr. 103;Dahlhausen;17;522;05111001700522______;95;7,0;15,0;8,7;3;6,2;51.417451;7.156422
+BO-102;Freifläche / Garten;Gahlensche Str. 160 c;Hamme;2;357;05109700200357______;300;13,0;24,6;13,0;1;6,2;51.49127;7.191203
+BO-103;Freifläche / Garten;Am Alten General 6 a;Dahlhausen;10;746;05111001000746______;317;11,0;29,8;12,0;1;6,1;51.427726;7.144934
+BO-104;Freifläche / Garten;Charlottenstr. 5 a;Wiemelhausen;15;525;05110601500525______;328;10,0;36,1;11,9;1;6,1;51.444351;7.228449
+BO-105;Freifläche / Garten;Unterm Jäger 10;Langendreer;14;624;05113901400624______;180;11,3;17,5;12,3;1;6,1;51.46098;7.320097
+BO-106;Baulücke;Präsidentstr.;Bochum;5;101;05110700500101______;240;7,7;31,3;8,5;2;6,1;51.486554;7.208573
+BO-107;Garagengrundstück;Hiltroper Str. 378 a;Hiltrop;8;489;05113300800489______;88;7,1;18,6;8,1;2;6,1;51.51088;7.251829
+BO-108;Baulücke;Haldenstr.;Bochum;2;407;05110700200407______;110;7,2;20,4;7,9;2;6,1;51.49189;7.209037
+BO-109;Baulücke;Brauhof;Wattenscheid;5;540;05115900500540______;324;20,0;22,1;24,1;2;6,0;51.480084;7.134214
+BO-110;Baulücke;Gertrudisstr. 20;Wattenscheid;5;672;05115900500672______;474;21,1;28,6;16,9;5;6,0;51.482437;7.133274
+BO-111;Garagengrundstück;Schachtstr.;Bochum;2;257;05110700200257______;226;14,0;17,4;15,0;2;6,0;51.488726;7.207881
+BO-112;Garagengrundstück;Hedwigstr.;Bochum;2;7;05110700200007______;237;15,3;17,8;15,8;2;6,0;51.489993;7.206575
+BO-113;Freifläche / Garten;Dördelstr. 50;Langendreer;9;108;05113900900108______;206;7,1;44,8;11,5;1;6,0;51.476086;7.317987
+BO-114;Freifläche / Garten;Centrumplatz; Bochumer Str. 103;Wattenscheid;14;477;05115901400477______;179;9,8;18,7;11,0;1;6,0;51.480372;7.161174
+BO-115;Baulücke;Poststr.;Hofstede;13;109;05109901300109______;345;20,6;22,0;22,1;2;6,0;51.502529;7.204681
+BO-116;Freifläche / Garten;Auf dem Norrenberge 53;Gerthe;12;255;05109401200255______;322;10,0;32,2;11,0;1;6,0;51.51177;7.286369
+BO-117;Baulücke;Alleestr.;Bochum;1;97;05110700100097______;265;15,8;18,8;19,5;2;6,0;51.480792;7.208144
+BO-118;Baulücke;Wikingerstr.;Westenfeld;10;536;05116001000536______;655;6,8;122,0;127,7;4;6,0;51.464996;7.152922
+BO-119;Baulücke;Andreas-Hofer-Str.;Altenbochum;3;731;05109100300731______;110;6,1;24,0;7,1;2;6,0;51.475589;7.240137
+BO-120;Baulücke;Lange Malterse 37, 39;Weitmar;4;236;05110500400236______;564;17,5;35,6;36,1;2;6,0;51.461371;7.195353
+BO-121;Baulücke;Poststr.;Hofstede;17;364;05109901700364______;288;15,1;19,1;16,1;3;6,0;51.50194;7.195815
+BO-122;Freifläche / Garten;Schachtstr. 2;Bochum;2;210;05110700200210______;130;10,5;12,9;11,2;1;6,0;51.489296;7.207031
+BO-123;Baulücke;Mechtenbergstr. 22;Leithe;6;129;05115400600129______;533;24,6;27,8;16,5;2;6,0;51.481264;7.107695
+BO-124;Freifläche / Garten;Hattinger Str. 819;Linden;10;335;05111401000335______;139;9,9;14,2;10,9;1;6,0;51.427039;7.163025
+BO-125;Baulücke;Hattinger Str.;Weitmar;5;1450;05110500501450______;89;6,1;17,6;24,7;2;6,0;51.451082;7.192796
+BO-126;Freifläche / Garten;Rüsternhagen 26, 26 a;Höntrop;11;146;05115101100146______;290;9,1;34,6;10,7;1;5,9;51.447321;7.16056
+BO-127;Freifläche / Garten;Langacker 3 a;Höntrop;6;291;05115100600291______;280;9,7;31,0;10,7;1;5,9;51.444723;7.138578
+BO-128;Baulücke;Vollmondstr.;Werne;2;37;05114200200037______;252;14,3;19,7;14,6;2;5,9;51.476595;7.289791
+BO-129;Freifläche / Garten;Am Neggenborn 84;Langendreer;7;1407;05113900701407______;227;9,2;24,9;10,2;1;5,9;51.465872;7.306116
+BO-130;Baulücke;Lewackerstr. 101;Dahlhausen;17;524;05111001700524______;95;8,8;17,6;6,6;2;5,9;51.41748;7.156518
+BO-131;Baulücke;Hattinger Str. 815;Linden;10;230;05111401000230______;87;7,5;11,7;6,5;2;5,9;51.427264;7.16304
+BO-132;Freifläche / Garten;Hattinger Str. 348;Weitmar;6;1825;05110500601825______;194;9,7;20,7;10,5;1;5,9;51.450624;7.192348
+BO-133;Baulücke;Schwindstr.;Weitmar;5;275;05110500500275______;158;5,9;27,5;6,9;2;5,9;51.457151;7.197815
+BO-134;Freifläche / Garten;Graf-Adolf-Str. 17, 17 a;Wattenscheid;30;58;05115903000058______;413;9,6;44,9;10,6;1;5,9;51.478372;7.146149
+BO-135;Baulücke;Verkehrsstr.;Hofstede;4;15;05109900400015______;246;6,9;53,1;5,9;3;5,8;51.5071;7.205083
+BO-136;Freifläche / Garten;Sonnenscheinpfad 40;Dahlhausen;7;1032;05111000701032______;126;8,6;18,2;9,8;1;5,8;51.439191;7.159056
+BO-137;Garagengrundstück;Lenneplatz;Grumme;8;656;05109600800656______;209;5,4;39,9;6,3;2;5,8;51.495855;7.245696
+BO-138;Freifläche / Garten;Weitmarer Str. 89, 91, 93;Weitmar;4;587;05110500400587______;185;10,7;21,3;9,9;1;5,8;51.457597;7.193962
+BO-139;Baulücke;Lindener Str.;Linden;2;360;05111400200360______;153;5,8;38,9;5,4;2;5,7;51.425101;7.162394
+BO-140;Freifläche / Garten;Glückaufstr. 50;Hamme;1;2095;05109700102095______;141;5,7;40,3;9,1;1;5,7;51.489307;7.182465
+BO-141;Baulücke;Vorstadtstr.;Wattenscheid;6;144;05115900600144______;134;9,5;21,9;5,4;3;5,7;51.482335;7.137595
+BO-142;Freifläche / Garten;Lindener Str. 39 a;Linden;9;478;05111400900478______;198;6,5;34,4;8,8;1;5,7;51.43076;7.173954
+BO-143;Garagengrundstück;Weg am Kötterberg 5;Grumme;3;209;05109600300209______;340;7,9;43,5;9,0;1;5,7;51.504573;7.243732
+BO-144;Freifläche / Garten;Poststr. 149, 149 a;Hofstede;15;206;05109901500206______;145;7,7;24,5;8,7;1;5,7;51.501573;7.194718
+BO-145;Garagengrundstück;Grolmanstr.;Wiemelhausen;9;811;05110600900811______;249;11,0;28,3;5,4;2;5,7;51.462183;7.228505
+BO-146;Freifläche / Garten;Vinzentiusweg 12;Harpen;2;3339;05109800203339______;251;7,9;37,5;8,9;1;5,7;51.499408;7.284692
+BO-147;Garagengrundstück;Buselohstr. 102;Altenbochum;1;22;05109100100022______;139;7,9;20,9;8,8;1;5,7;51.487056;7.25182
+BO-148;Freifläche / Garten;Moritzstr.; Herner Str. 340;Riemke;8;279;05110300800279______;132;7,2;19,3;8,2;1;5,6;51.50808;7.212125
+BO-149;Freifläche / Garten;Hattinger Str. 348 a;Weitmar;6;1824;05110500601824______;161;8,6;20,8;8,3;1;5,6;51.450612;7.192224
+BO-150;Freifläche / Garten;Nordstr. 7;Bochum;14;646;05110701400646______;139;7,5;19,2;8,5;1;5,6;51.475869;7.236592
+BO-151;Freifläche / Garten;Nordstr. 7 b;Bochum;14;648;05110701400648______;119;7,6;16,6;8,2;1;5,6;51.475915;7.236793
+BO-152;Freifläche / Garten;Eulenbaumstr. 258;Querenburg;6;810;05110200600810______;180;7,0;30,3;7,9;1;5,6;51.453713;7.267847
+BO-153;Freifläche / Garten;Im Stapel 49;Dahlhausen;13;99;05111001300099______;255;7,2;38,6;8,3;1;5,6;51.432707;7.138637
+BO-154;Freifläche / Garten;Verkehrsstr. 3;Hofstede;5;136;05109900500136______;105;7,3;15,1;8,3;1;5,6;51.50612;7.211458
+BO-155;Garagengrundstück;Maashänserweg;Langendreer;10;671;05113901000671______;199;10,5;19,0;20,0;1;5,5;51.472635;7.327627
+BO-156;Garagengrundstück;Alte Bahnhofstr.;Langendreer;4;315;05113900400315______;196;10,8;18,3;19,3;1;5,5;51.4736;7.312127
+BO-157;Freifläche / Garten;Auf dem Norrenberge 49;Gerthe;12;253;05109401200253______;394;16,2;32,3;40,1;1;5,5;51.511525;7.286254
+BO-158;Freifläche / Garten;Charlottenstr. 5;Wiemelhausen;15;524;05110601500524______;336;14,1;30,5;38,5;1;5,5;51.444427;7.228351
+BO-159;Garagengrundstück;Heintzmannsheide 6;Weitmar;8;3596;05110500803596______;351;16,3;22,6;17,3;1;5,5;51.443355;7.220293
+BO-160;Freifläche / Garten;An der Holtbrügge 103;Weitmar;8;262;05110500800262______;246;14,3;20,0;19,0;1;5,5;51.448013;7.20578
+BO-161;Garagengrundstück;Dahlhauser Höhe;Dahlhausen;10;432;05111001000432______;113;10,0;15,1;28,3;1;5,5;51.430903;7.149347
+BO-162;Garagengrundstück;Tewaagstr.;Laer;7;352;05110100700352______;225;13,6;16,6;14,7;1;5,5;51.470903;7.274273
+BO-163;Freifläche / Garten;Maximilian-Kolbe-Str.;Bochum;20;40;05110702000040______;111;9,2;12,0;22,2;1;5,5;51.47769;7.210751
+BO-164;Garagengrundstück;Wittkampstr.;Langendreer;10;1167;05113901001167______;213;7,3;31,0;42,1;1;5,5;51.47447;7.335309
+BO-165;Freifläche / Garten;Sonnenleite 23;Langendreer;7;1315;05113900701315______;440;23,5;29,2;41,4;1;5,5;51.465028;7.300169
+BO-166;Freifläche / Garten;Hildegardstr. 29;Hamme;3;2318;05109700302318______;217;6,3;35,1;7,1;1;5,5;51.491791;7.202983
+BO-167;Freifläche / Garten;Marie-Luise-Tanski-Str. 50;Hiltrop;11;415;05113301100415______;432;18,0;24,2;19,0;1;5,5;51.511127;7.258674
+BO-168;Garagengrundstück;Bleckstr. 2;Riemke;10;381;05110301000381______;258;6,0;43,4;7,1;1;5,5;51.508362;7.202058
+BO-169;Garagengrundstück;Blumenfeldstr. 153;Eppendorf;8;297;05114500800297______;356;20,6;23,6;21,7;1;5,5;51.445236;7.172996
+BO-170;Freifläche / Garten;Höntroper Str. 13;Höntrop;2;505;05115100200505______;335;16,7;21,8;18,0;1;5,5;51.462532;7.154215
+BO-171;Freifläche / Garten;Diekampstr.;Bochum;18;292;05110701800292______;275;14,0;22,1;39,5;1;5,5;51.479861;7.212361
+BO-172;Freifläche / Garten;Heckertstr. 92;Grumme;8;921;05109600800921______;223;6,4;40,1;7,4;1;5,5;51.496419;7.237036
+BO-173;Freifläche / Garten;Auf den Scheffeln 51;Werne;15;151;05114201500151______;168;15,3;17,0;16,4;1;5,5;51.481654;7.304877
+BO-174;Garagengrundstück;Adelagasse; Maashänserweg;Langendreer;10;644;05113901000644______;279;9,3;31,4;41,4;1;5,5;51.473225;7.328114
+BO-175;Garagengrundstück;Hauptstr.;Langendreer;10;1240;05113901001240______;169;12,8;18,7;15,6;1;5,5;51.470863;7.325511
+BO-176;Garagengrundstück;Hattinger Str. 272 b;Weitmar;4;1122;05110500401122______;303;14,2;27,5;15,2;1;5,5;51.457379;7.195494
+BO-177;Freifläche / Garten;Hattinger Str. 357;Weitmar;5;1979;05110500501979______;547;11,0;61,0;64,3;1;5,5;51.453478;7.192736
+BO-178;Garagengrundstück;Hombecker Weg;Weitmar;1;522;05110500100522______;290;8,7;33,0;33,8;1;5,5;51.468809;7.177726
+BO-179;Freifläche / Garten;Ligusterweg;Höntrop;16;924;05115101600924______;337;12,4;31,2;40,7;1;5,5;51.456394;7.150646
+BO-180;Freifläche / Garten;Jugendheimstr.;Linden;16;773;05111401600773______;124;5,7;22,9;23,9;1;5,5;51.420723;7.158719
+BO-181;Freifläche / Garten;Waldring 28 a;Wiemelhausen;28;139;05110602800139______;410;17,3;27,1;42,6;1;5,5;51.465775;7.225633
+BO-182;Freifläche / Garten;Im Kempken 5;Wiemelhausen;12;84;05110601200084______;87;5,1;17,5;18,5;1;5,5;51.449897;7.228775
+BO-183;Freifläche / Garten;Heinrich-König-Str.;Stiepel;2;13;05108500200013______;130;8,0;19,3;19,5;1;5,5;51.438707;7.208765
+BO-184;Freifläche / Garten;Herner Str. 405;Riemke;9;211;05110300900211______;299;14,5;33,6;36,9;1;5,5;51.512881;7.21014
+BO-185;Garagengrundstück;Kirchharpener Str.;Gerthe;16;306;05109401600306______;242;7,0;37,0;48,6;1;5,5;51.513862;7.284799
+BO-186;Garagengrundstück;Nevelstr. 65;Weitmar;6;1459;05110500601459______;226;14,5;18,1;33,7;1;5,5;51.446525;7.184997
+BO-187;Freifläche / Garten;Farnstr. 23;Wiemelhausen;31;104;05110603100104______;347;14,0;24,8;39,6;1;5,5;51.467598;7.220109
+BO-188;Garagengrundstück;Mühlental;Hofstede;6;541;05109900600541______;136;9,5;19,3;24,9;1;5,5;51.502759;7.218111
+BO-189;Freifläche / Garten;Bahrenbergstr.; Im Westenfeld;Querenburg;7;711;05110200700711______;193;13,1;22,2;32,1;1;5,5;51.449328;7.267273
+BO-190;Garagengrundstück;Auf der Prinz 41;Altenbochum;1;466;05109100100466______;298;15,5;20,6;16,5;1;5,5;51.485928;7.256178
+BO-191;Freifläche / Garten;Zum Ruhrblick 1;Stiepel;24;248;05108502400248______;363;17,1;25,1;39,7;1;5,5;51.425727;7.246341
+BO-192;Freifläche / Garten;Grenzstr. 23;Eppendorf;10;1224;05114501001224______;103;4,8;23,9;23,2;1;5,5;51.447213;7.162172
+BO-193;Freifläche / Garten;Kreuzkamp 15;Altenbochum;7;242;05109100700242______;391;17,2;33,1;20,0;1;5,5;51.474367;7.249357
+BO-194;Freifläche / Garten;Glockengarten;Altenbochum;4;162;05109100400162______;180;8,9;24,3;25,3;1;5,5;51.472156;7.237557
+BO-195;Garagengrundstück;Querschlag;Wiemelhausen;10;411;05110601000411______;125;8,4;16,4;17,0;1;5,5;51.455627;7.232487
+BO-196;Freifläche / Garten;Heimstr. 11;Wattenscheid;21;129;05115902100129______;410;16,3;27,0;22,7;1;5,5;51.474038;7.121001
+BO-197;Garagengrundstück;Lütkendorpweg 18;Harpen;1;2496;05109800102496______;290;6,3;48,0;7,1;1;5,5;51.49919;7.282478
+BO-198;Freifläche / Garten;Baldurstr.;Harpen;2;2138;05109800202138______;147;7,8;19,6;14,8;1;5,5;51.501235;7.288173
+BO-199;Freifläche / Garten;Bredenscheider Str.;Linden;16;445;05111401600445______;341;10,0;38,5;56,7;1;5,5;51.417406;7.162576
+BO-200;Freifläche / Garten;Jugendheimstr. 54;Linden;16;774;05111401600774______;98;5,5;18,0;18,9;1;5,5;51.420607;7.158926
+BO-201;Garagengrundstück;Schwalbengrund 21;Grumme;8;411;05109600800411______;112;4,8;30,5;38,4;1;5,5;51.496643;7.240131
+BO-202;Freifläche / Garten;Jugendheimstr.;Linden;16;188;05111401600188______;118;5,2;22,5;19,9;1;5,5;51.420851;7.158482
+BO-203;Garagengrundstück;Luxemburger Str.;Wiemelhausen;8;323;05110600800323______;104;9,0;12,0;22,1;1;5,5;51.464984;7.231006
+BO-204;Freifläche / Garten;Liboriusstr. 41, 43;Grumme;14;210;05109601400210______;587;13,4;45,9;17,1;1;5,5;51.499802;7.23509
+BO-205;Freifläche / Garten;Laerholzstr. 65;Laer;5;1900;05110100501900______;689;13,7;51,3;15,6;1;5,5;51.452829;7.256709
+BO-206;Garagengrundstück;Oberscheidstr.;Riemke;3;318;05110300300318______;200;8,0;26,0;33,3;1;5,5;51.515463;7.219599
+BO-207;Freifläche / Garten;Hattinger Str.;Linden;8;475;05111400800475______;193;8,9;24,0;25,1;1;5,5;51.432857;7.173038
+BO-208;Freifläche / Garten;Wittekindstr.;Werne;15;536;05114201500536______;156;5,8;27,0;33,7;1;5,5;51.483782;7.302443
+BO-209;Freifläche / Garten;Stresemannstr. 16;Wattenscheid;7;697;05115900700697______;152;6,2;25,5;7,2;1;5,5;51.485342;7.138202
+BO-210;Garagengrundstück;Eislebener Str. 21;Langendreer;5;1360;05113900501360______;302;17,3;17,8;36,1;1;5,5;51.474902;7.300742
+BO-211;Freifläche / Garten;Glückaufstr.;Hamme;1;2267;05109700102267______;202;8,2;35,3;15,8;1;5,5;51.489828;7.181359
+BO-212;Garagengrundstück;Elsingstr.;Werne;8;88;05114200800088______;277;13,1;21,5;14,0;1;5,4;51.489801;7.305588
+BO-213;Garagengrundstück;Hohe Eiche 39;Langendreer;4;430;05113900400430______;120;5,9;23,3;6,9;1;5,4;51.476164;7.308908
+BO-214;Freifläche / Garten;Am Hoymann;Langendreer;8;70;05113900800070______;227;13,3;17,2;14,3;1;5,4;51.469053;7.312468
+BO-215;Freifläche / Garten;Püttmannsheide;Altenbochum;10;295;05109101000295______;347;14,0;25,4;14,5;1;5,4;51.467251;7.244721
+BO-216;Garagengrundstück;Semperstr. 29;Laer;5;1747;05110100501747______;105;6,7;20,2;6,4;1;5,4;51.455651;7.256583
+BO-217;Freifläche / Garten;In den Langenstuken;Langendreer;5;147;05113900500147______;301;13,8;26,1;14,3;1;5,4;51.477243;7.304684
+BO-218;Freifläche / Garten;Lütge Heide;Werne;8;782;05114200800782______;168;13,0;14,2;14,1;1;5,4;51.488906;7.310689
+BO-219;Freifläche / Garten;Gußstahlstr.;Bochum;1;98;05110700100098______;359;13,1;27,7;13,9;1;5,4;51.480938;7.208151
+BO-220;Garagengrundstück;Steubenstr.;Altenbochum;3;470;05109100300470______;115;12,0;13,0;13,9;1;5,4;51.475473;7.242305
+BO-221;Garagengrundstück;Platanenweg 17;Querenburg;1;606;05110200100606______;196;5,3;38,9;6,7;1;5,4;51.446867;7.240515
+BO-222;Freifläche / Garten;Velsstr.;Altenbochum;13;395;05109101300395______;208;13,2;16,3;14,2;1;5,4;51.465495;7.237613
+BO-223;Freifläche / Garten;Nordring;Bochum;7;378;05110700700378______;343;12,9;27,4;13,5;1;5,3;51.48749;7.214933
+BO-224;Garagengrundstück;Am Sattelgut 80;Dahlhausen;9;303;05111000900303______;117;5,4;30,9;6,4;1;5,3;51.430897;7.155627
+BO-225;Freifläche / Garten;Dürerstr.;Weitmar;5;288;05110500500288______;259;12,4;20,8;13,4;1;5,3;51.456524;7.197634
+BO-226;Garagengrundstück;Rüsingstr. 73;Werne;5;550;05114200500550______;108;5,7;30,0;6,1;1;5,3;51.480422;7.293288
+BO-227;Freifläche / Garten;Auf dem Jäger;Langendreer;14;1403;05113901401403______;432;12,4;41,1;13,4;1;5,3;51.46014;7.323534
+BO-228;Freifläche / Garten;Saarlandstr. 87;Wattenscheid;18;246;05115901800246______;132;5,0;31,8;6,0;1;5,3;51.4752;7.13535
+BO-229;Freifläche / Garten;Friederikastr. 8, 10;Wiemelhausen;29;45;05110602900045______;150;5,1;30,3;6,1;1;5,3;51.470572;7.224355
+BO-230;Freifläche / Garten;Kemnader Str. 277 a;Stiepel;9;541;05108500900541______;454;12,8;36,0;13,5;1;5,3;51.430471;7.239917
+BO-231;Garagengrundstück;Hattinger Str. 112;Wiemelhausen;2;55;05110600200055______;205;5,2;40,3;6,2;1;5,3;51.468139;7.207423
+BO-232;Freifläche / Garten;Dürerstr.;Weitmar;5;293;05110500500293______;260;12,5;20,8;13,5;1;5,3;51.457135;7.198401
+BO-233;Garagengrundstück;Steinkuhlstr. 85;Wiemelhausen;37;749;05110603700749______;84;8,3;14,5;13,5;1;5,3;51.460785;7.251599
+BO-234;Freifläche / Garten;Munscheider Damm 138;Linden;5;52;05111400500052______;434;8,8;50,3;9,5;1;5,3;51.438812;7.179596
+BO-235;Garagengrundstück;Zur Burkuhle 15;Harpen;5;863;05109800500863______;100;5,0;20,0;6,0;1;5,3;51.492058;7.267898
+BO-236;Freifläche / Garten;Bergstr.;Bochum;4;38;05110700400038______;365;12,8;29,4;13,4;1;5,3;51.491443;7.221451
+BO-237;Freifläche / Garten;Daimlerstr. 26;Gerthe;7;125;05109400700125______;105;5,3;22,9;6,3;1;5,3;51.52211;7.303968
+BO-238;Garagengrundstück;Punges Feld;Hiltrop;5;322;05113300500322______;116;9,9;12,5;13,2;1;5,3;51.51489;7.269781
+BO-239;Freifläche / Garten;Querschlag;Wiemelhausen;10;150;05110601000150______;179;11,6;16,6;12,6;1;5,2;51.45576;7.232334
+BO-240;Freifläche / Garten;Heuversstr. 12;Bochum;21;151;05110702100151______;111;5,8;22,8;5,2;1;5,2;51.476809;7.207977
+BO-241;Freifläche / Garten;Gräfin-Imma-Str. 68;Stiepel;33;667;05108503300667______;371;22,2;27,1;12,7;1;5,2;51.425995;7.235404
+BO-242;Garagengrundstück;Stiepeler Str. 68 h;Querenburg;1;792;05110200100792______;193;6,5;40,5;5,1;1;5,2;51.450731;7.238516
+BO-243;Freifläche / Garten;Rüsselsheimer Weg;Langendreer;6;622;05113900600622______;116;9,5;12,4;13,0;1;5,2;51.472628;7.299035
+BO-244;Garagengrundstück;Klostermannstr.;Hofstede;18;185;05109901800185______;143;10,0;19,0;13,1;1;5,2;51.505998;7.187207
+BO-245;Garagengrundstück;Lindengraben;Altenbochum;3;400;05109100300400______;113;9,3;13,0;13,0;1;5,2;51.474285;7.244682
+BO-246;Freifläche / Garten;Adlerstr.;Westenfeld;13;869;05116001300869______;161;13,9;14,7;13,1;1;5,2;51.470416;7.161842
+BO-247;Freifläche / Garten;Poststr. 101;Hofstede;14;133;05109901400133______;220;8,7;31,0;4,9;1;5,1;51.501709;7.199759
+BO-248;Freifläche / Garten;Hohlstr.;Langendreer;1;731;05113900100731______;389;10,0;40,8;12,0;1;5,1;51.480201;7.309155
+BO-249;Garagengrundstück;Constantinstr.;Hofstede;6;372;05109900600372______;230;11,2;21,5;12,2;1;5,1;51.502281;7.216348
+BO-250;Freifläche / Garten;Prattwinkel;Grumme;19;402;05109601900402______;195;12,2;17,7;12,3;1;5,1;51.503558;7.226553
+BO-251;Freifläche / Garten;Voltastr. 15;Dahlhausen;7;888;05111000700888______;142;5,1;30,3;4,8;1;5,1;51.434492;7.157812
+BO-252;Freifläche / Garten;Hörder Str. 117;Langendreer;13;905;05113901300905______;166;6,9;24,0;24,9;0;5,0;51.460559;7.33778
+BO-253;Freifläche / Garten;Stensstr. 51;Weitmar;5;1933;05110500501933______;256;7,6;42,3;52,5;0;5,0;51.457483;7.205427
+BO-254;Freifläche / Garten;Stensstr. 54;Weitmar;5;1918;05110500501918______;314;9,7;42,1;53,8;0;5,0;51.457812;7.204778
+BO-255;Freifläche / Garten;Auf'm Kamp 22;Westenfeld;9;209;05116000900209______;118;6,7;24,6;25,5;0;5,0;51.466648;7.143531
+BO-256;Freifläche / Garten;Otto-Brenner-Str. 7;Wattenscheid;30;200;05115903000200______;205;10,9;18,9;19,8;0;5,0;51.479531;7.142576
+BO-257;Garagengrundstück;Hiltroper Landwehr 108;Hiltrop;2;260;05113300200260______;283;13,0;25,8;26,9;0;5,0;51.523829;7.265331
+BO-258;Freifläche / Garten;Auf dem Alten Kamp 53;Wiemelhausen;35;959;05110603500959______;127;12,0;14,2;15,2;0;5,0;51.455521;7.243431
+BO-259;Freifläche / Garten;Trakehner Str. 13;Dahlhausen;4;140;05111000400140______;112;8,4;19,8;20,5;0;5,0;51.440376;7.150521
+BO-260;Freifläche / Garten;Rosendelle 1;Eppendorf;4;131;05114500400131______;446;11,0;47,9;53,9;0;5,0;51.455822;7.178669
+BO-261;Freifläche / Garten;Blumenfeldstr. 114;Weitmar;6;161;05110500600161______;134;11,1;17,7;22,7;0;5,0;51.446996;7.177437
+BO-262;Garagengrundstück;Nevelstr. 132;Linden;5;69;05111400500069______;140;13,9;15,9;23,7;0;5,0;51.437917;7.180283
+BO-263;Freifläche / Garten;Am Sonnenberg 89;Linden;6;1262;05111400601262______;173;13,6;14,7;26,7;0;5,0;51.431666;7.18831
+BO-264;Freifläche / Garten;Markstr. 18, 20;Wiemelhausen;37;269;05110603700269______;228;6,4;45,8;46,8;0;5,0;51.463408;7.2573
+BO-265;Freifläche / Garten;Wichernstr. 27;Bochum;12;647;05110701200647______;178;13,9;15,7;16,7;0;5,0;51.494751;7.246338
+BO-266;Freifläche / Garten;Frühlingstr. 2;Wattenscheid;8;264;05115900800264______;256;9,7;39,6;49,0;0;5,0;51.491798;7.138806
+BO-267;Freifläche / Garten;Waldenburger Str. 22, 24;Weitmar;8;3286;05110500803286______;102;7,4;18,9;20,9;0;5,0;51.446335;7.21897
+BO-268;Freifläche / Garten;Wichernstr. 29;Bochum;12;646;05110701200646______;113;8,7;18,6;19,6;0;5,0;51.494755;7.246585
+BO-269;Freifläche / Garten;Kuhlenkötterweg 6;Weitmar;8;1148;05110500801148______;106;6,8;18,9;19,3;0;5,0;51.446862;7.205455
+BO-270;Freifläche / Garten;Stensstr. 46;Weitmar;5;1930;05110500501930______;154;13,8;17,6;45,3;0;5,0;51.458178;7.205564
+BO-271;Freifläche / Garten;Heinrich-König-Str.;Weitmar;9;2808;05110500902808______;436;10,1;44,1;11,3;1;5,0;51.438387;7.203837
+BO-272;Freifläche / Garten;Stensstr. 37;Weitmar;5;1931;05110500501931______;269;8,4;49,2;58,4;0;5,0;51.457868;7.206068
+BO-273;Freifläche / Garten;Ostermannstr. 1;Wiemelhausen;26;184;05110602600184______;199;6,0;33,6;34,7;0;5,0;51.463729;7.221848
+BO-274;Freifläche / Garten;Kassenberger Str. 111;Dahlhausen;3;121;05111000300121______;176;13,9;20,4;15,0;0;5,0;51.43546;7.15169
+BO-275;Freifläche / Garten;Im Haarmannsbusch 110;Stiepel;8;207;05108500800207______;122;8,1;21,5;21,0;0;5,0;51.438824;7.237081
+BO-276;Freifläche / Garten;Ringstr. 5;Eppendorf;12;1022;05114501201022______;109;6,6;22,2;21,6;0;5,0;51.456865;7.167879
+BO-277;Garagengrundstück;Am Hülsenbusch 55;Wiemelhausen;7;41;05110600700041______;258;15,5;22,2;11,5;1;5,0;51.467359;7.236068
+BO-278;Freifläche / Garten;Schmidtstr. 88;Bochum;20;91;05110702000091______;291;14,8;32,9;11,4;1;5,0;51.475657;7.210991
+BO-279;Freifläche / Garten;Hiltroper Str. 397;Hiltrop;8;256;05113300800256______;160;5,6;29,8;34,1;0;5,0;51.511582;7.251787
+BO-280;Freifläche / Garten;Einsteinweg; Im Loh 20;Höntrop;1;1284;05115100101284______;171;12,5;13,8;14,7;0;5,0;51.459543;7.145882
+BO-281;Freifläche / Garten;Ovelackerstr. 63;Langendreer;9;1673;05113900901673______;249;8,5;29,1;19,1;0;5,0;51.475267;7.320019
+BO-282;Freifläche / Garten;Krayer Str. 3;Leithe;3;152;05115400300152______;117;8,6;14,4;31,0;0;5,0;51.48117;7.111698
+BO-283;Freifläche / Garten;Gisela-Piedboeuf-Weg 21;Linden;16;1145;05111401601145______;291;12,0;27,5;40,6;0;5,0;51.417972;7.161731
+BO-284;Freifläche / Garten;Peter-Parler-Weg 1, 3, 5, 7, 9, 11;Laer;5;1056;05110100501056______;178;12,9;18,2;15,8;0;5,0;51.45707;7.260841
+BO-285;Freifläche / Garten;Alte Markstr. 6;Wiemelhausen;37;596;05110603700596______;208;12,9;24,6;24,8;0;5,0;51.458605;7.253314
+BO-286;Baulücke;Heidelbeerweg 24;Linden;6;843;05111400600843______;487;18,0;40,2;7,2;2;5,0;51.434703;7.187892
+BO-287;Freifläche / Garten;Markstr. 212;Querenburg;1;801;05110200100801______;108;7,5;22,7;23,5;0;5,0;51.450695;7.241091
+BO-288;Freifläche / Garten;Dr.-C.-Otto-Str. 113;Dahlhausen;15;613;05111001500613______;165;11,0;21,1;24,6;0;5,0;51.426081;7.146422
+BO-289;Garagengrundstück;Jugendheimstr. 76;Linden;16;143;05111401600143______;171;8,1;27,5;31,8;0;5,0;51.419854;7.160121
+BO-290;Freifläche / Garten;Blankensteiner Str. 283 a;Weitmar;10;998;05110501000998______;105;8,5;19,7;17,2;0;5,0;51.428449;7.205338
+BO-291;Freifläche / Garten;Liebigstr. 11;Weitmar;1;1176;05110500101176______;117;8,9;13,3;23,2;0;5,0;51.470334;7.169078
+BO-292;Freifläche / Garten;Heintzmannstr. 174;Laer;5;1154;05110100501154______;117;7,7;17,0;18,2;0;5,0;51.451347;7.252018
+BO-293;Freifläche / Garten;Zum Ruhrblick 22;Stiepel;24;373;05108502400373______;337;10,5;32,6;43,8;0;5,0;51.425763;7.24516
+BO-294;Freifläche / Garten;Weidengrund 46;Stiepel;3;817;05108500300817______;293;13,9;22,1;23,9;0;5,0;51.435033;7.216605
+BO-295;Freifläche / Garten;Stiepeler Str. 152;Querenburg;3;101;05110200300101______;164;7,8;25,9;26,5;0;5,0;51.444697;7.244513
+BO-296;Freifläche / Garten;Höhenweg; Polterberg 106;Dahlhausen;6;975;05111000600975______;112;7,9;19,8;25,9;0;5,0;51.440115;7.162102
+BO-297;Freifläche / Garten;Ovelackerstr. 57;Langendreer;9;1676;05113900901676______;249;8,6;29,1;47,2;0;5,0;51.475074;7.320118
+BO-298;Freifläche / Garten;Am Trappen 4;Dahlhausen;15;229;05111001500229______;250;12,9;22,4;15,5;0;5,0;51.424604;7.14739
+BO-299;Freifläche / Garten;Ovelackerstr. 61;Langendreer;9;1674;05113900901674______;249;8,5;29,1;19,1;0;5,0;51.475194;7.320057
+BO-300;Freifläche / Garten;Günnigfelder Str. 146;Hordel;9;161;05110000900161______;208;13,6;20,0;15,1;0;5,0;51.501028;7.154621
+BO-301;Freifläche / Garten;Düsterstr. 14;Stiepel;30;610;05108503000610______;126;6,7;24,5;27,6;0;5,0;51.420033;7.243876
+BO-302;Garagengrundstück;Im Steinhof 11;Wattenscheid;20;13;05115902000013______;173;11,7;23,3;44,5;0;5,0;51.473201;7.123839
+BO-303;Freifläche / Garten;Laarmannstr. 63;Linden;1;597;05111400100597______;108;7,4;19,2;23,1;0;5,0;51.422604;7.159831
+BO-304;Freifläche / Garten;Narzissenstr. 11, 13, 15;Eppendorf;4;183;05114500400183______;141;9,9;21,1;20,9;0;5,0;51.456991;7.17893
+BO-305;Freifläche / Garten;Everstalstr. 44;Langendreer;17;718;05113901700718______;138;6,9;21,4;26,9;0;5,0;51.490126;7.331689
+BO-306;Freifläche / Garten;Gisela-Piedboeuf-Weg 9;Linden;16;1151;05111401601151______;409;14,0;29,9;15,0;0;5,0;51.418208;7.162731
+BO-307;Freifläche / Garten;In der Löchte 16;Eppendorf;9;931;05114500900931______;152;13,7;15,6;14,8;0;5,0;51.44458;7.166864
+BO-308;Freifläche / Garten;Gisela-Piedboeuf-Weg 17;Linden;16;1147;05111401601147______;415;13,3;32,4;22,8;0;5,0;51.418016;7.162048
+BO-309;Freifläche / Garten;Einsteinweg 3;Höntrop;1;682;05115100100682______;197;12,1;16,8;21,8;0;5,0;51.459137;7.145581
+BO-310;Garagengrundstück;Paulinenstr. 21;Wiemelhausen;36;900;05110603600900______;105;6,5;19,4;24,3;0;5,0;51.463057;7.244094
+BO-311;Freifläche / Garten;Im Haarmannsbusch 69;Stiepel;7;222;05108500700222______;449;10,1;58,2;16,9;0;5,0;51.43782;7.23247
+BO-312;Freifläche / Garten;Paulinenstr. 21;Wiemelhausen;36;901;05110603600901______;131;6,2;21,9;24,2;0;5,0;51.4632;7.243987
+BO-313;Freifläche / Garten;Goldhammer Str. 105, 107;Hamme;2;2849;05109700202849______;286;6,0;48,4;49,4;0;5,0;51.483186;7.183798
+BO-314;Freifläche / Garten;Im Ostholz 69;Linden;8;313;05111400800313______;224;8,1;28,2;29,0;0;5,0;51.429999;7.179092
+BO-315;Freifläche / Garten;Blankensteiner Str. 259;Weitmar;10;722;05110501000722______;134;7,1;25,1;24,0;0;5,0;51.427037;7.201757
+BO-316;Freifläche / Garten;Sonnenleite 1, 3, 5, 7, 9, 11, 13, 15, 17;Langendreer;7;741;05113900700741______;190;5,7;38,4;30,7;0;5,0;51.464082;7.299792
+BO-317;Garagengrundstück;Henriettenstr. 28;Bochum;21;158;05110702100158______;228;13,9;17,0;18,1;0;5,0;51.476473;7.207951
+BO-318;Freifläche / Garten;Auf dem Norrenberge 63;Gerthe;12;245;05109401200245______;315;10,0;31,9;16,1;0;5,0;51.511918;7.285856
+BO-319;Freifläche / Garten;Geheimrat-Leuschner-Str. 4;Langendreer;6;629;05113900600629______;181;11,2;20,3;26,7;0;5,0;51.473897;7.298523
+BO-320;Freifläche / Garten;Karl-Arnold-Str. 28;Eppendorf;9;661;05114500900661______;162;11,9;16,8;18,4;0;5,0;51.443069;7.164174
+BO-321;Freifläche / Garten;Kemnader Str. 342;Stiepel;10;733;05108501000733______;228;6,7;39,3;39,7;0;5,0;51.427921;7.246348
+BO-322;Freifläche / Garten;Geitlingstr. 5;Wattenscheid;13;60;05115901300060______;170;7,1;29,6;30,6;0;5,0;51.479576;7.154834
+BO-323;Freifläche / Garten;Harpener Str. 38;Altenbochum;2;437;05109100200437______;425;9,1;54,0;56,8;0;5,0;51.485332;7.249586
+BO-324;Freifläche / Garten;Heroldstr. 44;Werne;11;522;05114201100522______;106;6,9;22,1;22,7;0;5,0;51.495517;7.310024
+BO-325;Freifläche / Garten;Kohlensiepen 23;Gerthe;8;861;05109400800861______;242;9,3;28,6;25,0;0;5,0;51.521892;7.29145
+BO-326;Garagengrundstück;Lütge Heide;Werne;8;303;05114200800303______;231;11,8;27,8;11,3;1;5,0;51.488864;7.310145
+BO-327;Freifläche / Garten;Am Lohberg 38;Altenbochum;3;53;05109100300053______;146;10,8;18,9;20,0;0;5,0;51.480189;7.238277
+BO-328;Freifläche / Garten;Castroper Str. 102;Bochum;11;484;05110701100484______;202;7,0;28,8;29,8;0;5,0;51.486767;7.232114
+BO-329;Freifläche / Garten;Hahnenfußweg 20;Stiepel;5;332;05108500500332______;318;10,3;37,3;19,7;0;5,0;51.435057;7.220706
+BO-330;Freifläche / Garten;In der Löchte 8;Eppendorf;9;144;05114500900144______;222;13,7;24,9;14,7;0;5,0;51.444875;7.16632
+BO-331;Freifläche / Garten;Rathenaustr. 33;Eppendorf;7;155;05114500700155______;302;11,2;35,2;40,4;0;5,0;51.451679;7.181677
+BO-332;Freifläche / Garten;Kornharpener Str. 211;Harpen;4;982;05109800400982______;342;7,5;46,2;15,1;0;5,0;51.489472;7.267536
+BO-333;Freifläche / Garten;Sonnenleite 1, 3, 5, 7, 9, 11, 13, 15, 17;Langendreer;7;739;05113900700739______;126;5,7;27,8;28,6;0;5,0;51.463745;7.299846
+BO-334;Freifläche / Garten;Dorotheenstr.;Bochum;22;318;05110702200318______;230;10,4;22,5;11,1;1;5,0;51.479154;7.20741
+BO-335;Garagengrundstück;Hordeler Heide 96, 98, 100;Hamme;1;1635;05109700101635______;215;9,9;22,1;23,1;0;5,0;51.495147;7.176501
+BO-336;Freifläche / Garten;Alter Zoll 7 a;Sevinghausen;10;217;05115701000217______;354;13,9;25,6;22,7;0;5,0;51.457517;7.138397
+BO-337;Baulücke;Rüsingstr.;Werne;4;118;05114200400118______;562;16,0;43,9;17,0;2;5,0;51.480908;7.288078
+BO-338;Freifläche / Garten;Wittekindstr. 85;Werne;8;482;05114200800482______;156;8,9;20,1;21,1;0;5,0;51.486711;7.306086
+BO-339;Freifläche / Garten;Auf den Scheffeln 13 b;Werne;15;541;05114201500541______;108;6,0;18,4;25,4;0;5,0;51.482862;7.302262
+BO-340;Freifläche / Garten;Hattinger Str. 838;Linden;2;557;05111400200557______;131;10,2;19,7;23,7;0;5,0;51.424941;7.160204
+BO-341;Freifläche / Garten;Gewerbestr. 32;Günnigfeld;5;149;05114900500149______;212;7,4;39,6;42,4;0;5,0;51.489478;7.158912
+BO-342;Baulücke;Wallbaumweg;Langendreer;1;653;05113900100653______;496;22,9;26,6;24,0;2;5,0;51.480189;7.311439
+BO-343;Freifläche / Garten;Hofsteder Str. 91;Hamme;3;2036;05109700302036______;107;7,2;16,5;24,6;0;5,0;51.494165;7.208135
+BO-344;Freifläche / Garten;Heroldstr. 46;Werne;9;542;05114200900542______;162;13,8;16,2;15,4;0;5,0;51.495682;7.309842
+BO-345;Freifläche / Garten;Barlachweg 20;Weitmar;5;1921;05110500501921______;141;10,0;22,6;25,4;0;5,0;51.458343;7.204088
+BO-346;Freifläche / Garten;Barlachweg 18;Weitmar;5;1920;05110500501920______;282;13,1;25,6;26,6;0;5,0;51.45817;7.204257
+BO-347;Freifläche / Garten;Im Hagenacker 16, 18, 26, 28, 30;Hiltrop;7;196;05113300700196______;162;6,8;43,6;45,3;0;5,0;51.514078;7.255559
+BO-348;Freifläche / Garten;Derfflingerstr. 9 a;Günnigfeld;9;573;05114900900573______;174;12,7;13,8;14,6;0;5,0;51.489267;7.156454
+BO-349;Freifläche / Garten;Ümminger Höhe 10;Querenburg;11;155;05110201100155______;216;13,7;18,3;29,1;0;5,0;51.461953;7.295846
+BO-350;Freifläche / Garten;Eppendorfer Feld 22;Weitmar;6;1447;05110500601447______;105;6,7;26,0;29,5;0;5,0;51.450366;7.181809
+BO-351;Freifläche / Garten;Ridderstr. 3;Westenfeld;2;74;05116000200074______;108;7,8;14,8;22,4;0;5,0;51.472089;7.1418
+BO-352;Freifläche / Garten;Am Schöttelse 3;Langendreer;13;1027;05113901301027______;181;11,8;21,3;22,4;0;5,0;51.459413;7.338433
+BO-353;Freifläche / Garten;Am Ruhrort 55 a;Dahlhausen;2;137;05111000200137______;257;13,1;24,6;15,6;0;5,0;51.433825;7.139022
+BO-354;Freifläche / Garten;Südstr. 73;Westenfeld;13;819;05116001300819______;201;11,0;23,9;27,9;0;5,0;51.470124;7.160197
+BO-355;Garagengrundstück;Bochumer Str.;Wattenscheid;14;435;05115901400435______;693;16,2;43,9;17,3;3;5,0;51.479142;7.159113
+BO-356;Freifläche / Garten;Galgenfeldstr. 51;Stiepel;17;192;05108501700192______;132;5,0;35,5;39,0;0;5,0;51.427524;7.248457
+BO-357;Freifläche / Garten;Im Steinhof 12;Wattenscheid;20;420;05115902000420______;217;8,4;30,4;31,2;0;5,0;51.473567;7.124138
+BO-358;Freifläche / Garten;Dr.-C.-Otto-Str. 135, 135 a;Dahlhausen;14;133;05111001400133______;204;12,3;22,0;29,9;0;5,0;51.426186;7.142669
+BO-359;Freifläche / Garten;Essener Str. 104;Hamme;4;1888;05109700401888______;160;5,1;32,2;37,9;0;5,0;51.474331;7.180887
+BO-360;Freifläche / Garten;Laubenstr. 20 a;Wattenscheid;24;149;05115902400149______;160;10,0;15,9;16,9;0;5,0;51.488279;7.127389
+BO-361;Freifläche / Garten;Lewackerstr. 107;Dahlhausen;17;519;05111001700519______;106;8,5;17,8;19,4;0;5,0;51.417461;7.156098
+BO-362;Freifläche / Garten;Griesenbruchstr. 7;Bochum;22;342;05110702200342______;263;9,6;29,7;30,6;0;5,0;51.479296;7.20775
+BO-363;Freifläche / Garten;Wohlfahrtstr. 111;Wiemelhausen;18;126;05110601800126______;107;5,9;26,8;31,8;0;5,0;51.453712;7.223079
+BO-364;Freifläche / Garten;Glücksburger Str. 13;Wiemelhausen;12;640;05110601200640______;120;10,4;18,9;30,8;0;5,0;51.449978;7.232664
+BO-365;Freifläche / Garten;Maximilian-Kolbe-Str. 21;Bochum;20;31;05110702000031______;135;9,0;16,1;26,3;0;5,0;51.47766;7.210257
+BO-366;Freifläche / Garten;Am Krüzweg 66, 68;Linden;1;878;05111400100878______;190;7,9;29,4;30,5;0;5,0;51.423485;7.154998
+BO-367;Garagengrundstück;Schadowstr. 42;Wiemelhausen;37;465;05110603700465______;191;5,6;37,3;40,5;0;5,0;51.459897;7.24937
+BO-368;Freifläche / Garten;Alter Zoll 7 b;Sevinghausen;10;216;05115701000216______;437;13,8;32,3;14,7;0;5,0;51.457348;7.137988
+BO-369;Freifläche / Garten;Auf dem Norrenberge 69;Gerthe;12;248;05109401200248______;342;12,0;32,1;46,8;0;5,0;51.511605;7.285767
+BO-370;Baulücke;Kreyenfeldstr.;Werne;8;773;05114200800773______;453;22,1;24,6;23,4;3;5,0;51.489092;7.309167
+BO-371;Freifläche / Garten;Liebigstr. 13;Weitmar;1;1175;05110500101175______;115;8,9;13,1;22,1;0;5,0;51.470302;7.16896
+BO-372;Freifläche / Garten;Elbestr. 8 g;Harpen;4;1259;05109800401259______;290;12,5;27,7;13,9;0;4,9;51.486792;7.259993
+BO-373;Baulücke;Sudholzstr. 70;Höntrop;12;588;05115101200588______;463;14,0;38,5;7,0;2;4,9;51.442514;7.154439
+BO-374;Freifläche / Garten;Zum Ruhrblick 26;Stiepel;24;375;05108502400375______;128;10,5;14,6;14,3;0;4,9;51.425494;7.245166
+BO-375;Freifläche / Garten;Karl-Wagener-Str. 115;Dahlhausen;6;1029;05111000601029______;196;9,9;27,0;14,2;0;4,9;51.439291;7.168926
+BO-376;Freifläche / Garten;Haarstr. 21;Stiepel;7;55;05108500700055______;254;8,4;47,3;14,1;0;4,9;51.433023;7.234156
+BO-377;Freifläche / Garten;Auf den Scheffeln 68, 70;Werne;15;498;05114201500498______;168;12,1;18,0;14,4;0;4,9;51.481433;7.305446
+BO-378;Freifläche / Garten;Markstr. 246 b, 246 c;Querenburg;1;845;05110200100845______;253;13,8;19,0;14,5;0;4,9;51.449451;7.237311
+BO-379;Freifläche / Garten;Markstr. 261, 261 a;Querenburg;1;722;05110200100722______;294;12,7;34,4;14,4;0;4,9;51.44851;7.237116
+BO-380;Freifläche / Garten;Am Alten General 10;Dahlhausen;10;771;05111001000771______;139;5,5;25,8;6,5;1;4,9;51.427754;7.145287
+BO-381;Freifläche / Garten;Im Ostholz 93;Linden;8;649;05111400800649______;357;14,3;41,5;10,6;1;4,9;51.43142;7.178992
+BO-382;Garagengrundstück;Elsaßstr. 17;Bochum;22;169;05110702200169______;246;13,2;21,2;14,3;0;4,9;51.478545;7.207012
+BO-383;Garagengrundstück;Hattinger Str. 116;Weitmar;3;126;05110500300126______;182;11,9;16,9;13,3;0;4,8;51.467683;7.206719
+BO-384;Freifläche / Garten;Am Hangenden 10;Hamme;2;3113;05109700203113______;360;12,3;30,4;13,3;0;4,8;51.491863;7.187872
+BO-385;Garagengrundstück;Bramheide;Werne;12;73;05114201200073______;304;10,1;32,5;9,7;1;4,8;51.490904;7.315002
+BO-386;Freifläche / Garten;Hiltroper Landwehr 74;Hiltrop;4;1092;05113300401092______;635;13,1;53,2;13,3;1;4,8;51.522228;7.268561
+BO-387;Freifläche / Garten;Hattinger Str.;Linden;2;514;05111400200514______;155;5,4;33,0;9,8;1;4,8;51.425755;7.161081
+BO-388;Freifläche / Garten;Stollen 8;Wiemelhausen;10;403;05110601000403______;388;12,3;32,2;13,3;0;4,8;51.455291;7.229786
+BO-389;Garagengrundstück;Hülsbergstr. 71 a;Stiepel;15;230;05108501500230______;284;12,9;24,5;13,5;0;4,8;51.432782;7.217045
+BO-390;Freifläche / Garten;Hofsteder Str. 59;Bochum;2;406;05110700200406______;108;9,0;15,9;13,6;0;4,8;51.491881;7.209149
+BO-391;Freifläche / Garten;Libellenweg 3 a;Stiepel;4;874;05108500400874______;179;11,5;17,9;13,5;0;4,8;51.43872;7.22489
+BO-392;Freifläche / Garten;Natorpstr. 41 a;Weitmar;9;1685;05110500901685______;104;5,1;26,6;13,2;0;4,8;51.442792;7.206435
+BO-393;Freifläche / Garten;Ovelackerstr. 59;Langendreer;9;1675;05113900901675______;157;5,4;29,1;12,8;0;4,7;51.475134;7.320087
+BO-394;Garagengrundstück;Karl-Wagener-Str. 97;Dahlhausen;6;852;05111000600852______;116;11,9;13,7;12,7;0;4,7;51.438454;7.169199
+BO-395;Freifläche / Garten;Kronenstr. 9, 11;Wiemelhausen;4;80;05110600400080______;242;11,9;20,3;12,9;0;4,7;51.4748;7.217427
+BO-396;Freifläche / Garten;Heinrich-König-Str. 132;Weitmar;10;416;05110501000416______;87;8,0;16,5;9,0;1;4,7;51.441553;7.196343
+BO-397;Baulücke;Heidackerstr.;Hordel;6;626;05110000600626______;89;6,0;20,9;5,2;2;4,7;51.497295;7.171853
+BO-398;Freifläche / Garten;Rüsselsheimer Weg 7;Langendreer;6;524;05113900600524______;171;11,5;17,2;12,7;0;4,7;51.470702;7.299232
+BO-399;Freifläche / Garten;Schreberstr. 10 b;Wattenscheid;27;309;05115902700309______;382;11,5;34,6;12,6;0;4,7;51.478125;7.150314
+BO-400;Freifläche / Garten;Eichendorffweg 5 b;Altenbochum;1;722;05109100100722______;318;11,6;28,1;12,6;0;4,7;51.474558;7.257537
+BO-401;Freifläche / Garten;Eichendorffweg 5 d;Altenbochum;1;720;05109100100720______;283;11,5;25,3;12,5;0;4,7;51.474355;7.257611
+BO-402;Baulücke;Blankensteiner Str.;Weitmar;10;765;05110501000765______;96;8,9;15,7;4,9;2;4,7;51.428138;7.207251
+BO-403;Freifläche / Garten;Im Wolfsfeld;Dahlhausen;9;618;05111000900618______;396;9,5;44,4;9,3;1;4,7;51.428469;7.154823
+BO-404;Freifläche / Garten;Förderstr. 3, 5;Wiemelhausen;10;399;05110601000399______;114;9,8;11,5;12,4;0;4,7;51.455028;7.229634
+BO-405;Freifläche / Garten;Weidenhagen;Höntrop;11;256;05115101100256______;292;8,0;36,5;9,0;1;4,7;51.446904;7.156021
+BO-406;Freifläche / Garten;Voßkuhlstr. 13;Stiepel;11;406;05108501100406______;122;10,8;11,6;12,5;0;4,7;51.433985;7.242496
+BO-407;Freifläche / Garten;Eichendorffweg 5 c;Altenbochum;1;721;05109100100721______;301;11,6;26,7;12,6;0;4,7;51.474457;7.257574
+BO-408;Garagengrundstück;Am Moorschacht 16;Eppendorf;8;275;05114500800275______;138;6,1;27,0;12,8;0;4,7;51.44438;7.174928
+BO-409;Freifläche / Garten;Eulenbaumstr. 265;Querenburg;8;694;05110200800694______;361;12,1;30,8;13,1;0;4,7;51.453644;7.268695
+BO-410;Freifläche / Garten;Köpersweg 8;Werne;11;572;05114201100572______;317;11,3;35,3;12,3;0;4,6;51.494545;7.313951
+BO-411;Freifläche / Garten;Polterberg 114;Dahlhausen;6;969;05111000600969______;115;12,6;12,7;11,9;0;4,6;51.440105;7.163087
+BO-412;Freifläche / Garten;Taunusstr. 1;Bergen;3;492;05109200300492______;169;11,2;23,8;12,1;0;4,6;51.51267;7.250893
+BO-413;Freifläche / Garten;Im Ostholz 61;Linden;8;711;05111400800711______;344;10,7;33,1;11,7;0;4,6;51.430673;7.180225
+BO-414;Freifläche / Garten;Luxemburger Str.;Wiemelhausen;8;767;05110600800767______;143;8,7;18,7;7,9;1;4,6;51.464857;7.231687
+BO-415;Garagengrundstück;Hattinger Str. 947;Linden;15;39;05111401500039______;244;11,1;22,2;12,1;0;4,6;51.417429;7.167993
+BO-416;Freifläche / Garten;Am Dieckmannshof;Weitmar;7;125;05110500700125______;132;6,6;32,7;8,0;1;4,6;51.448854;7.197936
+BO-417;Freifläche / Garten;Ovelackerstr. 67;Langendreer;9;1671;05113900901671______;267;10,8;29,1;11,8;0;4,6;51.475436;7.320056
+BO-418;Freifläche / Garten;Im Ostholz 61;Linden;8;712;05111400800712______;339;10,6;32,3;11,7;0;4,6;51.430613;7.180107
+BO-419;Freifläche / Garten;Wienkopp 11;Weitmar;10;794;05110501000794______;107;9,8;11,2;12,0;0;4,6;51.427859;7.199161
+BO-420;Freifläche / Garten;Jacob-Mayer-Str. 20;Bochum;24;84;05110702400084______;160;5,0;31,1;12,0;0;4,6;51.4768;7.197822
+BO-421;Freifläche / Garten;Hertastr. 4;Hofstede;3;135;05109900300135______;370;11,2;32,9;12,2;0;4,6;51.506641;7.196387
+BO-422;Freifläche / Garten;Untere Heidestr. 47, 49;Hamme;1;115;05109700100115______;228;11,0;21,6;12,0;0;4,6;51.496587;7.180899
+BO-423;Garagengrundstück;Wienkopp 9;Weitmar;10;791;05110501000791______;109;9,8;11,3;12,0;0;4,6;51.427942;7.19909
+BO-424;Freifläche / Garten;Gisela-Piedboeuf-Weg 13;Linden;16;1149;05111401601149______;297;11,0;27,5;12,0;0;4,6;51.418147;7.162407
+BO-425;Freifläche / Garten;Gisela-Piedboeuf-Weg 5;Linden;16;1153;05111401601153______;312;11,0;29,8;12,0;0;4,6;51.41829;7.163042
+BO-426;Freifläche / Garten;Gisela-Piedboeuf-Weg 7;Linden;16;1152;05111401601152______;329;11,0;30,7;12,0;0;4,6;51.418253;7.162896
+BO-427;Freifläche / Garten;Alte Weststr. 29;Langendreer;7;13;05113900700013______;484;7,1;70,0;8,0;1;4,6;51.469165;7.30744
+BO-428;Freifläche / Garten;Gisela-Piedboeuf-Weg 11;Linden;16;1150;05111401601150______;309;11,0;28,6;12,0;0;4,6;51.418176;7.162558
+BO-429;Freifläche / Garten;Kirchharpener Str. 59;Gerthe;10;322;05109401000322______;164;10,0;18,5;11,0;0;4,5;51.514802;7.285646
+BO-430;Freifläche / Garten;Wasserstr. 21;Altenbochum;11;30;05109101100030______;687;16,3;42,6;43,6;1;4,5;51.469778;7.246031
+BO-431;Garagengrundstück;Emilstr. 113;Höntrop;3;614;05115100300614______;443;12,8;45,2;20,1;0;4,5;51.462304;7.162616
+BO-432;Freifläche / Garten;Untere Heintzmannstr. 39;Laer;5;153;05110100500153______;92;4,5;20,9;21,4;1;4,5;51.459925;7.263048
+BO-433;Freifläche / Garten;Gisela-Piedboeuf-Weg 19;Linden;16;1146;05111401601146______;248;10,0;25,7;11,0;0;4,5;51.417973;7.161894
+BO-434;Garagengrundstück;In der Rott 13;Eppendorf;9;354;05114500900354______;143;10,3;20,1;11,4;0;4,5;51.443738;7.17289
+BO-435;Freifläche / Garten;Bleckstr. 84, 86, 88, 90, 92, 94, 96, 98, 100;Riemke;1;217;05110300100217______;384;10,4;42,1;11,5;0;4,5;51.517734;7.195486
+BO-436;Freifläche / Garten;Wallbaumweg;Langendreer;1;21;05113900100021______;333;15,3;22,1;16,3;1;4,5;51.479993;7.311755
+BO-437;Freifläche / Garten;Braunsberger Str.;Hofstede;16;412;05109901600412______;232;14,9;18,2;15,9;1;4,5;51.502141;7.18796
+BO-438;Freifläche / Garten;Wattenscheider Hellweg 175;Höntrop;1;462;05115100100462______;598;21,5;30,5;30,4;1;4,5;51.459421;7.141838
+BO-439;Freifläche / Garten;Trakehner Str. 8;Dahlhausen;4;183;05111000400183______;687;20,4;38,3;34,6;1;4,5;51.440034;7.152571
+BO-440;Freifläche / Garten;Wasserstr. 170 a;Wiemelhausen;8;907;05110600800907______;189;8,9;25,8;11,0;0;4,5;51.463446;7.228787
+BO-441;Freifläche / Garten;Baaker Mulde;Linden;7;482;05111400700482______;391;14,2;40,7;25,6;1;4,5;51.429465;7.178046
+BO-442;Freifläche / Garten;Heintzmannsheide 5, 7;Weitmar;8;3203;05110500803203______;587;17,9;36,7;51,4;1;4,5;51.442808;7.221039
+BO-443;Freifläche / Garten;Prinz-Regent-Str. 49;Wiemelhausen;18;218;05110601800218______;230;10,0;23,8;11,0;0;4,5;51.450633;7.21918
+BO-444;Garagengrundstück;Alarichstr. 44;Altenbochum;9;653;05109100900653______;163;6,9;26,4;11,1;0;4,5;51.465599;7.25117
+BO-445;Freifläche / Garten;Hunscheidtstr.;Wiemelhausen;24;45;05110602400045______;315;18,3;27,4;22,6;1;4,5;51.46449;7.214616
+BO-446;Garagengrundstück;Poststr. 7;Hofstede;10;52;05109901000052______;460;14,5;32,1;15,2;1;4,5;51.500677;7.210859
+BO-447;Freifläche / Garten;Kortumstr. 139;Bochum;4;489;05110700400489______;678;19,7;48,7;19,4;1;4,5;51.485635;7.219477
+BO-448;Freifläche / Garten;Auf dem Norrenberge 65;Gerthe;12;246;05109401200246______;320;10,0;32,0;11,0;0;4,5;51.511831;7.285834
+BO-449;Freifläche / Garten;Biermannsweg;Wiemelhausen;11;450;05110601100450______;377;10,1;40,0;11,5;1;4,5;51.456436;7.237989
+BO-450;Freifläche / Garten;Waldesrand 49;Linden;6;1180;05111400601180______;625;19,9;39,0;14,7;1;4,5;51.434401;7.188987
+BO-451;Freifläche / Garten;Auf der Kiekbast;Werne;14;337;05114201400337______;225;14,4;19,8;35,3;1;4,5;51.485296;7.310083
+BO-452;Freifläche / Garten;Untere Heidestr. 47, 49;Hamme;1;114;05109700100114______;220;13,2;19,8;11,1;0;4,5;51.49651;7.180991
+BO-453;Freifläche / Garten;Birkenpfad 12;Höntrop;9;94;05115100900094______;198;10,0;19,9;11,0;0;4,5;51.456718;7.156797
+BO-454;Freifläche / Garten;Charlottenstr. 22 a;Wiemelhausen;15;538;05110601500538______;340;10,0;34,8;11,0;0;4,5;51.444142;7.227324
+BO-455;Freifläche / Garten;Weststr. 56;Wattenscheid;3;313;05115900300313______;472;15,1;34,8;34,3;1;4,5;51.481333;7.127548
+BO-456;Freifläche / Garten;Charlottenstr. 22;Wiemelhausen;15;539;05110601500539______;325;10,0;33,2;11,0;0;4,5;51.444206;7.227427
+BO-457;Garagengrundstück;An der Laake;Langendreer;8;904;05113900800904______;175;7,2;24,9;7,1;1;4,5;51.468053;7.316368
+BO-458;Garagengrundstück;Günnigfelder Str.;Wattenscheid;9;9;05115900900009______;275;16,7;17,2;16,2;1;4,5;51.492393;7.14137
+BO-459;Garagengrundstück;Friedrich-Koepe-Str. 11;Hordel;4;392;05110000400392______;252;10,3;27,4;11,3;0;4,5;51.504171;7.172291
+BO-460;Garagengrundstück;Suntumer Str.;Laer;8;512;05110100800512______;338;14,4;23,6;40,4;1;4,5;51.471332;7.268435
+BO-461;Freifläche / Garten;Hattinger Str.;Linden;10;11;05111401000011______;352;16,0;23,9;16,9;1;4,5;51.430094;7.167548
+BO-462;Freifläche / Garten;Beerenhang 4 b;Stiepel;30;724;05108503000724______;352;9,8;36,6;11,2;0;4,5;51.417862;7.23923
+BO-463;Freifläche / Garten;Blankensteiner Str.;Weitmar;10;1086;05110501001086______;532;12,2;50,6;16,9;1;4,5;51.427968;7.203398
+BO-464;Freifläche / Garten;An der Landwehr 31;Weitmar;3;552;05110500300552______;87;4,7;28,6;33,4;1;4,5;51.464834;7.202655
+BO-465;Freifläche / Garten;Heinrich-König-Str. 89;Weitmar;9;228;05110500900228______;594;14,6;40,4;15,7;1;4,5;51.440233;7.197547
+BO-466;Freifläche / Garten;Am Kirschbaum 10;Linden;5;265;05111400500265______;372;10,5;36,2;11,5;0;4,5;51.436009;7.177963
+BO-467;Freifläche / Garten;Emilstr. 43;Höntrop;3;422;05115100300422______;565;23,7;25,9;15,7;1;4,5;51.461663;7.158061
+BO-468;Freifläche / Garten;Otto-Brenner-Str. 14;Wattenscheid;16;286;05115901600286______;575;14,1;47,7;16,0;1;4,5;51.478767;7.141959
+BO-469;Freifläche / Garten;Schreberstr. 6 c, 6 d;Wattenscheid;27;345;05115902700345______;490;22,5;26,1;22,8;1;4,5;51.47873;7.1513
+BO-470;Freifläche / Garten;Hattinger Str. 833;Linden;10;257;05111401000257______;540;24,8;32,0;25,0;1;4,5;51.426278;7.161769
+BO-471;Freifläche / Garten;Schleiermacherstr. 83;Eppendorf;11;585;05114501100585______;504;19,8;27,9;20,8;1;4,5;51.453677;7.172533
+BO-472;Garagengrundstück;Ovelackerstr.;Langendreer;9;1627;05113900901627______;253;15,1;21,1;36,6;1;4,5;51.473483;7.321438
+BO-473;Freifläche / Garten;Hattinger Str.;Linden;6;1129;05111400601129______;84;6,2;15,5;16,5;1;4,5;51.437573;7.183941
+BO-474;Freifläche / Garten;Charlottenstr. 20 a;Wiemelhausen;15;540;05110601500540______;319;10,0;32,4;11,0;0;4,5;51.444269;7.22753
+BO-475;Freifläche / Garten;Heribertistr. 12 a;Wattenscheid;29;365;05115902900365______;516;16,3;35,8;19,0;1;4,5;51.479513;7.144567
+BO-476;Freifläche / Garten;Werner Hellweg;Werne;9;768;05114200900768______;331;14,9;25,5;18,2;1;4,5;51.491926;7.303862
+BO-477;Freifläche / Garten;Wittekindstr. 73;Werne;8;652;05114200800652______;163;12,2;21,8;31,9;0;4,5;51.486325;7.305564
+BO-478;Freifläche / Garten;Heckenrosenweg; Kreyenfeldstr. 98;Werne;13;187;05114201300187______;495;22,8;22,9;22,4;1;4,5;51.491607;7.310938
+BO-479;Freifläche / Garten;Buschstr.;Westenfeld;12;132;05116001200132______;586;13,5;44,8;29,1;1;4,5;51.477105;7.158532
+BO-480;Freifläche / Garten;Stephanstr.;Westenfeld;13;482;05116001300482______;198;6,2;40,4;7,6;1;4,5;51.47097;7.154085
+BO-481;Freifläche / Garten;Hardenbergstr.;Wattenscheid;16;409;05115901600409______;200;14,2;18,6;16,6;1;4,5;51.478758;7.140783
+BO-482;Garagengrundstück;Nordstr.;Altenbochum;3;749;05109100300749______;411;20,9;21,4;23,7;1;4,5;51.476483;7.238835
+BO-483;Freifläche / Garten;Josephinenstr. 136 a;Grumme;12;142;05109601200142______;111;10,7;12,6;11,5;0;4,5;51.499144;7.237988
+BO-484;Freifläche / Garten;Auf der Papenburg 22;Laer;5;1911;05110100501911______;533;18,2;30,3;19,2;1;4,5;51.454169;7.257117
+BO-485;Freifläche / Garten;Charlottenstr. 20;Wiemelhausen;15;541;05110601500541______;321;10,0;33,7;11,0;0;4,5;51.444316;7.227661
+BO-486;Freifläche / Garten;Sachsenstr.;Hamme;4;41;05109700400041______;455;13,8;42,9;17,7;1;4,5;51.479408;7.190394
+BO-487;Freifläche / Garten;Im Ahfeld 10;Weitmar;1;653;05110500100653______;158;12,2;16,6;16,5;0;4,5;51.467204;7.175151
+BO-488;Freifläche / Garten;Alte Bahnhofstr. 68;Langendreer;9;1669;05113900901669______;129;10,0;13,3;11,0;0;4,5;51.470746;7.315834
+BO-489;Freifläche / Garten;Fröbelstr. 10;Leithe;2;109;05115400200109______;519;22,1;24,3;25,1;1;4,5;51.48207;7.1119
+BO-490;Freifläche / Garten;Am Kirschbaum 12;Linden;5;267;05111400500267______;372;10,7;35,7;11,6;0;4,5;51.436064;7.178085
+BO-491;Freifläche / Garten;Siepenhöhe;Laer;8;806;05110100800806______;377;15,1;28,3;29,3;1;4,5;51.472279;7.263508
+BO-492;Garagengrundstück;Ulmenweg 10;Höntrop;9;376;05115100900376______;407;10,7;40,8;10,7;0;4,4;51.455876;7.155721
+BO-493;Freifläche / Garten;Daimlerstr. 26;Gerthe;7;122;05109400700122______;240;16,2;21,4;7,0;1;4,4;51.52204;7.304003
+BO-494;Freifläche / Garten;Markstr.;Querenburg;1;336;05110200100336______;559;12,3;70,2;14,1;1;4,4;51.448405;7.23733
+BO-495;Freifläche / Garten;Schaffnerweg 66;Eppendorf;8;313;05114500800313______;179;9,3;25,5;10,7;0;4,4;51.446323;7.171495
+BO-496;Freifläche / Garten;Wasserstr. 165;Wiemelhausen;9;281;05110600900281______;269;9,5;28,5;10,5;0;4,4;51.462697;7.231019
+BO-497;Freifläche / Garten;Zollstr. 90;Höntrop;16;662;05115101600662______;151;10,4;16,4;10,8;0;4,4;51.450649;7.146642
+BO-498;Garagengrundstück;In der Mark 57;Eppendorf;13;559;05114501300559______;97;5,9;16,8;6,8;1;4,4;51.454548;7.166012
+BO-499;Freifläche / Garten;Köpersweg 16;Werne;11;568;05114201100568______;334;9,8;34,3;10,8;0;4,4;51.494834;7.313761
+BO-500;Garagengrundstück;Hattinger Str. 116;Weitmar;3;125;05110500300125______;197;12,6;19,8;10,4;0;4,4;51.46774;7.206823
+BO-501;Freifläche / Garten;Sudholzstr.;Höntrop;13;305;05115101300305______;117;6,0;19,8;7,0;1;4,4;51.441539;7.142441
+BO-502;Freifläche / Garten;Schreberstr. 8 e;Wattenscheid;27;340;05115902700340______;356;9,6;37,8;10,6;0;4,4;51.478402;7.150204
+BO-503;Freifläche / Garten;Schwindstr.;Weitmar;5;272;05110500500272______;158;5,8;27,3;6,8;1;4,4;51.456856;7.197478
+BO-504;Freifläche / Garten;Holzstr. 58;Eppendorf;11;31;05114501100031______;401;13,8;42,8;10,8;0;4,4;51.452858;7.171148
+BO-505;Freifläche / Garten;Josephinenstr. 134 a;Grumme;13;202;05109601300202______;118;9,8;12,8;10,7;0;4,4;51.499316;7.237916
+BO-506;Garagengrundstück;Rhönstr. 9, 9 b;Grumme;20;517;05109602000517______;279;9,2;30,4;10,2;0;4,4;51.496278;7.25322
+BO-507;Freifläche / Garten;Varenholzstr. 111;Höntrop;13;137;05115101300137______;250;8,9;26,1;10,1;0;4,4;51.44285;7.141353
+BO-508;Freifläche / Garten;Kohlenstr. 143;Weitmar;2;593;05110500200593______;416;10,8;45,4;10,4;0;4,4;51.47144;7.191262
+BO-509;Freifläche / Garten;Schreberstr. 8 d;Wattenscheid;27;339;05115902700339______;366;9,6;38,8;10,6;0;4,4;51.478485;7.150168
+BO-510;Freifläche / Garten;Friedrichsburg 34;Altenbochum;4;101;05109100400101______;353;10,0;38,9;10,8;0;4,4;51.472397;7.238127
+BO-511;Freifläche / Garten;Kordts Feld 34;Höntrop;16;767;05115101600767______;94;11,6;12,9;6,7;1;4,4;51.45217;7.147347
+BO-512;Freifläche / Garten;Emilstr. 113;Höntrop;3;849;05115100300849______;241;8,5;31,0;10,2;0;4,4;51.462382;7.162526
+BO-513;Freifläche / Garten;Hauptstr. 205;Langendreer;10;1313;05113901001313______;196;9,0;23,1;10,3;0;4,4;51.472406;7.325011
+BO-514;Freifläche / Garten;Brockhauser Str. 20;Stiepel;30;769;05108503000769______;253;5,5;69,6;10,1;0;4,4;51.418107;7.24158
+BO-515;Freifläche / Garten;Köpersweg 10;Werne;11;571;05114201100571______;341;10,3;35,1;9,8;0;4,3;51.49461;7.313895
+BO-516;Freifläche / Garten;Am Sonnenberg 49 a;Linden;7;497;05111400700497______;102;9,1;11,5;10,1;0;4,3;51.429863;7.183115
+BO-517;Garagengrundstück;Am Alten General;Dahlhausen;10;235;05111001000235______;382;14,7;28,5;13,3;1;4,3;51.428507;7.146988
+BO-518;Freifläche / Garten;Hordeler Str.;Hofstede;16;949;05109901600949______;498;12,5;45,0;13,4;1;4,3;51.503673;7.187927
+BO-519;Freifläche / Garten;Köpersweg 12;Werne;11;570;05114201100570______;338;10,3;34,8;9,8;0;4,3;51.494703;7.31384
+BO-520;Freifläche / Garten;Kohlensiepen 21;Gerthe;8;862;05109400800862______;261;9,0;29,1;10,0;0;4,3;51.521881;7.291597
+BO-521;Freifläche / Garten;Charlottenstr. 24 a;Wiemelhausen;15;536;05110601500536______;332;9,0;37,5;10,0;0;4,3;51.444025;7.227133
+BO-522;Freifläche / Garten;Charlottenstr. 26;Wiemelhausen;15;535;05110601500535______;344;9,0;38,9;10,0;0;4,3;51.443969;7.227041
+BO-523;Freifläche / Garten;Charlottenstr. 26 a;Wiemelhausen;15;534;05110601500534______;354;9,0;40,3;10,0;0;4,3;51.443912;7.226948
+BO-524;Freifläche / Garten;Wasserstr. 170 b;Wiemelhausen;8;906;05110600800906______;198;9,6;21,6;9,9;0;4,3;51.463374;7.22883
+BO-525;Freifläche / Garten;Charlottenstr. 24;Wiemelhausen;15;537;05110601500537______;319;9,0;36,1;10,0;0;4,3;51.444082;7.227226
+BO-526;Freifläche / Garten;Heidestr. 22;Wattenscheid;27;201;05115902700201______;159;8,6;19,2;9,8;0;4,3;51.478291;7.155415
+BO-527;Freifläche / Garten;Am Frohen Blick 7;Hamme;2;2328;05109700202328______;113;7,7;18,0;9,8;0;4,3;51.482509;7.191066
+BO-528;Freifläche / Garten;Ricarda-Huch-Str. 30 a;Grumme;18;686;05109601800686______;224;9,1;25,0;10,0;0;4,3;51.500587;7.221325
+BO-529;Freifläche / Garten;An der Maarbrücke 7 d;Hamme;2;3108;05109700203108______;254;8,7;31,0;9,7;0;4,3;51.481917;7.193394
+BO-530;Freifläche / Garten;Steinhagen 6, 8;Weitmar;1;680;05110500100680______;366;7,7;59,1;9,5;0;4,3;51.466924;7.179429
+BO-531;Freifläche / Garten;Lindener Str. 63 c;Linden;9;647;05111400900647______;153;8,5;18,1;9,5;0;4,3;51.42926;7.171839
+BO-532;Freifläche / Garten;Am Sonnenberg 51;Linden;7;499;05111400700499______;100;9,1;11,3;10,1;0;4,3;51.429909;7.183223
+BO-533;Freifläche / Garten;Zu den Kämpen 12;Harpen;4;1416;05109800401416______;264;8,1;34,1;9,6;0;4,3;51.491007;7.271432
+BO-534;Freifläche / Garten;Munscheider Str. 192;Munscheid;1;456;05115500100456______;157;8,1;19,8;9,1;0;4,2;51.438754;7.173994
+BO-535;Freifläche / Garten;Am Hohwege;Linden;6;1182;05111400601182______;91;8,2;12,5;12,9;1;4,2;51.437689;7.184138
+BO-536;Freifläche / Garten;Südring 3 a;Bochum;17;918;05110701700918______;257;14,8;19,7;5,1;1;4,2;51.478248;7.22062
+BO-537;Freifläche / Garten;Liboriusstr.;Grumme;13;388;05109601300388______;177;9,4;24,7;5,6;1;4,2;51.498884;7.236262
+BO-538;Freifläche / Garten;Industriestr. 55;Werne;2;575;05114200200575______;299;4,8;64,9;5,2;1;4,2;51.474339;7.288816
+BO-539;Freifläche / Garten;Rixenburgweg 56;Werne;5;191;05114200500191______;164;9,9;19,1;8,9;0;4,2;51.483366;7.295123
+BO-540;Freifläche / Garten;Markstr. 246;Querenburg;1;818;05110200100818______;211;12,0;20,5;9,0;0;4,2;51.449576;7.237268
+BO-541;Freifläche / Garten;Am Sonnenberg 63;Linden;7;560;05111400700560______;281;8,0;35,3;9,0;0;4,2;51.430301;7.184573
+BO-542;Freifläche / Garten;Generalstr. 16;Weitmar;6;210;05110500600210______;135;8,2;16,4;9,0;0;4,2;51.447508;7.183723
+BO-543;Freifläche / Garten;Am Feldbrand 1 a;Linden;9;429;05111400900429______;173;5,2;31,4;9,1;0;4,2;51.431355;7.171147
+BO-544;Garagengrundstück;Ostholzer Hang;Linden;6;675;05111400600675______;95;8,8;11,9;12,9;1;4,2;51.431607;7.185348
+BO-545;Freifläche / Garten;Otterkuhle 31;Stiepel;1;222;05108500100222______;90;5,8;23,0;5,4;1;4,2;51.43635;7.205879
+BO-546;Freifläche / Garten;Baumhofstr. 17;Wiemelhausen;13;314;05110601300314______;216;9,4;28,8;9,1;0;4,2;51.445381;7.23056
+BO-547;Freifläche / Garten;Heintzmannsheide 97;Stiepel;4;343;05108500400343______;213;10,5;24,2;9,2;0;4,2;51.437158;7.22404
+BO-548;Freifläche / Garten;Bövinghauser Hellweg 48;Gerthe;6;173;05109400600173______;127;8,1;16,4;8,8;0;4,2;51.524957;7.292749
+BO-549;Freifläche / Garten;Kohlenstr. 145;Weitmar;2;592;05110500200592______;157;8,1;20,9;9,0;0;4,2;51.471564;7.191399
+BO-550;Freifläche / Garten;An der Holtbrügge 74 a;Weitmar;7;987;05110500700987______;164;9,0;21,9;8,8;0;4,2;51.449452;7.209096
+BO-551;Freifläche / Garten;In der Hönnebecke 40;Höntrop;1;1115;05115100101115______;146;7,5;20,4;8,6;0;4,2;51.458937;7.148875
+BO-552;Freifläche / Garten;Schützenstr. 207;Eppendorf;3;111;05114500300111______;181;7,0;28,5;8,7;0;4,2;51.460222;7.182812
+BO-553;Freifläche / Garten;Schwerinstr. 7;Gerthe;18;497;05109401800497______;122;9,1;14,2;9,1;0;4,2;51.518486;7.276019
+BO-554;Freifläche / Garten;Am Beisenkamp 20;Wattenscheid;10;480;05115901000480______;194;8,0;24,9;9,0;0;4,2;51.489555;7.140497
+BO-555;Freifläche / Garten;Hattinger Str. 416 a;Weitmar;6;885;05110500600885______;92;9,1;12,5;5,4;1;4,2;51.441422;7.185654
+BO-556;Freifläche / Garten;Eulenbaumstr. 261 a;Querenburg;8;692;05110200800692______;262;9,0;30,3;9,3;0;4,2;51.45385;7.268484
+BO-557;Freifläche / Garten;In der Provitze 1;Hofstede;17;365;05109901700365______;151;7,9;19,0;8,9;0;4,2;51.501934;7.195983
+BO-558;Freifläche / Garten;Elsaßstr. 32, 34, 36, 38;Bochum;22;266;05110702200266______;512;14,7;52,0;12,0;1;4,1;51.478845;7.205503
+BO-559;Freifläche / Garten;Wattenscheider Hellweg 94;Westenfeld;10;126;05116001000126______;176;7,1;25,9;8,1;0;4,1;51.464493;7.151986
+BO-560;Freifläche / Garten;Op de Veih 90 a;Höntrop;16;324;05115101600324______;218;7,3;33,9;8,3;0;4,1;51.454267;7.15396
+BO-561;Freifläche / Garten;Unterm Jäger 2;Langendreer;14;1393;05113901401393______;181;6,9;41,7;8,0;0;4,1;51.462131;7.320483
+BO-562;Freifläche / Garten;Op de Veih 92;Höntrop;16;327;05115101600327______;242;7,3;37,1;8,3;0;4,1;51.45432;7.154018
+BO-563;Freifläche / Garten;Im Ostholz;Linden;8;367;05111400800367______;516;10,1;56,4;12,3;1;4,1;51.43227;7.179511
+BO-564;Garagengrundstück;Heckertstr. 83;Grumme;12;67;05109601200067______;100;7,9;13,4;8,5;0;4,1;51.496981;7.236112
+BO-565;Freifläche / Garten;Prinz-Regent-Str. 63;Weitmar;8;2144;05110500802144______;659;12,7;71,5;4,5;1;4,1;51.449666;7.217115
+BO-566;Freifläche / Garten;Kornharpener Str. 211;Harpen;4;981;05109800400981______;341;7,5;45,4;8,6;0;4,1;51.48959;7.267457
+BO-567;Freifläche / Garten;Auf dem Jäger 28;Langendreer;14;268;05113901400268______;250;7,0;35,9;8,0;0;4,1;51.460628;7.322651
+BO-568;Freifläche / Garten;Op de Veih 88 a;Höntrop;16;319;05115101600319______;193;8,8;26,1;8,2;0;4,1;51.454137;7.153842
+BO-569;Freifläche / Garten;Op de Veih 90;Höntrop;16;320;05115101600320______;225;8,6;30,9;8,3;0;4,1;51.454202;7.153904
+BO-570;Garagengrundstück;Sommerdellenstr. 3;Wattenscheid;10;277;05115901000277______;117;12,1;12,2;8,4;0;4,1;51.482645;7.145473
+BO-571;Freifläche / Garten;Maischützenstr. 68;Harpen;1;818;05109800100818______;142;7,1;21,3;8,1;0;4,1;51.501433;7.278784
+BO-572;Garagengrundstück;Konsumstr. 28;Hofstede;3;37;05109900300037______;301;10,7;28,2;11,7;0;4,1;51.507667;7.197877
+BO-573;Freifläche / Garten;Bergwerksstr.;Weitmar;9;1154;05110500901154______;464;11,7;40,3;12,2;1;4,1;51.439274;7.206991
+BO-574;Garagengrundstück;Emilstr. 26 a;Höntrop;3;489;05115100300489______;158;7,4;23,2;8,3;0;4,1;51.462214;7.156705
+BO-575;Garagengrundstück;Obernbaakstr. 25 a;Weitmar;11;436;05110501100436______;176;8,0;29,2;8,6;0;4,1;51.425348;7.193659
+BO-576;Freifläche / Garten;Nordstr. 7 a;Bochum;14;647;05110701400647______;125;7,3;17,9;8,3;0;4,1;51.475897;7.236688
+BO-577;Freifläche / Garten;Von-Waldthausen-Str.;Werne;15;399;05114201500399______;178;13,6;20,5;16,2;0;4,0;51.483535;7.298349
+BO-578;Garagengrundstück;Wittkampstr.;Langendreer;10;1187;05113901001187______;144;7,7;19,8;20,2;0;4,0;51.475176;7.336052
+BO-579;Freifläche / Garten;Heimelsberg 23;Langendreer;12;352;05113901200352______;105;4,5;34,7;20,7;0;4,0;51.465565;7.34089
+BO-580;Freifläche / Garten;Ruppelstr. 5;Hofstede;3;127;05109900300127______;383;14,9;26,2;15,9;0;4,0;51.506051;7.196085
+BO-581;Freifläche / Garten;Hermann-Löns-Str. 5;Eppendorf;9;949;05114500900949______;432;15,4;28,1;16,4;0;4,0;51.443971;7.165825
+BO-582;Freifläche / Garten;Auf Köllermanns Felde;Dahlhausen;6;461;05111000600461______;129;9,2;18,0;23,4;0;4,0;51.439684;7.161449
+BO-583;Freifläche / Garten;Ruppelstr. 11;Hofstede;3;124;05109900300124______;370;14,3;26,3;15,3;0;4,0;51.505648;7.196092
+BO-584;Freifläche / Garten;Ruppelstr. 6;Hofstede;3;105;05109900300105______;386;14,8;26,0;15,7;0;4,0;51.506055;7.19657
+BO-585;Freifläche / Garten;Am Weitkamp 20;Weitmar;9;3125;05110500903125______;300;15,0;20,0;16,0;0;4,0;51.437742;7.19901
+BO-586;Garagengrundstück;Poststr.;Hofstede;17;361;05109901700361______;173;9,5;18,6;47,0;0;4,0;51.501925;7.195319
+BO-587;Freifläche / Garten;In der Provitze 50;Hofstede;3;153;05109900300153______;371;14,6;25,9;15,6;0;4,0;51.505444;7.195718
+BO-588;Freifläche / Garten;Otto-Hahn-Str. 34;Höntrop;1;1518;05115100101518______;129;9,5;19,1;7,1;0;4,0;51.458149;7.146079
+BO-589;Freifläche / Garten;Bussmannsfeld;Hiltrop;7;171;05113300700171______;112;5,2;22,5;23,5;0;4,0;51.515381;7.255205
+BO-590;Garagengrundstück;Wittkampstr.;Langendreer;10;1178;05113901001178______;163;7,4;22,0;23,0;0;4,0;51.474373;7.335478
+BO-591;Garagengrundstück;Wittkampstr.;Langendreer;10;1191;05113901001191______;144;7,5;19,8;20,2;0;4,0;51.475532;7.336246
+BO-592;Garagengrundstück;Wittkampstr.;Langendreer;10;1182;05113901001182______;143;7,4;19,3;20,3;0;4,0;51.474763;7.335775
+BO-593;Freifläche / Garten;Hauptstr.;Langendreer;14;1320;05113901401320______;141;6,8;20,4;21,3;0;4,0;51.467255;7.322347
+BO-594;Freifläche / Garten;Langendreerstr. 104;Langendreer;14;1081;05113901401081______;88;7,8;15,0;16,6;0;4,0;51.457143;7.325084
+BO-595;Freifläche / Garten;Ruppelstr. 10;Hofstede;3;107;05109900300107______;370;14,2;26,1;15,0;0;4,0;51.505775;7.196575
+BO-596;Freifläche / Garten;Ruppelstr. 8;Hofstede;3;106;05109900300106______;373;14,3;26,1;15,3;0;4,0;51.505904;7.196573
+BO-597;Freifläche / Garten;Sanderweg 3; Wasserstr. 8;Altenbochum;11;290;05109101100290______;98;6,5;15,1;16,1;0;4,0;51.470941;7.244406
+BO-598;Freifläche / Garten;Ruppelstr. 9;Hofstede;3;125;05109900300125______;372;14,0;26,2;15,0;0;4,0;51.505801;7.19609
+BO-599;Freifläche / Garten;Bergener Str.;Bergen;2;105;05109200200105______;295;7,5;39,4;48,1;0;4,0;51.517702;7.245065
+BO-600;Freifläche / Garten;Herner Str. 434, 436;Riemke;2;342;05110300200342______;402;13,8;44,1;7,4;0;4,0;51.515596;7.212716
+BO-601;Garagengrundstück;Bergener Str.;Bergen;2;78;05109200200078______;324;7,3;43,8;51,7;0;4,0;51.517851;7.243331
+BO-602;Freifläche / Garten;Neidenburger Str. 3;Riemke;6;295;05110300600295______;306;16,9;24,4;33,6;0;4,0;51.504981;7.217307
+BO-603;Freifläche / Garten;Eichendorffweg 3 b;Altenbochum;1;709;05109100100709______;408;17,0;24,5;17,6;0;4,0;51.47434;7.256203
+BO-604;Freifläche / Garten;Eichendorffweg 3 g;Altenbochum;1;715;05109100100715______;414;18,9;28,7;19,9;0;4,0;51.474487;7.257035
+BO-605;Freifläche / Garten;Gaußstr. 18;Dahlhausen;3;519;05111000300519______;211;14,1;15,6;29,4;0;4,0;51.435726;7.156222
+BO-606;Freifläche / Garten;Beisingstr.;Riemke;7;456;05110300700456______;130;8,9;22,0;23,8;0;4,0;51.51241;7.219221
+BO-607;Freifläche / Garten;Wittekindstr.;Werne;15;538;05114201500538______;112;5,8;22,3;25,9;0;4,0;51.483523;7.302674
+BO-608;Freifläche / Garten;Werner Hellweg;Werne;3;698;05114200300698______;197;7,0;40,4;35,9;0;4,0;51.479486;7.283622
+BO-609;Freifläche / Garten;Industriestr. 60;Werne;2;551;05114200200551______;263;15,7;20,6;18,3;0;4,0;51.476385;7.289354
+BO-610;Freifläche / Garten;Heintzmannsheide;Stiepel;4;524;05108500400524______;137;6,9;28,0;15,3;0;4,0;51.440563;7.221831
+BO-611;Freifläche / Garten;Friedrich-Harkort-Str.;Wiemelhausen;9;792;05110600900792______;149;6,3;24,9;32,0;0;4,0;51.460281;7.232732
+BO-612;Freifläche / Garten;Ostholzer Hang 68;Linden;6;627;05111400600627______;94;6,7;15,1;21,3;0;4,0;51.431528;7.185173
+BO-613;Freifläche / Garten;Dr.-C.-Otto-Str. 133 c;Dahlhausen;14;126;05111001400126______;211;15,3;18,6;29,4;0;4,0;51.425982;7.143034
+BO-614;Freifläche / Garten;An der Holtbrügge 103;Weitmar;7;953;05110500700953______;133;14,0;14,7;17,5;0;4,0;51.448038;7.205604
+BO-615;Freifläche / Garten;Rotteland 20;Stiepel;10;707;05108501000707______;85;7,1;14,8;16,1;0;4,0;51.430871;7.248304
+BO-616;Freifläche / Garten;Haarholzer Str.;Stiepel;16;383;05108501600383______;152;8,9;26,4;35,1;0;4,0;51.433056;7.252491
+BO-617;Freifläche / Garten;Düsterstr. 52;Stiepel;30;607;05108503000607______;90;8,1;14,5;23,7;0;4,0;51.421271;7.243749
+BO-618;Freifläche / Garten;Am Hang 3;Stiepel;32;240;05108503200240______;195;14,3;21,9;23,1;0;4,0;51.425957;7.244651
+BO-619;Freifläche / Garten;Haarholzer Str. 78;Stiepel;16;621;05108501600621______;256;14,1;29,0;15,3;0;4,0;51.433207;7.252916
+BO-620;Freifläche / Garten;Im Brauke 40;Wiemelhausen;7;333;05110600700333______;345;18,2;21,8;38,1;0;4,0;51.465105;7.233868
+BO-621;Freifläche / Garten;Rathenaustr.;Eppendorf;7;340;05114500700340______;297;11,1;37,9;31,7;0;4,0;51.45267;7.181282
+BO-622;Freifläche / Garten;Diemelstr. 16 b;Grumme;5;157;05109600500157______;94;6,4;15,6;17,4;0;4,0;51.495468;7.251427
+BO-623;Freifläche / Garten;Bergener Str. 131;Bergen;2;287;05109200200287______;427;17,2;25,8;29,0;0;4,0;51.517236;7.247175
+BO-624;Freifläche / Garten;An der Holtbrügge 65;Weitmar;7;896;05110500700896______;92;5,5;25,7;26,6;0;4,0;51.44964;7.208323
+BO-625;Garagengrundstück;Markstr.;Wiemelhausen;12;711;05110601200711______;254;8,0;41,7;48,2;0;4,0;51.447293;7.228307
+BO-626;Freifläche / Garten;Wiemelhauser Str. 376;Wiemelhausen;17;487;05110601700487______;139;5,7;39,2;7,3;0;4,0;51.450846;7.226464
+BO-627;Garagengrundstück;Höhenweg 9;Dahlhausen;7;1209;05111000701209______;689;24,5;32,2;25,7;1;4,0;51.436846;7.162921
+BO-628;Freifläche / Garten;Am Langen Seil 94;Wiemelhausen;36;769;05110603600769______;433;17,3;35,7;45,9;0;4,0;51.458463;7.246747
+BO-629;Garagengrundstück;Jugendheimstr.;Linden;16;1084;05111401601084______;137;10,1;19,2;18,6;0;4,0;51.419124;7.161234
+BO-630;Garagengrundstück;Jugendheimstr. 49;Linden;16;1158;05111401601158______;86;6,0;15,1;35,6;0;4,0;51.420326;7.159803
+BO-631;Freifläche / Garten;Unterm Schrick;Stiepel;10;793;05108501000793______;303;13,3;24,3;14,7;0;4,0;51.429799;7.245375
+BO-632;Freifläche / Garten;Günnigfelder Str. 27;Wattenscheid;9;16;05115900900016______;445;20,2;22,5;21,2;0;4,0;51.493002;7.142125
+BO-633;Freifläche / Garten;Gisela-Piedboeuf-Weg 3;Linden;16;1154;05111401601154______;391;16,5;27,0;17,6;0;4,0;51.41833;7.163219
+BO-634;Freifläche / Garten;Max-Greve-Str.;Bochum;11;483;05110701100483______;284;7,1;41,0;48,3;0;4,0;51.486366;7.232437
+BO-635;Freifläche / Garten;Günnigfelder Str. 25;Wattenscheid;9;14;05115900900014______;429;20,4;21,7;20,7;0;4,0;51.492923;7.141865
+BO-636;Freifläche / Garten;Pulverstr. 16;Höntrop;1;539;05115100100539______;86;5,6;17,2;18,2;0;4,0;51.458303;7.141822
+BO-637;Freifläche / Garten;Markstr.;Laer;5;861;05110100500861______;286;9,4;34,1;35,1;0;4,0;51.456493;7.254296
+BO-638;Freifläche / Garten;An der Papenburg;Wattenscheid;19;182;05115901900182______;210;8,8;24,0;49,5;0;4,0;51.474655;7.129484
+BO-639;Freifläche / Garten;Südstr.;Westenfeld;13;814;05116001300814______;323;13,5;24,9;37,4;0;4,0;51.470127;7.159741
+BO-640;Freifläche / Garten;Ministerstr. 2;Stiepel;9;660;05108500900660______;392;17,2;26,1;27,2;0;4,0;51.428399;7.23951
+BO-641;Freifläche / Garten;Martin-Lang-Str.; Kirchstr. 13;Günnigfeld;3;863;05114900300863______;341;15,9;26,5;43,3;0;4,0;51.493927;7.146199
+BO-642;Freifläche / Garten;A 44; Bömmerstr.;Langendreer;13;1141;05113901301141______;340;16,8;30,2;55,2;0;4,0;51.457695;7.332391
+BO-643;Freifläche / Garten;Hattinger Str.;Linden;4;211;05111400400211______;446;10,6;46,1;46,6;0;4,0;51.433751;7.174371
+BO-644;Garagengrundstück;Am Glockenturm;Langendreer;10;723;05113901000723______;166;11,8;17,0;19,8;0;4,0;51.471401;7.329582
+BO-645;Freifläche / Garten;Urbanusstr. 19;Langendreer;15;478;05113901500478______;196;15,1;18,0;20,7;0;4,0;51.459377;7.305737
+BO-646;Freifläche / Garten;Grummer Str.;Hofstede;6;640;05109900600640______;173;11,2;21,1;42,8;0;4,0;51.503845;7.216339
+BO-647;Freifläche / Garten;Elchbogen 14;Langendreer;15;639;05113901500639______;263;18,3;23,6;28,8;0;4,0;51.461101;7.302653
+BO-648;Freifläche / Garten;Auf der Kluse 19;Werne;4;123;05114200400123______;208;16,3;16,6;17,7;0;4,0;51.482654;7.283486
+BO-649;Garagengrundstück;Hauptstr.;Langendreer;10;1224;05113901001224______;147;6,3;29,6;30,2;0;4,0;51.471122;7.325391
+BO-650;Freifläche / Garten;Geheimrat-Leuschner-Str. 4;Langendreer;6;627;05113900600627______;269;20,3;20,5;26,5;0;4,0;51.473876;7.29833
+BO-651;Freifläche / Garten;Munscheider Str.;Munscheid;1;475;05115500100475______;100;6,9;16,0;23,7;0;4,0;51.438909;7.170437
+BO-652;Freifläche / Garten;Fritz-Reuter-Str.;Westenfeld;2;338;05116000200338______;160;5,2;30,3;36,3;0;4,0;51.474292;7.13476
+BO-653;Freifläche / Garten;Rosendelle 3;Eppendorf;4;130;05114500400130______;615;12,1;57,1;56,7;0;4,0;51.456329;7.178775
+BO-654;Freifläche / Garten;In der Hönnebecke 11;Höntrop;1;81;05115100100081______;352;17,8;20,5;18,0;0;4,0;51.4569;7.142424
+BO-655;Garagengrundstück;Am Grümerbaum;Hiltrop;10;245;05113301000245______;184;10,5;17,6;18,4;0;4,0;51.509155;7.258131
+BO-656;Freifläche / Garten;Böverste Acker; Schmaler Hellweg;Hiltrop;5;64;05113300500064______;158;10,2;17,6;17,4;0;4,0;51.513562;7.265923
+BO-657;Freifläche / Garten;Blumenfeldstr. 68;Weitmar;6;1473;05110500601473______;238;16,1;16,2;17,2;0;4,0;51.449279;7.181178
+BO-658;Freifläche / Garten;Varenholzstr. 31;Höntrop;14;72;05115101400072______;81;6,6;20,0;21,1;0;4,0;51.447673;7.145255
+BO-659;Freifläche / Garten;Werner Hellweg;Werne;12;105;05114201200105______;115;7,6;15,4;23,7;0;4,0;51.493024;7.315881
+BO-660;Freifläche / Garten;Am Heerbusch 35;Werne;14;98;05114201400098______;197;14,1;14,5;15,5;0;4,0;51.484254;7.310496
+BO-661;Freifläche / Garten;Schulze-Vellinghausen-Str. 1 a;Langendreer;17;355;05113901700355______;306;19,3;26,0;34,9;0;4,0;51.489286;7.336703
+BO-662;Freifläche / Garten;Rüsselsheimer Weg 7;Langendreer;6;384;05113900600384______;397;14,8;27,9;28,8;0;4,0;51.470786;7.299454
+BO-663;Freifläche / Garten;Barlachweg 16;Weitmar;5;1919;05110500501919______;414;19,9;28,4;24,4;0;4,0;51.457961;7.204478
+BO-664;Garagengrundstück;Bergener Str.;Bergen;2;80;05109200200080______;290;7,4;37,8;46,0;0;4,0;51.517796;7.243981
+BO-665;Freifläche / Garten;Am Gysenberg 17 c;Hiltrop;2;758;05113300200758______;319;15,0;21,3;22,2;0;4,0;51.52409;7.267782
+BO-666;Freifläche / Garten;Wiescherstr. 67;Hiltrop;7;328;05113300700328______;444;15,2;36,1;21,8;0;4,0;51.518424;7.250372
+BO-667;Freifläche / Garten;Eislebener Str. 5;Langendreer;5;295;05113900500295______;441;16,9;24,5;18,6;0;4,0;51.4753;7.302439
+BO-668;Garagengrundstück;Hauptstr.;Langendreer;10;1217;05113901001217______;178;11,0;19,5;19,4;0;4,0;51.471282;7.325291
+BO-669;Freifläche / Garten;Eichendorffweg 1 b;Altenbochum;1;701;05109100100701______;404;16,2;25,3;17,2;0;4,0;51.474193;7.254742
+BO-670;Freifläche / Garten;Eichendorffweg 5 e;Altenbochum;1;719;05109100100719______;376;19,9;25,0;38,8;0;4,0;51.474251;7.257648
+BO-671;Freifläche / Garten;Eichendorffweg 1 c;Altenbochum;1;702;05109100100702______;406;16,3;27,0;17,7;0;4,0;51.474225;7.254971
+BO-672;Freifläche / Garten;Zunftwiese 11;Hiltrop;10;466;05113301000466______;91;6,2;15,3;16,1;0;4,0;51.509108;7.259295
+BO-673;Freifläche / Garten;Im Dorf Hiltrop 13 a;Hiltrop;6;36;05113300600036______;516;20,5;32,0;21,5;1;4,0;51.516464;7.259619
+BO-674;Freifläche / Garten;An der Papenburg;Wattenscheid;19;145;05115901900145______;146;6,6;24,3;25,0;0;4,0;51.477531;7.132149
+BO-675;Freifläche / Garten;Kemnastr.;Leithe;3;68;05115400300068______;232;7,5;32,5;28,5;0;4,0;51.480564;7.112101
+BO-676;Freifläche / Garten;Propst-Hellmich-Promenade;Wattenscheid;17;259;05115901700259______;325;9,5;41,0;20,1;0;4,0;51.479214;7.13603
+BO-677;Freifläche / Garten;Am Josephsschacht;Linden;12;248;05111401200248______;350;13,6;27,0;16,1;0;4,0;51.423584;7.174428
+BO-678;Freifläche / Garten;Zum Ruhrblick;Stiepel;24;148;05108502400148______;317;14,0;27,1;35,9;0;4,0;51.425769;7.246739
+BO-679;Garagengrundstück;Günnigfelder Str. 145, 145 a;Günnigfeld;2;359;05114900200359______;380;15,5;39,4;61,3;0;4,0;51.499323;7.152606
+BO-680;Freifläche / Garten;Glückaufstr. 2, 2 a, 2 b;Hamme;1;271;05109700100271______;229;14,1;17,4;18,4;0;4,0;51.488082;7.18355
+BO-681;Garagengrundstück;Galgenfeldstr. 9;Stiepel;24;98;05108502400098______;135;7,0;20,0;7,5;0;4,0;51.424928;7.24614
+BO-682;Garagengrundstück;Rotteland;Stiepel;16;447;05108501600447______;112;7,9;15,4;16,3;0;4,0;51.432209;7.250613
+BO-683;Freifläche / Garten;Am Brunen 52;Stiepel;32;441;05108503200441______;272;15,6;22,5;30,5;0;4,0;51.421115;7.240569
+BO-684;Freifläche / Garten;Eisenstr. 24;Wiemelhausen;10;422;05110601000422______;80;9,6;12,9;15,2;0;4,0;51.455958;7.234688
+BO-685;Freifläche / Garten;Wasserstr.;Wiemelhausen;26;172;05110602600172______;133;5,1;30,3;33,1;0;4,0;51.460995;7.222833
+BO-686;Freifläche / Garten;Everstalstr.;Langendreer;17;557;05113901700557______;236;9,1;40,0;41,1;0;4,0;51.489698;7.331294
+BO-687;Freifläche / Garten;Geitlingstr.;Wattenscheid;12;605;05115901200605______;184;6,4;30,7;30,9;0;4,0;51.48084;7.154492
+BO-688;Freifläche / Garten;Kantstr. 28;Westenfeld;2;246;05116000200246______;377;14,5;29,6;42,1;0;4,0;51.46936;7.132527
+BO-689;Freifläche / Garten;Ruppelstr. 16;Hofstede;3;110;05109900300110______;420;16,0;26,3;16,8;0;4,0;51.505395;7.196583
+BO-690;Freifläche / Garten;Birkenfeldstr.;Günnigfeld;11;354;05114901100354______;109;7,3;18,6;22,3;0;4,0;51.49685;7.13935
+BO-691;Freifläche / Garten;Saladin-Schmitt-Str. 57;Wiemelhausen;30;177;05110603000177______;327;20,4;25,5;25,1;0;4,0;51.470445;7.222762
+BO-692;Freifläche / Garten;Flözstr. 20;Wiemelhausen;10;360;05110601000360______;399;19,1;23,0;20,6;0;4,0;51.458057;7.235814
+BO-693;Freifläche / Garten;Am Spik 34;Wiemelhausen;7;352;05110600700352______;85;7,3;14,5;19,5;0;4,0;51.465096;7.232407
+BO-694;Freifläche / Garten;Ruppelstr.;Hofstede;3;129;05109900300129______;326;12,4;26,4;39,6;0;4,0;51.506278;7.196079
+BO-695;Freifläche / Garten;Leithmannswiese 49;Stiepel;10;1015;05108501001015______;455;13,7;35,3;47,0;0;4,0;51.429726;7.244091
+BO-696;Freifläche / Garten;Gisela-Piedboeuf-Weg 15;Linden;16;1148;05111401601148______;445;16,3;30,0;17,3;0;4,0;51.418111;7.162219
+BO-697;Freifläche / Garten;Gisela-Piedboeuf-Weg;Linden;16;1162;05111401601162______;141;6,7;29,3;34,5;0;4,0;51.41833;7.163619
+BO-698;Freifläche / Garten;Steinkuhlstr.;Wiemelhausen;36;864;05110603600864______;220;5,1;55,0;21,2;0;4,0;51.463861;7.243029
+BO-699;Freifläche / Garten;Bussmannsfeld;Hiltrop;7;173;05113300700173______;243;7,8;37,8;44,3;0;4,0;51.514919;7.254468
+BO-700;Freifläche / Garten;Wodanstr. 9;Harpen;2;3470;05109800203470______;184;10,6;20,0;7,6;0;4,0;51.505304;7.273997
+BO-701;Freifläche / Garten;Gerther Str. 13;Gerthe;19;142;05109401900142______;192;14,4;14,5;15,5;0;4,0;51.518191;7.278456
+BO-702;Freifläche / Garten;Am Moorschacht 8;Weitmar;6;992;05110500600992______;124;4,8;33,8;34,9;0;4,0;51.444901;7.175668
+BO-703;Freifläche / Garten;Herrenacker 98;Westenfeld;9;181;05116000900181______;532;17,0;45,0;11,0;1;4,0;51.46424;7.144895
+BO-704;Freifläche / Garten;Gaußstr. 42;Dahlhausen;3;499;05111000300499______;87;6,0;14,7;21,7;0;4,0;51.434843;7.15604
+BO-705;Freifläche / Garten;Im Ostholz 63 a;Linden;8;695;05111400800695______;360;19,6;29,1;44,9;0;4,0;51.430422;7.179768
+BO-706;Garagengrundstück;Keilstr. 63;Dahlhausen;9;143;05111000900143______;355;16,1;24,9;17,1;0;4,0;51.42752;7.154831
+BO-707;Freifläche / Garten;Kornharpener Str.;Harpen;5;893;05109800500893______;162;11,4;21,0;15,8;0;4,0;51.49466;7.269493
+BO-708;Freifläche / Garten;Am Neggenborn 61, 63;Langendreer;7;278;05113900700278______;257;16,8;23,4;18,2;0;4,0;51.46345;7.306393
+BO-709;Freifläche / Garten;Jugendheimstr.;Linden;16;284;05111401600284______;125;7,6;17,4;26,1;0;4,0;51.418962;7.162287
+BO-710;Freifläche / Garten;Gahlensche Str. 115, 117;Hamme;2;2325;05109700202325______;573;13,8;46,7;70,1;0;4,0;51.489144;7.19439
+BO-711;Freifläche / Garten;An der Maarbrücke;Hamme;2;2904;05109700202904______;175;11,2;16,0;16,8;0;4,0;51.481363;7.189971
+BO-712;Garagengrundstück;Am Ruhrort;Dahlhausen;1;133;05111000100133______;160;8,0;22,6;36,3;0;4,0;51.433164;7.137736
+BO-713;Freifläche / Garten;Mettestr. 5;Altenbochum;9;1206;05109100901206______;124;4,8;27,8;28,7;0;4,0;51.471421;7.254277
+BO-714;Freifläche / Garten;Platanenweg 62;Querenburg;1;650;05110200100650______;318;19,1;23,2;20,2;0;4,0;51.446083;7.238013
+BO-715;Freifläche / Garten;Grummer Str. 12;Hofstede;6;744;05109900600744______;150;6,2;24,5;7,1;0;4,0;51.503652;7.217143
+BO-716;Freifläche / Garten;Blumenfeldstr. 108;Weitmar;6;1610;05110500601610______;399;18,8;22,4;22,3;0;4,0;51.447732;7.177815
+BO-717;Garagengrundstück;Op de Veih 5;Höntrop;16;437;05115101600437______;431;17,2;25,3;18,0;0;4,0;51.450736;7.14692
+BO-718;Freifläche / Garten;Weitmarer Str. 89, 91, 93;Weitmar;4;588;05110500400588______;255;15,5;21,8;16,6;0;4,0;51.457528;7.19383
+BO-719;Freifläche / Garten;Kolonie Vollmond;Laer;7;840;05110100700840______;161;12,8;20,7;21,4;0;4,0;51.470377;7.278334
+BO-720;Freifläche / Garten;Ovelackerstr. 65;Langendreer;9;1672;05113900901672______;158;5,4;29,1;7,2;0;4,0;51.475327;7.319989
+BO-721;Freifläche / Garten;Lahmbecke;Wattenscheid;23;309;05115902300309______;174;7,0;29,6;34,2;0;4,0;51.482689;7.11642
+BO-722;Freifläche / Garten;Brundelstr.;Langendreer;3;1192;05113900301192______;237;12,1;20,3;20,7;0;4,0;51.477041;7.332361
+BO-723;Freifläche / Garten;Elbestr. 19, 21;Altenbochum;1;490;05109100100490______;93;5,1;19,2;21,4;0;4,0;51.487542;7.257244
+BO-724;Freifläche / Garten;Oberscheidstr.;Riemke;3;1083;05110300301083______;247;7,8;37,1;7,3;1;4,0;51.51537;7.219927
+BO-725;Freifläche / Garten;Hohlstr.;Langendreer;1;732;05113900100732______;228;6,0;45,4;47,0;0;4,0;51.480046;7.309254
+BO-726;Freifläche / Garten;Varenholzstr.;Höntrop;7;210;05115100700210______;125;5,3;24,7;30,7;0;4,0;51.440892;7.137452
+BO-727;Freifläche / Garten;Südstr.;Westenfeld;13;811;05116001300811______;149;11,1;15,3;30,4;0;4,0;51.47029;7.159898
+BO-728;Freifläche / Garten;Kolpingplatz;Hiltrop;10;165;05113301000165______;183;10,4;25,4;16,2;0;4,0;51.507042;7.26152
+BO-729;Freifläche / Garten;Fortmannweg;Hiltrop;6;209;05113300600209______;128;8,0;20,2;25,0;0;4,0;51.516422;7.260655
+BO-730;Garagengrundstück;Blumenstr.;Bochum;11;163;05110701100163______;105;7,2;15,1;16,0;0;4,0;51.483523;7.22944
+BO-731;Garagengrundstück;Bergener Str. 133;Bergen;2;260;05109200200260______;164;6,5;25,8;7,5;0;4,0;51.517139;7.247375
+BO-732;Garagengrundstück;Constantinstr.;Hofstede;6;352;05109900600352______;210;11,5;25,9;20,3;0;4,0;51.503393;7.216909
+BO-733;Freifläche / Garten;Märkische Str. 18, 20, 22;Günnigfeld;9;553;05114900900553______;89;7,5;12,9;19,6;0;4,0;51.488162;7.152649
+BO-734;Garagengrundstück;Hannoverstr.;Hordel;2;242;05110000200242______;146;12,8;18,7;21,9;0;4,0;51.503069;7.161865
+BO-735;Freifläche / Garten;Birkenfeldstr.;Günnigfeld;11;372;05114901100372______;128;8,1;18,6;26,1;0;4,0;51.497128;7.13916
+BO-736;Freifläche / Garten;Am Ümminger Hang 34;Langendreer;7;1144;05113900701144______;87;5,5;21,5;18,3;0;4,0;51.46468;7.297276
+BO-737;Freifläche / Garten;In der Provitze 48;Hofstede;3;154;05109900300154______;359;14,2;25,8;15,1;0;4,0;51.50529;7.195719
+BO-738;Freifläche / Garten;Ruppelstr.;Hofstede;3;103;05109900300103______;323;12,5;26,0;39,2;0;4,0;51.506289;7.196565
+BO-739;Freifläche / Garten;Keilstr.;Linden;2;374;05111400200374______;379;13,3;30,2;41,7;0;4,0;51.426863;7.159982
+BO-740;Garagengrundstück;Elsa-Brändström-Str. 124, 126, 128;Eppendorf;5;139;05114500500139______;88;7,6;19,3;21,8;0;4,0;51.455813;7.177426
+BO-741;Freifläche / Garten;Marienstr.;Wattenscheid;7;688;05115900700688______;159;6,7;25,5;26,2;0;4,0;51.48409;7.136761
+BO-742;Freifläche / Garten;Markstr. 236;Querenburg;1;156;05110200100156______;291;15,8;20,7;32,8;0;4,0;51.449691;7.238097
+BO-743;Freifläche / Garten;Varenholzstr.;Höntrop;7;190;05115100700190______;102;5,3;25,6;26,5;0;4,0;51.440787;7.137073
+BO-744;Freifläche / Garten;Lindenstr.;Höntrop;1;1456;05115100101456______;209;12,8;22,2;14,8;0;4,0;51.459977;7.147201
+BO-745;Freifläche / Garten;Untere Heintzmannstr.;Laer;5;122;05110100500122______;117;5,8;33,6;27,5;0;4,0;51.456867;7.257176
+BO-746;Freifläche / Garten;In der Provitze 70;Hofstede;3;201;05109900300201______;202;6,8;31,3;7,5;0;4,0;51.507308;7.195929
+BO-747;Freifläche / Garten;Ruppelstr. 7;Hofstede;3;126;05109900300126______;374;14,3;26,2;15,0;0;4,0;51.505905;7.196088
+BO-748;Freifläche / Garten;Am Josephsschacht;Linden;12;226;05111401200226______;287;10,8;27,6;40,9;0;4,0;51.424174;7.177014
+BO-749;Freifläche / Garten;Ruppelstr. 12;Hofstede;3;108;05109900300108______;377;14,4;26,2;15,4;0;4,0;51.505647;7.196578
+BO-750;Freifläche / Garten;Blankensteiner Str.;Weitmar;10;978;05110501000978______;143;6,1;24,8;23,2;0;4,0;51.427196;7.199936
+BO-751;Garagengrundstück;Semperstr.;Wiemelhausen;35;472;05110603500472______;115;13,0;13,7;20,9;0;4,0;51.455151;7.252876
+BO-752;Freifläche / Garten;Markstr. 137;Wiemelhausen;35;603;05110603500603______;650;14,0;48,2;60,7;0;4,0;51.454483;7.248635
+BO-753;Freifläche / Garten;Kalsbusch;Altenbochum;10;223;05109101000223______;231;5,0;55,3;54,3;0;4,0;51.468586;7.246561
+BO-754;Freifläche / Garten;Wacholderweg 18;Höntrop;10;574;05115101000574______;436;18,5;23,4;20,3;0;4,0;51.453094;7.154472
+BO-755;Freifläche / Garten;Bergener Str.;Bergen;2;95;05109200200095______;291;7,5;38,1;39,0;0;4,0;51.51775;7.244521
+BO-756;Garagengrundstück;Gertrudisstr. 27;Wattenscheid;5;423;05115900500423______;338;16,3;33,9;24,1;0;4,0;51.482534;7.132036
+BO-757;Garagengrundstück;Pulverstr. 10;Höntrop;1;444;05115100100444______;206;6,8;30,2;7,8;0;4,0;51.458522;7.142707
+BO-758;Freifläche / Garten;Efeuweg;Höntrop;16;928;05115101600928______;204;12,2;22,3;30,6;0;4,0;51.456353;7.151269
+BO-759;Freifläche / Garten;Faunastr. 2, 2 a;Höntrop;10;211;05115101000211______;116;4,9;30,1;31,0;0;4,0;51.45285;7.152726
+BO-760;Freifläche / Garten;Memeler Str.;Wiemelhausen;21;42;05110602100042______;170;9,1;21,6;27,9;0;4,0;51.45958;7.21202
+BO-761;Freifläche / Garten;Wasserstr.;Altenbochum;13;172;05109101300172______;280;10,1;33,3;41,9;0;4,0;51.464455;7.235887
+BO-762;Freifläche / Garten;Jugendheimstr.;Linden;16;169;05111401600169______;175;13,4;17,9;15,3;0;4,0;51.419324;7.161224
+BO-763;Freifläche / Garten;Lewackerstr.; Winzer Str.;Dahlhausen;17;576;05111001700576______;173;12,3;17,4;26,2;0;4,0;51.417696;7.15809
+BO-764;Freifläche / Garten;Lennershofstr. 46;Querenburg;5;252;05110200500252______;300;14,9;32,9;15,8;0;4,0;51.447822;7.265827
+BO-765;Freifläche / Garten;Klever Weg;Bochum;16;388;05110701600388______;150;8,9;17,8;25,1;0;4,0;51.477358;7.22224
+BO-766;Garagengrundstück;Siepenhöhe;Laer;8;776;05110100800776______;179;10,0;21,1;33,4;0;4,0;51.472498;7.261748
+BO-767;Freifläche / Garten;Barlachweg 12;Weitmar;5;1654;05110500501654______;90;6,0;20,2;21,0;0;4,0;51.457287;7.203319
+BO-768;Freifläche / Garten;Mooswinkel 28;Munscheid;1;356;05115500100356______;445;17,9;35,9;35,9;0;4,0;51.443552;7.168257
+BO-769;Freifläche / Garten;Mooswinkel 15;Munscheid;1;248;05115500100248______;415;17,1;29,8;16,9;0;4,0;51.443089;7.169245
+BO-770;Freifläche / Garten;Hasenwinkeler Str. 155 a;Dahlhausen;7;1058;05111000701058______;375;19,1;22,0;22,6;0;4,0;51.436803;7.157516
+BO-771;Freifläche / Garten;Schreberstr. 12 f;Wattenscheid;27;342;05115902700342______;383;18,1;21,5;22,5;0;4,0;51.47825;7.151336
+BO-772;Freifläche / Garten;Wichernstr. 25;Bochum;12;648;05110701200648______;329;19,0;20,7;20,2;0;4,0;51.494752;7.24609
+BO-773;Freifläche / Garten;Im Stapel 21;Dahlhausen;13;345;05111001300345______;469;21,4;23,5;25,6;1;4,0;51.430499;7.141361
+BO-774;Freifläche / Garten;Eichendorffweg 3 a;Altenbochum;1;708;05109100100708______;392;16,8;25,4;15,7;0;4,0;51.47434;7.255968
+BO-775;Freifläche / Garten;Ruhrstr.;Eppendorf;7;344;05114500700344______;232;10,9;27,1;32,0;0;4,0;51.454207;7.176347
+BO-776;Freifläche / Garten;Hasenkampstr. 25;Weitmar;5;2140;05110500502140______;313;14,9;23,0;24,0;0;4,0;51.453376;7.197562
+BO-777;Freifläche / Garten;An der Maarbrücke 7 c;Hamme;2;3107;05109700203107______;415;20,5;27,4;17,6;0;4,0;51.481886;7.193598
+BO-778;Freifläche / Garten;Erlenstr. 12;Weitmar;5;1184;05110500501184______;91;5,7;18,6;19,7;0;4,0;51.464295;7.207127
+BO-779;Freifläche / Garten;Bergwerksstr. 19;Weitmar;9;1758;05110500901758______;108;6,7;16,9;7,4;0;4,0;51.43997;7.20855
+BO-780;Freifläche / Garten;Böllingsteg;Wiemelhausen;35;471;05110603500471______;139;12,9;13,1;14,9;0;4,0;51.455149;7.25274
+BO-781;Freifläche / Garten;Jung-Stilling-Str. 58;Westenfeld;3;74;05116000300074______;348;15,1;24,1;16,1;0;4,0;51.467353;7.138214
+BO-782;Garagengrundstück;Freyaweg;Harpen;2;1068;05109800201068______;193;7,2;27,5;16,3;0;4,0;51.501752;7.281929
+BO-783;Garagengrundstück;Arnoldstr.;Bochum;20;38;05110702000038______;211;9,2;24,8;35,3;0;4,0;51.477586;7.210717
+BO-784;Freifläche / Garten;Bauklohstr.;Hiltrop;2;1037;05113300201037______;170;5,2;33,1;34,1;0;4,0;51.521728;7.266465
+BO-785;Freifläche / Garten;Haarstr. 49;Stiepel;8;302;05108500800302______;105;4,9;22,6;23,1;0;4,0;51.434769;7.23713
+BO-786;Freifläche / Garten;Ricarda-Huch-Str. 30 a;Grumme;18;689;05109601800689______;436;17,1;26,0;18,1;0;4,0;51.500606;7.221511
+BO-787;Freifläche / Garten;Jugendheimstr.;Linden;16;285;05111401600285______;149;6,8;23,9;30,4;0;4,0;51.419159;7.162184
+BO-788;Freifläche / Garten;Holzstr. 64;Eppendorf;11;638;05114501100638______;413;16,8;26,9;17,8;0;4,0;51.452699;7.170605
+BO-789;Garagengrundstück;Kirchstr.; Günnigfelder Str. 61;Günnigfeld;3;445;05114900300445______;304;18,8;21,0;16,9;0;4,0;51.494109;7.145282
+BO-790;Freifläche / Garten;Schoppenkampstr.;Hordel;6;698;05110000600698______;130;8,4;18,6;18,8;0;4,0;51.49807;7.172824
+BO-791;Freifläche / Garten;Roonstr.;Günnigfeld;9;560;05114900900560______;203;13,8;14,9;14,7;0;4,0;51.489831;7.155462
+BO-792;Freifläche / Garten;Parkstr. 97;Wattenscheid;10;2;05115901000002______;273;17,3;26,0;48,8;0;4,0;51.489472;7.138992
+BO-793;Freifläche / Garten;Von-Waldthausen-Str.;Werne;15;345;05114201500345______;197;6,5;43,2;49,1;0;4,0;51.484963;7.299171
+BO-794;Freifläche / Garten;Dr.-C.-Otto-Str. 97, 97 a;Dahlhausen;15;360;05111001500360______;91;5,4;24,4;26,8;0;4,0;51.426201;7.148662
+BO-795;Freifläche / Garten;Schleiermacherstr.;Eppendorf;11;424;05114501100424______;114;6,4;20,6;26,2;0;4,0;51.451842;7.171367
+BO-796;Garagengrundstück;Köttlingerweg;Weitmar;1;539;05110500100539______;200;8,7;22,8;23,1;0;4,0;51.468771;7.178114
+BO-797;Garagengrundstück;Rotteland;Stiepel;10;841;05108501000841______;137;8,8;16,0;16,7;0;4,0;51.431348;7.24928
+BO-798;Freifläche / Garten;Karl-Arnold-Str. 25;Eppendorf;9;962;05114500900962______;225;16,3;19,0;19,0;0;4,0;51.442504;7.164194
+BO-799;Freifläche / Garten;Am Stenshof 64;Höntrop;8;286;05115100800286______;303;17,5;22,2;36,0;0;4,0;51.460003;7.157349
+BO-800;Freifläche / Garten;Unterm Schrick;Stiepel;10;1009;05108501001009______;224;8,5;27,1;35,2;0;4,0;51.430583;7.246143
+BO-801;Freifläche / Garten;Hahnenfußweg;Stiepel;5;304;05108500500304______;214;9,2;26,7;32,5;0;4,0;51.435045;7.221011
+BO-802;Freifläche / Garten;Am Stenshof 28;Höntrop;8;233;05115100800233______;434;15,0;29,2;32,0;0;4,0;51.460904;7.158541
+BO-803;Garagengrundstück;Luxemburger Str.;Wiemelhausen;8;327;05110600800327______;100;9,0;11,2;21,0;0;4,0;51.465316;7.230687
+BO-804;Freifläche / Garten;Karl-Friedrich-Str. 54;Weitmar;8;3087;05110500803087______;385;16,1;30,6;15,9;0;4,0;51.44555;7.208334
+BO-805;Freifläche / Garten;Am Lohberg 2;Altenbochum;3;111;05109100300111______;160;14,2;14,9;17,7;0;4,0;51.480167;7.235966
+BO-806;Freifläche / Garten;Tippelspfad 11;Altenbochum;9;867;05109100900867______;156;14,8;15,5;16,1;0;4,0;51.469985;7.248489
+BO-807;Freifläche / Garten;Bruchspitze;Altenbochum;6;110;05109100600110______;187;13,0;14,5;28,5;0;4,0;51.472257;7.245653
+BO-808;Freifläche / Garten;Schleiermacherstr. 74, 76;Eppendorf;11;578;05114501100578______;436;15,2;28,9;16,2;0;4,0;51.452838;7.173541
+BO-809;Freifläche / Garten;Leibnizstr.;Weitmar;1;1344;05110500101344______;117;10,5;11,2;22,7;0;4,0;51.470102;7.169393
+BO-810;Freifläche / Garten;Dürerstr. 9;Weitmar;5;1159;05110500501159______;102;4,7;27,4;26,2;0;4,0;51.458655;7.200464
+BO-811;Freifläche / Garten;Zu den Kämpen 1, 3, 5;Harpen;4;773;05109800400773______;137;4,7;38,7;39,2;0;4,0;51.492219;7.270923
+BO-812;Freifläche / Garten;Am Mühlenbach 1;Riemke;3;1067;05110300301067______;367;14,5;25,8;15,5;0;4,0;51.516754;7.225244
+BO-813;Freifläche / Garten;Zu den Kämpen;Harpen;4;1632;05109800401632______;142;12,0;12,1;25,1;0;4,0;51.491773;7.270398
+BO-814;Freifläche / Garten;Die Ey; Kosterstr.;Stiepel;42;206;05108504200206______;234;12,7;28,0;31,1;0;4,0;51.42081;7.210051
+BO-815;Freifläche / Garten;Markstr. 306, 308;Wiemelhausen;12;678;05110601200678______;497;11,1;58,0;59,6;0;4,0;51.447484;7.228936
+BO-816;Freifläche / Garten;Gilsingstr. 62;Wiemelhausen;32;541;05110603200541______;302;14,5;29,7;39,5;0;4,0;51.467638;7.217835
+BO-817;Freifläche / Garten;Charlottenstr.;Wiemelhausen;15;470;05110601500470______;232;11,0;31,5;14,7;0;4,0;51.44087;7.227877
+BO-818;Freifläche / Garten;Markstr. 190;Wiemelhausen;11;736;05110601100736______;467;9,7;59,7;65,3;0;4,0;51.451122;7.243633
+BO-819;Freifläche / Garten;Knepperstr. 49;Wiemelhausen;8;590;05110600800590______;242;16,0;18,5;26,4;0;4,0;51.467085;7.226304
+BO-820;Garagengrundstück;Kampstr.;Wiemelhausen;17;186;05110601700186______;148;10,5;18,2;20,7;0;4,0;51.453382;7.226817
+BO-821;Freifläche / Garten;Kirchharpener Str. 59;Gerthe;10;323;05109401000323______;219;14,7;15,6;14,4;0;3,9;51.51491;7.285668
+BO-822;Freifläche / Garten;Am Neggenborn 61, 63;Langendreer;7;368;05113900700368______;243;5,6;58,9;6,6;0;3,9;51.463497;7.306933
+BO-823;Freifläche / Garten;Alte Bahnhofstr. 99;Langendreer;5;764;05113900500764______;173;6,0;29,0;7,0;0;3,9;51.471168;7.313865
+BO-824;Freifläche / Garten;Auf der Egge 1 a;Stiepel;33;754;05108503300754______;127;6,0;21,7;7,0;0;3,9;51.427312;7.238702
+BO-825;Freifläche / Garten;Steilstr. 8;Stiepel;32;315;05108503200315______;110;5,7;22,1;6,4;0;3,9;51.427426;7.244075
+BO-826;Freifläche / Garten;Schwindstr. 6 a;Weitmar;5;249;05110500500249______;228;6,1;37,7;7,0;0;3,9;51.457486;7.197558
+BO-827;Garagengrundstück;Wattenscheider Hellweg 235;Sevinghausen;10;172;05115701000172______;123;5,9;21,4;6,9;0;3,9;51.456855;7.134257
+BO-828;Freifläche / Garten;Knappenstr.;Wiemelhausen;16;780;05110601600780______;400;13,0;31,0;14,0;0;3,9;51.450377;7.220121
+BO-829;Freifläche / Garten;Jugendheimstr.;Linden;16;167;05111401600167______;176;12,9;14,1;13,9;0;3,9;51.419381;7.160869
+BO-830;Garagengrundstück;Am Schamberge 46, 48;Linden;6;1102;05111400601102______;277;6,6;45,4;6,9;0;3,9;51.433888;7.185784
+BO-831;Garagengrundstück;Alte Wittener Str.;Laer;7;668;05110100700668______;229;13,1;18,1;14,1;0;3,9;51.469587;7.270573
+BO-832;Freifläche / Garten;Köpersweg 14;Werne;11;569;05114201100569______;191;5,5;34,5;6,5;0;3,9;51.49477;7.313799
+BO-833;Freifläche / Garten;Heckertstr.;Grumme;17;41;05109601700041______;277;13,0;21,6;14,0;0;3,9;51.499006;7.23008
+BO-834;Freifläche / Garten;Dr.-C.-Otto-Str. 196;Dahlhausen;13;384;05111001300384______;237;6,1;48,8;7,1;0;3,9;51.430154;7.135645
+BO-835;Freifläche / Garten;Sommerdellenstr. 119, 121;Wattenscheid;9;88;05115900900088______;220;5,5;40,0;6,5;0;3,9;51.489685;7.146141
+BO-836;Freifläche / Garten;Feuerbachstr. 14;Weitmar;5;390;05110500500390______;184;7,5;31,7;7,0;0;3,9;51.459566;7.20188
+BO-837;Freifläche / Garten;Am Alten Sägewerk;Weitmar;7;875;05110500700875______;277;13,1;23,9;14,1;0;3,9;51.448397;7.201088
+BO-838;Freifläche / Garten;Jugendheimstr.;Linden;16;168;05111401600168______;166;13,0;13,2;14,0;0;3,9;51.41935;7.16105
+BO-839;Freifläche / Garten;Weidenhagen;Höntrop;11;416;05115101100416______;129;7,3;18,4;14,4;0;3,9;51.446537;7.156004
+BO-840;Freifläche / Garten;Dertmanns Feld;Stiepel;3;686;05108500300686______;137;6,0;23,1;14,0;0;3,9;51.434157;7.210902
+BO-841;Freifläche / Garten;Bussmannsfeld;Hiltrop;7;130;05113300700130______;282;13,1;29,5;14,1;0;3,9;51.516009;7.255135
+BO-842;Freifläche / Garten;An der Malstatt 20, 22;Langendreer;9;1028;05113900901028______;138;6,0;24,4;7,0;0;3,9;51.472662;7.318336
+BO-843;Freifläche / Garten;Drusenbergstr.;Wiemelhausen;21;41;05110602100041______;106;8,7;13,2;14,0;0;3,9;51.459711;7.211935
+BO-844;Freifläche / Garten;Am Schamberge 61;Linden;6;430;05111400600430______;193;5,1;39,6;6,5;0;3,9;51.4332;7.187483
+BO-845;Freifläche / Garten;Josephinenstr. 136;Grumme;12;199;05109601200199______;119;9,4;13,5;10,3;0;3,9;51.499227;7.23796
+BO-846;Garagengrundstück;Bleckstr.;Riemke;11;1;05110301100001______;142;12,8;13,3;14,3;0;3,9;51.514669;7.197536
+BO-847;Freifläche / Garten;Schaffnerweg;Eppendorf;8;303;05114500800303______;128;13,6;13,9;14,1;0;3,9;51.445815;7.170925
+BO-848;Freifläche / Garten;Holzstr. 46;Eppendorf;11;38;05114501100038______;457;13,7;34,2;14,6;0;3,9;51.453308;7.171445
+BO-849;Freifläche / Garten;Cruismannstr. 93;Riemke;3;874;05110300300874______;138;5,0;28,2;6,2;0;3,8;51.51467;7.224517
+BO-850;Freifläche / Garten;Blankensteiner Str.;Weitmar;10;1080;05110501001080______;426;11,3;46,1;13,2;0;3,8;51.42845;7.206876
+BO-851;Freifläche / Garten;Dewinkelstr. 36;Stiepel;4;378;05108500400378______;355;18,3;32,2;13,3;0;3,8;51.44163;7.220339
+BO-852;Garagengrundstück;Flurstr. 9;Bochum;11;97;05110701100097______;182;13,1;14,5;6,3;0;3,8;51.484156;7.233439
+BO-853;Garagengrundstück;Auf dem Pfade 58;Dahlhausen;9;489;05111000900489______;224;14,2;16,8;13,4;0;3,8;51.4284;7.153796
+BO-854;Freifläche / Garten;Graffring 15;Weitmar;5;2099;05110500502099______;123;5,0;24,6;6,0;0;3,8;51.463075;7.208777
+BO-855;Freifläche / Garten;Halfmannswiese;Dahlhausen;8;165;05111000800165______;111;9,0;12,6;13,5;0;3,8;51.431521;7.160163
+BO-856;Freifläche / Garten;Keilstr.;Linden;2;388;05111400200388______;372;11,5;34,8;13,3;0;3,8;51.426733;7.159907
+BO-857;Freifläche / Garten;Schützenstr. 13;Weitmar;4;2415;05110500402415______;302;16,2;20,0;13,9;0;3,8;51.462623;7.197368
+BO-858;Baulücke;Goldhammer Str.;Hamme;2;1983;05109700201983______;83;4,9;17,7;5,9;3;3,8;51.4815;7.185299
+BO-859;Freifläche / Garten;Brauhof;Wattenscheid;5;546;05115900500546______;85;6,5;16,2;9,5;1;3,8;51.480035;7.133916
+BO-860;Freifläche / Garten;Am Varenholt 88 a;Stiepel;15;264;05108501500264______;118;6,6;20,7;5,8;0;3,8;51.430182;7.218597
+BO-861;Garagengrundstück;Auf dem Knust 2 a;Harpen;1;3086;05109800103086______;135;5,0;27,3;6,1;0;3,8;51.498681;7.274563
+BO-862;Freifläche / Garten;Waldesrand 10;Linden;6;1329;05111400601329______;115;5,1;22,8;6,1;0;3,8;51.437345;7.185827
+BO-863;Garagengrundstück;Heckenrosenweg 5;Werne;13;188;05114201300188______;131;6,1;34,3;5,7;0;3,8;51.491695;7.31109
+BO-864;Freifläche / Garten;Dr.-C.-Otto-Str. 131, 133, 133 a, 133 b;Dahlhausen;14;123;05111001400123______;117;7,1;25,4;5,7;0;3,8;51.42604;7.142959
+BO-865;Freifläche / Garten;Wiemelhauser Str.;Wiemelhausen;9;318;05110600900318______;186;12,7;15,6;13,8;0;3,8;51.460371;7.228734
+BO-866;Garagengrundstück;Freisenbruch 23;Sevinghausen;12;96;05115701200096______;103;5,0;20,6;6,0;0;3,8;51.453849;7.126664
+BO-867;Freifläche / Garten;Leibnizstr.;Weitmar;1;1345;05110500101345______;129;10,5;12,3;13,2;0;3,8;51.470139;7.169551
+BO-868;Garagengrundstück;Unterm Jäger;Langendreer;14;566;05113901400566______;117;11,2;12,7;13,7;0;3,8;51.461471;7.320464
+BO-869;Freifläche / Garten;Zum Ruhrblick;Stiepel;24;149;05108502400149______;351;12,7;30,9;13,6;0;3,8;51.425802;7.246928
+BO-870;Freifläche / Garten;Schulze-Vellinghausen-Str.;Langendreer;17;422;05113901700422______;121;10,1;12,5;13,5;0;3,8;51.491744;7.334707
+BO-871;Freifläche / Garten;Schultheßstr. 6;Weitmar;9;1856;05110500901856______;271;5,0;54,6;5,8;0;3,8;51.446549;7.197207
+BO-872;Freifläche / Garten;Am Eschenbruch;Grumme;17;44;05109601700044______;281;13,2;22,2;13,9;0;3,8;51.49899;7.230264
+BO-873;Freifläche / Garten;Im Breien 2, 4, 6, 8;Werne;14;405;05114201400405______;398;5,7;82,0;6,3;0;3,8;51.487242;7.309486
+BO-874;Freifläche / Garten;Altenbochumer Str. 41 b;Altenbochum;3;922;05109100300922______;161;11,4;21,7;6,0;0;3,8;51.47642;7.240615
+BO-875;Garagengrundstück;Vogelstr. 2;Eppendorf;12;739;05114501200739______;220;6,4;41,6;5,0;0;3,7;51.452699;7.168981
+BO-876;Garagengrundstück;Lerchenweg;Grumme;11;302;05109601100302______;193;12,1;16,0;13,1;0;3,7;51.496176;7.234835
+BO-877;Freifläche / Garten;Westring;Bochum;6;140;05110700600140______;136;11,4;12,4;13,1;0;3,7;51.483996;7.211178
+BO-878;Freifläche / Garten;Westring;Bochum;6;136;05110700600136______;129;11,1;11,6;12,5;0;3,7;51.48411;7.211201
+BO-879;Freifläche / Garten;Hertastr.;Hofstede;3;138;05109900300138______;386;12,4;32,4;12,8;0;3,7;51.506642;7.196888
+BO-880;Garagengrundstück;Zum Kühl 32;Werne;14;77;05114201400077______;93;8,3;11,8;12,7;0;3,7;51.484903;7.310205
+BO-881;Freifläche / Garten;Alte Bahnhofstr. 124;Langendreer;4;183;05113900400183______;578;11,6;49,8;12,6;0;3,7;51.473718;7.310967
+BO-882;Freifläche / Garten;Im Pastoratsbusch;Stiepel;33;654;05108503300654______;400;12,1;33,2;13,1;0;3,7;51.428268;7.237223
+BO-883;Freifläche / Garten;Waldesrand 42;Linden;6;651;05111400600651______;390;14,1;30,2;13,0;0;3,7;51.434286;7.188102
+BO-884;Freifläche / Garten;Hertastr.;Hofstede;3;136;05109900300136______;384;12,2;32,7;13,0;0;3,7;51.506642;7.196554
+BO-885;Freifläche / Garten;Hertastr.;Hofstede;3;139;05109900300139______;360;11,7;32,0;12,7;0;3,7;51.506642;7.197058
+BO-886;Freifläche / Garten;Reiterweg;Höntrop;9;567;05115100900567______;378;11,5;33,2;12,5;0;3,7;51.458117;7.159466
+BO-887;Freifläche / Garten;Harpener Hellweg 65;Harpen;1;3271;05109800103271______;249;8,1;31,1;9,1;0;3,7;51.49955;7.274071
+BO-888;Freifläche / Garten;Duwenkamp 22;Günnigfeld;10;17;05114901000017______;220;13,9;18,2;5,1;0;3,7;51.49061;7.149393
+BO-889;Freifläche / Garten;Blankensteiner Str. 47;Weitmar;10;958;05110501000958______;453;11,0;42,7;12,5;0;3,7;51.43984;7.195586
+BO-890;Freifläche / Garten;Adrianistr.;Werne;8;358;05114200800358______;251;11,6;26,6;12,6;0;3,7;51.488351;7.305992
+BO-891;Garagengrundstück;Suntumer Str.;Laer;7;1057;05110100701057______;210;11,5;18,2;12,5;0;3,7;51.472732;7.272939
+BO-892;Freifläche / Garten;Hertastr.;Hofstede;3;134;05109900300134______;371;11,5;33,2;12,4;0;3,7;51.506641;7.196225
+BO-893;Garagengrundstück;Klever Weg;Bochum;16;389;05110701600389______;200;15,0;17,6;9,2;1;3,7;51.477304;7.222313
+BO-894;Freifläche / Garten;Wehlaustr.;Hamme;1;2286;05109700102286______;327;11,8;27,9;12,8;0;3,7;51.496808;7.179258
+BO-895;Freifläche / Garten;Schinkelstr. 50;Laer;5;1173;05110100501173______;114;6,3;21,8;5,6;0;3,7;51.453149;7.253661
+BO-896;Freifläche / Garten;Hertastr.;Hofstede;3;133;05109900300133______;381;11,5;33,6;12,5;0;3,7;51.506574;7.196063
+BO-897;Freifläche / Garten;Hertastr.;Hofstede;3;137;05109900300137______;366;11,7;32,3;12,7;0;3,7;51.506641;7.196721
+BO-898;Freifläche / Garten;Quellenweg 4;Bochum;12;903;05110701200903______;272;16,3;27,1;12,5;0;3,7;51.491256;7.240607
+BO-899;Garagengrundstück;Witte-Wie;Langendreer;9;777;05113900900777______;314;11,9;26,3;12,9;0;3,7;51.469136;7.321221
+BO-900;Freifläche / Garten;Stensstr.;Weitmar;5;614;05110500500614______;333;11,7;28,9;12,7;0;3,7;51.456366;7.204371
+BO-901;Freifläche / Garten;Dessauer Str. 14;Günnigfeld;9;532;05114900900532______;102;5,4;21,9;5,3;0;3,7;51.486555;7.159191
+BO-902;Garagengrundstück;Constantinstr.;Hofstede;6;436;05109900600436______;252;11,5;22,3;12,5;0;3,7;51.50264;7.216296
+BO-903;Freifläche / Garten;Wehlaustr.;Hamme;1;2287;05109700102287______;329;11,8;28,2;12,8;0;3,7;51.496875;7.179388
+BO-904;Freifläche / Garten;Constantinstr. 36;Hofstede;6;435;05109900600435______;81;7,9;11,8;13,0;0;3,7;51.501167;7.217287
+BO-905;Garagengrundstück;Adrianistr.;Werne;8;58;05114200800058______;339;11,4;29,9;12,3;0;3,6;51.488465;7.306018
+BO-906;Freifläche / Garten;Auf der Prinz 85;Harpen;4;1194;05109800401194______;84;8,2;10,8;11,8;0;3,6;51.486635;7.260008
+BO-907;Garagengrundstück;Querschlag;Wiemelhausen;10;151;05110601000151______;120;11,3;14,0;12,2;0;3,6;51.455839;7.232233
+BO-908;Freifläche / Garten;Maiwegstr.;Langendreer;4;98;05113900400098______;163;11,2;17,1;12,1;0;3,6;51.47562;7.308141
+BO-909;Garagengrundstück;Frauenlobstr.;Hiltrop;4;827;05113300400827______;116;10,4;11,0;12,1;0;3,6;51.515507;7.268891
+BO-910;Freifläche / Garten;Sudholzstr.;Höntrop;12;99;05115101200099______;139;9,3;19,8;12,1;0;3,6;51.442491;7.154713
+BO-911;Freifläche / Garten;Hasenwinkeler Str.;Dahlhausen;5;485;05111000500485______;315;11,1;33,5;12,1;0;3,6;51.441586;7.158359
+BO-912;Garagengrundstück;Frauenlobstr.;Hiltrop;4;829;05113300400829______;114;10,1;11,2;12,2;0;3,6;51.515571;7.269884
+BO-913;Garagengrundstück;Frauenlobstr.;Hiltrop;4;826;05113300400826______;116;10,2;11,1;12,1;0;3,6;51.51546;7.268388
+BO-914;Freifläche / Garten;Bergener Str. 66;Bergen;3;13;05109200300013______;120;7,6;17,7;8,6;0;3,6;51.516873;7.241679
+BO-915;Freifläche / Garten;Schadowstr.;Wiemelhausen;37;706;05110603700706______;92;5,9;16,3;8,1;1;3,6;51.460622;7.251567
+BO-916;Garagengrundstück;Frauenlobstr.;Hiltrop;4;828;05113300400828______;116;10,4;11,1;12,1;0;3,6;51.515547;7.269388
+BO-917;Garagengrundstück;Heuversstr.;Bochum;21;150;05110702100150______;98;7,2;14,8;8,2;1;3,6;51.476877;7.208042
+BO-918;Garagengrundstück;Constantinstr.;Hofstede;6;373;05109900600373______;243;12,0;21,3;11,8;0;3,6;51.502189;7.216361
+BO-919;Freifläche / Garten;Am Hillerberg;Hiltrop;4;996;05113300400996______;199;11,1;22,9;12,0;0;3,6;51.521577;7.270379
+BO-920;Freifläche / Garten;Sandfuhrstr.;Stiepel;4;576;05108500400576______;415;9,4;48,0;12,1;0;3,6;51.439676;7.219641
+BO-921;Freifläche / Garten;Flottmannstr.;Riemke;3;836;05110300300836______;562;17,1;35,3;35,1;1;3,5;51.519902;7.216321
+BO-922;Freifläche / Garten;Friedlandstr.;Höntrop;16;1524;05115101601524______;407;10,5;41,0;11,5;0;3,5;51.455433;7.151107
+BO-923;Freifläche / Garten;Laer;Laer;4;199;05110100400199______;697;27,1;33,1;31,1;1;3,5;51.464142;7.281788
+BO-924;Garagengrundstück;Siepenhöhe;Laer;8;424;05110100800424______;171;9,5;19,9;11,1;0;3,5;51.472774;7.2643
+BO-925;Freifläche / Garten;Polterberg;Dahlhausen;6;1150;05111000601150______;636;22,2;30,1;23,6;1;3,5;51.440368;7.163161
+BO-926;Garagengrundstück;Wattenscheider Hellweg;Sevinghausen;11;154;05115701100154______;176;13,6;15,0;11,6;0;3,5;51.456612;7.133212
+BO-927;Freifläche / Garten;Bänksgenstr.;Hordel;6;572;05110000600572______;410;17,0;29,7;7,3;1;3,5;51.498972;7.172889
+BO-928;Garagengrundstück;Bänksgenstr.;Hordel;6;414;05110000600414______;168;10,6;16,4;11,6;0;3,5;51.499314;7.172125
+BO-929;Freifläche / Garten;Kolonie Vollmond;Laer;7;996;05110100700996______;501;26,1;27,2;24,8;1;3,5;51.472386;7.276904
+BO-930;Garagengrundstück;Somborner Str.;Langendreer;2;339;05113900200339______;520;17,3;34,4;18,4;1;3,5;51.485766;7.328994
+BO-931;Freifläche / Garten;Heidestr.;Wattenscheid;27;202;05115902700202______;189;9,8;21,0;11,0;0;3,5;51.478302;7.155547
+BO-932;Freifläche / Garten;Buschstr.;Westenfeld;14;180;05116001400180______;641;16,0;42,4;17,0;1;3,5;51.477611;7.158227
+BO-933;Freifläche / Garten;Unterfeldstr.;Stiepel;24;121;05108502400121______;336;10,1;40,6;11,1;0;3,5;51.423566;7.248598
+BO-934;Freifläche / Garten;Brunsteinstr.;Wiemelhausen;6;93;05110600600093______;219;10,4;21,0;11,4;0;3,5;51.472685;7.229007
+BO-935;Freifläche / Garten;Feuerbachstr.;Weitmar;5;2157;05110500502157______;504;17,1;29,8;45,8;1;3,5;51.459858;7.203673
+BO-936;Freifläche / Garten;Gremmestr.;Bochum;23;266;05110702300266______;164;10,4;16,9;11,4;0;3,5;51.476553;7.199352
+BO-937;Freifläche / Garten;Moltkestr.;Günnigfeld;10;313;05114901000313______;596;27,0;28,4;21,1;1;3,5;51.488462;7.148726
+BO-938;Freifläche / Garten;Auf dem Streifchen;Laer;3;393;05110100300393______;473;19,0;30,9;42,7;1;3,5;51.46341;7.293609
+BO-939;Freifläche / Garten;Jugendheimstr.;Linden;16;165;05111401600165______;159;10,4;15,7;11,4;0;3,5;51.419466;7.160562
+BO-940;Freifläche / Garten;Hülsbergstr.;Stiepel;15;32;05108501500032______;636;29,4;32,3;49,3;1;3,5;51.432746;7.217958
+BO-941;Freifläche / Garten;Bömmerstr.;Langendreer;13;1218;05113901301218______;681;24,0;36,5;16,7;1;3,5;51.457768;7.333127
+BO-942;Garagengrundstück;Springerplatz 26;Bochum;22;223;05110702200223______;89;9,4;10,3;11,3;0;3,5;51.47833;7.206884
+BO-943;Freifläche / Garten;In der Hönnebecke;Höntrop;1;1236;05115100101236______;459;17,0;33,1;18,4;1;3,5;51.459218;7.148916
+BO-944;Freifläche / Garten;Helmholtzstr. 5;Weitmar;1;334;05110500100334______;411;16,7;27,4;17,7;0;3,5;51.471067;7.170321
+BO-945;Freifläche / Garten;Bergener Str.;Bergen;3;112;05109200300112______;81;6,0;16,4;7,5;1;3,5;51.516442;7.245773
+BO-946;Garagengrundstück;Meinholtweg 66;Dahlhausen;3;753;05111000300753______;286;16,5;17,5;17,5;0;3,5;51.435758;7.150909
+BO-947;Freifläche / Garten;Parkstr. 60;Wattenscheid;10;400;05115901000400______;677;11,2;63,7;11,2;0;3,5;51.486856;7.140296
+BO-948;Freifläche / Garten;Auf der Rohfackel;Dahlhausen;15;639;05111001500639______;313;10,3;31,0;11,3;0;3,5;51.426588;7.14713
+BO-949;Freifläche / Garten;Faunastr.;Höntrop;10;180;05115101000180______;83;4,8;22,2;24,4;1;3,5;51.453142;7.152372
+BO-950;Freifläche / Garten;Am Luftschacht;Eppendorf;10;1398;05114501001398______;201;10,0;21,4;11,2;0;3,5;51.450564;7.165141
+BO-951;Freifläche / Garten;Schloßstr.;Weitmar;10;84;05110501000084______;594;15,1;40,6;15,7;1;3,5;51.442256;7.193945
+BO-952;Freifläche / Garten;Glückaufstr.;Hamme;1;269;05109700100269______;462;16,7;27,6;61,7;1;3,5;51.488251;7.183509
+BO-953;Garagengrundstück;Jugendheimstr.;Linden;16;155;05111401600155______;204;12,0;23,8;50,6;0;3,5;51.419704;7.160561
+BO-954;Freifläche / Garten;Stühmeyerstr.;Bochum;6;135;05110700600135______;117;10,6;11,0;11,5;0;3,5;51.4842;7.211219
+BO-955;Garagengrundstück;Bergener Str. 131 a;Bergen;2;259;05109200200259______;166;6,3;25,9;7,3;0;3,5;51.517189;7.247323
+BO-956;Freifläche / Garten;Lindebeckstr. 11;Munscheid;1;23;05115500100023______;429;18,2;38,3;49,6;0;3,5;51.442648;7.168966
+BO-957;Freifläche / Garten;Knappenstr.;Wiemelhausen;16;895;05110601600895______;620;20,0;31,6;52,0;1;3,5;51.445884;7.222145
+BO-958;Freifläche / Garten;Urbanusstr.;Langendreer;15;625;05113901500625______;653;31,2;31,2;38,2;1;3,5;51.460483;7.306062
+BO-959;Freifläche / Garten;Am Luftschacht;Eppendorf;10;1400;05114501001400______;241;10,1;25,1;11,3;0;3,5;51.45066;7.165373
+BO-960;Freifläche / Garten;Kellermannsweg;Weitmar;8;568;05110500800568______;684;14,3;52,3;21,5;1;3,5;51.446442;7.212646
+BO-961;Freifläche / Garten;Havkenscheider Str. 27;Laer;8;340;05110100800340______;389;14,7;30,4;39,2;0;3,5;51.473081;7.26557
+BO-962;Freifläche / Garten;Harpener Hellweg;Harpen;2;3305;05109800203305______;532;19,3;28,1;27,5;1;3,5;51.50097;7.282454
+BO-963;Freifläche / Garten;Steinkuhlstr.;Wiemelhausen;36;866;05110603600866______;566;22,7;35,4;22,9;1;3,5;51.464381;7.243382
+BO-964;Freifläche / Garten;Lütge Heide;Werne;8;302;05114200800302______;573;20,3;40,0;28,4;1;3,5;51.488846;7.309885
+BO-965;Freifläche / Garten;Josephinenstr. 132 b, 134;Grumme;13;204;05109601300204______;99;10,6;11,4;11,6;0;3,5;51.499402;7.23786
+BO-966;Freifläche / Garten;Werner Hellweg;Laer;9;131;05110100900131______;603;20,4;32,9;23,6;1;3,5;51.476652;7.276074
+BO-967;Freifläche / Garten;Wabenweg;Stiepel;2;349;05108500200349______;586;22,5;34,5;16,1;1;3,5;51.44005;7.216435
+BO-968;Garagengrundstück;Bergener Str. 133 a;Bergen;2;261;05109200200261______;172;8,2;25,8;6,5;0;3,4;51.517079;7.247411
+BO-969;Freifläche / Garten;Im Sonderfeld;Stiepel;37;92;05108503700092______;219;9,2;27,4;10,1;0;3,4;51.414256;7.235987
+BO-970;Freifläche / Garten;Engelsburger Str.;Eppendorf;1;175;05114500100175______;281;9,5;29,5;10,5;0;3,4;51.459556;7.178432
+BO-971;Freifläche / Garten;Immenweg;Wiemelhausen;16;864;05110601600864______;310;11,8;29,7;10,2;0;3,4;51.445;7.224021
+BO-972;Freifläche / Garten;Gremmestr.;Bochum;23;265;05110702300265______;365;9,6;38,9;10,3;0;3,4;51.476503;7.199544
+BO-973;Freifläche / Garten;Marmelshagen;Hofstede;15;1108;05109901501108______;441;9,7;57,5;10,7;0;3,4;51.50133;7.191926
+BO-974;Freifläche / Garten;Elbestr.;Harpen;4;1261;05109800401261______;208;9,2;24,2;10,5;0;3,4;51.486738;7.259719
+BO-975;Freifläche / Garten;Auf'm Kämpchen;Riemke;2;258;05110300200258______;131;12,5;14,1;10,6;0;3,4;51.516644;7.209977
+BO-976;Garagengrundstück;Hattinger Str.;Linden;16;838;05111401600838______;357;8,2;49,9;10,3;0;3,4;51.419744;7.165836
+BO-977;Freifläche / Garten;Engelsburger Str.;Eppendorf;1;176;05114500100176______;280;9,5;29,6;10,5;0;3,4;51.459476;7.178404
+BO-978;Freifläche / Garten;Bussmannsfeld;Hiltrop;7;162;05113300700162______;152;5,2;45,2;10,2;0;3,4;51.515633;7.25695
+BO-979;Garagengrundstück;Keilstr. 76;Linden;1;9;05111400100009______;249;5,5;45,4;6,5;0;3,4;51.426887;7.155545
+BO-980;Freifläche / Garten;Im Stapel 49;Dahlhausen;13;100;05111001300100______;86;8,3;13,7;10,7;0;3,4;51.432518;7.138387
+BO-981;Freifläche / Garten;Am Kuhlenkamp;Weitmar;8;43;05110500800043______;407;9,1;51,5;10,1;0;3,4;51.446942;7.204222
+BO-982;Freifläche / Garten;Wabenweg 1;Weitmar;8;1247;05110500801247______;346;17,0;26,1;10,8;0;3,4;51.440603;7.21576
+BO-983;Garagengrundstück;Dewinkelstr.;Stiepel;4;1078;05108500401078______;165;9,6;17,4;10,6;0;3,4;51.439938;7.220535
+BO-984;Garagengrundstück;Hegelstr. 15;Gerthe;18;329;05109401800329______;283;11,2;30,4;7,0;0;3,4;51.518185;7.27758
+BO-985;Garagengrundstück;Ehrenfeldstr.;Wiemelhausen;3;28;05110600300028______;176;10,1;18,6;10,7;0;3,4;51.471224;7.209201
+BO-986;Freifläche / Garten;Baumhofstr.;Wiemelhausen;13;308;05110601300308______;289;8,7;50,0;10,7;0;3,4;51.445423;7.230498
+BO-987;Freifläche / Garten;Lindener Str.;Linden;2;355;05111400200355______;94;5,5;20,7;7,0;1;3,4;51.424716;7.161593
+BO-988;Freifläche / Garten;Markstr.;Wiemelhausen;15;286;05110601500286______;82;6,1;16,4;7,0;1;3,4;51.446866;7.227796
+BO-989;Garagengrundstück;Werner Hellweg;Laer;8;421;05110100800421______;151;9,5;16,9;10,8;0;3,4;51.47278;7.264437
+BO-990;Garagengrundstück;Blumenstr.;Bochum;11;152;05110701100152______;148;8,4;18,1;9,4;0;3,3;51.483534;7.229012
+BO-991;Garagengrundstück;Untere Heintzmannstr.;Laer;5;1019;05110100501019______;177;8,8;25,2;9,9;0;3,3;51.457236;7.257518
+BO-992;Garagengrundstück;Siepenhöhe;Laer;8;427;05110100800427______;102;8,5;12,3;9,5;0;3,3;51.472714;7.263294
+BO-993;Freifläche / Garten;Querschlag;Wiemelhausen;10;135;05110601000135______;172;8,1;23,8;9,8;0;3,3;51.455587;7.23264
+BO-994;Garagengrundstück;Luxemburger Str.;Wiemelhausen;8;320;05110600800320______;101;9,0;11,8;10,0;0;3,3;51.464644;7.231376
+BO-995;Freifläche / Garten;Alter Eistreff 30;Wiemelhausen;6;645;05110600600645______;80;8,6;10,4;9,6;0;3,3;51.472746;7.232022
+BO-996;Freifläche / Garten;Gahlensche Str.;Hamme;2;1643;05109700201643______;103;7,9;19,7;10,0;0;3,3;51.48169;7.194603
+BO-997;Garagengrundstück;Am Krüzweg;Dahlhausen;15;626;05111001500626______;146;9,0;18,0;9,9;0;3,3;51.424215;7.149393
+BO-998;Freifläche / Garten;Watermanns Weg;Wattenscheid;8;13;05115900800013______;404;11,4;34,8;10,1;0;3,3;51.489495;7.135839
+BO-999;Garagengrundstück;Heintzmannstr.;Laer;5;1174;05110100501174______;285;9,0;33,2;10,0;0;3,3;51.452992;7.253986
+BO-1000;Freifläche / Garten;Ostaraweg 14 a;Harpen;2;1471;05109800201471______;86;8,6;10,1;9,5;0;3,3;51.504594;7.291144
+BO-1001;Freifläche / Garten;Sonnenscheinstr.;Hordel;5;1044;05110000501044______;382;13,2;39,2;10,1;0;3,3;51.500599;7.176995
+BO-1002;Freifläche / Garten;Am Luftschacht;Eppendorf;10;1399;05114501001399______;204;9,3;23,1;10,1;0;3,3;51.450586;7.165275
+BO-1003;Garagengrundstück;Haarholzer Str. 75;Stiepel;16;564;05108501600564______;92;9,2;11,2;9,8;0;3,3;51.433478;7.252624
+BO-1004;Freifläche / Garten;Zeppelindamm;Höntrop;12;555;05115101200555______;133;6,0;23,6;10,0;0;3,3;51.445626;7.158625
+BO-1005;Freifläche / Garten;Steinring;Bochum;14;401;05110701400401______;193;8,5;22,5;9,5;0;3,3;51.475175;7.231857
+BO-1006;Freifläche / Garten;Ostholzer Hang;Linden;7;33;05111400700033______;391;11,3;41,9;9,7;0;3,3;51.430195;7.181667
+BO-1007;Freifläche / Garten;Stockumer Str.;Langendreer;12;409;05113901200409______;106;8,9;12,0;9,9;0;3,3;51.46508;7.339027
+BO-1008;Freifläche / Garten;Am Steinhardt;Langendreer;18;150;05113901800150______;107;8,2;13,6;9,1;0;3,2;51.488135;7.340916
+BO-1009;Freifläche / Garten;In den Böcken 25;Harpen;1;917;05109800100917______;220;12,1;18,6;5,3;0;3,2;51.505737;7.271217
+BO-1010;Freifläche / Garten;Ehrenfeldstr.;Wiemelhausen;3;26;05110600300026______;139;7,8;18,9;8,8;0;3,2;51.471167;7.20908
+BO-1011;Freifläche / Garten;Im Ostholz;Linden;8;320;05111400800320______;655;14,1;54,0;12,9;1;3,2;51.432048;7.179119
+BO-1012;Freifläche / Garten;Blütenweg;Eppendorf;12;1033;05114501201033______;101;7,7;13,4;8,7;0;3,2;51.453025;7.167912
+BO-1013;Freifläche / Garten;Am Hosiepen;Höntrop;13;268;05115101300268______;254;9,4;30,0;8,8;0;3,2;51.442498;7.139794
+BO-1014;Freifläche / Garten;Jugendheimstr.;Linden;16;166;05111401600166______;171;11,8;15,0;12,8;0;3,2;51.419443;7.160719
+BO-1015;Freifläche / Garten;Am Hottenborn;Westenfeld;13;838;05116001300838______;147;4,5;32,8;5,5;1;3,2;51.470761;7.161702
+BO-1016;Garagengrundstück;Schulze-Vellinghausen-Str.;Langendreer;17;696;05113901700696______;106;9,0;16,6;9,0;0;3,2;51.490601;7.33751
+BO-1017;Freifläche / Garten;Kornharpener Str.;Harpen;4;1336;05109800401336______;143;8,2;20,4;9,2;0;3,2;51.486642;7.265194
+BO-1018;Freifläche / Garten;Ruppelstr.;Hofstede;3;177;05109900300177______;204;8,1;26,6;9,1;0;3,2;51.505291;7.196096
+BO-1019;Freifläche / Garten;Schwindstr.;Weitmar;5;279;05110500500279______;108;4,6;27,5;5,6;1;3,2;51.457422;7.19818
+BO-1020;Freifläche / Garten;Unterstr.;Langendreer;9;1542;05113900901542______;423;13,2;39,6;8,8;0;3,2;51.474393;7.31906
+BO-1021;Freifläche / Garten;Halfmannswiese;Dahlhausen;9;197;05111000900197______;171;7,8;25,0;8,8;0;3,2;51.430886;7.15828
+BO-1022;Freifläche / Garten;Sachsenring;Westenfeld;10;412;05116001000412______;206;8,0;29,0;9,0;0;3,2;51.468699;7.151058
+BO-1023;Garagengrundstück;Alte Bahnhofstr.;Langendreer;9;1226;05113900901226______;131;4,6;29,6;5,5;1;3,2;51.472826;7.313366
+BO-1024;Freifläche / Garten;Nehringskamp;Linden;10;471;05111401000471______;131;4,7;28,7;5,0;1;3,2;51.427397;7.16638
+BO-1025;Freifläche / Garten;Hansastr. 90;Günnigfeld;8;322;05114900800322______;650;10,0;66,4;11,6;0;3,1;51.483902;7.154876
+BO-1026;Freifläche / Garten;Watermanns Weg;Wattenscheid;8;20;05115900800020______;430;12,3;36,7;8,4;0;3,1;51.489589;7.136338
+BO-1027;Garagengrundstück;Schlehenkamp;Werne;14;252;05114201400252______;218;7,9;31,4;8,0;0;3,1;51.482952;7.309351
+BO-1028;Garagengrundstück;Am Sonnenberg 43;Linden;7;428;05111400700428______;404;17,9;31,9;8,2;0;3,1;51.429304;7.182551
+BO-1029;Freifläche / Garten;Heckertstr.;Grumme;17;45;05109601700045______;160;7,4;22,2;8,4;0;3,1;51.49899;7.230411
+BO-1030;Freifläche / Garten;Kemnastr.;Leithe;3;67;05115400300067______;232;7,0;35,2;8,4;0;3,1;51.480499;7.112078
+BO-1031;Freifläche / Garten;In der Hönnebecke;Höntrop;1;1116;05115100101116______;129;7,2;18,9;8,0;0;3,1;51.458926;7.149
+BO-1032;Freifläche / Garten;Brunsteinstr.;Wiemelhausen;6;91;05110600600091______;157;7,6;21,0;8,5;0;3,1;51.472723;7.228878
+BO-1033;Freifläche / Garten;Charlottenstr. 5 d;Wiemelhausen;15;528;05110601500528______;457;9,5;50,3;8,0;0;3,1;51.444213;7.22883
+BO-1034;Garagengrundstück;Schinkelstr. 84;Laer;5;1537;05110100501537______;80;7,7;12,3;8,2;0;3,1;51.455046;7.256686
+BO-1035;Freifläche / Garten;Weitmarer-Holz-Str.;Weitmar;11;980;05110501100980______;117;5,0;24,0;8,1;0;3,1;51.428092;7.196999
+BO-1036;Garagengrundstück;Marmelshagen;Hofstede;15;933;05109901500933______;158;7,0;27,8;8,0;0;3,1;51.500583;7.192445
+BO-1037;Garagengrundstück;Ermlandstr.;Wiemelhausen;34;203;05110603400203______;158;7,0;23,0;7,9;0;3,1;51.466091;7.209266
+BO-1038;Freifläche / Garten;Kemnastr.;Leithe;3;66;05115400300066______;232;6,6;38,0;8,3;0;3,1;51.480441;7.112052
+BO-1039;Freifläche / Garten;Weidenhagen;Höntrop;11;417;05115101100417______;128;6,9;18,4;7,9;0;3,1;51.446556;7.156102
+BO-1040;Freifläche / Garten;Diemelstr.;Grumme;5;233;05109600500233______;212;7,0;30,3;8,0;0;3,1;51.495831;7.250715
+BO-1041;Freifläche / Garten;Bernsteinweg;Harpen;2;3526;05109800203526______;204;8,9;23,2;7,9;0;3,1;51.507217;7.272186
+BO-1042;Freifläche / Garten;Leibnizstr.;Weitmar;1;211;05110500100211______;140;7,0;20,1;8,0;0;3,1;51.471073;7.172135
+BO-1043;Freifläche / Garten;Dorstener Str. 399;Hofstede;18;251;05109901800251______;188;8,0;30,9;4,9;0;3,1;51.50648;7.189567
+BO-1044;Garagengrundstück;Falkstr.;Hofstede;6;250;05109900600250______;249;10,8;23,5;11,8;0;3,1;51.502212;7.214755
+BO-1045;Freifläche / Garten;Im Ümminger Feld;Querenburg;11;325;05110201100325______;242;7,4;37,4;8,0;0;3,1;51.464214;7.296039
+BO-1046;Freifläche / Garten;Gerther Heide;Hiltrop;4;1156;05113300401156______;175;14,5;19,6;17,2;0;3,0;51.520382;7.269751
+BO-1047;Garagengrundstück;Auf der Krücke; Baaker Berg; nach Zeche;Weitmar;11;940;05110501100940______;318;15,3;25,7;20,6;0;3,0;51.427419;7.18803
+BO-1048;Freifläche / Garten;Dr.-C.-Otto-Str.;Dahlhausen;15;492;05111001500492______;94;5,0;20,0;20,9;0;3,0;51.425523;7.149862
+BO-1049;Freifläche / Garten;Robert-Koch-Str.;Querenburg;8;478;05110200800478______;97;9,0;12,5;18,8;0;3,0;51.456904;7.274621
+BO-1050;Freifläche / Garten;An der Landwehr 33;Weitmar;3;553;05110500300553______;93;10,6;11,1;7,2;0;3,0;51.464574;7.202513
+BO-1051;Freifläche / Garten;Querenburger Str.;Wiemelhausen;8;882;05110600800882______;289;17,2;17,9;18,2;0;3,0;51.467326;7.230017
+BO-1052;Freifläche / Garten;Goerdtstr.;Altenbochum;3;267;05109100300267______;688;12,3;60,0;16,3;0;3,0;51.476846;7.242015
+BO-1053;Freifläche / Garten;Auf dem Norrenberge 67;Gerthe;12;247;05109401200247______;481;15,0;32,1;16,0;0;3,0;51.511731;7.285804
+BO-1054;Freifläche / Garten;Büterhof;Harpen;2;1368;05109800201368______;313;18,4;18,8;18,3;0;3,0;51.499113;7.283593
+BO-1055;Freifläche / Garten;Gisela-Piedboeuf-Weg 23;Linden;16;1142;05111401601142______;523;18,9;30,0;16,9;0;3,0;51.417756;7.16147
+BO-1056;Freifläche / Garten;Obernbaakstr. 25;Weitmar;11;587;05110501100587______;630;20,6;40,2;54,4;0;3,0;51.426217;7.193122
+BO-1057;Freifläche / Garten;Ruppelstr.;Hofstede;3;128;05109900300128______;387;14,8;26,3;15,8;0;3,0;51.506161;7.196082
+BO-1058;Garagengrundstück;Kemnader Str.;Weitmar;8;2912;05110500802912______;370;15,1;25,6;26,6;0;3,0;51.440316;7.213747
+BO-1059;Garagengrundstück;Oberstr.;Langendreer;10;513;05113901000513______;323;16,5;20,0;36,5;0;3,0;51.475679;7.332589
+BO-1060;Freifläche / Garten;Sudholzstr. 140;Dahlhausen;4;359;05111000400359______;92;6,3;19,4;7,6;0;3,0;51.442687;7.14953
+BO-1061;Freifläche / Garten;Ruppelstr.;Hofstede;3;122;05109900300122______;372;14,1;26,6;15,1;0;3,0;51.505417;7.196095
+BO-1062;Freifläche / Garten;Rosendelle 5;Eppendorf;4;129;05114500400129______;540;15,0;47,5;48,0;0;3,0;51.456783;7.178897
+BO-1063;Garagengrundstück;Hauptstr.;Langendreer;9;1232;05113900901232______;383;15,8;26,9;15,7;0;3,0;51.4748;7.323027
+BO-1064;Freifläche / Garten;Schreberstr.;Wattenscheid;27;279;05115902700279______;290;17,9;19,1;18,6;0;3,0;51.478055;7.151134
+BO-1065;Garagengrundstück;Maashänserweg;Langendreer;10;842;05113901000842______;86;7,5;11,8;19,0;0;3,0;51.472687;7.327821
+BO-1066;Freifläche / Garten;Rüsselsheimer Weg 7;Langendreer;6;385;05113900600385______;452;14,7;34,1;42,8;0;3,0;51.470944;7.299814
+BO-1067;Freifläche / Garten;Wallbaumweg;Langendreer;1;20;05113900100020______;353;18,0;26,8;44,5;0;3,0;51.479899;7.311926
+BO-1068;Freifläche / Garten;Günnigfelder Str. 142;Hordel;9;159;05110000900159______;460;14,8;36,8;18,8;0;3,0;51.501386;7.154853
+BO-1069;Freifläche / Garten;Karolinenstr.;Hamme;1;1575;05109700101575______;285;18,7;19,9;30,3;0;3,0;51.494143;7.181116
+BO-1070;Freifläche / Garten;Leithmannswiese 41;Stiepel;10;1033;05108501001033______;577;19,6;30,9;34,7;0;3,0;51.430358;7.244005
+BO-1071;Freifläche / Garten;Stiepeler Haar;Stiepel;4;568;05108500400568______;384;18,5;21,2;19,3;0;3,0;51.438988;7.224734
+BO-1072;Garagengrundstück;Bövinghauser Hellweg;Gerthe;6;174;05109400600174______;279;15,9;18,8;19,8;0;3,0;51.524932;7.292936
+BO-1073;Garagengrundstück;Hattinger Str. 197;Weitmar;5;815;05110500500815______;484;18,7;28,2;29,2;0;3,0;51.464143;7.205697
+BO-1074;Freifläche / Garten;Werrastr.;Grumme;4;317;05109600400317______;283;14,2;21,7;34,8;0;3,0;51.498258;7.252356
+BO-1075;Freifläche / Garten;In den Böcken;Harpen;2;3713;05109800203713______;312;14,3;22,7;23,7;0;3,0;51.507004;7.270898
+BO-1076;Freifläche / Garten;Im Pastoratsbusch 97;Stiepel;34;445;05108503400445______;681;14,2;48,9;15,2;0;3,0;51.424727;7.227551
+BO-1077;Freifläche / Garten;Sudholzstr. 70;Höntrop;12;657;05115101200657______;519;20,8;29,9;46,6;0;3,0;51.442595;7.154609
+BO-1078;Freifläche / Garten;Beerenhang;Stiepel;36;237;05108503600237______;415;16,8;25,0;25,9;0;3,0;51.418239;7.2382
+BO-1079;Freifläche / Garten;Schnatstr.;Weitmar;6;1982;05110500601982______;550;13,1;44,7;18,3;0;3,0;51.443681;7.176657
+BO-1080;Freifläche / Garten;Kernberg 13;Langendreer;2;434;05113900200434______;599;22,4;27,8;28,8;0;3,0;51.486692;7.328067
+BO-1081;Freifläche / Garten;Kornharpener Str.;Harpen;3;523;05109800300523______;99;5,3;25,5;24,7;0;3,0;51.495254;7.270209
+BO-1082;Freifläche / Garten;Rosenbergstr. 98;Harpen;1;3070;05109800103070______;563;16,9;40,6;43,8;0;3,0;51.503427;7.271056
+BO-1083;Freifläche / Garten;Wibbeltstr.;Westenfeld;5;85;05116000500085______;174;14,5;14,9;15,8;0;3,0;51.47474;7.142986
+BO-1084;Freifläche / Garten;Am Bremkamp 3;Weitmar;6;1254;05110500601254______;94;4,7;20,9;21,9;0;3,0;51.447008;7.176058
+BO-1085;Freifläche / Garten;Am Bremkamp 1;Weitmar;6;1253;05110500601253______;86;4,6;19,1;20,1;0;3,0;51.446833;7.176104
+BO-1086;Freifläche / Garten;Jahnstr.;Wattenscheid;23;535;05115902300535______;192;6,8;28,9;7,8;0;3,0;51.480872;7.120394
+BO-1087;Freifläche / Garten;Im Hole 24;Harpen;4;518;05109800400518______;527;15,0;42,9;63,6;0;3,0;51.486602;7.261276
+BO-1088;Freifläche / Garten;Isenbrockstr.;Westenfeld;2;211;05116000200211______;410;16,2;27,3;15,7;0;3,0;51.469533;7.136572
+BO-1089;Garagengrundstück;Lohackerstr.;Westenfeld;6;76;05116000600076______;360;19,7;23,3;22,2;0;3,0;51.472457;7.146803
+BO-1090;Freifläche / Garten;Finkenbecke;Langendreer;17;629;05113901700629______;89;8,0;16,7;22,6;0;3,0;51.489405;7.328657
+BO-1091;Freifläche / Garten;Elbestr. 41;Altenbochum;1;240;05109100100240______;639;23,0;34,0;27,0;0;3,0;51.488971;7.254949
+BO-1092;Garagengrundstück;Kemnader Str. 16, 18, 20, 22, 24;Stiepel;2;461;05108500200461______;484;16,7;35,0;43,8;0;3,0;51.439351;7.214663
+BO-1093;Freifläche / Garten;Eulenbaumstr.;Querenburg;6;1031;05110200601031______;271;18,6;19,0;20,0;0;3,0;51.452983;7.269968
+BO-1094;Freifläche / Garten;Eichendorffweg 7 a;Altenbochum;1;734;05109100100734______;542;25,0;26,1;27,1;0;3,0;51.474065;7.256981
+BO-1095;Freifläche / Garten;Eichendorffweg 7;Altenbochum;1;733;05109100100733______;477;17,7;32,9;33,9;0;3,0;51.474076;7.257405
+BO-1096;Freifläche / Garten;Eichendorffweg 3;Altenbochum;1;707;05109100100707______;511;20,9;29,9;63,6;0;3,0;51.474333;7.255726
+BO-1097;Freifläche / Garten;Lewackerstr. 64;Linden;16;992;05111401600992______;561;20,2;31,8;40,7;0;3,0;51.418613;7.160442
+BO-1098;Freifläche / Garten;Am Steinknapp;Weitmar;8;487;05110500800487______;375;21,0;22,7;16,0;0;3,0;51.444048;7.217719
+BO-1099;Freifläche / Garten;Hustadtring;Querenburg;5;316;05110200500316______;380;14,6;28,6;16,2;0;3,0;51.450671;7.261276
+BO-1100;Freifläche / Garten;Schleiermacherstr. 85;Eppendorf;11;586;05114501100586______;504;19,4;31,1;20,4;0;3,0;51.453806;7.172726
+BO-1101;Freifläche / Garten;Markstr.;Laer;5;1334;05110100501334______;311;6,8;70,2;7,9;0;3,0;51.455945;7.253638
+BO-1102;Freifläche / Garten;Suntumer Str. 21;Laer;8;832;05110100800832______;560;20,4;29,1;18,5;0;3,0;51.471632;7.269761
+BO-1103;Freifläche / Garten;Sudholzstr. 32;Höntrop;12;120;05115101200120______;464;18,0;30,5;18,4;0;3,0;51.442816;7.156663
+BO-1104;Freifläche / Garten;Charlottenstr. 57;Wiemelhausen;15;315;05110601500315______;684;23,6;30,4;24,6;0;3,0;51.44144;7.229019
+BO-1105;Garagengrundstück;Jugendheimstr.; Lewackerstr.;Linden;16;176;05111401600176______;295;16,2;23,7;38,2;0;3,0;51.418741;7.161226
+BO-1106;Freifläche / Garten;Im Prattort;Harpen;1;3211;05109800103211______;91;6,1;16,3;21,0;0;3,0;51.50145;7.275794
+BO-1107;Freifläche / Garten;Querenburger Str. 36;Wiemelhausen;8;299;05110600800299______;545;19,9;31,2;49,6;0;3,0;51.467965;7.229523
+BO-1108;Freifläche / Garten;Diemelstr.;Grumme;5;227;05109600500227______;114;7,1;25,5;7,5;0;3,0;51.495711;7.2502
+BO-1109;Freifläche / Garten;Nußbaumweg;Wiemelhausen;15;478;05110601500478______;422;15,8;28,0;15,3;0;3,0;51.443213;7.228467
+BO-1110;Freifläche / Garten;Ostermannstr.;Wiemelhausen;27;5;05110602700005______;638;14,0;46,0;15,0;0;3,0;51.461819;7.222932
+BO-1111;Garagengrundstück;Everstalstr. 32, 34, 36, 38;Langendreer;17;21;05113901700021______;456;23,6;29,9;29,5;0;3,0;51.488696;7.331178
+BO-1112;Freifläche / Garten;Hustadtring;Querenburg;5;317;05110200500317______;380;17,8;24,9;38,4;0;3,0;51.450767;7.261452
+BO-1113;Freifläche / Garten;Auf der Panne;Gerthe;19;182;05109401900182______;408;20,4;22,3;21,4;0;3,0;51.521274;7.282826
+BO-1114;Garagengrundstück;Oberstr.;Langendreer;10;635;05113901000635______;325;19,2;22,9;21,7;0;3,0;51.475018;7.330301
+BO-1115;Freifläche / Garten;Oelbachtal;Langendreer;5;558;05113900500558______;445;18,6;24,0;25,0;0;3,0;51.472767;7.311517
+BO-1116;Freifläche / Garten;Stockumer Str.;Langendreer;10;214;05113901000214______;319;18,6;21,4;22,2;0;3,0;51.468804;7.327436
+BO-1117;Freifläche / Garten;Krumme Str.;Langendreer;13;1248;05113901301248______;265;17,5;21,4;29,5;0;3,0;51.458483;7.32726
+BO-1118;Freifläche / Garten;Am Neggenborn 135;Langendreer;6;914;05113900600914______;460;15,6;30,2;63,7;0;3,0;51.470924;7.301586
+BO-1119;Freifläche / Garten;Glücksburger Str.;Wiemelhausen;12;694;05110601200694______;326;17,9;18,3;15,3;0;3,0;51.448673;7.234936
+BO-1120;Freifläche / Garten;Wiemelhauser Str. 178;Wiemelhausen;8;714;05110600800714______;636;23,7;36,6;17,7;0;3,0;51.465275;7.227351
+BO-1121;Freifläche / Garten;Ratiborer Str.;Weitmar;8;1500;05110500801500______;263;16,4;25,4;56,0;0;3,0;51.449014;7.217011
+BO-1122;Freifläche / Garten;Heinrich-König-Str. 27;Stiepel;2;222;05108500200222______;81;4,8;19,8;20,3;0;3,0;51.438475;7.207972
+BO-1123;Freifläche / Garten;Hauerstr.;Stiepel;4;82;05108500400082______;109;4,9;21,9;22,7;0;3,0;51.44063;7.219089
+BO-1124;Garagengrundstück;Querschlag;Wiemelhausen;10;156;05110601000156______;86;8,6;11,2;18,5;0;3,0;51.455959;7.232115
+BO-1125;Freifläche / Garten;Wittekindstr.;Werne;15;289;05114201500289______;279;15,8;22,7;22,6;0;3,0;51.483986;7.300736
+BO-1126;Freifläche / Garten;Harpener Hellweg;Harpen;2;3231;05109800203231______;663;16,9;40,3;16,9;1;3,0;51.500725;7.284889
+BO-1127;Freifläche / Garten;Pappelweg 10;Höntrop;9;443;05115100900443______;518;16,8;44,8;20,6;0;3,0;51.457371;7.159216
+BO-1128;Freifläche / Garten;Eppendorfer Str.;Eppendorf;12;203;05114501200203______;104;7,9;15,4;7,2;0;3,0;51.455855;7.172359
+BO-1129;Freifläche / Garten;Jugendheimstr.; Lewackerstr.;Linden;16;175;05111401600175______;324;15,7;28,2;29,2;0;3,0;51.418931;7.161212
+BO-1130;Freifläche / Garten;Mechtenbergstr.;Leithe;7;53;05115400700053______;410;16,5;26,8;27,8;0;3,0;51.480806;7.107907
+BO-1131;Freifläche / Garten;Zollstr.;Höntrop;11;295;05115101100295______;85;8,7;10,2;22,4;0;3,0;51.44546;7.160526
+BO-1132;Freifläche / Garten;Max-Planck-Weg;Höntrop;1;628;05115100100628______;186;6,7;28,7;7,5;0;3,0;51.458373;7.144225
+BO-1133;Garagengrundstück;Hattinger Str.; Isenbergweg;Linden;16;1061;05111401601061______;406;17,1;33,9;34,9;0;3,0;51.419527;7.165414
+BO-1134;Freifläche / Garten;Hasenwinkeler Str. 150;Dahlhausen;7;1133;05111000701133______;468;19,0;30,3;24,5;0;3,0;51.436451;7.158349
+BO-1135;Freifläche / Garten;Alter Zoll 24 a;Höntrop;1;728;05115100100728______;595;20,2;31,0;20,6;0;3,0;51.456662;7.14139
+BO-1136;Garagengrundstück;Jugendheimstr.;Linden;16;273;05111401600273______;243;15,2;16,8;19,3;0;3,0;51.419371;7.162123
+BO-1137;Garagengrundstück;Seippelstr.; Werner Hellweg;Laer;8;520;05110100800520______;296;15,4;24,0;32,4;0;3,0;51.472715;7.268269
+BO-1138;Freifläche / Garten;Erlenstr. 14;Weitmar;5;1800;05110500501800______;88;4,9;25,6;27,2;0;3,0;51.463957;7.207216
+BO-1139;Freifläche / Garten;Elverfeldstr. 19, 19 a;Höntrop;9;605;05115100900605______;610;23,7;26,0;24,7;0;3,0;51.454824;7.155652
+BO-1140;Freifläche / Garten;Elverfeldstr. 21;Höntrop;9;606;05115100900606______;500;20,4;26,1;18,9;0;3,0;51.454658;7.155824
+BO-1141;Freifläche / Garten;Rathenaustr. 48;Eppendorf;7;354;05114500700354______;618;15,0;42,9;16,0;0;3,0;51.453033;7.181535
+BO-1142;Freifläche / Garten;Trakehner Str. 10;Dahlhausen;4;175;05111000400175______;642;26,5;32,4;33,5;0;3,0;51.440324;7.152472
+BO-1143;Freifläche / Garten;Lilienthalstr.;Dahlhausen;6;783;05111000600783______;320;15,0;22,4;15,0;0;3,0;51.43704;7.165763
+BO-1144;Freifläche / Garten;Agnesstr.;Grumme;10;206;05109601000206______;273;6,6;43,5;7,5;0;3,0;51.496254;7.222014
+BO-1145;Freifläche / Garten;Grimmestr. 1;Laer;8;610;05110100800610______;94;4,9;20,3;25,1;0;3,0;51.472299;7.266869
+BO-1146;Freifläche / Garten;Köllerholzweg 65;Dahlhausen;6;1006;05111000601006______;506;18,3;38,2;16,1;0;3,0;51.439284;7.163208
+BO-1147;Freifläche / Garten;Gisela-Piedboeuf-Weg 25;Linden;16;1141;05111401601141______;489;16,3;30,0;17,3;0;3,0;51.417924;7.161394
+BO-1148;Freifläche / Garten;Drohnenweg 4;Weitmar;8;1243;05110500801243______;689;20,2;36,7;18,4;0;3,0;51.440739;7.215721
+BO-1149;Freifläche / Garten;Universitätsstr. 100;Wiemelhausen;9;744;05110600900744______;92;9,2;10,1;7,2;0;3,0;51.461287;7.231183
+BO-1150;Freifläche / Garten;Marie-Luise-Tanski-Str. 22;Hiltrop;11;447;05113301100447______;622;19,0;32,9;40,0;0;3,0;51.510456;7.25963
+BO-1151;Freifläche / Garten;Kurfürstenstr. 16;Bochum;9;91;05110700900091______;623;19,7;38,8;59,1;0;3,0;51.486883;7.22427
+BO-1152;Freifläche / Garten;Deinsloh 2 b;Grumme;13;391;05109601300391______;613;17,1;40,6;16,3;0;3,0;51.500975;7.237892
+BO-1153;Freifläche / Garten;Erlenstr. 10;Weitmar;5;1183;05110500501183______;82;4,9;17,6;18,5;0;3,0;51.464503;7.207017
+BO-1154;Freifläche / Garten;Sanderweg 14;Altenbochum;11;303;05109101100303______;510;19,6;26,3;20,4;0;3,0;51.471038;7.243605
+BO-1155;Freifläche / Garten;Großer Einberg;Wiemelhausen;7;390;05110600700390______;236;17,9;18,5;23,5;0;3,0;51.467143;7.234385
+BO-1156;Freifläche / Garten;Auf der Papenburg;Laer;5;1908;05110100501908______;356;20,7;25,7;57,4;0;3,0;51.453241;7.254846
+BO-1157;Freifläche / Garten;Steinkuhlstr.;Wiemelhausen;37;831;05110603700831______;331;15,2;25,5;25,8;0;3,0;51.461883;7.251041
+BO-1158;Freifläche / Garten;Steinkuhlstr.;Wiemelhausen;37;828;05110603700828______;331;15,3;22,9;25,9;0;3,0;51.462017;7.250974
+BO-1159;Freifläche / Garten;Heinrich-Gustav-Str. 127;Werne;14;611;05114201400611______;92;4,9;21,5;20,6;0;3,0;51.483436;7.307122
+BO-1160;Freifläche / Garten;Bulksmühle 21;Hofstede;9;195;05109900900195______;81;4,7;27,5;28,3;0;3,0;51.500997;7.208565
+BO-1161;Freifläche / Garten;Wohlfahrtstr. 163;Wiemelhausen;17;584;05110601700584______;560;15,7;38,6;16,7;0;3,0;51.449434;7.224036
+BO-1162;Freifläche / Garten;Eichendorffweg 1 e;Altenbochum;1;704;05109100100704______;480;18,9;28,2;48,2;0;3,0;51.474303;7.255434
+BO-1163;Freifläche / Garten;Evastr.;Hordel;1;478;05110000100478______;319;14,0;34,0;18,2;0;3,0;51.502089;7.152231
+BO-1164;Freifläche / Garten;Eichenweg;Wiemelhausen;13;129;05110601300129______;96;5,2;25,6;30,2;0;3,0;51.445288;7.233179
+BO-1165;Freifläche / Garten;Ruppelstr.;Hofstede;3;104;05109900300104______;387;14,9;26,0;15,9;0;3,0;51.506193;7.196567
+BO-1166;Freifläche / Garten;Marie-Luise-Tanski-Str. 6;Hiltrop;11;393;05113301100393______;600;26,7;29,5;34,8;0;3,0;51.50996;7.257644
+BO-1167;Freifläche / Garten;Varenholzstr. 122;Höntrop;13;267;05115101300267______;91;5,0;18,7;19,6;0;3,0;51.441951;7.140167
+BO-1168;Garagengrundstück;Am Krüzweg;Dahlhausen;15;555;05111001500555______;102;7,8;19,9;7,3;0;3,0;51.424155;7.149769
+BO-1169;Freifläche / Garten;Ruppelstr.;Hofstede;3;109;05109900300109______;366;14,1;26,2;15,1;0;3,0;51.505498;7.196581
+BO-1170;Garagengrundstück;Johannisburger Str.;Hamme;1;2282;05109700102282______;349;18,4;20,3;18,1;0;3,0;51.483761;7.172281
+BO-1171;Freifläche / Garten;Gutenbergstr.;Leithe;3;233;05115400300233______;308;17,6;17,8;18,6;0;3,0;51.480528;7.113155
+BO-1172;Freifläche / Garten;Hattinger Str. 300 a;Weitmar;4;1687;05110500401687______;536;23,6;36,8;31,7;0;3,0;51.45487;7.192239
+BO-1173;Freifläche / Garten;Im Wittkamp;Höntrop;1;1292;05115100101292______;318;14,4;22,5;16,5;0;3,0;51.455432;7.14193
+BO-1174;Freifläche / Garten;Otto-Hahn-Str.;Höntrop;1;702;05115100100702______;94;5,5;16,9;17,9;0;3,0;51.459203;7.146131
+BO-1175;Garagengrundstück;Baaker Berg;Weitmar;11;187;05110501100187______;222;15,8;20,4;18,1;0;3,0;51.426657;7.189117
+BO-1176;Freifläche / Garten;Lohackerstr.;Westenfeld;10;437;05116001000437______;89;6,0;18,3;19,5;0;3,0;51.471329;7.15176
+BO-1177;Freifläche / Garten;Lewackerstr. 49;Linden;16;1131;05111401601131______;451;16,2;27,8;17,2;0;3,0;51.418749;7.162747
+BO-1178;Freifläche / Garten;Lewackerstr. 51;Linden;16;1130;05111401601130______;452;16,2;27,8;17,2;0;3,0;51.4187;7.162527
+BO-1179;Freifläche / Garten;Robert-Koch-Str.;Querenburg;8;629;05110200800629______;308;15,9;20,3;36,0;0;3,0;51.455846;7.270768
+BO-1180;Freifläche / Garten;Gisela-Piedboeuf-Weg 1;Linden;16;1164;05111401601164______;472;18,2;28,6;19,2;0;3,0;51.41831;7.163465
+BO-1181;Freifläche / Garten;Am Bremkamp;Weitmar;6;1972;05110500601972______;435;16,5;32,6;35,5;0;3,0;51.448074;7.175114
+BO-1182;Freifläche / Garten;Höhenweg 107, 109;Dahlhausen;6;863;05111000600863______;582;14,2;51,6;52,2;0;3,0;51.441266;7.161465
+BO-1183;Freifläche / Garten;Im Pastoratsbusch 95;Stiepel;34;446;05108503400446______;659;14,2;47,1;15,2;0;3,0;51.424854;7.227664
+BO-1184;Garagengrundstück;Havkenscheider Str.;Laer;8;333;05110100800333______;278;14,5;23,2;31,3;0;3,0;51.472978;7.264491
+BO-1185;Freifläche / Garten;Ministerstr.;Stiepel;9;513;05108500900513______;368;18,0;21,4;19,1;0;3,0;51.427677;7.240203
+BO-1186;Freifläche / Garten;Löwenzahnweg;Stiepel;34;328;05108503400328______;381;17,6;24,3;17,9;0;3,0;51.425104;7.225367
+BO-1187;Freifläche / Garten;Seydlitzstr.;Günnigfeld;9;622;05114900900622______;293;14,5;21,5;15,5;0;3,0;51.490517;7.152536
+BO-1188;Freifläche / Garten;Ruppelstr.;Hofstede;3;123;05109900300123______;370;14,3;26,4;15,3;0;3,0;51.505546;7.196093
+BO-1189;Freifläche / Garten;Alte Laerfeldstr.;Laer;7;381;05110100700381______;373;14,3;30,9;17,7;0;3,0;51.473901;7.278309
+BO-1190;Garagengrundstück;Alte Laerfeldstr. 68;Laer;7;1286;05110100701286______;671;16,2;46,4;18,8;0;3,0;51.474038;7.277999
+BO-1191;Freifläche / Garten;Gräfin-Imma-Str.;Stiepel;33;735;05108503300735______;188;6,7;30,7;7,7;0;3,0;51.425868;7.23533
+BO-1192;Freifläche / Garten;Auf dem Rüggen;Querenburg;11;28;05110201100028______;205;14,5;18,2;30,4;0;3,0;51.462023;7.297617
+BO-1193;Freifläche / Garten;Gorch-Fock-Str.;Laer;7;1092;05110100701092______;299;15,8;22,7;50,7;0;3,0;51.474842;7.276059
+BO-1194;Freifläche / Garten;Legienstr.;Hiltrop;10;112;05113301000112______;283;10,9;28,2;11,0;0;3,0;51.50741;7.260172
+BO-1195;Freifläche / Garten;Dertmanns Feld 13 b;Stiepel;3;823;05108500300823______;573;28,2;28,5;24,6;0;3,0;51.436118;7.214453
+BO-1196;Freifläche / Garten;Steilstr. 5, 25;Stiepel;10;1029;05108501001029______;698;26,4;29,6;53,1;0;3,0;51.427879;7.24426
+BO-1197;Freifläche / Garten;Adlerstr.;Westenfeld;13;967;05116001300967______;221;11,4;20,5;7,2;0;3,0;51.470302;7.161888
+BO-1198;Freifläche / Garten;Fahrenheitstr. 76;Dahlhausen;9;613;05111000900613______;572;25,4;26,7;19,5;0;3,0;51.432804;7.155067
+BO-1199;Freifläche / Garten;Am Bremkamp;Weitmar;6;1739;05110500601739______;185;6,2;31,6;7,2;0;3,0;51.447428;7.17645
+BO-1200;Freifläche / Garten;Thüringer Str.;Hamme;4;88;05109700400088______;403;18,2;29,8;19,2;0;3,0;51.479488;7.190662
+BO-1201;Freifläche / Garten;Grabelohstr.;Langendreer;10;650;05113901000650______;366;17,0;21,6;39,5;0;3,0;51.472883;7.329017
+BO-1202;Freifläche / Garten;Bleckstr.;Riemke;11;233;05110301100233______;377;19,6;20,6;25,0;0;3,0;51.515485;7.197213
+BO-1203;Freifläche / Garten;Eiberger Str. 32, 34;Dahlhausen;13;437;05111001300437______;510;17,5;31,0;16,7;0;3,0;51.430475;7.139949
+BO-1204;Freifläche / Garten;Gartenstr.;Eppendorf;10;1404;05114501001404______;376;18,0;21,0;19,0;0;3,0;51.448401;7.166922
+BO-1205;Freifläche / Garten;Gisela-Piedboeuf-Weg 27;Linden;16;1140;05111401601140______;571;21,5;30,0;17,6;0;3,0;51.418079;7.161283
+BO-1206;Freifläche / Garten;Robert-Koch-Str.;Querenburg;8;482;05110200800482______;262;17,1;22,8;36,9;0;3,0;51.456863;7.274955
+BO-1207;Freifläche / Garten;Unterstr.;Langendreer;7;335;05113900700335______;279;15,0;26,3;25,7;0;3,0;51.467175;7.301391
+BO-1208;Freifläche / Garten;Girondelle;Wiemelhausen;35;536;05110603500536______;189;5,0;50,9;58,3;0;3,0;51.454447;7.245128
+BO-1209;Freifläche / Garten;Günnigfelder Str. 11;Wattenscheid;9;230;05115900900230______;465;23,3;23,3;23,3;0;3,0;51.492412;7.141038
+BO-1210;Freifläche / Garten;Wittener Str. 335;Altenbochum;7;263;05109100700263______;469;18,5;25,6;20,0;0;3,0;51.472375;7.256671
+BO-1211;Freifläche / Garten;Kornweg;Gerthe;16;188;05109401600188______;187;5,0;37,5;38,3;0;3,0;51.511581;7.284019
+BO-1212;Freifläche / Garten;Am Frohen Blick;Hamme;2;916;05109700200916______;133;4,6;38,3;45,0;0;3,0;51.4829;7.189248
+BO-1213;Freifläche / Garten;Steinhausstr.;Günnigfeld;10;242;05114901000242______;82;5,2;25,0;26,9;0;3,0;51.491643;7.147784
+BO-1214;Freifläche / Garten;Fahrenheitstr. 90;Dahlhausen;9;587;05111000900587______;616;19,7;35,3;20,7;0;3,0;51.433003;7.155642
+BO-1215;Freifläche / Garten;Auf dem Norrenberge 51;Gerthe;12;254;05109401200254______;484;15,0;32,3;16,0;0;3,0;51.511659;7.286337
+BO-1216;Freifläche / Garten;Heckertstr.;Grumme;17;40;05109601700040______;351;16,4;21,7;16,9;0;3,0;51.499022;7.229872
+BO-1217;Freifläche / Garten;Wieschermühlenstr. 24;Harpen;4;1102;05109800401102______;476;16,3;44,2;35,3;0;3,0;51.491751;7.27443
+BO-1218;Garagengrundstück;Saarlandstr.;Wattenscheid;17;121;05115901700121______;265;16,1;23,0;26,9;0;3,0;51.479791;7.135595
+BO-1219;Freifläche / Garten;Am Maarbach;Hamme;2;2789;05109700202789______;168;10,2;22,1;7,0;0;2,9;51.483169;7.190499
+BO-1220;Freifläche / Garten;Bismarckstr. 17 a;Wattenscheid;12;533;05115901200533______;90;8,2;11,5;6,4;0;2,9;51.482052;7.149913
+BO-1221;Freifläche / Garten;Jugendheimstr.;Linden;16;129;05111401600129______;140;9,5;17,9;10,5;0;2,9;51.419824;7.159503
+BO-1222;Freifläche / Garten;Am Kreuzacker 22;Laer;7;37;05110100700037______;88;6,1;14,7;7,0;0;2,9;51.470267;7.271737
+BO-1223;Freifläche / Garten;Schwindstr.;Weitmar;5;254;05110500500254______;228;6,1;37,9;7,1;0;2,9;51.456987;7.196798
+BO-1224;Freifläche / Garten;Köllerholzweg;Dahlhausen;6;1157;05111000601157______;550;13,0;43,4;14,1;0;2,9;51.441003;7.163703
+BO-1225;Freifläche / Garten;Hauptstr. 270 a;Langendreer;9;754;05113900900754______;88;5,9;17,4;6,8;0;2,9;51.465172;7.320942
+BO-1226;Freifläche / Garten;Overdyker Str.;Hamme;1;1802;05109700101802______;232;6,0;39,3;7,0;0;2,9;51.495145;7.179901
+BO-1227;Garagengrundstück;Bövinghauser Str.;Gerthe;3;76;05109400300076______;240;8,2;42,0;6,8;0;2,9;51.521803;7.311121
+BO-1228;Freifläche / Garten;Langendreerstr.;Langendreer;13;1516;05113901301516______;115;5,1;25,9;6,4;0;2,9;51.456;7.326373
+BO-1229;Freifläche / Garten;Biermannsweg;Wiemelhausen;11;698;05110601100698______;472;12,9;40,3;14,1;0;2,9;51.456454;7.238181
+BO-1230;Freifläche / Garten;Alte Werner Str.;Harpen;2;913;05109800200913______;94;10,1;12,0;14,2;0;2,9;51.49982;7.287568
+BO-1231;Freifläche / Garten;Krumme Str.;Langendreer;13;973;05113901300973______;348;17,9;22,6;14,0;0;2,9;51.459383;7.32573
+BO-1232;Freifläche / Garten;Alter Zoll 7;Sevinghausen;10;218;05115701000218______;81;5,8;14,1;6,9;0;2,9;51.457541;7.138549
+BO-1233;Freifläche / Garten;Legienstr.;Hiltrop;10;113;05113301000113______;284;10,6;28,9;10,7;0;2,9;51.507398;7.260022
+BO-1234;Garagengrundstück;Markgrafenstr. 1;Bochum;9;89;05110700900089______;90;6,0;15,1;7,0;0;2,9;51.486813;7.223118
+BO-1235;Freifläche / Garten;Hüller Str.; Watermanns Weg;Wattenscheid;8;232;05115900800232______;179;6,2;29,4;6,8;0;2,9;51.489663;7.137216
+BO-1236;Freifläche / Garten;Markstr. 246 b, 246 c;Querenburg;1;846;05110200100846______;330;14,4;25,0;6,7;0;2,9;51.449329;7.23736
+BO-1237;Freifläche / Garten;Südstr.;Westenfeld;13;816;05116001300816______;200;6,0;33,3;7,0;0;2,9;51.469853;7.159618
+BO-1238;Freifläche / Garten;Dördelstr.;Langendreer;9;1214;05113900901214______;202;5,7;39,1;6,9;0;2,9;51.475327;7.316621
+BO-1239;Garagengrundstück;Ovelackerstr.;Langendreer;9;49;05113900900049______;251;14,8;19,1;14,4;0;2,9;51.474169;7.321361
+BO-1240;Freifläche / Garten;Ümminger Str.;Langendreer;6;375;05113900600375______;294;5,8;52,5;6,9;0;2,9;51.47077;7.297594
+BO-1241;Freifläche / Garten;Siepenhöhe;Laer;8;809;05110100800809______;154;5,0;31,0;6,0;0;2,8;51.472378;7.263791
+BO-1242;Freifläche / Garten;Schultheßstr. 2;Weitmar;9;1860;05110500901860______;95;5,8;20,8;6,2;0;2,8;51.446625;7.19807
+BO-1243;Garagengrundstück;Op de Veih 27;Höntrop;16;118;05115101600118______;196;4,9;51,3;5,9;0;2,8;51.451763;7.148898
+BO-1244;Freifläche / Garten;Hasenwinkeler Str.;Linden;3;248;05111400300248______;87;9,1;14,8;13,9;0;2,8;51.430194;7.165649
+BO-1245;Freifläche / Garten;Gewerbestr. 22;Günnigfeld;6;110;05114900600110______;378;5,0;76,3;6,0;0;2,8;51.489825;7.162135
+BO-1246;Freifläche / Garten;Engelsburger Str. 68;Eppendorf;1;23;05114500100023______;566;23,3;38,0;6,0;1;2,8;51.463666;7.174862
+BO-1247;Freifläche / Garten;Müserstr.;Werne;6;186;05114200600186______;107;5,5;21,3;5,7;0;2,8;51.488332;7.292335
+BO-1248;Freifläche / Garten;Brockhauser Str. 40;Stiepel;30;86;05108503000086______;99;5,9;22,0;6,0;0;2,8;51.417789;7.240771
+BO-1249;Freifläche / Garten;Tonderner Str. 23;Wiemelhausen;6;269;05110600600269______;125;5,0;25,1;6,0;0;2,8;51.473963;7.234095
+BO-1250;Freifläche / Garten;Hiltroper Landwehr;Hiltrop;2;626;05113300200626______;125;5,1;24,8;6,0;0;2,8;51.525521;7.261022
+BO-1251;Garagengrundstück;Rehwinkel 36;Langendreer;7;91;05113900700091______;94;5,8;14,9;6,3;0;2,8;51.467996;7.30789
+BO-1252;Freifläche / Garten;Helstr.;Werne;4;158;05114200400158______;210;5,2;40,0;6,2;0;2,8;51.483467;7.281799
+BO-1253;Freifläche / Garten;Heimelsberg 38;Langendreer;12;433;05113901200433______;135;4,7;28,1;5,7;0;2,8;51.466633;7.339726
+BO-1254;Freifläche / Garten;Evastr.;Hordel;1;477;05110000100477______;268;9,2;34,5;6,0;0;2,8;51.502087;7.152386
+BO-1255;Freifläche / Garten;Am Ruhrort;Dahlhausen;1;151;05111000100151______;166;7,3;23,4;9,9;0;2,8;51.433076;7.137712
+BO-1256;Freifläche / Garten;Werner Hellweg;Werne;12;101;05114201200101______;80;6,5;12,3;13,3;0;2,8;51.493325;7.314846
+BO-1257;Freifläche / Garten;Heinrichstr.;Gerthe;18;237;05109401800237______;135;5,1;40,0;6,1;0;2,8;51.515994;7.282575
+BO-1258;Garagengrundstück;Drohnenweg 3;Weitmar;8;1250;05110500801250______;97;5,2;27,8;6,2;0;2,8;51.440557;7.215161
+BO-1259;Freifläche / Garten;Lenneplatz;Grumme;8;718;05109600800718______;291;7,4;49,1;6,2;0;2,8;51.495929;7.24476
+BO-1260;Freifläche / Garten;Charlottenstr.;Wiemelhausen;15;508;05110601500508______;426;17,7;28,9;13,5;0;2,8;51.4422;7.231622
+BO-1261;Freifläche / Garten;Zur Burkuhle;Harpen;5;870;05109800500870______;197;11,7;22,2;6,3;0;2,8;51.492797;7.268196
+BO-1262;Freifläche / Garten;Oberstr.;Langendreer;10;22;05113901000022______;263;12,6;28,3;8,7;0;2,7;51.475406;7.328583
+BO-1263;Freifläche / Garten;Stiepeler Str.;Wiemelhausen;11;644;05110601100644______;92;8,0;11,5;12,5;0;2,7;51.451089;7.23993
+BO-1264;Freifläche / Garten;Wiethofweg;Werne;3;862;05114200300862______;321;19,6;20,1;12,5;0;2,7;51.478472;7.285427
+BO-1265;Garagengrundstück;Zaunkönigweg;Wiemelhausen;8;290;05110600800290______;280;15,2;20,7;13,0;0;2,7;51.466451;7.225379
+BO-1266;Freifläche / Garten;Amselweg 14, 16;Grumme;8;920;05109600800920______;178;4,5;39,7;5,5;0;2,7;51.496441;7.236972
+BO-1267;Freifläche / Garten;Zunftwiese;Hiltrop;10;461;05113301000461______;221;8,4;26,8;8,5;0;2,6;51.509373;7.259464
+BO-1268;Freifläche / Garten;Am Schamberge;Linden;6;1321;05111400601321______;148;6,1;25,8;4,6;0;2,6;51.435369;7.185398
+BO-1269;Freifläche / Garten;Halfmannswiese;Dahlhausen;8;167;05111000800167______;98;9,1;10,8;11,8;0;2,6;51.431411;7.160189
+BO-1270;Freifläche / Garten;Auf dem Kley;Westenfeld;11;220;05116001100220______;343;8,5;62,3;8,2;0;2,6;51.473264;7.146325
+BO-1271;Freifläche / Garten;Hattinger Str. 652;Linden;4;238;05111400400238______;523;15,8;40,2;11,8;0;2,6;51.43449;7.17632
+BO-1272;Freifläche / Garten;Kiefernweg;Querenburg;1;690;05110200100690______;160;5,7;42,8;4,6;0;2,6;51.448664;7.239487
+BO-1273;Freifläche / Garten;Am Acker;Linden;16;1160;05111401601160______;543;11,0;50,0;12,1;0;2,6;51.419231;7.160119
+BO-1274;Freifläche / Garten;Im Ostholz;Linden;8;368;05111400800368______;512;10,0;56,4;12,3;0;2,6;51.432339;7.179628
+BO-1275;Freifläche / Garten;Heribertistr. 16;Wattenscheid;30;38;05115903000038______;470;16,0;32,4;12,1;0;2,6;51.479299;7.143884
+BO-1276;Garagengrundstück;Punges Feld;Hiltrop;5;248;05113300500248______;96;9,4;10,7;11,7;0;2,6;51.514898;7.269616
+BO-1277;Garagengrundstück;Schöllmannstr.;Riemke;10;556;05110301000556______;407;15,8;26,0;32,5;0;2,5;51.511127;7.204839
+BO-1278;Freifläche / Garten;Mattenburg; Spelbergs Busch 1 a;Höntrop;9;86;05115100900086______;469;21,0;22,8;42,0;0;2,5;51.457273;7.154983
+BO-1279;Freifläche / Garten;Mechtenbergstr.;Leithe;7;51;05115400700051______;368;16,7;22,5;23,1;0;2,5;51.481052;7.107989
+BO-1280;Freifläche / Garten;Mühlenweg 32;Hamme;3;2026;05109700302026______;85;4,9;19,8;28,5;0;2,5;51.49727;7.210045
+BO-1281;Freifläche / Garten;Farnstr. 18;Wiemelhausen;28;10;05110602800010______;680;16,9;46,5;16,1;0;2,5;51.468358;7.221821
+BO-1282;Freifläche / Garten;Erlenstr.;Weitmar;5;1587;05110500501587______;295;16,5;22,6;11,2;0;2,5;51.463514;7.208295
+BO-1283;Garagengrundstück;Brünselstr. 26, 28;Riemke;3;860;05110300300860______;117;4,7;34,0;7,2;0;2,5;51.518027;7.221903
+BO-1284;Freifläche / Garten;Gretchenstr.;Grumme;18;680;05109601800680______;324;17,0;24,9;11,6;0;2,5;51.496223;7.215059
+BO-1285;Freifläche / Garten;Centrumstr. 22;Hamme;1;583;05109700100583______;589;15,6;38,8;16,8;0;2,5;51.487578;7.175863
+BO-1286;Freifläche / Garten;Winterkamp;Hiltrop;7;249;05113300700249______;398;16,4;26,7;54,3;0;2,5;51.513545;7.256999
+BO-1287;Freifläche / Garten;Castroper Hellweg;Hiltrop;5;360;05113300500360______;337;16,9;27,5;52,9;0;2,5;51.513787;7.268586
+BO-1288;Freifläche / Garten;Ecksee 65;Gerthe;11;101;05109401100101______;592;17,2;35,5;18,3;0;2,5;51.506747;7.288965
+BO-1289;Freifläche / Garten;Jugendheimstr.;Linden;16;153;05111401600153______;335;22,7;23,4;25,3;0;2,5;51.419565;7.160417
+BO-1290;Freifläche / Garten;Balkehof 22 d;Hamme;1;596;05109700100596______;541;28,4;30,3;32,1;0;2,5;51.487426;7.177275
+BO-1291;Freifläche / Garten;Jugendheimstr.;Linden;16;237;05111401600237______;373;16,1;23,3;11,0;0;2,5;51.42058;7.160233
+BO-1292;Freifläche / Garten;Jugendheimstr.;Linden;16;130;05111401600130______;95;9,9;13,3;11,0;0;2,5;51.419911;7.159569
+BO-1293;Freifläche / Garten;Flottmannstr.;Riemke;3;961;05110300300961______;661;10,0;66,1;10,8;0;2,4;51.51773;7.218652
+BO-1294;Freifläche / Garten;Hüller Str.; Watermanns Weg;Wattenscheid;8;234;05115900800234______;179;6,4;29,5;6,7;0;2,4;51.48967;7.137301
+BO-1295;Freifläche / Garten;Hüller Str.; Watermanns Weg;Wattenscheid;8;236;05115900800236______;179;6,3;29,6;6,9;0;2,4;51.489659;7.13739
+BO-1296;Freifläche / Garten;Lahmbecke;Wattenscheid;23;306;05115902300306______;99;9,2;15,5;10,2;0;2,4;51.482855;7.116533
+BO-1297;Freifläche / Garten;Grummer Str. 49;Hofstede;6;127;05109900600127______;229;15,3;23,2;5,9;0;2,3;51.501802;7.218795
+BO-1298;Freifläche / Garten;Westring;Bochum;6;141;05110700600141______;93;8,0;11,6;9,0;0;2,2;51.483906;7.21116
+BO-1299;Freifläche / Garten;Langenbach;Wattenscheid;23;488;05115902300488______;590;12,0;55,5;13,0;0;2,2;51.483874;7.119322
+BO-1300;Freifläche / Garten;Baaker Berg; nach Zeche;Weitmar;11;588;05110501100588______;252;14,9;22,0;9,3;0;2,2;51.425911;7.193206
+BO-1301;Freifläche / Garten;Kantstr.;Westenfeld;2;271;05116000200271______;92;4,5;20,8;5,6;1;2,2;51.469798;7.132489
+BO-1302;Garagengrundstück;Am Chursbusch;Dahlhausen;17;490;05111001700490______;88;6,0;17,1;8,0;0;2,1;51.418824;7.155547
+BO-1303;Freifläche / Garten;Havkenscheider Str.;Laer;8;338;05110100800338______;436;15,4;30,6;7,8;0;2,0;51.473188;7.265525
+BO-1304;Freifläche / Garten;Vogelrute;Stiepel;10;966;05108501000966______;451;18,2;26,1;42,6;0;2,0;51.429164;7.242842
+BO-1305;Freifläche / Garten;Jugendheimstr.;Linden;16;226;05111401600226______;99;4,9;20,5;38,2;0;2,0;51.420576;7.159582
+BO-1306;Freifläche / Garten;Deutsches Reich;Werne;9;896;05114200900896______;673;20,0;33,9;21,0;0;2,0;51.493627;7.305824
+BO-1307;Freifläche / Garten;Memeler Str.;Wiemelhausen;21;44;05110602100044______;546;23,1;24,9;25,9;0;2,0;51.459722;7.212568
+BO-1308;Freifläche / Garten;Werner Hellweg;Laer;8;850;05110100800850______;457;17,0;26,9;23,0;0;2,0;51.475379;7.271333
+BO-1309;Freifläche / Garten;Waldesrand;Linden;6;839;05111400600839______;674;16,3;46,5;15,6;0;2,0;51.435154;7.18881
+BO-1310;Freifläche / Garten;Prinz-Regent-Str.;Wiemelhausen;16;454;05110601600454______;483;15,0;41,2;16,1;0;2,0;51.450812;7.220408
+BO-1311;Freifläche / Garten;Voßkuhlstr.;Stiepel;11;118;05108501100118______;589;20,7;28,9;33,0;0;2,0;51.433104;7.241862
+BO-1312;Freifläche / Garten;Hordeler Heide;Hordel;6;580;05110000600580______;80;6,5;12,9;7,5;0;2,0;51.498368;7.173547
+BO-1313;Freifläche / Garten;Mathiasstr.;Linden;9;357;05111400900357______;610;14,9;43,3;16,7;0;2,0;51.431727;7.176804
+BO-1314;Freifläche / Garten;Im Wolfsfeld;Dahlhausen;9;490;05111000900490______;535;17,9;31,4;18,9;0;2,0;51.428422;7.15402
+BO-1315;Freifläche / Garten;Deimketal;Linden;7;432;05111400700432______;591;25,1;28,2;29,3;0;2,0;51.427122;7.177104
+BO-1316;Freifläche / Garten;Im Wittkamp;Höntrop;1;1524;05115100101524______;501;16,3;32,5;17,2;0;2,0;51.455791;7.141981
+BO-1317;Freifläche / Garten;Am Sonnenberg;Linden;7;423;05111400700423______;563;19,9;28,5;28,8;0;2,0;51.428738;7.178876
+BO-1318;Freifläche / Garten;Hauerstr.;Stiepel;4;1034;05108500401034______;555;24,0;25,4;22,5;0;2,0;51.441096;7.218916
+BO-1319;Freifläche / Garten;Bergener Str.;Bergen;3;113;05109200300113______;80;5,6;16,4;7,1;0;2,0;51.516402;7.245823
+BO-1320;Freifläche / Garten;Bergener Str.;Bergen;3;422;05109200300422______;491;21,6;29,3;57,2;0;2,0;51.51547;7.250029
+BO-1321;Freifläche / Garten;Hiltroper Str.;Grumme;1;85;05109600100085______;641;23,9;39,8;24,9;0;2,0;51.506842;7.236987
+BO-1322;Freifläche / Garten;Josephinenstr.;Grumme;8;549;05109600800549______;464;15,1;38,0;59,6;0;2,0;51.49572;7.243374
+BO-1323;Freifläche / Garten;Gerther Heide;Hiltrop;4;1005;05113300401005______;482;14,0;40,1;15,0;0;2,0;51.520428;7.268559
+BO-1324;Freifläche / Garten;Uhlandstr.;Bochum;4;141;05110700400141______;480;19,9;33,3;25,8;0;2,0;51.490117;7.219233
+BO-1325;Freifläche / Garten;Karl-Rawitzki-Str.;Weitmar;8;3594;05110500803594______;502;15,4;32,6;32,8;0;2,0;51.445838;7.212465
+BO-1326;Freifläche / Garten;Karl-Rawitzki-Str.;Weitmar;8;2460;05110500802460______;561;24,0;30,1;55,8;0;2,0;51.446363;7.212117
+BO-1327;Freifläche / Garten;Fontanestr.;Harpen;1;1688;05109800101688______;673;27,7;39,3;40,5;0;2,0;51.508481;7.267976
+BO-1328;Freifläche / Garten;Pommerellenstr.;Wiemelhausen;23;220;05110602300220______;611;22,3;28,1;22,6;0;2,0;51.461752;7.21166
+BO-1329;Freifläche / Garten;Gerther Str.;Gerthe;16;125;05109401600125______;657;28,7;33,1;20,6;0;2,0;51.510278;7.281075
+BO-1330;Freifläche / Garten;Auf der Panne;Gerthe;19;239;05109401900239______;331;16,6;22,5;7,7;0;2,0;51.521477;7.28181
+BO-1331;Freifläche / Garten;Am Vorort;Werne;1;171;05114200100171______;671;22,9;32,3;24,0;0;2,0;51.470076;7.29542
+BO-1332;Freifläche / Garten;Akazienweg;Wiemelhausen;13;485;05110601300485______;502;18,1;29,2;17,1;0;2,0;51.444827;7.231361
+BO-1333;Freifläche / Garten;Am Hedtberg;Dahlhausen;7;331;05111000700331______;535;22,1;34,3;24,2;0;2,0;51.433026;7.158352
+BO-1334;Freifläche / Garten;Varenholzstr.;Höntrop;14;362;05115101400362______;631;18,8;34,3;36,8;0;2,0;51.448733;7.146734
+BO-1335;Freifläche / Garten;Hasenwinkeler Str.;Dahlhausen;7;736;05111000700736______;530;20,8;29,4;20,6;0;2,0;51.439225;7.160125
+BO-1336;Freifläche / Garten;An der Maarbrücke;Hamme;2;1149;05109700201149______;562;16,9;33,3;17,8;0;2,0;51.481238;7.183992
+BO-1337;Garagengrundstück;Wattenscheider Hellweg;Höntrop;3;814;05115100300814______;530;22,3;27,6;23,5;0;2,0;51.465962;7.156459
+BO-1338;Freifläche / Garten;Im Pastoratsbusch;Stiepel;33;757;05108503300757______;631;15,0;42,5;16,0;0;2,0;51.42677;7.231085
+BO-1339;Freifläche / Garten;Waldesrand;Linden;6;840;05111400600840______;641;18,1;42,0;15,9;0;2,0;51.43502;7.188886
+BO-1340;Freifläche / Garten;Am Josephsschacht;Linden;12;196;05111401200196______;99;4,5;24,6;33,7;0;2,0;51.424641;7.175224
+BO-1341;Freifläche / Garten;Leithmannswiese;Stiepel;10;1030;05108501001030______;532;17,4;32,3;62,7;0;2,0;51.430655;7.243777
+BO-1342;Garagengrundstück;Thüringer Str.;Hamme;4;89;05109700400089______;465;17,7;32,5;51,4;0;2,0;51.479395;7.190795
+BO-1343;Freifläche / Garten;Stormstr.;Westenfeld;11;389;05116001100389______;690;23,4;30,6;24,4;0;2,0;51.473896;7.149309
+BO-1344;Freifläche / Garten;Am Sonnenberg;Linden;7;292;05111400700292______;663;22,8;29,4;23,7;0;2,0;51.427642;7.179692
+BO-1345;Freifläche / Garten;Am Hohwege;Linden;6;1006;05111400601006______;505;25,8;29,0;35,7;0;2,0;51.437316;7.185529
+BO-1346;Freifläche / Garten;Horkensteinweg;Dahlhausen;15;698;05111001500698______;594;21,9;31,9;57,0;0;2,0;51.424458;7.147507
+BO-1347;Freifläche / Garten;Unterm Schrick;Stiepel;10;640;05108501000640______;536;23,1;27,4;31,5;0;2,0;51.429887;7.245633
+BO-1348;Freifläche / Garten;Heidestr.;Wattenscheid;31;378;05115903100378______;463;20,2;23,5;21,2;0;2,0;51.480408;7.165859
+BO-1349;Freifläche / Garten;Am Frohen Blick;Hamme;2;2247;05109700202247______;622;20,4;39,2;22,8;0;2,0;51.482348;7.191464
+BO-1350;Freifläche / Garten;Kemnader Str.;Stiepel;6;286;05108500600286______;548;21,8;32,7;22,9;0;2,0;51.43155;7.231568
+BO-1351;Freifläche / Garten;Sudholzstr.;Dahlhausen;19;241;05111001900241______;689;24,6;28,9;25,0;0;2,0;51.441381;7.141844
+BO-1352;Freifläche / Garten;Voßkuhlstr.;Stiepel;11;282;05108501100282______;539;21,0;34,0;55,9;0;2,0;51.433926;7.240699
+BO-1353;Freifläche / Garten;Galgenfeldstr.;Stiepel;24;341;05108502400341______;521;26,6;33,1;27,6;0;2,0;51.425157;7.246327
+BO-1354;Freifläche / Garten;Im Mailand;Stiepel;17;284;05108501700284______;475;20,7;26,7;21,1;0;2,0;51.428292;7.250374
+BO-1355;Freifläche / Garten;Schnatstr.;Weitmar;6;667;05110500600667______;576;23,8;25,0;24,7;0;2,0;51.442779;7.174937
+BO-1356;Freifläche / Garten;Marienstr.;Wattenscheid;7;374;05115900700374______;552;18,7;32,5;19,1;0;2,0;51.482485;7.140194
+BO-1357;Freifläche / Garten;Berggate;Hamme;3;1957;05109700301957______;531;18,2;31,3;17,7;0;2,0;51.496151;7.197372
+BO-1358;Garagengrundstück;Marienstr.;Wattenscheid;7;369;05115900700369______;521;23,9;28,5;18,5;0;2,0;51.482344;7.140301
+BO-1359;Freifläche / Garten;Farnstr.;Wiemelhausen;32;338;05110603200338______;487;22,5;25,9;23,5;0;2,0;51.467568;7.217588
+BO-1360;Freifläche / Garten;Am Langen Seil;Altenbochum;14;150;05109101400150______;528;20,0;28,0;32,0;0;2,0;51.458629;7.237843
+BO-1361;Freifläche / Garten;Dr.-Gilbert-Weg;Stiepel;9;722;05108500900722______;586;17,5;34,0;18,0;0;2,0;51.430296;7.240218
+BO-1362;Freifläche / Garten;Lohbusch;Höntrop;1;1204;05115100101204______;566;16,8;35,0;18,4;0;2,0;51.460712;7.146255
+BO-1363;Freifläche / Garten;Im Pastoratsbusch;Stiepel;34;394;05108503400394______;642;23,6;29,2;48,1;0;2,0;51.424194;7.226721
+BO-1364;Freifläche / Garten;Weidengrund;Stiepel;3;452;05108500300452______;673;25,2;28,3;29,6;0;2,0;51.435455;7.21667
+BO-1365;Freifläche / Garten;Kemnader Str.;Stiepel;9;574;05108500900574______;495;20,9;25,1;21,2;0;2,0;51.427868;7.240771
+BO-1366;Freifläche / Garten;Heidestr.;Wattenscheid;31;266;05115903100266______;686;25,9;27,2;27,0;0;2,0;51.480716;7.166951
+BO-1367;Freifläche / Garten;Jung-Stilling-Str.;Westenfeld;3;34;05116000300034______;483;16,3;29,9;17,3;0;2,0;51.469118;7.143149
+BO-1368;Freifläche / Garten;Memeler Str.;Wiemelhausen;21;43;05110602100043______;529;22,1;25,1;26,0;0;2,0;51.459628;7.212249
+BO-1369;Freifläche / Garten;Im Ostholz;Linden;8;509;05111400800509______;601;18,5;34,2;19,8;0;2,0;51.433746;7.182478
+BO-1370;Freifläche / Garten;Stiepeler Str.;Wiemelhausen;11;653;05110601100653______;509;23,5;27,9;20,4;0;2,0;51.450871;7.240282
+BO-1371;Freifläche / Garten;Am Steinknapp;Weitmar;8;444;05110500800444______;537;21,3;28,1;22,0;0;2,0;51.447877;7.215481
+BO-1372;Freifläche / Garten;Jung-Stilling-Str.;Westenfeld;3;72;05116000300072______;678;25,8;28,0;56,6;0;2,0;51.467244;7.137953
+BO-1373;Garagengrundstück;Paddenbett;Altenbochum;3;622;05109100300622______;81;6,0;14,4;7,2;0;2,0;51.477195;7.236057
+BO-1374;Freifläche / Garten;Winzer Str.;Dahlhausen;17;689;05111001700689______;550;26,3;27,4;18,6;0;2,0;51.417223;7.157905
+BO-1375;Freifläche / Garten;Hauptstr.;Langendreer;9;930;05113900900930______;523;20,0;33,5;21,0;0;2,0;51.469656;7.322945
+BO-1376;Freifläche / Garten;Harenburg;Höntrop;3;897;05115100300897______;546;14,4;39,1;15,4;0;2,0;51.463846;7.155675
+BO-1377;Garagengrundstück;Wittkampstr.;Langendreer;10;1128;05113901001128______;526;16,0;37,1;61,0;0;2,0;51.475226;7.334196
+BO-1378;Garagengrundstück;Unterstr.;Langendreer;9;1026;05113900901026______;639;14,3;46,1;15,3;0;2,0;51.473096;7.319021
+BO-1379;Freifläche / Garten;Oberstr.;Langendreer;10;43;05113901000043______;533;15,7;42,6;44,4;0;2,0;51.476185;7.331925
+BO-1380;Freifläche / Garten;Flurstr.;Bochum;11;419;05110701100419______;531;23,4;24,8;21,6;0;2,0;51.485349;7.232648
+BO-1381;Freifläche / Garten;Oberstr.;Langendreer;3;1165;05113900301165______;83;4,5;21,8;26,0;0;2,0;51.480246;7.340688
+BO-1382;Freifläche / Garten;Industriestr.;Langendreer;6;778;05113900600778______;85;4,9;24,6;15,4;0;2,0;51.473688;7.297912
+BO-1383;Freifläche / Garten;Warthestr.;Altenbochum;1;369;05109100100369______;522;21,2;33,7;44,3;0;2,0;51.487369;7.255615
+BO-1384;Freifläche / Garten;Wittekindstr.;Werne;15;619;05114201500619______;535;25,0;30,6;34,5;0;2,0;51.483027;7.298881
+BO-1385;Freifläche / Garten;Werner Hellweg;Werne;3;548;05114200300548______;511;19,8;36,9;45,7;0;2,0;51.479252;7.282885
+BO-1386;Freifläche / Garten;Königsallee;Wiemelhausen;26;47;05110602600047______;570;19,9;30,2;20,9;0;2,0;51.462376;7.221069
+BO-1387;Freifläche / Garten;Waldring;Wiemelhausen;26;166;05110602600166______;625;16,9;38,4;53,9;0;2,0;51.464067;7.221786
+BO-1388;Freifläche / Garten;Baumhofstr.;Wiemelhausen;14;140;05110601400140______;507;15,6;33,0;34,0;0;2,0;51.442955;7.233587
+BO-1389;Freifläche / Garten;Gorch-Fock-Str.;Laer;7;1094;05110100701094______;500;24,1;25,6;65,2;0;2,0;51.474938;7.276416
+BO-1390;Freifläche / Garten;Hofwiese;Hordel;9;94;05110000900094______;598;22,3;27,3;28,1;0;2,0;51.500885;7.154138
+BO-1391;Freifläche / Garten;Am Liegenden;Hamme;2;2560;05109700202560______;451;15,2;29,8;30,8;0;2,0;51.491618;7.18657
+BO-1392;Freifläche / Garten;An der Holtbrügge;Weitmar;7;907;05110500700907______;617;24,7;31,6;44,0;0;2,0;51.449328;7.209671
+BO-1393;Freifläche / Garten;Zur Werner Heide;Werne;8;160;05114200800160______;636;17,7;36,8;17,6;0;2,0;51.490578;7.306701
+BO-1394;Freifläche / Garten;Hunscheidtstr.;Wiemelhausen;24;175;05110602400175______;682;17,9;40,2;18,7;0;2,0;51.463425;7.216543
+BO-1395;Freifläche / Garten;Hegelstr.;Gerthe;18;182;05109401800182______;655;17,5;37,9;18,5;0;2,0;51.517522;7.277399
+BO-1396;Freifläche / Garten;Karl-Rawitzki-Str.;Weitmar;8;2443;05110500802443______;540;24,1;35,6;19,8;0;2,0;51.44591;7.21262
+BO-1397;Freifläche / Garten;Auf dem Aspei 47;Querenburg;6;919;05110200600919______;573;22,5;25,5;7,0;0;1,9;51.452801;7.264356
+BO-1398;Freifläche / Garten;Hilligenstr.;Linden;3;161;05111400300161______;93;5,6;18,0;7,0;0;1,9;51.429127;7.16418
+BO-1399;Freifläche / Garten;Löwenzahnweg 36;Stiepel;34;431;05108503400431______;467;14,7;45,7;7,1;0;1,9;51.426323;7.227967
+BO-1400;Freifläche / Garten;Charlottenstr.;Wiemelhausen;15;392;05110601500392______;488;5,0;99,1;6,5;0;1,9;51.44482;7.227809
+BO-1401;Freifläche / Garten;Stockumer Str.;Langendreer;10;985;05113901000985______;668;8,9;102,9;6,8;0;1,9;51.468953;7.328242
+BO-1402;Freifläche / Garten;Auf der Panne;Gerthe;19;183;05109401900183______;374;16,0;26,5;6,6;0;1,9;51.521316;7.283079
+BO-1403;Freifläche / Garten;Auf dem Norrenberge 61, 61 a;Gerthe;12;260;05109401200260______;630;25,1;25,2;6,5;0;1,9;51.512113;7.285869
+BO-1404;Freifläche / Garten;Kesterkamp;Linden;1;418;05111400100418______;98;5,8;21,2;6,8;0;1,9;51.42357;7.15677
+BO-1405;Freifläche / Garten;Wehlaustr.;Hamme;1;1876;05109700101876______;469;18,6;29,9;14,6;0;1,9;51.495933;7.177625
+BO-1406;Freifläche / Garten;Auf dem Norrenberge 57;Gerthe;12;262;05109401200262______;634;25,0;25,4;6,6;0;1,9;51.512032;7.286493
+BO-1407;Freifläche / Garten;Ahornweg;Wiemelhausen;13;398;05110601300398______;411;22,2;28,4;7,0;0;1,9;51.446325;7.237033
+BO-1408;Freifläche / Garten;Am Mühlenbach 28;Riemke;3;1036;05110300301036______;659;28,9;29,2;6,5;0;1,9;51.517466;7.224414
+BO-1409;Freifläche / Garten;Watermanns Weg;Wattenscheid;8;317;05115900800317______;93;6,0;15,9;6,8;0;1,9;51.489672;7.137474
+BO-1410;Freifläche / Garten;Grillostr. 49;Wiemelhausen;37;445;05110603700445______;96;4,7;20,6;5,7;0;1,8;51.460891;7.250212
+BO-1411;Freifläche / Garten;Alte Bahnhofstr.;Langendreer;4;316;05113900400316______;145;4,9;40,9;5,8;0;1,8;51.473705;7.312312
+BO-1412;Freifläche / Garten;Im Ostholz;Linden;6;1292;05111400601292______;385;14,2;36,0;10,0;0;1,8;51.434912;7.183403
+BO-1413;Freifläche / Garten;Melschedeweg;Wiemelhausen;13;409;05110601300409______;118;5,0;38,3;6,2;0;1,8;51.44604;7.231503
+BO-1414;Freifläche / Garten;Heintzmannsheide;Stiepel;4;1070;05108500401070______;280;4,8;58,4;5,8;0;1,8;51.441045;7.222101
+BO-1415;Freifläche / Garten;Laarmannstr. 69;Linden;1;941;05111400100941______;647;27,0;33,1;6,0;0;1,8;51.422766;7.160142
+BO-1416;Freifläche / Garten;Friederikastr. 75;Wiemelhausen;32;613;05110603200613______;90;4,7;19,3;5,6;0;1,8;51.468664;7.217421
+BO-1417;Freifläche / Garten;Kantstr.;Westenfeld;2;267;05116000200267______;80;5,6;16,1;6,3;0;1,8;51.46942;7.132748
+BO-1418;Freifläche / Garten;Munscheider Damm;Linden;5;43;05111400500043______;303;4,8;78,6;5,8;0;1,8;51.438075;7.178894
+BO-1419;Freifläche / Garten;Overbergstr.;Querenburg;6;213;05110200600213______;245;5,0;49,1;6,0;0;1,8;51.451551;7.265754
+BO-1420;Freifläche / Garten;Ostholzer Hang;Linden;7;384;05111400700384______;98;5,2;25,3;5,0;0;1,7;51.430908;7.182441
+BO-1421;Garagengrundstück;Hermeskamp;Riemke;6;229;05110300600229______;243;14,8;20,5;5,6;0;1,7;51.504997;7.222859
+BO-1422;Freifläche / Garten;Kemnader Str.;Stiepel;2;563;05108500200563______;565;26,4;27,1;12,9;0;1,7;51.439915;7.21364
+BO-1423;Freifläche / Garten;Universitätsstr.;Wiemelhausen;9;796;05110600900796______;162;4,6;36,6;5,2;0;1,7;51.460675;7.233826
+BO-1424;Freifläche / Garten;Gahlensche Str.;Hamme;2;356;05109700200356______;458;21,6;25,0;12,5;0;1,7;51.491196;7.190997
+BO-1425;Freifläche / Garten;Ratiborer Str.;Weitmar;8;3257;05110500803257______;638;22,7;37,9;12,1;0;1,6;51.448937;7.218945
+BO-1426;Freifläche / Garten;Am Knüpp;Altenbochum;14;275;05109101400275______;527;19,1;36,5;12,0;0;1,6;51.45674;7.242746
+BO-1427;Freifläche / Garten;Breite Hille;Langendreer;12;428;05113901200428______;507;19,0;27,9;20,1;0;1,5;51.465065;7.341691
+BO-1428;Freifläche / Garten;Blumenstr.;Bochum;11;124;05110701100124______;535;14,5;47,6;11,1;0;1,5;51.483865;7.231458
+BO-1429;Freifläche / Garten;Wittener Str.;Laer;3;417;05110100300417______;568;21,6;27,4;22,6;0;1,5;51.465008;7.295447
+BO-1430;Freifläche / Garten;Heintzmannstr.;Laer;5;1828;05110100501828______;517;16,3;31,8;17,3;0;1,5;51.4521;7.252333
+BO-1431;Freifläche / Garten;Lindebeckstr.;Munscheid;1;25;05115500100025______;661;24,9;41,3;40,2;0;1,5;51.442368;7.168679
+BO-1432;Freifläche / Garten;Wittener Str.;Bochum;14;544;05110701400544______;586;21,2;31,1;6,5;0;0,9;51.47634;7.23112
+BO-1433;Freifläche / Garten;Hattinger Str.;Linden;13;104;05111401300104______;572;23,0;35,6;6,2;0;0,8;51.420766;7.166402
+BO-1434;Freifläche / Garten;Königsberger Str.;Hofstede;15;926;05109901500926______;84;4,9;17,8;6,1;0;0,8;51.497816;7.188187
+BO-1435;Freifläche / Garten;Am Hohwege;Linden;6;1039;05111400601039______;463;16,8;35,9;6,2;0;0,8;51.435989;7.185064
+BO-1436;Freifläche / Garten;Stemmannsfeld;Stiepel;1;147;05108500100147______;565;22,9;41,5;5,9;0;0,8;51.436061;7.202244
+BO-1437;Freifläche / Garten;Axstr.;Linden;1;919;05111400100919______;555;22,8;28,5;5,5;0;0,7;51.426462;7.153986
+BO-1438;Freifläche / Garten;Dertmanns Feld;Stiepel;3;707;05108500300707______;683;21,6;37,2;5,4;0;0,7;51.435781;7.214231
+BO-1439;Freifläche / Garten;Ratiborer Str.;Weitmar;8;3213;05110500803213______;536;18,7;33,4;4,6;0;0,6;51.448689;7.219213
+BO-1440;Freifläche / Garten;Sodinger Str.;Gerthe;20;707;05109402000707______;654;16,9;39,6;8,0;0;0,6;51.522022;7.275284

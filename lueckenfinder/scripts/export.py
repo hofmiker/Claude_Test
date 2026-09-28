@@ -5,6 +5,7 @@ F=sys.argv[1]  # Pfad zur ALKIS-GeoPackage-Datei
 KAND=sys.argv[2] if len(sys.argv)>2 else 'ergebnisse/kandidaten.gpkg'
 OUT=sys.argv[3] if len(sys.argv)>3 else 'ergebnisse/karte.json'
 PREFIX=sys.argv[4] if len(sys.argv)>4 else 'HE'
+NAME=sys.argv[5] if len(sys.argv)>5 else None  # Anzeigename der Stadt, z. B. 'Herne'
 c=gpd.read_file(KAND)
 b=gpd.read_file(F,layer='GebauedeBauwerk')
 b=b[b.gebnutzbez=='Gebäude']
@@ -34,7 +35,7 @@ def encall(gs,tol):
 near=gpd.sjoin(p[['geometry']], gpd.GeoDataFrame(geometry=c.geometry.buffer(45),crs=c.crs), predicate='intersects')
 nearp=p.loc[near.index.unique()]
 city=v.dissolve().geometry.iloc[0]
-data={'o':[ox,oy],'w':int(maxx-minx),'h':int(maxy-miny),
+data={'name':NAME,'o':[ox,oy],'w':int(maxx-minx),'h':int(maxy-miny),
  'bld':encall(b.geometry,0.4),
  'road':encall(roads.geometry,0.8),
  'green':encall(green.geometry,1.5),
