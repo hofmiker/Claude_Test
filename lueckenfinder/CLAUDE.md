@@ -5,12 +5,27 @@
 ## Überblick
 - Seitentitel „Baulückenfinder“. `index.html` ist die Seite selbst (keine Vorlage/kein Build-Schritt
   mehr); sie lädt die gewählte Stadt per `fetch` aus `karten/<id>.json`, die Stadtauswahl aus
-  `karten/staedte.json`. Städte: Herne (Standard), Bochum, Gelsenkirchen, Dortmund; `#dortmund` im
-  URL wählt direkt eine Stadt. Datengröße roh/gzip: Herne 3,9/1,4 MB, Gelsenkirchen 6,0/2,2 MB,
+  `karten/staedte.json`. Städte: Herne, Bochum, Gelsenkirchen, Dortmund; `#dortmund` im URL fliegt
+  direkt in eine Stadt. Datengröße roh/gzip: Herne 3,9/1,4 MB, Gelsenkirchen 6,0/2,2 MB,
   Bochum 8,7/3,2 MB, Dortmund 13,9/5,0 MB (GitHub Pages liefert gzip-komprimiert aus).
+- Start: Deutschland-Übersicht (Umriss + Nachbarländer aus `karten/deutschland.json`), Städte mit
+  Daten als schwarze, „atmende“ Markierungen mit Namen und Flächenzahl. Markierungen näher als 56 px
+  verschmelzen („4 Städte“); Antippen zoomt auf die Gruppe, eine einzelne Stadt öffnet sie (Kamerafahrt,
+  Daten laden währenddessen). Nachbarstädte bleiben als graue Fläche mit Namen antippbar. Knöpfe:
+  +/−, ALL (ganze Stadt bzw. Deutschland), DE (Deutschland). Seitenleiste in der Übersicht:
+  Summen über alle Städte und Städteliste mit Typ-Balken.
+- Welt-Koordinaten: halbe Meter in UTM 32N relativ zu `deutschland.json`→`o`; `prepare()` verschiebt
+  jede Stadt beim Laden über ihren Ursprung dorthin (nur erster Punkt je delta-kodiertem Polygon).
+- Gesten: Maus ziehen/Mausrad. Touch: **zwei Finger** verschieben + zoomen (Pinch um den Mittelpunkt).
+  Auf dem Handy scrollt ein Finger die Seite (`touch-action: pan-y`), bei seitlichem Wischen erscheint
+  der Hinweis „Karte mit zwei Fingern bewegen“; auf Tablets (Desktop-Layout) verschiebt auch ein Finger.
+  Antippen einer Fläche (Karte oder Liste) zoomt stufenlos hinein.
+- Headergrafik `img/header.webp`: vom Projektinhaber gelieferte isometrische Straßenillustration,
+  aus einem Screenshot freigestellt (Hintergrund transparent). Vermutlich Stock-Grafik – Lizenz für
+  die öffentliche Nutzung beim Projektinhaber klären.
 - Gestaltung: sonst reines Schwarz-Weiß; Farbe tragen nur die drei Flächentypen (Baulücke
   orange-rot, Garagengrundstück violett, Freifläche/Garten ocker) – auf der Karte, in Liste,
-  Kennzahlen, Flächentyp-Dropdown und im Haupt-Button der Detailansicht („Luftbild öffnen“).
+  Kennzahlen, Flächentyp-Dropdown und im Haupt-Button der Detailansicht („In Google Maps öffnen“).
   Schrift durchgehend IBM Plex Sans Condensed. Standard hell, Mondsymbol oben rechts schaltet auf
   dunkel (per localStorage `lf-theme` gemerkt).
 - Seitenleiste: Titel + Design-Schalter, Stadt-Dropdown, Kurztext, drei Kennzahl-Kacheln (klickbar
@@ -19,10 +34,12 @@
   Handy: dieser Kopfteil steht über der Karte, Details und Liste darunter.
 - Bedienung Karte: Mausrad oder Pinch zum Zoomen, Ziehen zum Verschieben, Klick auf eine Fläche oder
   einen Listeneintrag öffnet die Details.
-- Hintergrund umschaltbar „Karte / Luftbild“ (localStorage `lf-bg`). Das Luftbild kommt live vom
-  WMS NW DOP (`https://www.wms.nrw.de/geobasis/wms_nw_dop`, Layer `nw_dop_rgb`): pro zur Ruhe
-  gekommener Ansicht ein GetMap direkt in EPSG:25832, kein Leaflet nötig. Der WMS-Host ist in der
-  Sandbox gesperrt, getestet wurde mit einem lokalen Ersatzbild.
+- Hintergrund umschaltbar „Karte / Satellit“ (localStorage `lf-bg`). Bilder live vom WMS NW DOP
+  (`https://www.wms.nrw.de/geobasis/wms_nw_dop`, Layer `nw_dop_rgb`), direkt in EPSG:25832, kein
+  Leaflet nötig: zuerst ein winziges Bild der ganzen Stadt (200 px, zusätzlich per Down-/Upsampling
+  weichgezeichnet) als Vorschau, dann pro zur Ruhe gekommener Ansicht ein scharfes Bild, das über
+  450 ms einblendet (das vorige bleibt darunter). Nur für geöffnete Städte (NRW-Dienst). Der WMS-Host
+  ist in der Sandbox gesperrt, getestet wurde mit einem lokalen Ersatzbild.
 - Performance: Gebäude, Straßen, Grün und Flurstücke werden in ~500-m-Zellen gebündelt, gezeichnet
   werden nur sichtbare Zellen; in der Gesamtansicht keine Einzelgebäude. Ohne das hängt Bochum
   (142.000 Gebäude) beim Laden; Dortmund (213.000) läuft so mit ~60 fps.
@@ -71,8 +88,11 @@ Vermarktung und vermittle. Die Planung übernehmen Architekten mit Baulückenerf
 2. `export.py <gpkg> <kandidaten.gpkg> karten/<id>.json <ID-Präfix> <Name>` erzeugt kompakte
    Kartendaten (Gebäude, Straßen, Grün, Flurstücke um Kandidaten; Koordinaten in halben Metern,
    delta-kodiert) samt Stadtname.
-3. `build.py` schreibt `karten/staedte.json` (Stadt-Dropdown) aus allen `karten/*.json`.
+3. `build.py` schreibt `karten/staedte.json` (Dropdown + Übersichtskarte: Anzahl je Typ, Ursprung,
+   Ausdehnung, vereinfachter Stadtumriss) aus allen `karten/*.json`.
 4. `csv_export.py karten/<id>.json` schreibt `ergebnisse/baulücken_<id>.csv` (Excel-tauglich).
+5. `deutschland.py <countries-10m.json>` erzeugt `karten/deutschland.json` (einmalig; Quelle Natural
+   Earth 1:10m, gemeinfrei, via `npm pack world-atlas@2`).
 
 Neue Stadt (Beispiel Gelsenkirchen, so bereits erledigt; aus diesem Ordner):
 ```bash
