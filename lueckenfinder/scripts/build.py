@@ -1,8 +1,12 @@
-import sys
-# Setzt Kartendaten (JSON) in die Vorlage ein und erzeugt eine eigenständige HTML-Seite.
-DATA=sys.argv[1] if len(sys.argv)>1 else 'ergebnisse/karte.json'
-OUT=sys.argv[2] if len(sys.argv)>2 else 'ergebnisse/karte.html'
-d=open(DATA,encoding='utf-8').read().replace('</','<\\/')
-t=open('web/template.html',encoding='utf-8').read().replace('__DATA__',d)
-open(OUT,'w',encoding='utf-8').write(t)
-print('gespeichert:',OUT)
+import json, glob, os, sys
+# Schreibt karten/staedte.json (Auswahlliste der Stadt-Dropdown) aus allen karten/<id>.json.
+# Aufruf aus dem Projektordner: python scripts/build.py
+DIR=sys.argv[1] if len(sys.argv)>1 else 'karten'
+out=[]
+for f in sorted(glob.glob(os.path.join(DIR,'*.json'))):
+    cid=os.path.splitext(os.path.basename(f))[0]
+    if cid=='staedte': continue
+    d=json.load(open(f,encoding='utf-8'))
+    out.append({'id':cid,'name':d.get('name') or cid.capitalize(),'n':len(d['c'])})
+json.dump(out,open(os.path.join(DIR,'staedte.json'),'w',encoding='utf-8'),ensure_ascii=False,indent=1)
+print('gespeichert:',os.path.join(DIR,'staedte.json'),out)
