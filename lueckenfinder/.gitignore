@@ -2,3 +2,4 @@ daten/*
 !daten/.gitkeep
 __pycache__/
 *.gpkg
+ergebnisse/karte.json
