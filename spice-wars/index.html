@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPICE WARS — Sci-Fi Strategie</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    background: radial-gradient(ellipse at center, #0d1420 0%, #05070c 70%);
+    color: #cfe8ff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  #app {
+    display: flex;
+    flex-wrap: wrap;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 12px;
+  }
+  #gameWrap {
+    position: relative;
+    width: min(960px, 94vw);
+    max-width: 960px;
+    aspect-ratio: 960 / 672;
+    border: 2px solid #2a5a7a;
+    box-shadow: 0 0 24px rgba(60,160,220,0.35), inset 0 0 40px rgba(0,20,40,0.6);
+    border-radius: 4px;
+  }
+  canvas { display: block; width: 100%; height: 100%; background: #1a1408; cursor: crosshair; }
+  #overlay {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(2,4,8,0.85);
+    z-index: 10;
+    flex-direction: column;
+    text-align: center;
+  }
+  #overlay h1 { font-size: 2.4em; letter-spacing: 4px; margin-bottom: 10px; text-shadow: 0 0 16px currentColor; }
+  #overlay button {
+    margin-top: 16px; padding: 10px 24px; font-size: 1.1em; letter-spacing: 2px;
+    background: #12405c; color: #cfe8ff; border: 1px solid #4fb0e8; border-radius: 4px; cursor: pointer;
+  }
+  #overlay button:hover { background: #1a5a80; }
+
+  #panel {
+    width: min(280px, 94vw);
+    height: min(672px, 80vh);
+    max-height: 80vh;
+    background: linear-gradient(180deg, #0f1826, #0a1018);
+    border: 2px solid #2a5a7a;
+    border-radius: 4px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 0 24px rgba(60,160,220,0.2);
+    font-size: 13px;
+    overflow-y: auto;
+  }
+  #panel h2 {
+    margin: 0 0 4px 0; font-size: 1.3em; letter-spacing: 3px; color: #6fc3ff;
+    text-shadow: 0 0 10px rgba(80,180,255,0.6);
+    border-bottom: 1px solid #2a5a7a; padding-bottom: 6px;
+  }
+  .stat-row { display: flex; justify-content: space-between; padding: 2px 4px; }
+  .stat-row b { color: #ffd479; }
+  .section-title { color: #4fb0e8; letter-spacing: 1px; margin-top: 4px; font-size: 0.95em; border-bottom: 1px dashed #234; padding-bottom: 3px;}
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  button.action {
+    background: #142436; border: 1px solid #2a5a7a; color: #cfe8ff;
+    border-radius: 3px; padding: 6px 4px; cursor: pointer; font-size: 12px;
+    text-align: left; line-height: 1.35;
+  }
+  button.action small { display:block; color:#7fa8c9; font-size: 10px; }
+  button.action:hover:not(:disabled) { background:#1d3a52; border-color:#4fb0e8; }
+  button.action:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.action.placing { outline: 2px solid #ffd479; }
+  #selectionInfo {
+    min-height: 70px; background: #0a1420; border: 1px solid #234; border-radius: 3px; padding: 6px; font-size: 12px;
+  }
+  #log {
+    flex: 1; overflow-y: auto; background: #0a1420; border: 1px solid #234; border-radius: 3px; padding: 5px; font-size: 11px; color: #7fa8c9;
+  }
+  #log div { margin-bottom: 2px; }
+  #controls-help { font-size: 10.5px; color: #5a7c96; line-height: 1.5; border-top: 1px solid #234; padding-top: 5px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="gameWrap">
+    <canvas id="game" width="960" height="672"></canvas>
+    <div id="overlay">
+      <h1 id="overlayTitle">SIEG</h1>
+      <div id="overlaySub"></div>
+      <button onclick="location.reload()">NEUSTART</button>
+    </div>
+  </div>
+  <div id="panel">
+    <h2>⚔ SPICE WARS</h2>
+    <div class="stat-row">Credits: <b id="statCredits">0</b></div>
+    <div class="stat-row">Einheiten: <b id="statUnits">0</b></div>
+    <div class="stat-row">Gebäude: <b id="statBuildings">0</b></div>
+
+    <div class="section-title">GEBÄUDE BAUEN</div>
+    <div class="btn-grid">
+      <button class="action" id="btn-refinery" onclick="uiStartPlacement('refinery')">Raffinerie<small>600 Cr</small></button>
+      <button class="action" id="btn-barracks" onclick="uiStartPlacement('barracks')">Kaserne<small>300 Cr</small></button>
+      <button class="action" id="btn-factory" onclick="uiStartPlacement('factory')">Fabrik<small>800 Cr</small></button>
+      <button class="action" id="btn-turret" onclick="uiStartPlacement('turret')">Geschütz<small>400 Cr</small></button>
+    </div>
+
+    <div class="section-title">EINHEITEN PRODUZIEREN</div>
+    <div class="btn-grid">
+      <button class="action" id="btn-harvester" onclick="uiQueueUnit('harvester')">Harvester<small>350 Cr · Raffinerie</small></button>
+      <button class="action" id="btn-soldier" onclick="uiQueueUnit('soldier')">Infanterist<small>100 Cr · Kaserne</small></button>
+      <button class="action" id="btn-trooper" onclick="uiQueueUnit('trooper')">Trooper<small>150 Cr · Kaserne</small></button>
+      <button class="action" id="btn-tank" onclick="uiQueueUnit('tank')">Panzer<small>500 Cr · Fabrik</small></button>
+    </div>
+
+    <div class="section-title">AUSWAHL</div>
+    <div id="selectionInfo">Nichts ausgewählt.</div>
+
+    <div id="log"></div>
+    <div id="controls-help">
+      <b>Links-Klick:</b> auswählen / Rahmen ziehen<br>
+      <b>Rechts-Klick:</b> bewegen / angreifen / ernten<br>
+      Bau: Knopf klicken, dann Zielfeld auf der Karte anklicken (nahe eigenem Gebäude).
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+// ===================== CONFIG =====================
+const TILE = 24, COLS = 40, ROWS = 28;
+const CANVAS_W = COLS*TILE, CANVAS_H = ROWS*TILE;
+
+const UNIT_TYPES = {
+  harvester: {name:'Harvester', cost:350, buildTime:15, hp:140, speed:48, sight:140, cargoMax:100, harvestRate:30, combat:false, color:'#d9a441', builtAt:'refinery', r:9},
+  soldier:   {name:'Infanterist', cost:100, buildTime:8,  hp:50,  speed:55, sight:180, range:70,  dmg:8,  cooldown:0.9, combat:true, color:'#6fc3ff', builtAt:'barracks', r:7},
+  trooper:   {name:'Trooper', cost:150, buildTime:10, hp:75,  speed:42, sight:180, range:100, dmg:16, cooldown:1.3, combat:true, color:'#2ecc71', builtAt:'barracks', r:7},
+  tank:      {name:'Panzer', cost:500, buildTime:20, hp:240, speed:38, sight:200, range:90,  dmg:28, cooldown:1.1, combat:true, color:'#e74c3c', builtAt:'factory', r:11},
+};
+
+const BUILDING_TYPES = {
+  commandcenter: {name:'Kommandozentrale', w:3, h:3, hp:1000, sight:250, builds:[], icon:'C'},
+  refinery:      {name:'Raffinerie', cost:600, buildTime:25, w:3, h:2, hp:500, sight:150, builds:['harvester'], icon:'R'},
+  barracks:      {name:'Kaserne', cost:300, buildTime:15, w:2, h:2, hp:400, sight:150, builds:['soldier','trooper'], icon:'B'},
+  factory:       {name:'Fabrik', cost:800, buildTime:25, w:3, h:2, hp:500, sight:150, builds:['tank'], icon:'F'},
+  turret:        {name:'Geschützturm', cost:400, buildTime:12, w:1, h:1, hp:320, sight:170, range:170, dmg:22, cooldown:0.8, combat:true, icon:'T'},
+};
+
+const PLAYER = 'player', ENEMY = 'enemy';
+const OWNER_COLOR = { player:'#3ba7ff', enemy:'#ff4d4d' };
+
+// ===================== STATE =====================
+let grid = [];        // grid[y][x] = {type,spice,blocked}
+let explored = [];    // explored[y][x] bool (player)
+let visible = [];     // visible[y][x] bool this-frame (player)
+let units = [];
+let buildings = [];
+let idCounter = 1;
+let credits = { player: 1000, enemy: 1000 };
+let selection = [];          // selected unit ids
+let selectedBuilding = null; // selected building id
+let placementType = null;    // building type currently being placed
+let gameOver = false;
+let logLines = [];
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// ===================== UTIL =====================
+function nid(){ return idCounter++; }
+function dist(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function tileCenter(tx,ty){ return { x: tx*TILE+TILE/2, y: ty*TILE+TILE/2 }; }
+function worldToTile(x,y){ return { x: Math.floor(x/TILE), y: Math.floor(y/TILE) }; }
+function inBounds(x,y){ return x>=0 && x<COLS && y>=0 && y<ROWS; }
+function log(msg){
+  logLines.unshift(msg);
+  if(logLines.length>40) logLines.pop();
+  const el = document.getElementById('log');
+  el.innerHTML = logLines.map(l=>'<div>'+l+'</div>').join('');
+}
+
+// simple beep via WebAudio, no external assets
+let actx = null;
+function beep(freq, dur, type){
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type||'square'; o.frequency.value = freq;
+    g.gain.value = 0.05;
+    o.connect(g); g.connect(actx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime+dur);
+    o.stop(actx.currentTime+dur);
+  }catch(e){}
+}
+
+// ===================== VISUAL HELPERS =====================
+function lighten(hex, amt){
+  const c = hex.replace('#','');
+  const num = parseInt(c,16);
+  let r=(num>>16)+amt, g=((num>>8)&0xff)+amt, b=(num&0xff)+amt;
+  r=clamp(r,0,255); g=clamp(g,0,255); b=clamp(b,0,255);
+  return `rgb(${r|0},${g|0},${b|0})`;
+}
+function roundRectPath(c, x, y, w, h, r){
+  c.beginPath();
+  c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);
+  c.arcTo(x,y,x+w,y,r);
+  c.closePath();
+}
+function ownerAccent(owner){ return owner===PLAYER ? '#6fd0ff' : '#ff7a6a'; }
+function ownerBase(owner){ return owner===PLAYER ? [26,52,72] : [72,28,28]; }
+
+// ===================== PARTICLE / COMBAT EFFECTS =====================
+let effects = [];
+function spawnBeam(x1,y1,x2,y2,color){
+  effects.push({type:'beam', x1,y1,x2,y2, life:0.12, maxLife:0.12, color});
+}
+function spawnExplosion(x,y,color,scale){
+  const parts = [];
+  const n = 10 + Math.floor(Math.random()*8);
+  for(let i=0;i<n;i++){
+    const ang = Math.random()*Math.PI*2;
+    const speed = 30+Math.random()*100;
+    parts.push({x:0, y:0, vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed, r:(1.5+Math.random()*2.5)*(scale||1)});
+  }
+  effects.push({type:'explosion', parts, life:0.45, maxLife:0.45, color: color||'#ffb84d', x, y});
+}
+function updateEffects(dt){
+  for(const e of effects){
+    e.life -= dt;
+    if(e.type==='explosion'){
+      for(const p of e.parts){ p.x += p.vx*dt; p.y += p.vy*dt; p.vx*=0.9; p.vy*=0.9; }
+    }
+  }
+  effects = effects.filter(e=>e.life>0);
+}
+
+// ===================== TERRAIN TEXTURES (procedural, cached) =====================
+const SAND_VARIANTS = 5, ROCK_VARIANTS = 4;
+let sandTextures = [], rockTextures = [], vignetteTexture = null;
+
+function seededRandFn(seed){
+  let s = seed;
+  return function(){ s = (s*1103515245+12345) & 0x7fffffff; return (s % 10000)/10000; };
+}
+
+function buildTerrainTextures(){
+  sandTextures = [];
+  for(let i=0;i<SAND_VARIANTS;i++){
+    const c = document.createElement('canvas'); c.width=TILE; c.height=TILE;
+    const tx = c.getContext('2d');
+    const rnd = seededRandFn(i*7919+13);
+    const grad = tx.createLinearGradient(0,0,TILE,TILE);
+    grad.addColorStop(0, `hsl(33, 46%, ${57+(i%3)*2}%)`);
+    grad.addColorStop(1, `hsl(27, 42%, ${44+(i%3)*2}%)`);
+    tx.fillStyle = grad; tx.fillRect(0,0,TILE,TILE);
+    for(let s=0;s<12;s++){
+      const sx = rnd()*TILE, sy = rnd()*TILE, r = 0.5+rnd()*1.3;
+      tx.fillStyle = rnd()>0.5 ? 'rgba(255,235,190,0.16)' : 'rgba(80,48,18,0.18)';
+      tx.beginPath(); tx.arc(sx,sy,r,0,Math.PI*2); tx.fill();
+    }
+    tx.strokeStyle='rgba(80,48,18,0.16)'; tx.lineWidth=1;
+    tx.beginPath(); tx.moveTo(0, TILE*0.3+(i%3)*2); tx.quadraticCurveTo(TILE/2, TILE*0.42+(i%2)*3, TILE, TILE*0.3+(i%3)*2); tx.stroke();
+    sandTextures.push(c);
+  }
+  rockTextures = [];
+  for(let i=0;i<ROCK_VARIANTS;i++){
+    const c = document.createElement('canvas'); c.width=TILE; c.height=TILE;
+    const tx = c.getContext('2d');
+    const grad = tx.createLinearGradient(0,0,TILE,TILE);
+    grad.addColorStop(0, `hsl(${25+i*3}, 12%, ${37+i*2}%)`);
+    grad.addColorStop(1, `hsl(${25+i*3}, 14%, ${19+i}%)`);
+    tx.fillStyle = grad; tx.fillRect(0,0,TILE,TILE);
+    tx.fillStyle='rgba(255,255,255,0.09)';
+    tx.beginPath(); tx.moveTo(2,2); tx.lineTo(TILE-4,4); tx.lineTo(TILE-8,TILE/2); tx.lineTo(3,TILE/2-2); tx.closePath(); tx.fill();
+    tx.fillStyle='rgba(0,0,0,0.28)';
+    tx.beginPath(); tx.moveTo(4,TILE/2+2); tx.lineTo(TILE-3,TILE/2); tx.lineTo(TILE-2,TILE-2); tx.lineTo(2,TILE-3); tx.closePath(); tx.fill();
+    tx.strokeStyle='rgba(0,0,0,0.35)'; tx.lineWidth=1;
+    tx.beginPath(); tx.moveTo(TILE*0.2,TILE*0.1); tx.lineTo(TILE*0.5,TILE*0.55); tx.lineTo(TILE*0.35,TILE*0.9); tx.stroke();
+    rockTextures.push(c);
+  }
+  vignetteTexture = document.createElement('canvas');
+  vignetteTexture.width = CANVAS_W; vignetteTexture.height = CANVAS_H;
+  const vtx = vignetteTexture.getContext('2d');
+  const vg = vtx.createRadialGradient(CANVAS_W/2,CANVAS_H/2, CANVAS_H*0.35, CANVAS_W/2,CANVAS_H/2, CANVAS_H*0.85);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.45)');
+  vtx.fillStyle = vg; vtx.fillRect(0,0,CANVAS_W,CANVAS_H);
+}
+
+function makeCrystals(rnd){
+  const n = 4+Math.floor(rnd()*3);
+  const arr = [];
+  for(let i=0;i<n;i++){
+    arr.push({ ox:(rnd()-0.5)*TILE*0.7, oy:(rnd()-0.5)*TILE*0.7, h:4+rnd()*7, w:2+rnd()*3, rot:rnd()*Math.PI });
+  }
+  return arr;
+}
+
+// ===================== MAP GENERATION =====================
+const PLAYER_BASE = { x:6, y:23 };
+const ENEMY_BASE  = { x:COLS-8, y:4 };
+
+function isSafeZone(x,y){
+  return dist(x,y,PLAYER_BASE.x,PLAYER_BASE.y) < 7 || dist(x,y,ENEMY_BASE.x,ENEMY_BASE.y) < 7;
+}
+
+function generateMap(){
+  grid = [];
+  for(let y=0;y<ROWS;y++){
+    const row = [];
+    for(let x=0;x<COLS;x++) row.push({type:'sand', spice:0, blocked:false, variant: Math.floor(Math.random()*100)});
+    grid.push(row);
+  }
+  function walk(sx,sy,steps,mark){
+    let x=sx,y=sy;
+    for(let i=0;i<steps;i++){
+      if(inBounds(x,y) && !isSafeZone(x,y)) mark(x,y);
+      const dir = Math.floor(Math.random()*4);
+      if(dir===0) x++; else if(dir===1) x--; else if(dir===2) y++; else y--;
+      x = clamp(x,0,COLS-1); y = clamp(y,0,ROWS-1);
+    }
+  }
+  // rocks (mirrored pairs for fairness)
+  for(let i=0;i<4;i++){
+    const sx = 8+Math.floor(Math.random()*(COLS-16));
+    const sy = 4+Math.floor(Math.random()*(ROWS-8));
+    walk(sx,sy,12+Math.floor(Math.random()*10), (x,y)=>{ grid[y][x].type='rock'; });
+    walk(COLS-1-sx, ROWS-1-sy, 12+Math.floor(Math.random()*10), (x,y)=>{ grid[y][x].type='rock'; });
+  }
+  // spice fields (mirrored pairs)
+  const cryRnd = seededRandFn(Date.now() & 0x7fffffff);
+  for(let i=0;i<3;i++){
+    const sx = 6+Math.floor(Math.random()*(COLS-12));
+    const sy = 4+Math.floor(Math.random()*(ROWS-8));
+    const amt = ()=> 250+Math.floor(Math.random()*300);
+    walk(sx,sy,26+Math.floor(Math.random()*16), (x,y)=>{ if(grid[y][x].type==='sand'){ grid[y][x].type='spice'; const a=amt(); grid[y][x].spice=a; grid[y][x].spiceMax=a; grid[y][x].crystals=makeCrystals(cryRnd); } });
+    walk(COLS-1-sx, ROWS-1-sy, 26+Math.floor(Math.random()*16), (x,y)=>{ if(grid[y][x].type==='sand'){ grid[y][x].type='spice'; const a=amt(); grid[y][x].spice=a; grid[y][x].spiceMax=a; grid[y][x].crystals=makeCrystals(cryRnd); } });
+  }
+  explored = grid.map(row=>row.map(()=>false));
+  visible = grid.map(row=>row.map(()=>false));
+}
+
+function markBlocked(tx,ty,w,h,val){
+  for(let y=ty;y<ty+h;y++) for(let x=tx;x<tx+w;x++) if(inBounds(x,y)) grid[y][x].blocked = val;
+}
+
+// ===================== PATHFINDING (A*) =====================
+function passable(x,y){
+  if(!inBounds(x,y)) return false;
+  const c = grid[y][x];
+  if(c.type==='rock') return false;
+  if(c.blocked) return false;
+  return true;
+}
+
+function findPath(sx,sy,tx,ty){
+  if(!inBounds(tx,ty)) return [];
+  // if target blocked, find nearest passable tile around it
+  if(!passable(tx,ty)){
+    let best=null, bestD=Infinity;
+    for(let r=1;r<=4;r++){
+      for(let dx=-r;dx<=r;dx++) for(let dy=-r;dy<=r;dy++){
+        const nx=tx+dx, ny=ty+dy;
+        if(passable(nx,ny)){ const d=Math.hypot(dx,dy); if(d<bestD){bestD=d; best={x:nx,y:ny};} }
+      }
+      if(best) break;
+    }
+    if(!best) return [];
+    tx=best.x; ty=best.y;
+  }
+  const key = (x,y)=> y*COLS+x;
+  const open = new Map();
+  const closed = new Set();
+  const gScore = new Map();
+  const fScore = new Map();
+  const cameFrom = new Map();
+  gScore.set(key(sx,sy),0);
+  fScore.set(key(sx,sy), Math.hypot(tx-sx,ty-sy));
+  open.set(key(sx,sy), {x:sx,y:sy});
+  let iterations=0;
+  while(open.size>0 && iterations<2500){
+    iterations++;
+    let curKey=null, curNode=null, bestF=Infinity;
+    for(const [k,node] of open){
+      const f = fScore.get(k) ?? Infinity;
+      if(f<bestF){ bestF=f; curKey=k; curNode=node; }
+    }
+    if(curNode.x===tx && curNode.y===ty){
+      const path=[]; let ck=curKey;
+      while(cameFrom.has(ck)){
+        const [px,py] = [ck%COLS, Math.floor(ck/COLS)];
+        path.unshift(tileCenter(px,py));
+        ck = cameFrom.get(ck);
+      }
+      return path;
+    }
+    open.delete(curKey);
+    closed.add(curKey);
+    const neighbors = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    for(const [dx,dy] of neighbors){
+      const nx=curNode.x+dx, ny=curNode.y+dy;
+      if(!passable(nx,ny)) continue;
+      if(dx!==0 && dy!==0){ if(!passable(curNode.x+dx,curNode.y) || !passable(curNode.x,curNode.y+dy)) continue; }
+      const nk = key(nx,ny);
+      if(closed.has(nk)) continue;
+      const tentativeG = (gScore.get(curKey)??0) + Math.hypot(dx,dy);
+      if(tentativeG < (gScore.get(nk) ?? Infinity)){
+        cameFrom.set(nk, curKey);
+        gScore.set(nk, tentativeG);
+        fScore.set(nk, tentativeG + Math.hypot(tx-nx,ty-ny));
+        if(!open.has(nk)) open.set(nk, {x:nx,y:ny});
+      }
+    }
+  }
+  return [];
+}
+
+// ===================== ENTITY CREATION =====================
+function createBuilding(type, owner, tx, ty, opts){
+  opts = opts || {};
+  const def = BUILDING_TYPES[type];
+  const b = {
+    id: nid(), type, owner, tx, ty, w:def.w, h:def.h,
+    hp: opts.underConstruction ? def.hp*0.15 : def.hp, maxHp: def.hp,
+    queue: [], underConstruction: !!opts.underConstruction,
+    buildLeft: opts.underConstruction ? def.buildTime : 0, buildTotal: def.buildTime||0,
+    rally: null, angle: 0,
+  };
+  buildings.push(b);
+  markBlocked(tx,ty,def.w,def.h,true);
+  return b;
+}
+
+function createUnit(type, owner, x, y){
+  const def = UNIT_TYPES[type];
+  const u = {
+    id: nid(), type, owner, x, y, hp: def.hp, maxHp: def.hp,
+    path: [], moveTarget: null, attackTarget: null, state: 'idle',
+    atkTimer: 0, cargo: 0, harvestTile: null, selected:false,
+    facing: owner===PLAYER ? -Math.PI/2 : Math.PI/2,
+  };
+  units.push(u);
+  return u;
+}
+
+function findFreeSpotNear(tx,ty,w,h){
+  for(let r=1;r<8;r++){
+    for(let dy=-r;dy<=r+h;dy++) for(let dx=-r;dx<=r+w;dx++){
+      const x=tx+dx, y=ty+dy;
+      let ok=true;
+      for(let yy=y;yy<y+1;yy++) for(let xx=x;xx<x+1;xx++){ if(!passable(xx,yy)) ok=false; }
+      if(ok) return tileCenter(x,y);
+    }
+  }
+  return tileCenter(tx,ty);
+}
+
+// ===================== INIT GAME =====================
+function initGame(){
+  generateMap();
+  units = []; buildings = []; idCounter=1;
+  credits = { player:1000, enemy:1000 };
+  selection = []; selectedBuilding=null; placementType=null; gameOver=false;
+
+  // player base
+  createBuilding('commandcenter', PLAYER, PLAYER_BASE.x, PLAYER_BASE.y);
+  createBuilding('refinery', PLAYER, PLAYER_BASE.x+4, PLAYER_BASE.y+1);
+  createBuilding('barracks', PLAYER, PLAYER_BASE.x, PLAYER_BASE.y-3);
+  const pc = tileCenter(PLAYER_BASE.x+1, PLAYER_BASE.y+4);
+  createUnit('harvester', PLAYER, pc.x, pc.y);
+  createUnit('soldier', PLAYER, pc.x-30, pc.y+10);
+  createUnit('soldier', PLAYER, pc.x+30, pc.y+10);
+
+  // enemy base
+  createBuilding('commandcenter', ENEMY, ENEMY_BASE.x, ENEMY_BASE.y);
+  createBuilding('refinery', ENEMY, ENEMY_BASE.x-4, ENEMY_BASE.y+1);
+  createBuilding('barracks', ENEMY, ENEMY_BASE.x, ENEMY_BASE.y+4);
+  createBuilding('factory', ENEMY, ENEMY_BASE.x-4, ENEMY_BASE.y+4);
+  const ec = tileCenter(ENEMY_BASE.x+1, ENEMY_BASE.y-2);
+  createUnit('harvester', ENEMY, ec.x, ec.y);
+  createUnit('soldier', ENEMY, ec.x-30, ec.y-10);
+  createUnit('soldier', ENEMY, ec.x+30, ec.y-10);
+
+  log('Mission gestartet: Zerstöre die gegnerische Kommandozentrale.');
+  updateUI();
+}
+
+// ===================== PRODUCTION =====================
+function findBuildingFor(owner, unitType){
+  const def = UNIT_TYPES[unitType];
+  return buildings.find(b=> b.owner===owner && b.type===def.builtAt && !b.underConstruction);
+}
+
+function queueUnit(owner, unitType){
+  const def = UNIT_TYPES[unitType];
+  if(credits[owner] < def.cost) { if(owner===PLAYER) log('Nicht genug Credits für '+def.name+'.'); return false; }
+  const building = findBuildingFor(owner, unitType);
+  if(!building){ if(owner===PLAYER) log(def.builtAt+' benötigt für '+def.name+'.'); return false; }
+  credits[owner] -= def.cost;
+  building.queue.push({ unitType, timeLeft: def.buildTime, total: def.buildTime });
+  if(owner===PLAYER) log(def.name+' in Produktion.');
+  return true;
+}
+
+function startPlacementBuild(owner, buildingType, tx, ty){
+  const def = BUILDING_TYPES[buildingType];
+  // validity: in bounds, not overlapping, near existing owner building
+  for(let y=ty;y<ty+def.h;y++) for(let x=tx;x<tx+def.w;x++){
+    if(!inBounds(x,y)) return false;
+    if(!passable(x,y)) return false;
+  }
+  const nearOwn = buildings.some(b=> b.owner===owner && dist(b.tx,b.ty, tx, ty) < 10);
+  if(!nearOwn) { log('Zu weit von eigenen Gebäuden entfernt.'); return false; }
+  if(credits[owner] < def.cost){ log('Nicht genug Credits.'); return false; }
+  credits[owner] -= def.cost;
+  createBuilding(buildingType, owner, tx, ty, {underConstruction:true});
+  log(def.name+' im Bau.');
+  beep(300,0.15,'sine');
+  return true;
+}
+
+// ===================== VISIBILITY (fog of war, player only) =====================
+let visFactor = []; // float 0..1 per tile, for soft-edged fog rendering
+function updateVisibility(){
+  visible = grid.map(row=>row.map(()=>false));
+  visFactor = grid.map(row=>row.map(()=>0));
+  function reveal(cx,cy,radius){
+    const tr = Math.ceil(radius/TILE);
+    const {x:tx,y:ty} = worldToTile(cx,cy);
+    for(let y=ty-tr;y<=ty+tr;y++) for(let x=tx-tr;x<=tx+tr;x++){
+      if(!inBounds(x,y)) continue;
+      const c = tileCenter(x,y);
+      const d = dist(c.x,c.y,cx,cy);
+      if(d <= radius){
+        visible[y][x]=true; explored[y][x]=true;
+        const f = d < radius*0.6 ? 1 : 1-(d-radius*0.6)/(radius*0.4);
+        visFactor[y][x] = Math.max(visFactor[y][x], clamp(f,0,1));
+      }
+    }
+  }
+  units.filter(u=>u.owner===PLAYER).forEach(u=> reveal(u.x,u.y, UNIT_TYPES[u.type].sight));
+  buildings.filter(b=>b.owner===PLAYER).forEach(b=>{ const c=tileCenter(b.tx+b.w/2, b.ty+b.h/2); reveal(c.x,c.y, BUILDING_TYPES[b.type].sight); });
+}
+
+function isVisibleForPlayer(x,y){
+  const t = worldToTile(x,y);
+  if(!inBounds(t.x,t.y)) return false;
+  return visible[t.y][t.x];
+}
+
+// ===================== COMBAT HELPERS =====================
+function entityCenter(e){
+  if(e.w!==undefined) return tileCenter(e.tx+e.w/2, e.ty+e.h/2);
+  return {x:e.x, y:e.y};
+}
+function entityRadius(e){
+  if(e.w!==undefined) return Math.max(e.w,e.h)*TILE/2;
+  return UNIT_TYPES[e.type].r;
+}
+function isAlive(e){ return e && e.hp>0; }
+
+function findNearestEnemy(owner, x, y, maxRange){
+  let best=null, bestD=Infinity;
+  const consider = (arr)=>{
+    for(const e of arr){
+      if(e.owner===owner) continue;
+      if(!isAlive(e)) continue;
+      const c = entityCenter(e);
+      const d = dist(x,y,c.x,c.y);
+      if(d<maxRange && d<bestD){ bestD=d; best=e; }
+    }
+  };
+  consider(units); consider(buildings);
+  return best;
+}
+
+function dealDamageTo(target, dmg){
+  target.hp -= dmg;
+  if(target.hp<0) target.hp=0;
+}
+
+function removeDead(){
+  for(const u of units){
+    if(u.hp<=0 && !u._dead){
+      u._dead=true;
+      spawnExplosion(u.x, u.y, u.owner===PLAYER?'#9fe0ff':'#ffb0a0', 0.8);
+      if(u.owner===PLAYER) selection = selection.filter(id=>id!==u.id);
+    }
+  }
+  units = units.filter(u=>u.hp>0);
+  for(const b of buildings){
+    if(b.hp<=0 && !b._dead){
+      b._dead = true;
+      const c = tileCenter(b.tx+b.w/2, b.ty+b.h/2);
+      spawnExplosion(c.x, c.y, '#ffcf7a', 1.8);
+      markBlocked(b.tx,b.ty,b.w,b.h,false);
+      if(selectedBuilding===b.id) selectedBuilding=null;
+      log((b.owner===PLAYER?'Deine':'Gegnerische')+' '+BUILDING_TYPES[b.type].name+' wurde zerstört!');
+      beep(80,0.3,'sawtooth');
+    }
+  }
+  buildings = buildings.filter(b=>b.hp>0);
+}
+
+// ===================== UNIT AI / UPDATE =====================
+function setUnitPath(u, targetX, targetY){
+  const s = worldToTile(u.x,u.y), t = worldToTile(targetX,targetY);
+  u.path = findPath(s.x,s.y,t.x,t.y);
+}
+
+function orderMove(u, x, y){
+  u.state='move'; u.attackTarget=null; u.harvestTile=null; u.moveTarget={x,y};
+  setUnitPath(u,x,y);
+}
+function orderAttack(u, target){
+  u.state='attack'; u.attackTarget=target; u.moveTarget=null; u.harvestTile=null;
+}
+function orderHarvest(u, tx, ty){
+  u.state='moveToHarvest'; u.harvestTile={x:tx,y:ty}; u.attackTarget=null;
+  const c = tileCenter(tx,ty); u.moveTarget=c; setUnitPath(u,c.x,c.y);
+}
+
+function stepAlongPath(u, def, dt){
+  if(u.path.length===0) return true; // arrived
+  const wp = u.path[0];
+  const d = dist(u.x,u.y,wp.x,wp.y);
+  if(d>0.01) u.facing = Math.atan2(wp.y-u.y, wp.x-u.x);
+  const step = def.speed*dt;
+  if(d<=step){ u.x=wp.x; u.y=wp.y; u.path.shift(); if(u.path.length===0) return true; }
+  else { u.x += (wp.x-u.x)/d*step; u.y += (wp.y-u.y)/d*step; }
+  return false;
+}
+
+function updateUnit(u, dt){
+  const def = UNIT_TYPES[u.type];
+  u.atkTimer = Math.max(0, u.atkTimer-dt);
+
+  if(u.state==='move'){
+    const arrived = stepAlongPath(u, def, dt);
+    if(arrived) u.state='idle';
+  }
+  else if(u.state==='moveToHarvest'){
+    const arrived = stepAlongPath(u, def, dt);
+    if(arrived){
+      const t = u.harvestTile;
+      if(inBounds(t.x,t.y) && grid[t.y][t.x].type==='spice' && grid[t.y][t.x].spice>0){ u.state='harvest'; }
+      else { u.state='idle'; u.harvestTile=null; }
+    }
+  }
+  else if(u.state==='harvest'){
+    const t = u.harvestTile;
+    if(!t || !inBounds(t.x,t.y) || grid[t.y][t.x].type!=='spice' || grid[t.y][t.x].spice<=0 || u.cargo>=def.cargoMax){
+      // go deliver or find new field
+      if(u.cargo>=def.cargoMax || !t){
+        const refinery = buildings.filter(b=>b.owner===u.owner && b.type==='refinery' && !b.underConstruction)
+          .sort((a,b)=>dist(u.x,u.y,tileCenter(a.tx,a.ty).x,tileCenter(a.tx,a.ty).y) - dist(u.x,u.y,tileCenter(b.tx,b.ty).x,tileCenter(b.tx,b.ty).y))[0];
+        if(refinery){ u.state='deliver'; u.deliverTarget=refinery.id; const c=tileCenter(refinery.tx+refinery.w/2, refinery.ty+refinery.h/2); setUnitPath(u,c.x,c.y); }
+        else u.state='idle';
+      } else { u.state='idle'; u.harvestTile=null; }
+    } else {
+      const rate = def.harvestRate*dt;
+      const take = Math.min(rate, grid[t.y][t.x].spice, def.cargoMax-u.cargo);
+      grid[t.y][t.x].spice -= take; u.cargo += take;
+      if(grid[t.y][t.x].spice<=0) grid[t.y][t.x].type='sand';
+    }
+  }
+  else if(u.state==='deliver'){
+    const refinery = buildings.find(b=>b.id===u.deliverTarget);
+    if(!refinery){ u.state='idle'; return; }
+    const c = tileCenter(refinery.tx+refinery.w/2, refinery.ty+refinery.h/2);
+    const arrived = stepAlongPath(u, def, dt);
+    if(arrived){
+      credits[u.owner] += Math.round(u.cargo*2);
+      u.cargo = 0; u.state='idle';
+    }
+  }
+  else if(u.state==='idle'){
+    if(def.combat){
+      const enemy = findNearestEnemy(u.owner, u.x, u.y, def.sight);
+      if(enemy) orderAttack(u, enemy);
+    } else if(def.cargoMax!==undefined){
+      // harvester auto-seek spice
+      let best=null,bestD=Infinity;
+      for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++){
+        if(grid[y][x].type==='spice' && grid[y][x].spice>0){
+          const c = tileCenter(x,y); const d = dist(u.x,u.y,c.x,c.y);
+          if(d<bestD){bestD=d; best={x,y};}
+        }
+      }
+      if(best) orderHarvest(u, best.x, best.y);
+    }
+  }
+  else if(u.state==='attack'){
+    const target = u.attackTarget;
+    if(!isAlive(target)){ u.state='idle'; u.attackTarget=null; return; }
+    const c = entityCenter(target);
+    const d = dist(u.x,u.y,c.x,c.y);
+    const engageRange = def.range + entityRadius(target);
+    if(d > engageRange){
+      if(d > def.sight*1.6){ u.state='idle'; u.attackTarget=null; return; } // leash
+      setUnitPath(u,c.x,c.y);
+      stepAlongPath(u, def, dt);
+    } else {
+      u.path=[];
+      u.facing = Math.atan2(c.y-u.y, c.x-u.x);
+      if(u.atkTimer<=0){
+        dealDamageTo(target, def.dmg);
+        spawnBeam(u.x,u.y,c.x,c.y, u.owner===PLAYER?'#7fd7ff':'#ff6b6b');
+        u.atkTimer = def.cooldown;
+      }
+    }
+  }
+}
+
+function updateBuildingCombat(b, dt){
+  const def = BUILDING_TYPES[b.type];
+  if(!def.combat || b.underConstruction) return;
+  b.atkTimer = Math.max(0,(b.atkTimer||0)-dt);
+  const c = tileCenter(b.tx+b.w/2, b.ty+b.h/2);
+  if(!b.target || !isAlive(b.target) || dist(c.x,c.y, entityCenter(b.target).x, entityCenter(b.target).y) > def.range){
+    b.target = findNearestEnemy(b.owner, c.x, c.y, def.range);
+  }
+  if(b.target){
+    const tc = entityCenter(b.target);
+    b.angle = Math.atan2(tc.y-c.y, tc.x-c.x);
+    if(b.atkTimer<=0){
+      dealDamageTo(b.target, def.dmg);
+      spawnBeam(c.x,c.y,tc.x,tc.y, b.owner===PLAYER?'#7fd7ff':'#ff6b6b');
+      b.atkTimer = def.cooldown;
+    }
+  }
+}
+
+function updateBuildingProduction(b, dt){
+  if(b.underConstruction){
+    b.buildLeft -= dt;
+    b.hp = Math.min(b.maxHp, b.maxHp*0.15 + b.maxHp*0.85*(1-b.buildLeft/b.buildTotal));
+    if(b.buildLeft<=0){ b.underConstruction=false; b.hp=b.maxHp; if(b.owner===PLAYER){ log(BUILDING_TYPES[b.type].name+' fertiggestellt.'); beep(500,0.15,'sine'); } }
+    return;
+  }
+  if(b.queue.length>0){
+    const job = b.queue[0];
+    job.timeLeft -= dt;
+    if(job.timeLeft<=0){
+      const spot = findFreeSpotNear(b.tx, b.ty+b.h, b.w, 1);
+      createUnit(job.unitType, b.owner, spot.x, spot.y);
+      b.queue.shift();
+      if(b.owner===PLAYER){ log(UNIT_TYPES[job.unitType].name+' fertig!'); beep(650,0.12,'square'); }
+    }
+  }
+}
+
+// ===================== ENEMY AI =====================
+let aiTimer = 3;
+function updateAI(dt){
+  aiTimer -= dt;
+  if(aiTimer>0) return;
+  aiTimer = 4 + Math.random()*3;
+
+  const myUnits = units.filter(u=>u.owner===ENEMY);
+  const harvesters = myUnits.filter(u=>u.type==='harvester');
+  const combatUnits = myUnits.filter(u=> UNIT_TYPES[u.type].combat);
+
+  if(harvesters.length < 2 && credits[ENEMY] >= UNIT_TYPES.harvester.cost){
+    queueUnit(ENEMY,'harvester');
+  } else {
+    const roll = Math.random();
+    const pick = roll<0.4 ? 'soldier' : roll<0.7 ? 'trooper' : 'tank';
+    queueUnit(ENEMY, pick);
+  }
+
+  // launch attack squad if enough idle combat units
+  const idleCombat = combatUnits.filter(u=>u.state==='idle' || u.state==='attack');
+  if(idleCombat.length >= 5){
+    const target = buildings.find(b=>b.owner===PLAYER && b.type==='commandcenter') || buildings.find(b=>b.owner===PLAYER);
+    if(target){
+      const c = tileCenter(target.tx+target.w/2, target.ty+target.h/2);
+      idleCombat.forEach((u,i)=> orderMove(u, c.x+(Math.random()*40-20), c.y+(Math.random()*40-20)));
+      log('⚠ Feindliche Angriffsgruppe im Anmarsch!');
+    }
+  }
+}
+
+// ===================== INPUT =====================
+let dragStart = null;
+let mouse = { x:0, y:0 };
+
+canvas.addEventListener('contextmenu', e=> e.preventDefault());
+
+canvas.addEventListener('mousedown', e=>{
+  if(gameOver) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX-rect.left) * (canvas.width/rect.width);
+  const my = (e.clientY-rect.top) * (canvas.height/rect.height);
+
+  if(e.button===0){
+    if(placementType){
+      const t = worldToTile(mx,my);
+      if(startPlacementBuild(PLAYER, placementType, t.x, t.y)){ cancelPlacement(); }
+      return;
+    }
+    // check building click first
+    const bClicked = buildings.find(b=> b.owner===PLAYER && mx>=b.tx*TILE && mx<(b.tx+b.w)*TILE && my>=b.ty*TILE && my<(b.ty+b.h)*TILE);
+    if(bClicked){
+      selection = []; selectedBuilding = bClicked.id; updateUI(); return;
+    }
+    selectedBuilding = null;
+    dragStart = {x:mx, y:my};
+  } else if(e.button===2){
+    handleRightClick(mx,my);
+  }
+});
+
+canvas.addEventListener('mousemove', e=>{
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX-rect.left) * (canvas.width/rect.width);
+  mouse.y = (e.clientY-rect.top) * (canvas.height/rect.height);
+});
+
+canvas.addEventListener('mouseup', e=>{
+  if(gameOver || e.button!==0 || placementType) { dragStart=null; return; }
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX-rect.left) * (canvas.width/rect.width);
+  const my = (e.clientY-rect.top) * (canvas.height/rect.height);
+  if(!dragStart) return;
+  const x1=Math.min(dragStart.x,mx), x2=Math.max(dragStart.x,mx);
+  const y1=Math.min(dragStart.y,my), y2=Math.max(dragStart.y,my);
+  const isDrag = (x2-x1)>6 || (y2-y1)>6;
+  selection.forEach(id=>{ const u=units.find(uu=>uu.id===id); if(u) u.selected=false; });
+  if(isDrag){
+    selection = units.filter(u=> u.owner===PLAYER && u.x>=x1 && u.x<=x2 && u.y>=y1 && u.y<=y2).map(u=>u.id);
+  } else {
+    const clicked = units.find(u=> u.owner===PLAYER && dist(u.x,u.y,mx,my) < (UNIT_TYPES[u.type].r+3));
+    selection = clicked ? [clicked.id] : [];
+  }
+  selection.forEach(id=>{ const u=units.find(uu=>uu.id===id); if(u) u.selected=true; });
+  dragStart = null;
+  updateUI();
+});
+
+function handleRightClick(mx,my){
+  if(placementType){ cancelPlacement(); return; }
+  if(selection.length===0) return;
+  const selUnits = units.filter(u=>selection.includes(u.id));
+  const enemyEntity = [...units, ...buildings].find(e=>{
+    if(e.owner!==ENEMY) return false;
+    const c = entityCenter(e); const r = entityRadius(e);
+    return dist(mx,my,c.x,c.y) <= r+4;
+  });
+  const t = worldToTile(mx,my);
+  if(enemyEntity){
+    selUnits.forEach(u=>{ if(UNIT_TYPES[u.type].combat) orderAttack(u, enemyEntity); });
+    log('Angriffsbefehl erteilt.');
+  } else if(inBounds(t.x,t.y) && grid[t.y][t.x].type==='spice'){
+    selUnits.forEach(u=>{ if(u.type==='harvester') orderHarvest(u, t.x, t.y); });
+  } else if(passable(t.x,t.y)) {
+    selUnits.forEach((u,i)=>{
+      const off = selUnits.length>1 ? { x:(i%3-1)*18, y:(Math.floor(i/3)-1)*18 } : {x:0,y:0};
+      orderMove(u, mx+off.x, my+off.y);
+    });
+  }
+}
+
+function cancelPlacement(){
+  placementType = null;
+  document.querySelectorAll('button.action.placing').forEach(b=>b.classList.remove('placing'));
+}
+
+window.addEventListener('keydown', e=>{ if(e.key==='Escape') cancelPlacement(); });
+
+// ===================== UI HOOKS =====================
+window.uiStartPlacement = function(type){
+  const def = BUILDING_TYPES[type];
+  if(credits[PLAYER] < def.cost){ log('Nicht genug Credits für '+def.name+'.'); return; }
+  document.querySelectorAll('button.action.placing').forEach(b=>b.classList.remove('placing'));
+  placementType = type;
+  document.getElementById('btn-'+type).classList.add('placing');
+};
+
+window.uiQueueUnit = function(type){
+  queueUnit(PLAYER, type);
+};
+
+function updateUI(){
+  document.getElementById('statCredits').textContent = Math.floor(credits[PLAYER]);
+  document.getElementById('statUnits').textContent = units.filter(u=>u.owner===PLAYER).length;
+  document.getElementById('statBuildings').textContent = buildings.filter(b=>b.owner===PLAYER).length;
+
+  for(const type in BUILDING_TYPES){
+    if(type==='commandcenter') continue;
+    const btn = document.getElementById('btn-'+type);
+    if(btn) btn.disabled = credits[PLAYER] < BUILDING_TYPES[type].cost;
+  }
+  for(const type in UNIT_TYPES){
+    const btn = document.getElementById('btn-'+type);
+    if(!btn) continue;
+    const has = buildings.some(b=>b.owner===PLAYER && b.type===UNIT_TYPES[type].builtAt && !b.underConstruction);
+    btn.disabled = credits[PLAYER] < UNIT_TYPES[type].cost || !has;
+  }
+
+  const infoEl = document.getElementById('selectionInfo');
+  if(selectedBuilding){
+    const b = buildings.find(x=>x.id===selectedBuilding);
+    if(b){
+      const def = BUILDING_TYPES[b.type];
+      let html = '<b>'+def.name+'</b><br>HP: '+Math.round(b.hp)+'/'+b.maxHp;
+      if(b.underConstruction) html += '<br>Im Bau: '+Math.max(0,Math.ceil(b.buildLeft))+'s';
+      if(b.queue && b.queue.length>0) html += '<br>Warteschlange: '+b.queue.map(q=>UNIT_TYPES[q.unitType].name).join(', ');
+      infoEl.innerHTML = html;
+    } else infoEl.textContent = 'Nichts ausgewählt.';
+  } else if(selection.length>0){
+    const selUnits = units.filter(u=>selection.includes(u.id));
+    if(selUnits.length===1){
+      const u = selUnits[0]; const def = UNIT_TYPES[u.type];
+      infoEl.innerHTML = '<b>'+def.name+'</b><br>HP: '+Math.round(u.hp)+'/'+u.maxHp+(u.cargo?('<br>Ladung: '+Math.round(u.cargo)):'');
+    } else {
+      infoEl.innerHTML = selUnits.length+' Einheiten ausgewählt';
+    }
+  } else infoEl.textContent = 'Nichts ausgewählt.';
+}
+
+// ===================== RENDER =====================
+function entityIsVisible(e){
+  if(e.owner===PLAYER) return true;
+  const c = entityCenter(e);
+  return isVisibleForPlayer(c.x,c.y);
+}
+
+function renderTerrain(t){
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const c = grid[y][x];
+      const seen = explored[y][x];
+      const px = x*TILE, py = y*TILE;
+      if(!seen){
+        ctx.fillStyle='#050810';
+        ctx.fillRect(px,py,TILE,TILE);
+        if((x+y)%2===0){ ctx.fillStyle='rgba(80,140,200,0.03)'; ctx.fillRect(px,py,TILE,TILE); }
+        continue;
+      }
+      const tex = c.type==='rock' ? rockTextures[c.variant % ROCK_VARIANTS] : sandTextures[c.variant % SAND_VARIANTS];
+      ctx.drawImage(tex, px, py);
+
+      if(c.type==='spice' && c.crystals){
+        const ratio = clamp(c.spice/(c.spiceMax||1), 0, 1);
+        const showN = Math.max(0, Math.ceil(c.crystals.length*ratio));
+        if(showN>0){
+          const cx = px+TILE/2, cy = py+TILE/2;
+          const glow = ctx.createRadialGradient(cx,cy,0,cx,cy,TILE*0.75);
+          glow.addColorStop(0, `rgba(255,140,40,${0.25*ratio+0.08})`);
+          glow.addColorStop(1, 'rgba(255,140,40,0)');
+          ctx.fillStyle = glow;
+          ctx.fillRect(px-TILE*0.4,py-TILE*0.4,TILE*1.8,TILE*1.8);
+          for(let i=0;i<showN;i++){
+            const cr = c.crystals[i];
+            ctx.save();
+            ctx.translate(cx+cr.ox, cy+cr.oy);
+            ctx.rotate(cr.rot);
+            const cg = ctx.createLinearGradient(0,-cr.h/2,0,cr.h/2);
+            cg.addColorStop(0, '#ffcf7a');
+            cg.addColorStop(1, '#d9611f');
+            ctx.fillStyle = cg;
+            ctx.beginPath();
+            ctx.moveTo(0,-cr.h/2);
+            ctx.lineTo(cr.w/2,cr.h/2);
+            ctx.lineTo(-cr.w/2,cr.h/2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle='rgba(255,220,160,0.5)'; ctx.lineWidth=0.6; ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
+
+      const vf = visFactor[y][x];
+      if(!visible[y][x]){
+        ctx.fillStyle='rgba(6,10,20,0.55)'; ctx.fillRect(px,py,TILE,TILE);
+      } else if(vf<1){
+        ctx.fillStyle=`rgba(6,10,24,${(1-vf)*0.4})`; ctx.fillRect(px,py,TILE,TILE);
+      }
+    }
+  }
+}
+
+function drawBuildingIcon(b, def, cx, cy, pw, ph, accent, t){
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.strokeStyle = accent; ctx.fillStyle = accent; ctx.lineWidth = 2;
+  const m = Math.min(pw,ph);
+  switch(b.type){
+    case 'commandcenter': {
+      ctx.beginPath(); ctx.arc(0,0, m*0.22, 0, Math.PI*2); ctx.stroke();
+      ctx.save(); ctx.rotate(t*1.1);
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(m*0.34,0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(m*0.34,0,2,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case 'refinery': {
+      roundRectPath(ctx, -pw*0.28,-ph*0.32, pw*0.22, ph*0.64, 3); ctx.stroke();
+      roundRectPath(ctx, pw*0.06,-ph*0.32, pw*0.22, ph*0.64, 3); ctx.stroke();
+      ctx.globalAlpha = 0.55+0.45*Math.sin(t*4);
+      ctx.fillStyle='#ffb04d';
+      ctx.beginPath(); ctx.arc(-pw*0.17,0,2.3,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(pw*0.17,0,2.3,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+      break;
+    }
+    case 'barracks': {
+      ctx.beginPath(); ctx.moveTo(-pw*0.22,ph*0.24); ctx.lineTo(0,-ph*0.24); ctx.lineTo(pw*0.22,ph*0.24); ctx.closePath(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,-ph*0.24); ctx.lineTo(0,ph*0.05); ctx.stroke();
+      break;
+    }
+    case 'factory': {
+      ctx.strokeRect(-pw*0.27,-ph*0.05,pw*0.15,ph*0.36);
+      ctx.strokeRect(pw*0.12,-ph*0.05,pw*0.15,ph*0.36);
+      ctx.globalAlpha=0.45;
+      ctx.beginPath(); ctx.arc(-pw*0.195,-ph*0.15-Math.abs(Math.sin(t*2))*4,2.6,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(pw*0.195,-ph*0.1-Math.abs(Math.sin(t*2+1))*4,2.2,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+      break;
+    }
+    case 'turret': {
+      ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill();
+      ctx.rotate(b.angle||0);
+      ctx.fillRect(0,-1.6, m*0.55, 3.2);
+      break;
+    }
+  }
+  ctx.restore();
+}
+
+function renderBuildings(t){
+  for(const b of buildings){
+    if(!entityIsVisible(b)) continue;
+    const def = BUILDING_TYPES[b.type];
+    const px = b.tx*TILE, py = b.ty*TILE, pw = b.w*TILE, ph = b.h*TILE;
+    const cx = px+pw/2, cy = py+ph/2;
+    const accent = ownerAccent(b.owner);
+    const base = ownerBase(b.owner);
+
+    ctx.save();
+    ctx.globalAlpha = 0.32;
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(cx, py+ph+2, pw*0.44, 5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    if(b.underConstruction) ctx.globalAlpha = 0.55;
+    const grad = ctx.createLinearGradient(px,py,px,py+ph);
+    grad.addColorStop(0, `rgb(${base[0]+38},${base[1]+38},${base[2]+38})`);
+    grad.addColorStop(1, `rgb(${base[0]},${base[1]},${base[2]})`);
+    ctx.fillStyle = grad;
+    roundRectPath(ctx, px+1, py+1, pw-2, ph-2, 3);
+    ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.6)'; ctx.lineWidth=1; ctx.stroke();
+
+    ctx.fillStyle = accent;
+    ctx.fillRect(px+2, py+1, pw-4, 3);
+
+    ctx.strokeStyle='rgba(255,255,255,0.08)';
+    for(let i=1;i<b.w;i++){ ctx.beginPath(); ctx.moveTo(px+i*TILE,py+3); ctx.lineTo(px+i*TILE,py+ph-2); ctx.stroke(); }
+
+    if(!b.underConstruction) drawBuildingIcon(b, def, cx, cy, pw, ph, accent, t);
+    else {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = '#ffd479'; ctx.lineWidth = 3;
+      for(let s=-ph; s<pw; s+=8){
+        ctx.beginPath(); ctx.moveTo(px+s, py+ph); ctx.lineTo(px+s+ph, py); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    ctx.fillStyle = Math.sin(t*3 + b.id)>0 ? accent : 'rgba(255,255,255,0.15)';
+    ctx.beginPath(); ctx.arc(px+pw-5, py+ph-5, 1.8, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    const hbw = pw-6;
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(px+3, py-6, hbw, 4);
+    const hpR = b.hp/b.maxHp;
+    ctx.fillStyle = hpR>0.5? '#4dff88' : (hpR>0.25?'#ffd479':'#ff4d4d');
+    ctx.fillRect(px+3, py-6, hbw*hpR, 4);
+
+    if(selectedBuilding===b.id){ ctx.strokeStyle='#ffd479'; ctx.lineWidth=2; ctx.strokeRect(px,py,pw,ph); ctx.lineWidth=1; }
+  }
+}
+
+function drawUnitShape(u, def){
+  ctx.save();
+  ctx.translate(u.x,u.y);
+  ctx.globalAlpha=0.32; ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.ellipse(0, def.r*0.65, def.r*1.1, def.r*0.42, 0,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha=1;
+
+  ctx.rotate(u.facing||0);
+  const accent = ownerAccent(u.owner);
+  const bodyGrad = ctx.createRadialGradient(-def.r*0.3,-def.r*0.3,1, 0,0, def.r*1.4);
+  bodyGrad.addColorStop(0, lighten(def.color, 45));
+  bodyGrad.addColorStop(1, def.color);
+
+  if(u.type==='harvester'){
+    ctx.fillStyle = bodyGrad;
+    roundRectPath(ctx, -def.r*1.1,-def.r*0.75, def.r*2.2, def.r*1.5, 3); ctx.fill();
+    ctx.strokeStyle=accent; ctx.lineWidth=1.4; ctx.stroke();
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.moveTo(def.r*1.0,-def.r*0.5); ctx.lineTo(def.r*1.55,0); ctx.lineTo(def.r*1.0,def.r*0.5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.35)';
+    ctx.beginPath(); ctx.arc(-def.r*0.4,-def.r*0.15,1.6,0,Math.PI*2); ctx.fill();
+  } else if(u.type==='soldier' || u.type==='trooper'){
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath(); ctx.arc(0,0,def.r,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=accent; ctx.lineWidth=1.4; ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.28)';
+    ctx.beginPath(); ctx.arc(-def.r*0.28,-def.r*0.28, def.r*0.35,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#161616'; ctx.lineWidth = u.type==='trooper'?2.8:1.8;
+    ctx.beginPath(); ctx.moveTo(def.r*0.3,0); ctx.lineTo(def.r*1.7,0); ctx.stroke();
+  } else if(u.type==='tank'){
+    ctx.fillStyle = bodyGrad;
+    roundRectPath(ctx, -def.r*1.15,-def.r*0.85, def.r*2.3, def.r*1.7, 3); ctx.fill();
+    ctx.strokeStyle=accent; ctx.lineWidth=1.4; ctx.stroke();
+    ctx.fillStyle = def.color;
+    ctx.beginPath(); ctx.arc(0,0,def.r*0.62,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=accent; ctx.stroke();
+    ctx.strokeStyle='#161616'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(def.r*0.2,0); ctx.lineTo(def.r*1.8,0); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function renderUnits(){
+  for(const u of units){
+    if(!entityIsVisible(u)) continue;
+    const def = UNIT_TYPES[u.type];
+    drawUnitShape(u, def);
+
+    const barW = def.r*2.3;
+    ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(u.x-barW/2, u.y-def.r-9, barW, 3);
+    const hpR = u.hp/u.maxHp;
+    ctx.fillStyle = hpR>0.5?'#4dff88':(hpR>0.25?'#ffd479':'#ff4d4d');
+    ctx.fillRect(u.x-barW/2, u.y-def.r-9, barW*hpR, 3);
+
+    if(u.selected){
+      const s = def.r+6, o=3.5;
+      ctx.strokeStyle='#ffd479'; ctx.lineWidth=1.5;
+      [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(([sx,sy])=>{
+        ctx.beginPath();
+        ctx.moveTo(u.x+sx*s, u.y+sy*(s-o));
+        ctx.lineTo(u.x+sx*s, u.y+sy*s);
+        ctx.lineTo(u.x+sx*(s-o), u.y+sy*s);
+        ctx.stroke();
+      });
+    }
+    if(u.cargo>0){
+      ctx.fillStyle='#ffd479';
+      ctx.save(); ctx.shadowColor='#ffd479'; ctx.shadowBlur=5;
+      ctx.beginPath(); ctx.arc(u.x, u.y-def.r-13, 2.5, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+function renderEffects(){
+  for(const e of effects){
+    const t = clamp(e.life/e.maxLife, 0, 1);
+    if(e.type==='beam'){
+      ctx.save();
+      ctx.globalAlpha = t;
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = e.color; ctx.shadowBlur = 8;
+      ctx.beginPath(); ctx.moveTo(e.x1,e.y1); ctx.lineTo(e.x2,e.y2); ctx.stroke();
+      ctx.restore();
+    } else if(e.type==='explosion'){
+      ctx.save();
+      ctx.globalAlpha = t;
+      ctx.fillStyle = e.color;
+      for(const p of e.parts){
+        ctx.beginPath(); ctx.arc(e.x+p.x, e.y+p.y, p.r, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+}
+
+function render(){
+  const t = performance.now()/1000;
+  ctx.clearRect(0,0,CANVAS_W,CANVAS_H);
+  renderTerrain(t);
+  renderBuildings(t);
+  renderUnits();
+  renderEffects();
+
+  if(dragStart){
+    ctx.strokeStyle='rgba(255,212,121,0.9)';
+    ctx.strokeRect(Math.min(dragStart.x,mouse.x), Math.min(dragStart.y,mouse.y), Math.abs(mouse.x-dragStart.x), Math.abs(mouse.y-dragStart.y));
+  }
+
+  if(placementType){
+    const def = BUILDING_TYPES[placementType];
+    const tt = worldToTile(mouse.x, mouse.y);
+    let ok = true;
+    for(let y=tt.y;y<tt.y+def.h;y++) for(let x=tt.x;x<tt.x+def.w;x++){ if(!passable(x,y)) ok=false; }
+    if(!buildings.some(b=>b.owner===PLAYER && dist(b.tx,b.ty,tt.x,tt.y)<10)) ok=false;
+    ctx.fillStyle = ok? 'rgba(80,255,120,0.35)' : 'rgba(255,80,80,0.35)';
+    ctx.fillRect(tt.x*TILE, tt.y*TILE, def.w*TILE, def.h*TILE);
+    ctx.strokeStyle = ok? '#4dff88':'#ff4d4d';
+    ctx.strokeRect(tt.x*TILE, tt.y*TILE, def.w*TILE, def.h*TILE);
+  }
+
+  if(vignetteTexture) ctx.drawImage(vignetteTexture, 0, 0);
+}
+
+// ===================== GAME LOOP =====================
+let lastTime = null;
+function checkWinLose(){
+  if(gameOver) return;
+  const playerCC = buildings.some(b=>b.owner===PLAYER && b.type==='commandcenter');
+  const enemyBuildings = buildings.some(b=>b.owner===ENEMY);
+  if(!playerCC){ endGame(false); }
+  else if(!enemyBuildings){ endGame(true); }
+}
+function endGame(won){
+  gameOver = true;
+  const ov = document.getElementById('overlay');
+  document.getElementById('overlayTitle').textContent = won? 'SIEG!' : 'NIEDERLAGE';
+  document.getElementById('overlayTitle').style.color = won? '#4dff88':'#ff4d4d';
+  document.getElementById('overlaySub').textContent = won? 'Die gegnerische Basis wurde vernichtet.' : 'Deine Kommandozentrale wurde zerstört.';
+  ov.style.display='flex';
+  beep(won?880:110, 0.6, won?'sine':'sawtooth');
+}
+
+function tick(ts){
+  if(lastTime===null) lastTime = ts;
+  let dt = (ts-lastTime)/1000;
+  lastTime = ts;
+  dt = Math.min(dt, 0.05);
+
+  if(!gameOver){
+    for(const u of units) updateUnit(u, dt);
+    for(const b of buildings){ updateBuildingProduction(b, dt); updateBuildingCombat(b, dt); }
+    removeDead();
+    updateAI(dt);
+    updateVisibility();
+    checkWinLose();
+    updateUI();
+  }
+  updateEffects(dt);
+  render();
+  requestAnimationFrame(tick);
+}
+
+buildTerrainTextures();
+initGame();
+requestAnimationFrame(tick);
+
+})();
+</script>
+</body>
+</html>

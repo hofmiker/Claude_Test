@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="de" data-theme="light">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baulückenfinder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap">
+<script>
+  // light by default; only an explicit choice switches to dark
+  try{ if(localStorage.getItem("lf-theme")==="dark") document.documentElement.dataset.theme="dark"; }catch(e){}
+</script>
+<style>
+/* Everything is black and white; colour only marks the three area types (and their calls to action). */
+:root{
+  color-scheme:light;
+  --paper:#FFFFFF;--card:#FFFFFF;--ink:#111111;--muted:#666666;--line:#D6D6D6;--soft:#F3F3F3;
+  --outside:#FCFCFC;--nb:#F6F6F6;--land:#EAEAEA;--border:#B0B0B0;
+  --ground:#E2E2E2;--green:#D8D8D8;--street:#FFFFFF;--parcel:#C4C4C4;--bldg:#C9C9C9;--bldg-edge:#A6A6A6;
+  --t-bl:#D9481B;--t-bl-ink:#FFFFFF;
+  --t-gar:#7B4FC0;--t-gar-ink:#FFFFFF;
+  --t-free:#C28A1E;--t-free-ink:#111111;
+  --sans:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0D0D0D;--card:#161616;--ink:#F2F2F2;--muted:#9C9C9C;--line:#343434;--soft:#1E1E1E;
+  --outside:#070707;--nb:#0D0D0D;--land:#171717;--border:#404040;
+  --ground:#1D1D1D;--green:#232323;--street:#2D2D2D;--parcel:#3B3B3B;--bldg:#333333;--bldg-edge:#4A4A4A;
+  --t-bl:#F0673A;--t-bl-ink:#140A05;
+  --t-gar:#B08BE6;--t-gar-ink:#12091F;
+  --t-free:#E0B25A;--t-free-ink:#171004;
+}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
+*{box-sizing:border-box}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+[hidden]{display:none !important}
+
+.app{display:grid;grid-template-columns:minmax(0,1fr) 400px;height:100%}
+.mapwrap{position:relative;background:var(--outside);overflow:hidden;min-height:0}
+#cv{display:block;width:100%;height:100%;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
+#cv.drag{cursor:grabbing}
+.chip{position:absolute;top:16px;left:16px;max-width:calc(100% - 88px);font-size:12px;background:var(--card);color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:3px;pointer-events:none}
+.ctrls{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:6px}
+.ctrls button{width:40px;height:40px;border:1px solid var(--line);background:var(--card);font-weight:600;font-size:18px;line-height:1;border-radius:4px;cursor:pointer}
+.ctrls button:hover{border-color:var(--ink)}
+.ctrls .small{font-size:11px;letter-spacing:.04em}
+.bgswitch{position:absolute;left:16px;bottom:16px;display:flex;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:3px;gap:3px}
+.bgswitch button{border:0;background:transparent;color:var(--muted);font-weight:500;font-size:13px;padding:6px 12px;border-radius:3px;cursor:pointer}
+.bgswitch button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.attr{position:absolute;right:16px;bottom:16px;font-size:11px;color:var(--muted);background:var(--card);border:1px solid var(--line);padding:3px 6px;border-radius:3px;max-width:calc(100% - 220px)}
+.attr .short{display:none}
+.bgmsg{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);font-size:13px;background:var(--card);color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:6px 12px;pointer-events:none;white-space:nowrap}
+.hint{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .25s}
+.hint span{background:rgba(0,0,0,.72);color:#fff;font-weight:600;font-size:15px;padding:10px 14px;border-radius:8px;display:flex;align-items:center;gap:8px}
+.hint.on{opacity:1}
+
+.side{overflow:auto;padding:14px 22px 28px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:16px;min-height:0}
+.head,.rest{display:flex;flex-direction:column;gap:14px}
+.hero{display:block;width:100%;height:170px;object-fit:contain;margin:0 0 -6px}
+.titlebar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{margin:0;font-size:28px;line-height:1.1;font-weight:700;letter-spacing:-.01em}
+.iconbtn{flex:none;width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line);background:var(--card);border-radius:4px;cursor:pointer}
+.iconbtn:hover{border-color:var(--ink)}
+.iconbtn svg{width:18px;height:18px}
+.city{display:flex;flex-direction:column;gap:4px}
+.city label{font-size:12px;color:var(--muted)}
+.selectwrap{position:relative}
+.selectwrap select{appearance:none;-webkit-appearance:none;width:100%;font-size:17px;font-weight:600;background:var(--card);border:1px solid var(--ink);border-radius:4px;padding:9px 38px 9px 12px;cursor:pointer}
+.selectwrap svg,.dd-btn .chev{position:absolute;right:12px;top:50%;width:14px;height:14px;transform:translateY(-50%);pointer-events:none}
+.lead{margin:0;color:var(--muted);font-size:14.5px;max-width:60ch}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{position:relative;border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:var(--card);text-align:left;cursor:pointer}
+.stat:hover{border-color:var(--ink)}
+.stat[aria-pressed="true"]{border-color:var(--tc);box-shadow:inset 0 0 0 1px var(--tc)}
+.stat b{display:block;font-weight:600;font-size:21px}
+.stat span{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sw{display:inline-block;flex:none;width:12px;height:12px;border-radius:2px;background:var(--tc)}
+.sw.all{background:conic-gradient(var(--t-bl) 0 33%,var(--t-gar) 0 66%,var(--t-free) 0)}
+
+.filterbtn{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--line);background:var(--card);border-radius:4px;padding:9px 12px;cursor:pointer;font-weight:600}
+.filterbtn:hover{border-color:var(--ink)}
+.filterbtn svg{width:16px;height:16px;flex:none}
+.filterbtn .badge{font-weight:500;font-size:12px;background:var(--ink);color:var(--paper);border-radius:10px;padding:1px 7px}
+.filterbtn .chev{margin-left:auto;transition:transform .15s}
+.filterbtn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.panel{border:1px solid var(--line);border-radius:4px;padding:14px;display:grid;gap:14px;background:var(--card)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.fl{font-size:14px}
+.val{font-size:13.5px;color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--ink);margin:6px 0 0}
+.reset{justify-self:start;border:0;background:none;padding:0;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:13.5px}
+
+/* area-type dropdown with colour swatches */
+.dd{position:relative}
+.dd-btn{position:relative;display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:8px 34px 8px 10px;cursor:pointer}
+.dd-btn:hover{border-color:var(--ink)}
+.dd-list{position:absolute;z-index:5;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;background:var(--card);border:1px solid var(--ink);border-radius:4px;box-shadow:0 8px 24px rgba(0,0,0,.14)}
+.dd-list li{display:flex;align-items:center;gap:8px;padding:8px;border-radius:3px;cursor:pointer}
+.dd-list li:hover,.dd-list li.act{background:var(--soft)}
+.dd-list li[aria-selected="true"]{font-weight:600}
+.dd-list .n{margin-left:auto;color:var(--muted);font-size:13px}
+
+.count{font-size:13px;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.item{width:100%;text-align:left;display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:center;padding:9px 11px;border:1px solid var(--line);border-radius:4px;background:var(--card);cursor:pointer}
+.item:hover{border-color:var(--ink)}
+.item.sel{border-color:var(--tc);box-shadow:inset 3px 0 0 var(--tc)}
+.dot{width:10px;height:10px;border-radius:2px;grid-row:span 2;background:var(--tc)}
+.item .ad{font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .sc{font-weight:600;font-size:14px;grid-row:span 2}
+.item .mt{font-size:12.5px;color:var(--muted)}
+.more{width:100%;border:1px dashed var(--line);background:transparent;padding:8px;border-radius:4px;cursor:pointer}
+/* city cards in the Germany overview */
+.cityitem{grid-template-columns:1fr auto}
+.cityitem .ad{font-size:16px}
+.cityitem .go{grid-row:span 3;width:18px;height:18px}
+.bar{display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:4px;background:var(--soft)}
+.bar i{display:block;height:100%;background:var(--tc)}
+
+.detail{border:1px solid var(--ink);border-radius:4px;background:var(--card);padding:16px;display:grid;gap:12px}
+.dhead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.kind{display:inline-flex;align-items:center;gap:6px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.dhead h2{margin:2px 0 0;font-size:21px;line-height:1.2}
+.close{border:1px solid var(--line);background:transparent;width:32px;height:32px;border-radius:4px;font-size:18px;cursor:pointer;flex:none}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:14px}
+dt{color:var(--muted)}
+dd{margin:0}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none;font-weight:500;font-size:14px;padding:7px 11px;border-radius:4px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--tc);border-color:var(--tc);color:var(--tci)}
+.btn.primary:hover{filter:brightness(.93)}
+.note{margin:0;font-size:13.5px;color:var(--muted);border-left:3px solid var(--tc);padding-left:10px}
+.kz{margin:0;color:var(--muted);font-size:12.5px}
+.foot{font-size:12.5px;color:var(--muted);margin:0;max-width:60ch}
+
+/* type colour hooks: --tc = type colour, --tci = text on it */
+.t-bl{--tc:var(--t-bl);--tci:var(--t-bl-ink)}
+.t-gar{--tc:var(--t-gar);--tci:var(--t-gar-ink)}
+.t-free{--tc:var(--t-free);--tci:var(--t-free-ink)}
+.t-all{--tc:var(--ink);--tci:var(--paper)}
+
+/* micro-animations */
+@keyframes lf-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes lf-pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@keyframes lf-spin{from{opacity:0;transform:rotate(-100deg) scale(.5)}to{opacity:1;transform:none}}
+@keyframes lf-fade{from{opacity:0}to{opacity:1}}
+@keyframes lf-draw{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+@keyframes lf-rise{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+.stat,.item,.btn,.iconbtn,.ctrls button,.filterbtn,.dd-btn,.bgswitch button,.close,.more{transition:transform .12s ease,border-color .15s,background-color .15s,box-shadow .2s,color .15s}
+.stat:active,.item:active,.btn:active,.iconbtn:active,.ctrls button:active,.filterbtn:active,.dd-btn:active,.bgswitch button:active,.close:active,.more:active{transform:scale(.97)}
+.stat:hover,.item:hover{transform:translateY(-1px)}
+.stat .sw,.dot{transition:transform .2s cubic-bezier(.3,1.6,.5,1)}
+.stat:hover .sw,.item:hover .dot,.stat[aria-pressed="true"] .sw{transform:scale(1.3)}
+.hero{animation:lf-rise .7s cubic-bezier(.2,.7,.2,1) both}
+.iconbtn svg{animation:lf-spin .45s cubic-bezier(.2,.8,.2,1)}
+.panel:not([hidden]){animation:lf-in .22s ease-out}
+.dd-list:not([hidden]){animation:lf-pop .16s ease-out;transform-origin:top center}
+.detail{animation:lf-in .3s cubic-bezier(.2,.7,.2,1)}
+.list li.in{animation:lf-in .32s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i) * 22ms)}
+.filterbtn .badge:not([hidden]){animation:lf-pop .2s ease-out}
+.bgmsg:not([hidden]){animation:lf-fade .2s ease-out}
+.btn.done{border-color:var(--ink)}
+.btn .tick{width:15px;height:15px;stroke-dasharray:24;animation:lf-draw .35s ease-out both}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+
+@media (max-width:860px){
+  html,body{height:auto}
+  .app{display:flex;flex-direction:column;height:auto}
+  .side{display:contents}
+  .head{order:0;padding:8px 16px 16px}
+  .hero{height:150px}
+  .mapwrap{order:1;height:62vh;min-height:340px;border-block:1px solid var(--line)}
+  /* one finger scrolls the page; two fingers move and zoom the map */
+  #cv{touch-action:pan-y}
+  .rest{order:2;padding:16px 16px 28px}
+  .attr{right:8px;bottom:8px;font-size:10px;max-width:calc(100% - 190px)}
+  .attr .long{display:none} .attr .short{display:inline}
+  .bgswitch{left:8px;bottom:8px}
+  .chip{top:10px;left:10px}
+  .ctrls{top:10px;right:10px}
+}
+</style>
+
+<div class="app">
+  <section class="mapwrap" id="mapwrap" aria-label="Karte">
+    <canvas id="cv" aria-label="Karte mit Gebäuden, Straßen und markierten Potenzialflächen"></canvas>
+    <div class="chip">Automatisch ermittelt · noch nicht vor Ort geprüft</div>
+    <div class="ctrls">
+      <button id="zin" type="button" aria-label="Hineinzoomen">+</button>
+      <button id="zout" type="button" aria-label="Herauszoomen">−</button>
+      <button id="zall" type="button" class="small" aria-label="Ganze Stadt zeigen">ALL</button>
+      <button id="zde" type="button" class="small" aria-label="Ganz Deutschland zeigen">DE</button>
+    </div>
+    <div class="bgswitch" role="group" aria-label="Hintergrund">
+      <button type="button" data-bg="karte" aria-pressed="true">Karte</button>
+      <button type="button" data-bg="satellit" aria-pressed="false">Satellit</button>
+    </div>
+    <div class="bgmsg" id="bgmsg" hidden></div>
+    <div class="hint" id="hint" aria-hidden="true"><span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12"/><path d="M11 11.5v-2a1.5 1.5 0 0 1 3 0V12"/><path d="M14 10.5a1.5 1.5 0 0 1 3 0V12"/><path d="M17 11.5a1.5 1.5 0 0 1 3 0V16a6 6 0 0 1-6 6h-2a6 6 0 0 1-5-2.7L4.3 15a1.5 1.5 0 0 1 2.5-1.7L8 15"/></svg>
+      Karte mit zwei Fingern bewegen</span></div>
+    <div class="attr"><span class="long">Kataster &amp; Satellit: Geobasis NRW, dl-de/zero-2-0 · Grenzen: Natural Earth</span><span class="short">© Geobasis NRW · Natural Earth</span></div>
+  </section>
+
+  <aside class="side">
+    <div class="head">
+      <img class="hero" src="img/header.webp" alt="" width="900" height="706" decoding="async">
+      <div class="titlebar">
+        <h1>Baulückenfinder</h1>
+        <button type="button" class="iconbtn" id="theme" aria-label="Dunkles Design einschalten" aria-pressed="false"></button>
+      </div>
+      <div class="city">
+        <label for="city">Stadt</label>
+        <div class="selectwrap">
+          <select id="city"><option value="">Deutschland – Übersicht</option></select>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+      </div>
+      <p class="lead" id="lead"></p>
+      <div class="stats" id="stats"></div>
+      <button type="button" class="filterbtn" id="filterbtn" aria-expanded="false" aria-controls="panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>
+        Filter <span class="badge" id="fbadge" hidden></span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="panel" id="panel" hidden>
+        <div>
+          <div class="row" style="margin-bottom:6px"><span class="fl" id="typlabel">Flächentyp</span></div>
+          <div class="dd" id="dd">
+            <button type="button" class="dd-btn" id="ddbtn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="typlabel ddbtn"></button>
+            <ul class="dd-list" id="ddlist" role="listbox" aria-labelledby="typlabel" tabindex="-1" hidden></ul>
+          </div>
+        </div>
+        <div>
+          <div class="row"><label class="fl" for="minb">Mindestbreite</label><span class="val" id="minbv"></span></div>
+          <input id="minb" type="range" min="4.5" max="12" step="0.5" value="4.5">
+        </div>
+        <div>
+          <div class="row"><label class="fl" for="mins">Mindest-Eignung</label><span class="val" id="minsv"></span></div>
+          <input id="mins" type="range" min="0" max="8" step="0.5" value="0">
+        </div>
+        <button type="button" class="reset" id="reset">Filter zurücksetzen</button>
+      </div>
+    </div>
+    <div class="rest">
+      <div id="detail" hidden></div>
+      <div class="row"><span class="count" id="count"></span><span class="count" id="sortnote">sortiert nach Eignung</span></div>
+      <ul class="list" id="list"></ul>
+      <p class="foot">Eignung (0–8 Punkte): Länge der Straßenfront, Gebäude direkt an der Grenze, eigene Hausnummer, Breite 5–14 m, Größe 100–450 m². Viele Freiflächen sind Gärten, die zum Nachbarhaus gehören. Jede Fläche vor einer Ansprache auf dem Satellitenbild und vor Ort prüfen.</p>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+  const $ = id => document.getElementById(id);
+  const fmt = (n,d=1) => Number(n).toLocaleString("de-DE",{maximumFractionDigits:d});
+  const esc = s => String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+  const TYPES = [
+    {v:"Baulücke", k:"bl", cls:"t-bl", css:"--t-bl", plural:"Baulücken"},
+    {v:"Garagengrundstück", k:"gar", cls:"t-gar", css:"--t-gar", plural:"Garagen­grundstücke"},
+    {v:"Freifläche / Garten", k:"free", cls:"t-free", css:"--t-free", plural:"Freiflächen"}
+  ];
+  const T = Object.fromEntries(TYPES.map(t=>[t.v,t]));
+  const ICON_MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  const ICON_SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  const ICON_GO = '<svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5M11 8v6M8 11h6"/></svg>';
+  const MOBILE = () => matchMedia("(max-width:860px)").matches;
+
+  // ---- world ----
+  // One coordinate system for everything: half metres in UTM 32N (EPSG:25832) relative to the
+  // Germany origin G.o. City files carry their own origin; prepare() shifts them into this frame
+  // (delta-encoded polygons only need their first vertex moved).
+  let G = null, GP = null, GB = [0,0,1,1];   // Germany data, its paths, its world bbox
+  let CITIES = [];                           // staedte.json entries + world bbox/outline
+  let D = null, P = null;                    // active city data and its paths
+  const cache = {};
+  const state = {city:null, typ:"alle", minb:4.5, mins:0, sel:null, shown:50};
+  const match = c => (state.typ==="alle"||c.typ===state.typ) && c.b>=state.minb && c.s>=state.mins;
+
+  function toPath(list, dx=0, dy=0){
+    const p = new Path2D();
+    for(const a of list){
+      let x=a[0]+dx, y=a[1]+dy; p.moveTo(x,y);
+      for(let i=2;i<a.length;i+=2){ x+=a[i]; y+=a[i+1]; p.lineTo(x,y); }
+      p.closePath();
+    }
+    return p;
+  }
+  // Big cities have >200k buildings, so geometry is bucketed into ~500 m cells and only
+  // cells overlapping the view are drawn. Each polygon goes to the cell of its bbox centre;
+  // the cell remembers the union bbox of its polygons for the visibility test.
+  const CELL = 1000;
+  function bucket(list){
+    const cells = new Map();
+    for(const a of list){
+      let x=a[0], y=a[1], x0=x, x1=x, y0=y, y1=y;
+      for(let i=2;i<a.length;i+=2){ x+=a[i]; y+=a[i+1]; if(x<x0)x0=x; else if(x>x1)x1=x; if(y<y0)y0=y; else if(y>y1)y1=y; }
+      const k = Math.floor((x0+x1)/2/CELL)+":"+Math.floor((y0+y1)/2/CELL);
+      let c = cells.get(k);
+      if(!c){ c={polys:[], b:[x0,y0,x1,y1]}; cells.set(k,c); }
+      c.polys.push(a); const b=c.b;
+      if(x0<b[0])b[0]=x0; if(y0<b[1])b[1]=y0; if(x1>b[2])b[2]=x1; if(y1>b[3])b[3]=y1;
+    }
+    return [...cells.values()].map(c=>({b:c.b, p:toPath(c.polys)}));
+  }
+  const offOf = o => [(o[0]-G.o[0])*2, (o[1]-G.o[1])*2];
+  function prepare(d){
+    if(d.P) return d;
+    const [dx,dy] = offOf(d.o);
+    const shift = list => list.forEach(a=>{ a[0]+=dx; a[1]+=dy; });
+    [d.city,d.green,d.road,d.bld,d.parc].forEach(shift);
+    d.c.forEach(c=>shift(c.g));
+    d.P = {city:toPath(d.city), green:bucket(d.green), road:bucket(d.road), bld:bucket(d.bld), parc:bucket(d.parc)};
+    d.c.forEach(c=>{
+      c.path = toPath(c.g);
+      let x=c.g[0][0], y=c.g[0][1], sx=x, sy=y, n=1;
+      for(let i=2;i<c.g[0].length;i+=2){ x+=c.g[0][i]; y+=c.g[0][i+1]; sx+=x; sy+=y; n++; }
+      c.cx=sx/n; c.cy=sy/n;
+    });
+    return d;
+  }
+
+  // colours come from CSS so both themes stay in one place
+  let C = {};
+  function readColors(){
+    const cs = getComputedStyle(document.documentElement);
+    ["--street","--ground","--green","--outside","--nb","--land","--border","--parcel","--bldg","--bldg-edge","--ink","--paper","--card","--muted","--t-bl","--t-gar","--t-free"].forEach(k=>C[k]=cs.getPropertyValue(k).trim());
+    draw();
+  }
+  const tcol = c => C[T[c.typ].css];
+
+  // ---- view ----
+  const view = {x:0, y:0, s:0.001};   // world point at canvas centre + scale (px per world unit)
+  let cw=0, ch=0, dpr=1;
+  const minS = () => Math.min(cw/(GB[2]-GB[0]), ch/(GB[3]-GB[1]))*0.6;
+  function fitBox(b, glide, dur){
+    const s = Math.min(cw/(b[2]-b[0]), ch/(b[3]-b[1]))*0.92, x=(b[0]+b[2])/2, y=(b[1]+b[3])/2;
+    if(glide) return flyTo(x, y, s, dur||900);
+    anim.cam=null; view.x=x; view.y=y; view.s=s; draw();
+  }
+  const cityOf = id => CITIES.find(m=>m.id===id);
+  function fitAll(glide){ const m=cityOf(state.city); fitBox(m ? m.bb : GB, glide, 700); }
+  function resize(){
+    const r = cv.getBoundingClientRect(); dpr = window.devicePixelRatio||1;
+    const first = cw===0;
+    cw=r.width; ch=r.height; cv.width=Math.round(cw*dpr); cv.height=Math.round(ch*dpr);
+    if(first && G) fitAll(); else draw();
+  }
+  function toWorld(px,py){ return [view.x + (px-cw/2)/view.s, view.y - (py-ch/2)/view.s]; }
+  function toScreen(wx,wy){ return [cw/2 + (wx-view.x)*view.s, ch/2 - (wy-view.y)*view.s]; }
+
+  // ---- micro-animations (all skipped with prefers-reduced-motion) ----
+  const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+  const fadeIn = (t0, dur, now) => RM || !t0 ? 1 : ease(Math.min(1,(now-t0)/dur));
+  const anim = {cam:null, pulse:0, pulseId:null, fade:0};
+  // camera glide: the scale changes geometrically; the centre follows in "zoomed-out" space so
+  // long flights (Germany → street) don't whip sideways at street level
+  function flyTo(x, y, s, dur=520){
+    if(RM){ view.x=x; view.y=y; view.s=s; anim.cam=null; draw(); return; }
+    anim.cam = {x0:view.x, y0:view.y, s0:view.s, x, y, s, t0:performance.now(), dur};
+    draw();
+  }
+  function stepAnim(now){
+    let busy=false;
+    const a=anim.cam;
+    if(a){
+      const t=Math.min(1,(now-a.t0)/a.dur), e=ease(t);
+      view.s = a.s0*Math.pow(a.s/a.s0, e);
+      // weight the centre by how far the zoom has progressed in pixels, not in time
+      const k = a.s===a.s0 ? e : (1/a.s0 - 1/view.s)/(1/a.s0 - 1/a.s);
+      const w = Math.min(1, Math.max(0, isFinite(k) ? k : e));
+      view.x = a.x0+(a.x-a.x0)*w; view.y = a.y0+(a.y-a.y0)*w;
+      if(t>=1){ view.x=a.x; view.y=a.y; view.s=a.s; anim.cam=null; } else busy=true;
+    }
+    if(anim.pulse && now-anim.pulse<1100) busy=true;
+    if(anim.fade && now-anim.fade<600) busy=true;
+    if(sat.on && ((sat.base && now-sat.base.t<700) || (sat.cur && now-sat.cur.t<500))) busy=true;
+    if(pinsShown && !RM) busy=true;   // breathing city markers
+    return busy;
+  }
+  function pulse(id){ anim.pulseId=id; anim.pulse = RM ? 0 : performance.now(); draw(); }
+
+  // ---- satellite (Geobasis NRW DOP WMS, requested directly in EPSG:25832) ----
+  // A tiny, pre-blurred image of the whole city appears first; sharp images for the current
+  // view fade in over it once loaded.
+  const WMS = "https://www.wms.nrw.de/geobasis/wms_nw_dop";
+  const sat = {on:false, base:null, baseCity:null, prev:null, cur:null, timer:0, seq:0};
+  function msg(t){ const b=$("bgmsg"); b.textContent=t||""; b.hidden=!t; }
+  const utm = (wx,wy) => [G.o[0]+wx/2, G.o[1]+wy/2];
+  function wmsUrl(b, w, h){
+    const [x0,y0]=utm(b[0],b[1]), [x1,y1]=utm(b[2],b[3]);
+    return `${WMS}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=nw_dop_rgb&STYLES=&SRS=EPSG:25832&BBOX=${[x0,y0,x1,y1].map(v=>v.toFixed(1)).join(",")}&WIDTH=${w}&HEIGHT=${h}&FORMAT=image/jpeg`;
+  }
+  function blurred(img){
+    // down- then up-sample: a cheap, strong blur that works in every browser
+    const small=document.createElement("canvas"); small.width=Math.max(4,img.width>>2); small.height=Math.max(4,img.height>>2);
+    const sc=small.getContext("2d"); sc.imageSmoothingQuality="high"; sc.drawImage(img,0,0,small.width,small.height);
+    const out=document.createElement("canvas"); out.width=img.width; out.height=img.height;
+    const oc=out.getContext("2d"); oc.imageSmoothingQuality="high"; oc.drawImage(small,0,0,out.width,out.height);
+    return out;
+  }
+  function requestSat(){
+    clearTimeout(sat.timer);
+    if(!sat.on || !cw || !D) return;
+    const m = cityOf(state.city);
+    if(sat.baseCity!==m.id){
+      sat.baseCity=m.id; sat.base=null; sat.prev=null; sat.cur=null;
+      const b=m.bb, r=(b[2]-b[0])/(b[3]-b[1]), w=r>=1?200:Math.round(200*r), h=r>=1?Math.round(200/r):200;
+      const img=new Image(), id=m.id;
+      img.onload=()=>{ if(sat.baseCity!==id) return; sat.base={img:blurred(img), box:b, t:performance.now()}; msg(""); draw(); };
+      img.onerror=()=>{ if(sat.baseCity===id) msg("Satellitenbild konnte nicht geladen werden"); };
+      img.src=wmsUrl(b,w,h);
+    }
+    sat.timer = setTimeout(()=>{
+      const [x0,y1]=toWorld(0,0), [x1,y0]=toWorld(cw,ch), b=[x0,y0,x1,y1], cb=m.bb;
+      if(x1<cb[0]||x0>cb[2]||y1<cb[1]||y0>cb[3]) return;
+      let w=Math.round(cw*dpr), h=Math.round(ch*dpr); const k=Math.min(1, 3000/Math.max(w,h)); w=Math.round(w*k); h=Math.round(h*k);
+      const id = ++sat.seq, img = new Image(), city = D;
+      img.onload = ()=>{ if(id!==sat.seq || city!==D) return; sat.prev=sat.cur; sat.cur={img, box:b, t:performance.now()}; draw(); };
+      img.src = wmsUrl(b,w,h);
+    }, 250);
+  }
+  function setBg(bg){
+    sat.on = bg==="satellit";
+    document.querySelectorAll(".bgswitch button").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.bg===bg)));
+    try{ localStorage.setItem("lf-bg", bg); }catch(e){}
+    msg(sat.on && D && !sat.base ? "Satellitenbild wird geladen …" : "");
+    draw();
+  }
+  document.querySelectorAll(".bgswitch button").forEach(b=>b.onclick=()=>setBg(b.dataset.bg));
+  function drawImg(o, alpha){
+    if(!o || alpha<=0) return;
+    const [ax,ay]=toScreen(o.box[0],o.box[3]), [bx,by]=toScreen(o.box[2],o.box[1]);
+    ctx.globalAlpha=alpha; ctx.drawImage(o.img, ax, ay, bx-ax, by-ay); ctx.globalAlpha=1;
+  }
+
+  // draw only the cells that overlap the current view
+  let vb = [0,0,0,0];
+  function paint(cells, how){
+    for(const c of cells){ const b=c.b; if(b[2]<vb[0]||b[0]>vb[2]||b[3]<vb[1]||b[1]>vb[3]) continue; how==="fill"?ctx.fill(c.p):ctx.stroke(c.p); }
+  }
+
+  // ---- render ----
+  let raf=0, pins=[], pinsShown=false;
+  function draw(){ if(!raf) raf=requestAnimationFrame(render); requestSat(); }
+  function render(now){
+    raf=0; if(!cw) return;
+    now = now || performance.now();
+    if(stepAnim(now)) raf=requestAnimationFrame(render);
+    ctx.setTransform(1,0,0,1,0,0); ctx.imageSmoothingQuality="high";
+    ctx.fillStyle=C["--outside"]; ctx.fillRect(0,0,cv.width,cv.height);
+    if(!G) return;
+    { const [x0,y1]=toWorld(0,0), [x1,y0]=toWorld(cw,ch); vb=[x0,y0,x1,y1]; }
+    const s=view.s*dpr, px1=1/view.s;
+    const world = ()=>ctx.setTransform(s,0,0,-s, (cw/2 - view.x*view.s)*dpr, (ch/2 + view.y*view.s)*dpr);
+    world();
+    // Germany and its neighbours
+    ctx.fillStyle=C["--nb"]; ctx.fill(GP.nb);
+    ctx.strokeStyle=C["--border"]; ctx.lineWidth=0.8*px1; ctx.stroke(GP.nb);
+    ctx.fillStyle=C["--land"]; ctx.fill(GP.de);
+    ctx.lineWidth=1.4*px1; ctx.stroke(GP.de);
+    // outlines of all cities with data
+    for(const m of CITIES){ if(m.id===state.city && D) continue; ctx.fillStyle=C["--ground"]; ctx.fill(m.path); ctx.strokeStyle=C["--border"]; ctx.lineWidth=px1; ctx.stroke(m.path); }
+    const sel = D && D.c.find(c=>c.id===state.sel);
+    const hi = sat.on ? "#fff" : C["--ink"];
+    const fa = anim.fade ? fadeIn(anim.fade,600,now) : 1;
+    let vis = [];
+    if(D){
+      if(sat.on){
+        ctx.fillStyle="#1a1a1a"; ctx.fill(P.city);
+        ctx.save(); ctx.setTransform(dpr,0,0,dpr,0,0);
+        if(sat.base) drawImg(sat.base, fadeIn(sat.base.t,700,now));
+        if(sat.cur){ const a=fadeIn(sat.cur.t,450,now); if(a<1) drawImg(sat.prev,1); drawImg(sat.cur,a); }
+        ctx.restore();
+        if(view.s>0.9){ ctx.strokeStyle="rgba(255,255,255,.45)"; ctx.lineWidth=px1; paint(P.parc,"stroke"); }
+      } else {
+        ctx.fillStyle=C["--ground"]; ctx.fill(P.city);
+        if(view.s>0.004){
+          ctx.fillStyle=C["--green"]; paint(P.green,"fill");
+          ctx.fillStyle=C["--street"]; paint(P.road,"fill");
+        }
+        if(view.s>0.9){ ctx.strokeStyle=C["--parcel"]; ctx.lineWidth=px1; paint(P.parc,"stroke"); }
+        // at whole-city scale single buildings are sub-pixel; skip them to keep phones fluid
+        if(view.s>0.08){ ctx.fillStyle=C["--bldg"]; paint(P.bld,"fill"); }
+        if(view.s>1.2){ ctx.strokeStyle=C["--bldg-edge"]; ctx.lineWidth=0.8*px1; paint(P.bld,"stroke"); }
+      }
+      // candidates fade in after a city loads
+      vis = D.c.filter(match);
+      if(view.s>0.004){
+        vis.forEach(c=>{ const col=tcol(c); ctx.fillStyle=col; ctx.globalAlpha=(sat.on?0.4:0.88)*fa; ctx.fill(c.path);
+          if(sat.on){ ctx.globalAlpha=fa; ctx.strokeStyle=col; ctx.lineWidth=2*px1; ctx.stroke(c.path); } });
+        ctx.globalAlpha=1;
+        if(sel){ ctx.strokeStyle=hi; ctx.lineWidth=2.5*px1; ctx.stroke(sel.path); }
+      }
+    }
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    // candidate markers when zoomed out (but still at city scale)
+    if(D && view.s>0.004 && view.s<0.6){
+      vis.forEach(c=>{
+        const [x,y]=toScreen(c.cx,c.cy);
+        if(x<-10||y<-10||x>cw+10||y>ch+10) return;
+        ctx.beginPath(); ctx.arc(x,y,(c===sel?6:3.6)*(0.4+0.6*fa),0,Math.PI*2);
+        ctx.fillStyle=tcol(c); ctx.globalAlpha=fa; ctx.fill(); ctx.globalAlpha=1;
+        ctx.lineWidth=1; ctx.strokeStyle=C["--card"]; ctx.stroke();
+      });
+      if(sel){ const [x,y]=toScreen(sel.cx,sel.cy); ctx.beginPath(); ctx.arc(x,y,9,0,Math.PI*2); ctx.lineWidth=2; ctx.strokeStyle=hi; ctx.stroke(); }
+    }
+    // selection ripple: two rings expand from the chosen area in its type colour
+    if(sel && anim.pulse && anim.pulseId===sel.id){
+      const [x,y]=toScreen(sel.cx,sel.cy);
+      for(const d of [0,260]){
+        const t=(now-anim.pulse-d)/800; if(t<0||t>1) continue;
+        ctx.beginPath(); ctx.arc(x,y,8+34*ease(t),0,Math.PI*2);
+        ctx.globalAlpha=1-t; ctx.lineWidth=2.5; ctx.strokeStyle=tcol(sel); ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+    }
+    drawPins(now);
+    // scale bar
+    const target = 100/view.s; const nice=[1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000];
+    const meters = nice.find(m=>m*2>=target*0.6) || 200000; const px = meters*2*view.s;
+    const sbY = ch - (cw<600?54:62);
+    ctx.fillStyle=hi; if(sat.on && D){ ctx.shadowColor="rgba(0,0,0,.8)"; ctx.shadowBlur=3; } else ctx.fillStyle=C["--ink"];
+    ctx.fillRect(16, sbY, px, 2);
+    ctx.font="600 12px "+getComputedStyle(document.body).getPropertyValue("--sans");
+    ctx.fillText(meters>=1000?(meters/1000)+" km":meters+" m", 16, sbY-6);
+    ctx.shadowBlur=0;
+  }
+
+  // City markers: shown while a city is small on screen. Markers closer than 56 px merge into
+  // one ("4 Städte"); tapping a merged marker zooms to the group, a single one opens the city.
+  function drawPins(now){
+    const font = getComputedStyle(document.body).getPropertyValue("--sans");
+    const cand = CITIES.filter(m=>(m.bb[2]-m.bb[0])*view.s < 240 && !(m.id===state.city && D && (m.bb[2]-m.bb[0])*view.s>60))
+      .map(m=>{ const [x,y]=toScreen(m.cx,m.cy); return {m,x,y}; })
+      .filter(p=>p.x>-80&&p.x<cw+80&&p.y>-40&&p.y<ch+40)
+      .sort((a,b)=>b.m.n-a.m.n);
+    const groups=[];
+    for(const p of cand){
+      const g=groups.find(g=>Math.hypot(g.x-p.x,g.y-p.y)<56);
+      if(g){ g.ms.push(p.m); } else groups.push({x:p.x,y:p.y,ms:[p.m]});
+    }
+    pins=[]; pinsShown = groups.length>0;
+    const br = RM ? 0 : (Math.sin(now/520)+1)/2;
+    for(const g of groups){
+      const n=g.ms.reduce((a,m)=>a+m.n,0);
+      const label = g.ms.length>1 ? g.ms.length+" Städte" : g.ms[0].name;
+      const sub = fmt(n,0)+" Flächen";
+      // breathing halo + dot
+      ctx.beginPath(); ctx.arc(g.x,g.y,10+6*br,0,Math.PI*2); ctx.fillStyle=C["--ink"]; ctx.globalAlpha=0.12+0.08*(1-br); ctx.fill(); ctx.globalAlpha=1;
+      ctx.beginPath(); ctx.arc(g.x,g.y,6,0,Math.PI*2); ctx.fillStyle=C["--ink"]; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle=C["--paper"]; ctx.stroke();
+      // label pill above the dot
+      ctx.font="700 13px "+font; const w1=ctx.measureText(label).width;
+      ctx.font="500 11px "+font; const w2=ctx.measureText(sub).width;
+      const w=Math.max(w1,w2)+18, h=36, x=g.x-w/2, y=g.y-14-h;
+      ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(x,y,w,h,6); else ctx.rect(x,y,w,h);
+      ctx.fillStyle=C["--ink"]; ctx.fill();
+      ctx.beginPath(); ctx.moveTo(g.x-5,y+h); ctx.lineTo(g.x+5,y+h); ctx.lineTo(g.x,y+h+5); ctx.fill();
+      ctx.fillStyle=C["--paper"]; ctx.textAlign="center";
+      ctx.font="700 13px "+font; ctx.fillText(label,g.x,y+16);
+      ctx.font="500 11px "+font; ctx.globalAlpha=0.75; ctx.fillText(sub,g.x,y+29); ctx.globalAlpha=1;
+      ctx.textAlign="start";
+      pins.push({x:g.x,y:g.y,box:[x,y,x+w,y+h+6],ms:g.ms});
+    }
+    // names on neighbouring city areas when they're big enough to tap
+    ctx.font="600 13px "+font; ctx.textAlign="center";
+    for(const m of CITIES){
+      if(m.id===state.city && D) continue;
+      const wpx=(m.bb[2]-m.bb[0])*view.s; if(wpx<240) continue;
+      const [x,y]=toScreen(m.cx,m.cy); if(x<0||x>cw||y<0||y>ch) continue;
+      ctx.lineWidth=4; ctx.strokeStyle=C["--paper"]; ctx.strokeText(m.name,x,y); ctx.fillStyle=C["--ink"]; ctx.fillText(m.name,x,y);
+      ctx.font="500 11px "+font; ctx.fillStyle=C["--muted"]; ctx.strokeText("antippen zum Öffnen",x,y+15); ctx.fillText("antippen zum Öffnen",x,y+15); ctx.font="600 13px "+font;
+    }
+    ctx.textAlign="start";
+  }
+
+  // ---- zoom & gestures ----
+  function zoomAt(f, px, py){
+    const [wx,wy]=toWorld(px,py);
+    view.s = Math.min(Math.max(view.s*f, minS()), 12);
+    view.x = wx - (px-cw/2)/view.s; view.y = wy + (py-ch/2)/view.s;
+  }
+  function zoomBtn(f){
+    const t = anim.cam || view;   // chain presses onto the running glide
+    flyTo(t.x, t.y, Math.min(Math.max(t.s*f, minS()), 12), 260);
+  }
+  $("zin").onclick=()=>zoomBtn(1.6); $("zout").onclick=()=>zoomBtn(1/1.6);
+  $("zall").onclick=()=>fitAll(true);
+  $("zde").onclick=()=>fitBox(GB,true,1100);
+  cv.addEventListener("wheel",e=>{ e.preventDefault(); anim.cam=null; const r=cv.getBoundingClientRect(); zoomAt(e.deltaY<0?1.2:1/1.2, e.clientX-r.left, e.clientY-r.top); draw(); },{passive:false});
+
+  // mouse / pen: drag to pan, click to pick (touch is handled separately below)
+  let mdown=null;
+  cv.addEventListener("pointerdown",e=>{ if(e.pointerType==="touch") return; anim.cam=null; cv.setPointerCapture(e.pointerId); mdown={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false}; });
+  cv.addEventListener("pointermove",e=>{
+    if(e.pointerType==="touch" || !mdown) return;
+    const dx=e.clientX-mdown.x, dy=e.clientY-mdown.y; mdown.x=e.clientX; mdown.y=e.clientY;
+    if(Math.hypot(e.clientX-mdown.sx,e.clientY-mdown.sy)>4){ mdown.moved=true; cv.classList.add("drag"); }
+    if(mdown.moved){ view.x-=dx/view.s; view.y+=dy/view.s; draw(); }
+  });
+  function mup(e){
+    if(e.pointerType==="touch" || !mdown) return;
+    const m=mdown; mdown=null; cv.classList.remove("drag");
+    if(!m.moved && e.type==="pointerup"){ const r=cv.getBoundingClientRect(); pick(e.clientX-r.left, e.clientY-r.top); }
+  }
+  cv.addEventListener("pointerup",mup); cv.addEventListener("pointercancel",mup);
+
+  // touch: two fingers move + pinch-zoom the map. On phones one finger scrolls the page (the map
+  // sits inside it), so a one-finger drag only shows a hint; on tablets one finger pans too.
+  let tp=null, hintT=0;
+  function hint(on){ clearTimeout(hintT); $("hint").classList.toggle("on",on); if(on) hintT=setTimeout(()=>hint(false),1300); }
+  function two(t){ const r=cv.getBoundingClientRect(), a=t[0], b=t[1];
+    return {two:true, x:(a.clientX+b.clientX)/2-r.left, y:(a.clientY+b.clientY)/2-r.top, d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)}; }
+  cv.addEventListener("touchstart",e=>{
+    anim.cam=null;
+    if(e.touches.length>=2){ e.preventDefault(); tp=two(e.touches); hint(false); return; }
+    if(!tp){ const t=e.touches[0]; tp={one:true, sx:t.clientX, sy:t.clientY, x:t.clientX, y:t.clientY, t0:performance.now(), moved:false}; }
+  },{passive:false});
+  cv.addEventListener("touchmove",e=>{
+    if(!tp) return;
+    if(e.touches.length>=2){
+      e.preventDefault();
+      const m=two(e.touches);
+      if(!tp.two){ tp=m; return; }
+      view.x-=(m.x-tp.x)/view.s; view.y+=(m.y-tp.y)/view.s;   // pan with the midpoint
+      if(tp.d>0) zoomAt(m.d/tp.d, m.x, m.y);                 // pinch around the midpoint
+      tp=m; draw(); return;
+    }
+    if(tp.one){
+      const t=e.touches[0];
+      if(Math.hypot(t.clientX-tp.sx,t.clientY-tp.sy)>8) tp.moved=true;
+      if(!MOBILE()){ e.preventDefault(); view.x-=(t.clientX-tp.x)/view.s; view.y+=(t.clientY-tp.y)/view.s; draw(); }
+      else if(tp.moved && Math.abs(t.clientX-tp.sx)>Math.abs(t.clientY-tp.sy)) hint(true);
+      tp.x=t.clientX; tp.y=t.clientY;
+    }
+  },{passive:false});
+  cv.addEventListener("touchend",e=>{
+    if(!tp) return;
+    if(tp.one && !tp.moved && e.touches.length===0 && performance.now()-tp.t0<500){
+      e.preventDefault(); const r=cv.getBoundingClientRect(); pick(tp.sx-r.left, tp.sy-r.top);
+    }
+    if(e.touches.length===0) tp=null; else if(tp.two) tp={after:true};   // ignore the leftover finger
+  },{passive:false});
+  cv.addEventListener("touchcancel",()=>{ tp=null; });
+  document.addEventListener("gesturestart",e=>{ if(e.target===cv) e.preventDefault(); });
+
+  function pick(px,py){
+    // 1. city markers
+    for(const p of pins){
+      const b=p.box;
+      if(Math.hypot(p.x-px,p.y-py)<24 || (px>=b[0]&&px<=b[2]&&py>=b[1]&&py<=b[3])){
+        if(p.ms.length>1){
+          const bb=p.ms.reduce((a,m)=>[Math.min(a[0],m.bb[0]),Math.min(a[1],m.bb[1]),Math.max(a[2],m.bb[2]),Math.max(a[3],m.bb[3])],[Infinity,Infinity,-Infinity,-Infinity]);
+          fitBox(bb,true,1300);
+        } else openCity(p.ms[0].id);
+        return;
+      }
+    }
+    const [wx,wy]=toWorld(px,py);
+    ctx.setTransform(1,0,0,1,0,0);
+    // 2. areas of the active city
+    if(D && view.s>0.004){
+      const vis = D.c.filter(match);
+      let hit = vis.find(c=>ctx.isPointInPath(c.path,wx,wy));
+      if(!hit && view.s<0.6){
+        let bd=14;
+        vis.forEach(c=>{ const [x,y]=toScreen(c.cx,c.cy); const d=Math.hypot(x-px,y-py); if(d<bd){bd=d;hit=c;} });
+      }
+      if(hit) return select(hit.id,"map");
+    }
+    // 3. another city's area
+    const other = CITIES.find(m=>!(m.id===state.city && D) && ctx.isPointInPath(m.path,wx,wy));
+    if(other) openCity(other.id);
+  }
+  // stepless zoom onto an area; never zooms out
+  function focusOn(c){ flyTo(c.cx, c.cy, Math.max(view.s, Math.min(cw,ch)/220), 900); }
+
+  // ---- side panel ----
+  function renderStats(countUp){
+    const n = t => D ? D.c.filter(c=>c.typ===t.v).length : CITIES.reduce((a,m)=>a+m.t[t.k],0);
+    $("stats").innerHTML = TYPES.map(t=>
+      `<button type="button" class="stat ${t.cls}" data-t="${t.v}" aria-pressed="${state.typ===t.v}"><b data-n="${n(t)}">${fmt(n(t),0)}</b><span><i class="sw"></i>${t.plural}</span></button>`).join("");
+    $("stats").querySelectorAll(".stat").forEach(b=>b.onclick=()=>setTyp(state.typ===b.dataset.t ? "alle" : b.dataset.t));
+    if(countUp && !RM){
+      // numbers count up once per city load
+      const els=[...$("stats").querySelectorAll("b")], t0=performance.now();
+      (function tick(now){
+        const e=ease(Math.min(1,(now-t0)/700));
+        els.forEach(b=>b.textContent=fmt(Math.round(+b.dataset.n*e),0));
+        if(e<1) requestAnimationFrame(tick);
+      })(t0);
+    }
+  }
+
+  // area-type dropdown (custom, so each option can carry its colour)
+  const OPTS = [{v:"alle", label:"Alle Typen", cls:"t-all"}].concat(TYPES.map(t=>({v:t.v, label:t.v, cls:t.cls, k:t.k})));
+  let ddAct = 0;
+  function renderDd(){
+    const o = OPTS.find(x=>x.v===state.typ);
+    const sw = o.v==="alle" ? '<i class="sw all"></i>' : `<i class="sw ${o.cls}"></i>`;
+    $("ddbtn").innerHTML = `${sw}<span>${o.label}</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
+    const cnt = x => D ? (x.v==="alle" ? D.c.length : D.c.filter(c=>c.typ===x.v).length)
+                       : CITIES.reduce((a,m)=>a+(x.v==="alle" ? m.n : m.t[x.k]),0);
+    $("ddlist").innerHTML = OPTS.map((x,i)=>`<li role="option" id="opt${i}" data-v="${x.v}" aria-selected="${x.v===state.typ}" class="${i===ddAct?"act":""}">${x.v==="alle"?'<i class="sw all"></i>':`<i class="sw ${x.cls}"></i>`}<span>${x.label}</span><span class="n">${fmt(cnt(x),0)}</span></li>`).join("");
+    $("ddlist").setAttribute("aria-activedescendant","opt"+ddAct);
+    $("ddlist").querySelectorAll("li").forEach(li=>li.onclick=()=>{ setTyp(li.dataset.v); ddOpen(false); $("ddbtn").focus(); });
+  }
+  function ddOpen(on){
+    $("ddlist").hidden=!on; $("ddbtn").setAttribute("aria-expanded",String(on));
+    if(on){ ddAct=Math.max(0,OPTS.findIndex(x=>x.v===state.typ)); renderDd(); $("ddlist").focus(); }
+  }
+  $("ddbtn").onclick=()=>ddOpen($("ddlist").hidden);
+  $("ddbtn").onkeydown=e=>{ if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); ddOpen(true); } };
+  $("ddlist").onkeydown=e=>{
+    if(e.key==="ArrowDown"){ e.preventDefault(); ddAct=Math.min(OPTS.length-1,ddAct+1); renderDd(); }
+    else if(e.key==="ArrowUp"){ e.preventDefault(); ddAct=Math.max(0,ddAct-1); renderDd(); }
+    else if(e.key==="Enter"||e.key===" "){ e.preventDefault(); setTyp(OPTS[ddAct].v); ddOpen(false); $("ddbtn").focus(); }
+    else if(e.key==="Escape"||e.key==="Tab"){ ddOpen(false); if(e.key==="Escape") $("ddbtn").focus(); }
+  };
+  document.addEventListener("pointerdown",e=>{ if(!$("dd").contains(e.target)) ddOpen(false); });
+
+  function setTyp(v){ state.typ=v; state.shown=50; refresh(); }
+  function refresh(countUp, stagger=true){ renderStats(countUp); renderDd(); renderFilterState(); renderList(stagger); draw(); }
+  function renderFilterState(){
+    const n = (state.typ!=="alle") + (state.minb>4.5) + (state.mins>0);
+    $("fbadge").textContent=n+" aktiv"; $("fbadge").hidden=!n;
+    $("minbv").textContent = "ab "+fmt(state.minb)+" m";
+    $("minsv").textContent = "ab "+fmt(state.mins)+" Pkt.";
+    $("minb").value=state.minb; $("mins").value=state.mins;
+  }
+  $("filterbtn").onclick=()=>{ const open=$("panel").hidden; $("panel").hidden=!open; $("filterbtn").setAttribute("aria-expanded",String(open)); };
+  // sliders fire continuously while dragging, so the list doesn't re-stagger on every step
+  $("minb").oninput=e=>{ state.minb=+e.target.value; state.shown=50; refresh(false,false); };
+  $("mins").oninput=e=>{ state.mins=+e.target.value; state.shown=50; refresh(false,false); };
+  $("reset").onclick=()=>{ state.typ="alle"; state.minb=4.5; state.mins=0; state.shown=50; refresh(); };
+
+  // stagger=true when the result set changes (filter, city); plain re-renders stay still
+  function renderList(stagger){
+    const li = (i,html) => `<li${stagger && i<14 ? ` class="in" style="--i:${i}"` : ""}>${html}</li>`;
+    if(!D){
+      // Germany overview: one card per city
+      $("lead").textContent = "Wähle eine markierte Stadt auf der Karte oder hier in der Liste. Unbebaute Wohnbau-Flurstücke mit Straßenzugang, 80–700 m², mindestens 4,5 m breit, aus dem amtlichen Liegenschaftskataster.";
+      $("count").textContent = CITIES.length+" Städte mit Kartenmaterial"; $("sortnote").textContent="nach Anzahl";
+      $("list").innerHTML = [...CITIES].sort((a,b)=>b.n-a.n).map((m,i)=>li(i,`<button type="button" class="item cityitem" data-city="${m.id}">
+        <span class="ad">${esc(m.name)}</span>${ICON_GO}
+        <span class="mt">${fmt(m.n,0)} Flächen · ${m.t.bl} Baulücken · ${m.t.gar} Garagen</span>
+        <span class="bar">${TYPES.map(t=>`<i class="${t.cls}" style="width:${(m.t[t.k]/m.n*100).toFixed(1)}%"></i>`).join("")}</span>
+      </button>`)).join("");
+      $("list").querySelectorAll(".cityitem").forEach(b=>b.onclick=()=>{ openCity(b.dataset.city); if(MOBILE()) $("mapwrap").scrollIntoView({block:"start",behavior:"smooth"}); });
+      return;
+    }
+    $("lead").textContent = "Unbebaute Wohnbau-Flurstücke mit Straßenzugang, 80–700 m², mindestens 4,5 m breit. Ermittelt aus dem amtlichen Liegenschaftskataster.";
+    $("sortnote").textContent="sortiert nach Eignung";
+    const vis = D.c.filter(match);
+    $("count").textContent = fmt(vis.length,0)+" Flächen";
+    const items = vis.slice(0,state.shown).map((c,i)=>li(i,`<button type="button" class="item ${T[c.typ].cls}${state.sel===c.id?" sel":""}" data-id="${c.id}">
+        <i class="dot"></i>
+        <span class="ad">${esc(c.adr)}</span>
+        <span class="sc">${fmt(c.s)}</span>
+        <span class="mt">${c.a} m² · ${fmt(c.b)} m breit · ${c.id}</span>
+      </button>`)).join("");
+    $("list").innerHTML = items + (vis.length>state.shown ? `<li><button type="button" class="more" id="more">Weitere ${Math.min(50,vis.length-state.shown)} anzeigen</button></li>` : "");
+    $("list").querySelectorAll(".item").forEach(b=>b.onclick=()=>select(b.dataset.id,"list"));
+    const m=$("more"); if(m) m.onclick=()=>{ state.shown+=50; renderList(); };
+  }
+
+  function renderDetail(){
+    const d=$("detail"); const c=D && D.c.find(x=>x.id===state.sel);
+    if(!c){ d.hidden=true; d.innerHTML=""; return; }
+    d.hidden=false;
+    const t=T[c.typ];
+    const g = `https://www.google.com/maps/@${c.lat},${c.lon},90m/data=!3m1!1e3`;
+    const o = `https://www.openstreetmap.org/?mlat=${c.lat}&mlon=${c.lon}#map=19/${c.lat}/${c.lon}`;
+    const houses = c.b>=9 ? "zwei Lückenhäuser nebeneinander" : c.b>=5.5 ? "Lückenhaus 6,0" : "Lückenhaus 4,5";
+    const note = c.typ==="Garagengrundstück" ? `Auf der Fläche stehen Garagen oder Carports (ca. ${c.gar} m²). Eigentümer vermieten die oft; ein Haus mit integriertem Stellplatz kann für sie attraktiver sein.`
+      : c.typ==="Baulücke" ? "Mindestens zwei Nachbargebäude stehen direkt an der Grenze. Das spricht für eine echte Lücke in einer Häuserzeile."
+      : "Keine Bebauung an beiden Grenzen. Häufig ein Seitengarten des Nachbarhauses. Auf dem Satellitenbild prüfen.";
+    d.innerHTML = `<div class="detail ${t.cls}">
+      <div class="dhead"><div><div class="kind"><i class="sw"></i>${c.typ}</div><h2>${esc(c.adr)}</h2></div>
+      <button type="button" class="close" id="dclose" aria-label="Details schließen">×</button></div>
+      <dl>
+        <dt>Flurstück</dt><dd>${esc(c.gem)}, Flur ${c.flur}, Nr. ${esc(c.nr)}</dd>
+        <dt>Fläche</dt><dd>${c.a} m²</dd>
+        <dt>Breite × Länge</dt><dd>${fmt(c.b)} × ${fmt(c.l)} m</dd>
+        <dt>Straßenfront</dt><dd>${fmt(c.fr)} m</dd>
+        <dt>Gebäude an Grenze</dt><dd>${c.n}</dd>
+        <dt>Eignung</dt><dd>${fmt(c.s)} von 8</dd>
+        <dt>Hauskonzept</dt><dd>${houses}</dd>
+      </dl>
+      <p class="note">${note}</p>
+      <div class="links">
+        <a class="btn primary" href="${g}" target="_blank" rel="noopener">In Google Maps öffnen</a>
+        <a class="btn" href="${o}" target="_blank" rel="noopener">OpenStreetMap</a>
+        <button type="button" class="btn" id="copy">Kennzeichen kopieren</button>
+      </div>
+      <p class="kz" id="kz">Flurstückskennzeichen: ${esc(c.fl)}</p>
+    </div>`;
+    $("dclose").onclick=()=>{ state.sel=null; renderDetail(); renderList(); draw(); };
+    $("copy").onclick=()=>{
+      const b=$("copy");
+      navigator.clipboard.writeText(c.fl).then(()=>{ b.innerHTML='<svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Kopiert'; b.classList.add("done"); }).catch(()=>{
+        const r=document.createRange(); r.selectNodeContents($("kz")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent="Markiert, bitte kopieren";
+      });
+    };
+  }
+
+  // from: "list" (scroll the map into view on phones) or "map"; both glide in stepless
+  function select(id, from){
+    state.sel=id; renderList(); renderDetail(); pulse(id);
+    const c=D.c.find(x=>x.id===id);
+    if(c) focusOn(c);
+    if(from==="list" && MOBILE()) $("mapwrap").scrollIntoView({block:"start",behavior:"smooth"});
+    if(from==="map" && !MOBILE()) $("detail").scrollIntoView({block:"nearest",behavior:"smooth"});
+  }
+
+  // ---- theme ----
+  function setTheme(dark){
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    $("theme").innerHTML = dark ? ICON_SUN : ICON_MOON;
+    $("theme").setAttribute("aria-pressed", String(dark));
+    $("theme").setAttribute("aria-label", dark ? "Helles Design einschalten" : "Dunkles Design einschalten");
+    try{ localStorage.setItem("lf-theme", dark ? "dark" : "light"); }catch(e){}
+    readColors();
+  }
+  $("theme").onclick=()=>setTheme(document.documentElement.dataset.theme!=="dark");
+
+  // ---- cities ----
+  function setHeader(m){
+    $("city").value = m ? m.id : "";
+    $("zall").setAttribute("aria-label", m ? "Ganz "+m.name+" zeigen" : "Ganz Deutschland zeigen");
+    $("mapwrap").setAttribute("aria-label", m ? "Karte von "+m.name : "Karte von Deutschland");
+    document.title = m ? "Baulückenfinder · "+m.name : "Baulückenfinder";
+    const h = m ? "#"+m.id : "";
+    if(location.hash!==h) history.replaceState(null,"",h || location.pathname);
+  }
+  function openOverview(){
+    state.city=null; D=null; P=null; state.sel=null; state.shown=50;
+    setHeader(null); msg(""); renderDetail(); refresh(true); fitBox(GB,true,1100);
+  }
+  async function openCity(id){
+    const m = cityOf(id); if(!m) return openOverview();
+    if(state.city===id && D){ fitAll(true); return; }
+    state.city=id; D=null; P=null; state.sel=null; state.shown=50;
+    setHeader(m); renderDetail(); refresh(true);
+    fitBox(m.bb, true, 1400);   // fly in while the data loads
+    msg(m.name+" wird geladen …");
+    try{
+      if(!cache[id]) cache[id] = fetch("karten/"+id+".json").then(r=>{ if(!r.ok) throw new Error(r.status); return r.json(); });
+      const d = prepare(await cache[id]);
+      if(state.city!==id) return;   // user already moved on
+      D = d; P = d.P;
+      sat.baseCity=null; sat.seq++;
+      state.sel = D.c[0] ? D.c[0].id : null;
+      anim.fade = RM ? 0 : performance.now();
+      msg(sat.on ? "Satellitenbild wird geladen …" : "");
+      refresh(true); renderDetail();
+    }catch(e){
+      delete cache[id];
+      if(state.city===id) msg("Karte konnte nicht geladen werden");
+    }
+  }
+  $("city").onchange=e=>{ e.target.value ? openCity(e.target.value) : openOverview(); };
+  window.addEventListener("hashchange",()=>{ const id=location.hash.slice(1); if(id!==(state.city||"")) id ? openCity(id) : openOverview(); });
+
+  new ResizeObserver(resize).observe(cv);
+  setTheme(document.documentElement.dataset.theme==="dark");
+  renderFilterState();
+  try{ const bg=localStorage.getItem("lf-bg"); if(bg==="satellit"||bg==="luftbild") setBg("satellit"); }catch(e){}
+  Promise.all([fetch("karten/deutschland.json").then(r=>r.json()), fetch("karten/staedte.json").then(r=>r.json())]).then(([g,list])=>{
+    G = g;
+    GP = {de:toPath(g.de), nb:toPath(g.nb)};
+    GB = [(g.bb[0]-g.o[0])*2, (g.bb[1]-g.o[1])*2, (g.bb[2]-g.o[0])*2, (g.bb[3]-g.o[1])*2];
+    CITIES = list.map(m=>{
+      const [dx,dy]=offOf(m.o), bb=[dx,dy,dx+m.w*2,dy+m.h*2];
+      return {...m, bb, cx:(bb[0]+bb[2])/2, cy:(bb[1]+bb[3])/2, path:toPath(m.g,dx,dy)};
+    });
+    $("city").innerHTML = '<option value="">Deutschland – Übersicht</option>' + CITIES.map(x=>`<option value="${x.id}">${esc(x.name)} (${fmt(x.n,0)} Flächen)</option>`).join("");
+    fitBox(GB,false);
+    refresh(true);
+    const want = location.hash.slice(1);
+    if(cityOf(want)) setTimeout(()=>openCity(want), RM ? 0 : 500);
+  }).catch(()=>msg("Karte konnte nicht geladen werden"));
+})();
+</script>

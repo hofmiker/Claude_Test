@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>3D Character Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow: hidden; touch-action: none; background: #87CEEB; font-family: Arial, sans-serif; }
+    #info {
+      position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+      color: #fff; font-size: 12px;
+      text-shadow: 0 1px 3px rgba(0,0,0,.7); pointer-events: none; white-space: nowrap;
+    }
+    #levelBtn {
+      position: fixed; top: 10px; right: 10px; z-index: 5;
+      background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.4);
+      color: #fff; font-size: 12px; padding: 7px 12px; border-radius: 8px;
+      cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    #levelBtn:active { background: rgba(255,255,255,.25); }
+
+    /* Virtueller 360°-Joystick, ported von toy-story/gameplay/player.js */
+    #joystick {
+      position: fixed; bottom: 30px; left: 30px;
+      width: 130px; height: 130px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.35); background: rgba(20,22,35,.30);
+      touch-action: none; user-select: none; -webkit-tap-highlight-color: transparent;
+    }
+    #joystick-knob {
+      position: absolute; top: 50%; left: 50%; width: 56px; height: 56px;
+      margin: -28px 0 0 -28px; border-radius: 50%;
+      background: rgba(255,255,255,.32); border: 2px solid rgba(255,255,255,.6);
+      pointer-events: none;
+    }
+    #jumpBtn {
+      position: fixed; bottom: 40px; right: 34px;
+      width: 70px; height: 70px;
+      background: rgba(255,210,0,.25); border: 2px solid rgba(255,210,0,.75);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 26px; cursor: pointer; user-select: none; color: #fff;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #jumpBtn.on { background: rgba(255,210,0,.55); }
+
+    #levelSelect {
+      position: fixed; inset: 0; z-index: 20;
+      background: radial-gradient(ellipse at center, #1c2b3a 0%, #05080d 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 26px; color: #fff;
+    }
+    #levelSelect h1 { font-size: 18px; letter-spacing: .1em; text-transform: uppercase; opacity: .85; }
+    #levelCards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; padding: 0 20px; }
+    .levelCard {
+      width: 210px; border-radius: 16px; overflow: hidden; cursor: pointer;
+      border: 2px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04);
+      transition: border-color .15s, transform .15s; -webkit-tap-highlight-color: transparent;
+    }
+    .levelCard:hover, .levelCard:active { border-color: rgba(255,255,255,.55); transform: translateY(-3px); }
+    .levelCard .swatch { height: 105px; }
+    .levelCard .info { padding: 13px 15px; }
+    .levelCard .lname { font-size: 14px; font-weight: bold; letter-spacing: .04em; }
+    .levelCard .ldesc { font-size: 11px; opacity: .6; margin-top: 4px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+<div id="levelSelect">
+  <h1>Level wählen</h1>
+  <div id="levelCards">
+    <div class="levelCard" data-level="forest">
+      <div class="swatch" style="background:linear-gradient(180deg,#87CEEB 0%,#87CEEB 55%,#3A7230 55%,#2A5E20 100%)"></div>
+      <div class="info">
+        <div class="lname">🌲 Wald</div>
+        <div class="ldesc">Offene Wiese mit Bäumen, Büschen &amp; Kisten-Stapeln</div>
+      </div>
+    </div>
+    <div class="levelCard" data-level="warehouse">
+      <div class="swatch" style="background:linear-gradient(180deg,#3a3f47 0%,#3a3f47 55%,#8B6334 55%,#6b4c28 100%)"></div>
+      <div class="info">
+        <div class="lname">📦 Lagerhaus</div>
+        <div class="ldesc">Halle voller Kisten-Stapel — zum Klettern &amp; an Kanten hochziehen</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="info">Bewegen · Space springen/hochziehen · in der Luft an Kisten: greifen, ←/→ hangeln, ↓ loslassen</div>
+<div id="levelBtn">🔁 Level</div>
+<div id="joystick"><div id="joystick-knob"></div></div>
+<div id="jumpBtn">⬆</div>
+
+<script type="module">
+import * as THREE from './vendor/three.module.min.js';
+'use strict';
+
+// ── RENDERER ─────────────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+scene.fog = new THREE.Fog(0x87CEEB, 50, 120);
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
+
+// ── LIGHTS ───────────────────────────────────────────────────────────────────
+const ambientLight = new THREE.AmbientLight(0xfff8e7, 0.65);
+scene.add(ambientLight);
+const sun = new THREE.DirectionalLight(0xfff8e7, 0.95);
+sun.position.set(25, 50, 15);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left:-60, right:60, top:60, bottom:-60, near:1, far:200 });
+scene.add(sun);
+
+// ── MATERIALS ────────────────────────────────────────────────────────────────
+const mk = c => new THREE.MeshLambertMaterial({ color: c });
+const M = {
+  skin:  mk(0xF0BC94), shirt: mk(0x1E88E5), pants: mk(0x37474F),
+  shoes: mk(0x1A1A1A), hair:  mk(0x3E2723),
+  grass: mk(0x3A7230), trunk: mk(0x6D4C41),
+  leaf:  mk(0x2A6E25), leaf2: mk(0x1E5219),
+  bush:  mk(0x356A24), bush2: mk(0x477A34),
+  wood:  mk(0x8B6334),
+  floor: mk(0x767F8A), wall: mk(0x545C68),
+  lampShade: mk(0x22262E), lampCord: mk(0x111318),
+};
+
+// ── GEO HELPERS ──────────────────────────────────────────────────────────────
+function cylMesh(rT, rB, h, mat, segs = 6) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, segs), mat);
+  m.castShadow = true; return m;
+}
+function icoMesh(r, mat) {
+  const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat);
+  m.castShadow = true; return m;
+}
+function bone(parent, px, py, pz, rT, rB, h, mat) {
+  const j = new THREE.Group();
+  j.position.set(px, py, pz);
+  parent.add(j);
+  const b = cylMesh(rT, rB, h, mat);
+  b.position.y = -h / 2;
+  j.add(b);
+  return j;
+}
+
+// ── CHARACTER ────────────────────────────────────────────────────────────────
+const charRoot = new THREE.Group();
+charRoot.position.y = 0.10;
+scene.add(charRoot);
+
+// Torso
+const torso = new THREE.Group();
+torso.position.y = 1.26;
+charRoot.add(torso);
+torso.add(cylMesh(0.21, 0.26, 0.62, M.shirt));
+
+// ── HEAD (smaller, more realistic with nose & ears) ───────────────────────
+const neckJoint = bone(torso, 0, 0.40, 0, 0.080, 0.088, 0.13, M.skin);
+
+const headJoint = new THREE.Group();   // rotation pivot for head turning
+headJoint.position.y = 0.19;
+neckJoint.add(headJoint);
+
+// Skull — slightly egg-shaped, smaller (r=0.16)
+const skull = icoMesh(0.16, M.skin);
+skull.scale.set(0.97, 1.17, 0.97);
+headJoint.add(skull);
+
+// Jaw / chin — flattened sphere at bottom gives rounder chin
+const jaw = icoMesh(0.11, M.skin);
+jaw.scale.set(0.85, 0.50, 0.80);
+jaw.position.set(0, -0.09, 0.02);
+headJoint.add(jaw);
+
+// Nose — small bump in front (+Z = character forward)
+const nose = new THREE.Mesh(new THREE.SphereGeometry(0.028, 5, 4), M.skin);
+nose.position.set(0, 0.0, 0.155);
+headJoint.add(nose);
+
+// Ears — small ovals on sides
+function makeEar(side) {
+  const e = new THREE.Mesh(new THREE.SphereGeometry(0.038, 5, 4), M.skin);
+  e.scale.set(0.45, 0.75, 0.30);
+  e.position.set(side * 0.162, 0.01, -0.02);
+  return e;
+}
+headJoint.add(makeEar(-1));
+headJoint.add(makeEar( 1));
+
+// Hair — redesigned for full back-of-head coverage (main view from behind)
+// 1) Top cap
+const hTop = icoMesh(0.162, M.hair);
+hTop.scale.set(0.92, 0.36, 0.96); hTop.position.set(0, 0.140, -0.010); headJoint.add(hTop);
+// 2) Back main — covers the bulk of the back we always see
+const hBack = icoMesh(0.150, M.hair);
+hBack.scale.set(0.96, 0.82, 0.62); hBack.position.set(0, 0.022, -0.108); headJoint.add(hBack);
+// 3) Neckline — closes the gap between hair and neck
+const hNeck = icoMesh(0.096, M.hair);
+hNeck.scale.set(0.84, 0.58, 0.70); hNeck.position.set(0, -0.068, -0.098); headJoint.add(hNeck);
+// 4/5) Left & right sides wrapping to back
+const hSideL = icoMesh(0.100, M.hair);
+hSideL.scale.set(0.54, 0.72, 0.76); hSideL.position.set(-0.124, 0.042, -0.054); headJoint.add(hSideL);
+const hSideR = hSideL.clone(); hSideR.position.x = 0.124; headJoint.add(hSideR);
+
+// Face features — on front (+Z) of head, visible when character turns
+const eyeMat  = mk(0x1A0F08);
+const browMat = mk(0x2C1810);
+function makeEye(side) {
+  const e = new THREE.Mesh(new THREE.SphereGeometry(0.024, 5, 4), eyeMat);
+  e.scale.set(1.2, 0.9, 0.6); e.position.set(side * 0.067, 0.030, 0.148); return e;
+}
+function makeBrow(side) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(0.058, 0.013, 0.012), browMat);
+  b.position.set(side * 0.067, 0.066, 0.148); b.rotation.z = side * 0.18; return b;
+}
+headJoint.add(makeEye(-1)); headJoint.add(makeEye(1));
+headJoint.add(makeBrow(-1)); headJoint.add(makeBrow(1));
+const mouthM = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.016, 0.012), mk(0x7A2E1E));
+mouthM.position.set(0, -0.056, 0.148); headJoint.add(mouthM);
+
+// ── ARMS — shoulders with rounded cap, hands at end of lower arm ─────────
+function makeHand(elbowJoint) {
+  const g = new THREE.Group(); g.position.y = -0.27; elbowJoint.add(g);
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.068, 6, 5), M.skin);
+  m.scale.set(1.0, 0.62, 0.92); m.castShadow = true; g.add(m);
+  return g;
+}
+function makeShoulderCap(shoulderJoint) {
+  const cap = icoMesh(0.085, M.shirt);
+  cap.scale.set(1.05, 0.90, 1.05); shoulderJoint.add(cap);
+}
+
+const lShoulder = bone(torso, -0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
+makeShoulderCap(lShoulder);
+const lElbow    = bone(lShoulder, 0, -0.30, 0, 0.062, 0.052, 0.27, M.skin);
+const lHand     = makeHand(lElbow);
+
+const rShoulder = bone(torso,  0.24, 0.22, 0, 0.071, 0.062, 0.30, M.shirt);
+makeShoulderCap(rShoulder);
+const rElbow    = bone(rShoulder, 0, -0.30, 0, 0.062, 0.052, 0.27, M.skin);
+const rHand     = makeHand(rElbow);
+
+// ── HIPS & LEGS ───────────────────────────────────────────────────────────
+const hipsGrp = new THREE.Group();
+hipsGrp.position.y = -0.34;
+torso.add(hipsGrp);
+hipsGrp.add(cylMesh(0.23, 0.21, 0.19, M.pants));
+
+const lHip   = bone(hipsGrp, -0.13, -0.095, 0, 0.10, 0.088, 0.38, M.pants);
+const lKnee  = bone(lHip,      0,   -0.38,  0, 0.088, 0.075, 0.35, M.pants);
+const lAnkle = bone(lKnee,     0,   -0.35,  0, 0.075, 0.065, 0.12, M.pants);
+const lFootG = new THREE.Group(); lFootG.position.y = -0.12; lAnkle.add(lFootG);
+const lFootM = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.075, 0.22), M.shoes);
+lFootM.position.set(0, -0.038, 0.07); lFootM.castShadow = true; lFootG.add(lFootM);
+
+const rHip   = bone(hipsGrp,  0.13, -0.095, 0, 0.10, 0.088, 0.38, M.pants);
+const rKnee  = bone(rHip,      0,   -0.38,  0, 0.088, 0.075, 0.35, M.pants);
+const rAnkle = bone(rKnee,     0,   -0.35,  0, 0.075, 0.065, 0.12, M.pants);
+const rFootG = new THREE.Group(); rFootG.position.y = -0.12; rAnkle.add(rFootG);
+const rFootM = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.075, 0.22), M.shoes);
+rFootM.position.set(0, -0.038, 0.07); rFootM.castShadow = true; rFootG.add(rFootM);
+
+// ── LEVELS ───────────────────────────────────────────────────────────────────
+// Jedes Level baut in `levelGroup` (statt direkt in `scene`) und füllt
+// `crateData` neu — so kann beim Wechsel einfach die ganze Gruppe entfernt
+// werden, ohne Reste des vorherigen Levels.
+let levelGroup  = null;
+let crateData   = [];
+let worldBounds = null; // {minX,maxX,minZ,maxZ} oder null (unbegrenzt, wie im Wald)
+
+function clearLevel() {
+  if (levelGroup) {
+    scene.remove(levelGroup);
+    levelGroup.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => m.dispose());
+    });
+  }
+  levelGroup = new THREE.Group();
+  scene.add(levelGroup);
+  crateData = [];
+  worldBounds = null;
+}
+
+function addTree(x, z) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const th = 1.3 + Math.random() * 0.5;
+  const tr = cylMesh(0.13, 0.18, th, M.trunk); tr.position.y = th / 2; g.add(tr);
+  const r1 = 1.1 + Math.random() * 0.3, h1 = 2.2 + Math.random() * 0.6;
+  const r2 = 0.75 + Math.random() * 0.2, h2 = 1.6 + Math.random() * 0.4;
+  const c1 = new THREE.Mesh(new THREE.ConeGeometry(r1, h1, 7), M.leaf);
+  c1.position.y = th + h1 / 2 - 0.15; c1.castShadow = true; g.add(c1);
+  const c2 = new THREE.Mesh(new THREE.ConeGeometry(r2, h2, 7), M.leaf2);
+  c2.position.y = th + h1 * 0.72 + h2 / 2; c2.castShadow = true; g.add(c2);
+  levelGroup.add(g);
+}
+function addBush(x, z) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const s = 0.40 + Math.random() * 0.25;
+  const b1 = icoMesh(s, M.bush); b1.position.y = s * 0.75; b1.scale.y = 0.72; g.add(b1);
+  const b2 = icoMesh(s * 0.6, M.bush2); b2.position.set(s * 0.5, s * 0.5, 0.1); b2.scale.y = 0.72; g.add(b2);
+  levelGroup.add(g);
+}
+// Jede Kiste ist ein echter Würfel (alle Kanten = CRATE_H) und deutlich
+// größer als der Charakter (~2.1 Einheiten groß) — ein einfacher Schritt
+// reicht nie, es braucht immer einen echten Sprung, um überhaupt in
+// Greif-Reichweite der Oberkante zu kommen.
+const CRATE_H = 3.2;
+
+// `registerCollision=false` for the lower boxes of a same-footprint stack:
+// they're only visual filler, since a box stacked directly on top covers
+// their side face completely — there's no real ledge to stand on or grab
+// there, only at the topmost box of the stack.
+function addCrate(cx, cz, yBottom, registerCollision = true) {
+  const geo = new THREE.BoxGeometry(CRATE_H, CRATE_H, CRATE_H);
+  const m = new THREE.Mesh(geo, M.wood);
+  m.position.set(cx, yBottom + CRATE_H / 2, cz);
+  m.castShadow = true; m.receiveShadow = true; levelGroup.add(m);
+  m.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0x5D4225 })));
+  if (registerCollision) crateData.push({ x: cx, z: cz, hw: CRATE_H / 2, hd: CRATE_H / 2, topY: yBottom + CRATE_H });
+}
+function addLamp(x, z, wallH) {
+  const g = new THREE.Group(); g.position.set(x, wallH - 0.6, z);
+  const cordH = 1.6;
+  const cord = cylMesh(0.02, 0.02, cordH, M.lampCord, 5); cord.position.y = -cordH / 2; g.add(cord);
+  const shade = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.4, 10), M.lampShade);
+  shade.position.y = -cordH; shade.rotation.x = Math.PI; shade.castShadow = true; g.add(shade);
+  const bulb = new THREE.PointLight(0xffdca8, 2.2, 22, 2);
+  bulb.position.y = -cordH - 0.05; g.add(bulb);
+  levelGroup.add(g);
+}
+function addWall(x, z, w, d, h) {
+  const wa = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M.wall);
+  wa.position.set(x, h / 2, z); wa.castShadow = true; wa.receiveShadow = true;
+  levelGroup.add(wa);
+}
+
+// Echte Kisten-Pyramide (Ziegel-Versatz): jede Lage ist ein `n`×`n`-Raster,
+// die nächste Lage ist um genau eine Kistenbreite pro Seite eingerückt
+// (n → n-2) und liegt exakt auf dem inneren Feld der Lage darunter — der
+// äußerste Ring jeder Lage bleibt dadurch als begehbare/greifbare Kante
+// frei sichtbar (klassische Ziggurat-Optik). `baseN` sollte ungerade sein,
+// damit die Pyramide in einer einzelnen Kiste spitz zuläuft.
+function addCratePyramid(cx, cz, baseN) {
+  let n = baseN, y = 0;
+  while (n >= 1) {
+    const offset = (n - 1) * CRATE_H / 2;
+    const nextN = n - 2;
+    for (let ix = 0; ix < n; ix++) {
+      for (let iz = 0; iz < n; iz++) {
+        const covered = nextN >= 1 && ix >= 1 && ix <= n - 2 && iz >= 1 && iz <= n - 2;
+        addCrate(cx - offset + ix * CRATE_H, cz - offset + iz * CRATE_H, y, !covered);
+      }
+    }
+    y += CRATE_H;
+    n -= 2;
+  }
+}
+
+function buildForestLevel() {
+  clearLevel();
+  scene.background = new THREE.Color(0x87CEEB);
+  scene.fog = new THREE.Fog(0x87CEEB, 50, 120);
+  ambientLight.color.set(0xfff8e7); ambientLight.intensity = 0.65;
+  sun.color.set(0xfff8e7); sun.intensity = 0.95;
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(240, 240, 24, 24), M.grass);
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; levelGroup.add(ground);
+
+  const dkG = mk(0x2A5E20);
+  for (let i = 0; i < 90; i++) {
+    const p = new THREE.Mesh(new THREE.CircleGeometry(0.6 + Math.random() * 1.8, 5), dkG);
+    const a = Math.random() * Math.PI * 2, d = 6 + Math.random() * 90;
+    p.position.set(Math.cos(a) * d, 0.01, Math.sin(a) * d);
+    p.rotation.x = -Math.PI / 2; levelGroup.add(p);
+  }
+
+  const rng = (a, b) => a + Math.random() * (b - a);
+  for (let i = 0; i < 40; i++) {
+    let x, z; do { x = rng(-60,60); z = rng(-80,40); } while (Math.hypot(x,z) < 8);
+    addTree(x, z);
+  }
+  for (let i = 0; i < 60; i++) {
+    let x, z; do { x = rng(-60,60); z = rng(-80,40); } while (Math.hypot(x,z) < 5);
+    addBush(x, z);
+  }
+
+  // Kisten — Einzelkisten (topY 0.8) bleiben frei begehbare Stufen, die
+  // zweite/dritte Lage (topY 1.6/2.4) verlangt Sprung + Klettern am Rand.
+  addCrate(  6.0,  -8.0, 0.0, false); addCrate(  6.0,  -8.0, CRATE_H);
+  addCrate( -7.0, -10.0, 0.0);
+  addCrate( 10.0, -18.0, 0.0, false); addCrate( 10.0, -18.0, CRATE_H, false); addCrate( 10.0, -18.0, CRATE_H*2);
+  addCrate(-10.0, -20.0, 0.0);
+  addCrate(  3.0, -26.0, 0.0); addCrate( -4.0, -28.0, 0.0); addCrate(  2.0, -34.0, 0.0);
+
+  charRoot.position.set(0, CHAR_BASE_Y, 0);
+  resetCharacterState();
+}
+
+function buildWarehouseLevel() {
+  clearLevel();
+  scene.background = new THREE.Color(0x14161c);
+  scene.fog = new THREE.Fog(0x14161c, 35, 145);
+  ambientLight.color.set(0xc7d2e6); ambientLight.intensity = 1.05;
+  sun.color.set(0xdfe6ff); sun.intensity = 0.55;
+
+  const WALL_H = 13, HALF = 42;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALF*2+4, HALF*2+4), M.floor);
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; levelGroup.add(floor);
+
+  addWall(0, -HALF, HALF*2+1.6, 0.8, WALL_H);
+  addWall(0,  HALF, HALF*2+1.6, 0.8, WALL_H);
+  addWall(-HALF, 0, 0.8, HALF*2+1.6, WALL_H);
+  addWall( HALF, 0, 0.8, HALF*2+1.6, WALL_H);
+
+  // Lampen-Raster für gleichmäßige Ausleuchtung der Halle.
+  for (let lx = -HALF+14; lx <= HALF-14; lx += 28)
+    for (let lz = -HALF+14; lz <= HALF-14; lz += 28)
+      addLamp(lx, lz, WALL_H);
+
+  worldBounds = { minX: -HALF+1.4, maxX: HALF-1.4, minZ: -HALF+1.4, maxZ: HALF-1.4 };
+
+  // Nur Kisten: drei echte Pyramiden (Ziggurat-Versatz, jede Lage einen
+  // Ring kleiner) aus den großen Würfel-Kisten, über die Halle verteilt.
+  addCratePyramid(-24, -20, 5);
+  addCratePyramid( 24,  18, 5);
+  addCratePyramid(-20,  22, 3);
+
+  // Ein paar einzelne Stapel nah am Spawn als leicht erreichbarer Einstieg.
+  addCrate( -9.0,   3.0, 0.0);
+  addCrate( 12.0,  -6.0, 0.0, false); addCrate( 12.0,  -6.0, CRATE_H);
+
+  charRoot.position.set(0, CHAR_BASE_Y, 8);
+  resetCharacterState();
+}
+
+// ── INPUT ─────────────────────────────────────────────────────────────────────
+const kb    = { up:false, down:false, left:false, right:false };
+const touch = { up:0, down:0, left:0, right:0 };
+const keys  = { up:0, down:0, left:0, right:0 }; // pro Frame aus kb+touch gemischt
+let jumpBuf = false;
+
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowUp'    ||e.key==='w'||e.key==='W') kb.up    = true;
+  if (e.key==='ArrowDown'  ||e.key==='s'||e.key==='S') kb.down  = true;
+  if (e.key==='ArrowLeft'  ||e.key==='a'||e.key==='A') kb.left  = true;
+  if (e.key==='ArrowRight' ||e.key==='d'||e.key==='D') kb.right = true;
+  if (e.key===' ') { jumpBuf = true; e.preventDefault(); }
+});
+document.addEventListener('keyup', e => {
+  if (e.key==='ArrowUp'    ||e.key==='w'||e.key==='W') kb.up    = false;
+  if (e.key==='ArrowDown'  ||e.key==='s'||e.key==='S') kb.down  = false;
+  if (e.key==='ArrowLeft'  ||e.key==='a'||e.key==='A') kb.left  = false;
+  if (e.key==='ArrowRight' ||e.key==='d'||e.key==='D') kb.right = false;
+});
+
+// Virtueller 360°-Joystick: der Knüppel folgt dem Finger/der Maus in jede
+// Richtung und liefert analoge 0..1-Beträge statt reiner Booleans
+// (ported von toy-story/gameplay/player.js).
+const joystickEl = document.getElementById('joystick');
+const knobEl = document.getElementById('joystick-knob');
+if (joystickEl && knobEl) {
+  const JOY_RADIUS = 50;
+  let activeTouchId = null;
+  const setFromPoint = (clientX, clientY) => {
+    const rect = joystickEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    let dx = clientX - cx, dy = clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > JOY_RADIUS) { dx = (dx / dist) * JOY_RADIUS; dy = (dy / dist) * JOY_RADIUS; }
+    knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+    touch.left  = Math.max(0, -dx / JOY_RADIUS);
+    touch.right = Math.max(0,  dx / JOY_RADIUS);
+    touch.up    = Math.max(0, -dy / JOY_RADIUS);
+    touch.down  = Math.max(0,  dy / JOY_RADIUS);
+  };
+  const resetJoystick = () => {
+    knobEl.style.transform = '';
+    touch.up = touch.down = touch.left = touch.right = 0;
+    activeTouchId = null;
+  };
+  joystickEl.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    activeTouchId = t.identifier;
+    setFromPoint(t.clientX, t.clientY);
+  }, { passive: false });
+  joystickEl.addEventListener('touchmove', e => {
+    if (activeTouchId === null) return;
+    for (const t of e.changedTouches) if (t.identifier === activeTouchId) setFromPoint(t.clientX, t.clientY);
+    e.preventDefault();
+  }, { passive: false });
+  const endTouch = e => { for (const t of e.changedTouches) if (t.identifier === activeTouchId) resetJoystick(); };
+  joystickEl.addEventListener('touchend', endTouch, { passive: false });
+  joystickEl.addEventListener('touchcancel', endTouch, { passive: false });
+  let mouseDown = false;
+  joystickEl.addEventListener('mousedown', e => { mouseDown = true; setFromPoint(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', e => { if (mouseDown) setFromPoint(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', () => { if (mouseDown) { mouseDown = false; resetJoystick(); } });
+}
+
+const jumpEl = document.getElementById('jumpBtn');
+jumpEl.addEventListener('pointerdown', e => { jumpBuf=true; jumpEl.classList.add('on'); e.preventDefault(); });
+jumpEl.addEventListener('pointerup',    () => jumpEl.classList.remove('on'));
+jumpEl.addEventListener('pointerleave', () => jumpEl.classList.remove('on'));
+
+// ── LEVEL SELECT ─────────────────────────────────────────────────────────────
+const levelSelectEl = document.getElementById('levelSelect');
+const levelBtnEl    = document.getElementById('levelBtn');
+let frozen  = true;
+let started = false;
+
+function chooseLevel(name) {
+  if (name === 'warehouse') buildWarehouseLevel(); else buildForestLevel();
+  levelSelectEl.style.display = 'none';
+  frozen = false;
+  if (!started) { started = true; loop(); }
+}
+document.querySelectorAll('.levelCard').forEach(el => {
+  el.addEventListener('click', () => chooseLevel(el.dataset.level));
+});
+levelBtnEl.addEventListener('click', () => {
+  frozen = true;
+  levelSelectEl.style.display = 'flex';
+});
+
+// ── PHYSICS ───────────────────────────────────────────────────────────────────
+const CHAR_BASE_Y = 0.10;
+const GRAVITY     = -22;
+const JUMP_VEL    =  8.2;
+const PLAYER_RADIUS       = 0.30;
+// Kisten bis zu dieser Höhe wären frei begehbare Stufen — bleibt niedrig
+// genug, dass jede echte Kiste (CRATE_H = 3.2, höher als der Charakter)
+// diese Schwelle immer überschreitet und nie einfach hochgelaufen werden
+// kann, nur gegriffen/hochgezogen.
+const AUTO_STEP_MAX_TOPY  = 0.35;
+const GRAB_REACH   = 0.95;
+const GRAB_SETTLE  = 0.16; // s, bis der Hang-Pose eingerastet ist
+const CLIMB_DUR    = 0.85; // s, volle Hochzieh-Animation
+const SHIMMY_SPEED = 2.2;  // units/s, seitliches Hangeln an der Kante
+// Kalibriert aus der HANG-Pose (Schulter/Ellbogen-Rotationen unten): Welt-
+// Offset der Hand relativ zum charRoot, wenn der Arm hochgestreckt ist.
+// Damit landet die Hand exakt auf der Kanten-Höhe (nicht darüber) und an
+// der Kisten-Wand (nicht durch sie hindurch oder davor in der Luft).
+const HAND_DROP     = 1.838; // Hand ist im Hang so viel höher als charRoot.y
+const HAND_REACH_OUT = 0.457; // ... und so viel weiter vorn (Richtung Kiste)
+
+let velY     = 0;
+let onGround = true;
+
+function getSurfaceY(cx, cz) {
+  let s = CHAR_BASE_Y;
+  for (const c of crateData)
+    if (Math.abs(cx-c.x) < c.hw+0.22 && Math.abs(cz-c.z) < c.hd+0.22)
+      s = Math.max(s, c.topY + CHAR_BASE_Y);
+  return s;
+}
+
+// Blockiert das Hineinlaufen in Kisten, die zu hoch für eine automatische
+// Stufe sind (stattdessen: springen + an der Kante hochziehen, s.u.).
+function resolveWallCollisions() {
+  for (const c of crateData) {
+    if (c.topY <= AUTO_STEP_MAX_TOPY) continue;
+    const halfX = c.hw + PLAYER_RADIUS, halfZ = c.hd + PLAYER_RADIUS;
+    const dx = charRoot.position.x - c.x, dz = charRoot.position.z - c.z;
+    if (Math.abs(dx) >= halfX || Math.abs(dz) >= halfZ) continue;
+    const surfaceY = c.topY + CHAR_BASE_Y;
+    if (charRoot.position.y + 0.05 >= surfaceY) continue; // schon oben drauf/drüber
+    const penX = halfX - Math.abs(dx), penZ = halfZ - Math.abs(dz);
+    if (penX < penZ) charRoot.position.x = c.x + Math.sign(dx || 1) * halfX;
+    else             charRoot.position.z = c.z + Math.sign(dz || 1) * halfZ;
+  }
+}
+
+// In der Luft nah an einer zu hohen Kistenkante → einhängen (wie das
+// Kanten-Greifen in cape-character/rooftop-wanderer, auf 3D/Top-Down
+// übertragen: nächster Punkt auf der Kisten-AABB statt links/rechts).
+function tryGrabLedge() {
+  if (grabCooldown > 0) return false;
+  const px = charRoot.position.x, pz = charRoot.position.z, py = charRoot.position.y;
+  for (const c of crateData) {
+    if (c.topY <= AUTO_STEP_MAX_TOPY) continue;
+    const nx = Math.max(c.x - c.hw, Math.min(c.x + c.hw, px));
+    const nz = Math.max(c.z - c.hd, Math.min(c.z + c.hd, pz));
+    const dist = Math.hypot(px - nx, pz - nz);
+    if (dist > GRAB_REACH) continue;
+    const surfaceY = c.topY + CHAR_BASE_Y;
+    const rel = py - surfaceY;
+    if (rel > -1.95 && rel < 0.10) {
+      // Flächen-Normale auf die nächstliegende Würfelseite einrasten (statt
+      // dem freien Vektor zur Kistenmitte) — bei einem Quader mit exakt
+      // rechtwinkligen Seiten ist das robuster nahe den Ecken und sorgt
+      // dafür, dass der Charakter sauber parallel zur Wand hängt, nicht
+      // schräg auf eine Kante zu.
+      const clampedX = px < c.x - c.hw || px > c.x + c.hw;
+      const clampedZ = pz < c.z - c.hd || pz > c.z + c.hd;
+      let normalX, normalZ;
+      if (clampedX && !clampedZ)      { normalX = Math.sign(px - c.x) || 1; normalZ = 0; }
+      else if (clampedZ && !clampedX) { normalX = 0; normalZ = Math.sign(pz - c.z) || 1; }
+      else {
+        const dx = px - c.x, dz = pz - c.z, dl = Math.hypot(dx, dz) || 1;
+        normalX = dx / dl; normalZ = dz / dl;
+      }
+      hangCrate    = c;
+      hangNormalX  = normalX;  hangNormalZ  = normalZ;
+      hangTangentX = -normalZ; hangTangentZ = normalX;
+      shimmyMax = Math.max(0, CRATE_H / 2 - PLAYER_RADIUS - 0.15);
+      shimmyPhase = 0;
+      grabFromX = px; grabFromY = py; grabFromZ = pz;
+      // Anker ist die Flächen-MITTE (nicht der Greifpunkt) — so bleibt
+      // `shimmyOffset` als Tangential-Abstand von der Kanten-Mitte auch
+      // nach einem Wechsel auf eine Nachbarkiste/-fläche konsistent.
+      const half = CRATE_H / 2;
+      const faceCenterX = c.x + normalX * half, faceCenterZ = c.z + normalZ * half;
+      hangTargetX = faceCenterX + normalX * HAND_REACH_OUT;
+      hangTargetZ = faceCenterZ + normalZ * HAND_REACH_OUT;
+      hangTargetY = surfaceY - HAND_DROP;
+      shimmyOffset = (nx - c.x) * hangTangentX + (nz - c.z) * hangTangentZ;
+      hangYaw     = Math.atan2(-normalX, -normalZ); // Blick zur Kiste hin
+      jumpState = JS.HANG; jumpTimer = 0; grabT = 0;
+      velY = 0; moveSpeed = 0;
+      return true;
+    }
+  }
+  return false;
+}
+
+// ── JUMP / HANG / CLIMB STATE MACHINE ─────────────────────────────────────────
+const JS = { NONE:0, WINDUP:1, AIR:2, LAND:3, HANG:4, CLIMB:5 };
+const WINDUP_DUR = 0.17;   // crouch-before-jump duration (s)
+const LAND_DUR   = 0.28;   // landing-squat duration (s)
+let jumpState = JS.NONE;
+let jumpTimer = 0;
+
+let hangCrate = null;
+let grabCooldown = 0; // s — verhindert sofortiges Wieder-Einhängen direkt nach dem Loslassen
+let grabFromX=0, grabFromY=0, grabFromZ=0;
+let hangTargetX=0, hangTargetY=0, hangTargetZ=0, hangYaw=0;
+let hangNormalX=0, hangNormalZ=1, hangTangentX=1, hangTangentZ=0;
+let shimmyOffset = 0, shimmyMax = 0, shimmyPhase = 0, shimmyActive = false;
+let grabT = 0;
+let climbFromX=0, climbFromY=0, climbFromZ=0, climbToX=0, climbToY=0, climbToZ=0;
+let climbT = 0;
+
+// ── ANIMATION STATE ───────────────────────────────────────────────────────────
+let animT        = 0;
+let charYaw      = 0;
+let camDist      = 7.0;
+const camPos     = new THREE.Vector3(0, 3.5, -7);
+
+// Speed with accel/decel
+const SPEED_MAX  = 5.94;   // units/s  (original 6.6 × 0.9)
+const ACCEL_RATE = 14.0;   // units/s²
+const DECEL_RATE = 18.0;   // units/s²
+let   moveSpeed  = 0;
+
+const TURN_RATE  = 0.90;
+
+// Idle scratch
+let idleTimer    = 0;
+let scratchPhase = 0;
+
+// Head look-ahead when turning
+let headYawTgt   = 0;
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function smooth(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
+
+function resetCharacterState() {
+  charYaw = 0; charRoot.rotation.y = 0;
+  velY = 0; onGround = true; moveSpeed = 0;
+  jumpState = JS.NONE; jumpTimer = 0; jumpBuf = false;
+  hangCrate = null; grabT = 0; climbT = 0; grabCooldown = 0; shimmyOffset = 0; shimmyPhase = 0; shimmyActive = false;
+  animT = 0; idleTimer = 0; scratchPhase = 0;
+  camDist = 7.0;
+  camPos.set(charRoot.position.x, charRoot.position.y + 3.5, charRoot.position.z - 7);
+}
+
+function animateCharacter(dt) {
+  const moving = (keys.up || keys.down) && jumpState === JS.NONE;
+  if (moving) animT += dt * 9.5;
+  const s   = Math.sin(animT);
+  const eff = moving ? 1.0 : 0.0;
+  const lLeg =  s * 0.68;
+  const rLeg = -s * 0.68;
+
+  // ── Idle scratch (5 s no input) ───────────────────────────────────────────
+  const anyInput = keys.up||keys.down||keys.left||keys.right;
+  if (anyInput) idleTimer = 0; else idleTimer += dt;
+  const doScratch = idleTimer >= 5.0 && jumpState === JS.NONE && !moving;
+  if (doScratch) {
+    scratchPhase += dt * 2.0;
+    const cyc   = scratchPhase % (Math.PI * 2);
+    const reach = Math.sin(cyc * 0.5) * Math.max(0, Math.sin(cyc * 0.5)); // 0→1→0 arc
+    const wiggle = reach > 0.55 ? Math.sin(scratchPhase * 7) * 0.09 : 0;
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -1.85 * reach, 0.14);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z, -0.80 * reach, 0.14);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x,    -1.60 * reach + wiggle, 0.14);
+    headJoint.rotation.z = lerp(headJoint.rotation.z,  wiggle * 0.18, 0.12);
+  } else {
+    scratchPhase = 0;
+  }
+
+  // ── Head: look sideways when turning ──────────────────────────────────────
+  headYawTgt = keys.left ? 0.38 : (keys.right ? -0.38 : 0);
+  headJoint.rotation.y = lerp(headJoint.rotation.y, headYawTgt, 0.06);
+
+  // ─ WINDUP: crouch + lean forward before jump ──────────────────────────────
+  if (jumpState === JS.WINDUP) {
+    const t  = Math.min(jumpTimer / WINDUP_DUR, 1.0);
+    const sq = Math.sin(t * Math.PI * 0.5);
+    lHip.rotation.x   = lerp(lHip.rotation.x,    0.52 * sq, 0.32);
+    rHip.rotation.x   = lerp(rHip.rotation.x,    0.52 * sq, 0.32);
+    lKnee.rotation.x  = lerp(lKnee.rotation.x,   0.78 * sq, 0.32);
+    rKnee.rotation.x  = lerp(rKnee.rotation.x,   0.78 * sq, 0.32);
+    lAnkle.rotation.x = lerp(lAnkle.rotation.x,  0.20 * sq, 0.32);
+    rAnkle.rotation.x = lerp(rAnkle.rotation.x,  0.20 * sq, 0.32);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x,  0.32 * sq, 0.25);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x,  0.32 * sq, 0.25);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x, -0.55, 0.22);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x, -0.55, 0.22);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.10, 0.08);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.10, 0.08);
+    torso.position.y  = lerp(torso.position.y, 1.26 - 0.14 * sq, 0.32);
+    torso.rotation.x  = lerp(torso.rotation.x, -0.20 * sq, 0.25); // lean forward
+    torso.rotation.y  = 0;
+    headJoint.rotation.x = lerp(headJoint.rotation.x, 0.10 * sq, 0.20);
+
+  // ─ AIR: deep tuck — knees almost to chest ────────────────────────────────
+  } else if (jumpState === JS.AIR) {
+    lHip.rotation.x      = lerp(lHip.rotation.x,      -0.70, 0.17);
+    rHip.rotation.x      = lerp(rHip.rotation.x,      -0.70, 0.17);
+    lKnee.rotation.x     = lerp(lKnee.rotation.x,      1.45, 0.17);  // nearly squat
+    rKnee.rotation.x     = lerp(rKnee.rotation.x,      1.45, 0.17);
+    lAnkle.rotation.x    = lerp(lAnkle.rotation.x,    -0.45, 0.17);  // feet stretch/point
+    rAnkle.rotation.x    = lerp(rAnkle.rotation.x,    -0.45, 0.17);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -0.52, 0.14);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -0.52, 0.14);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.48, 0.10);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.48, 0.10);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x,    -0.95, 0.15);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x,    -0.95, 0.15);
+    torso.position.y     = lerp(torso.position.y,  1.26, 0.15);
+    torso.rotation.x     = lerp(torso.rotation.x,  0.0, 0.10);
+    torso.rotation.y     = 0;
+    headJoint.rotation.x = lerp(headJoint.rotation.x, 0.32, 0.14); // chin to chest
+
+  // ─ LAND: deep squat to absorb ────────────────────────────────────────────
+  } else if (jumpState === JS.LAND) {
+    const t  = Math.min(jumpTimer / LAND_DUR, 1.0);
+    const sq = 1.0 - t;
+    lHip.rotation.x      = lerp(lHip.rotation.x,       0.72 * sq, 0.32);
+    rHip.rotation.x      = lerp(rHip.rotation.x,       0.72 * sq, 0.32);
+    lKnee.rotation.x     = lerp(lKnee.rotation.x,      1.10 * sq, 0.32);
+    rKnee.rotation.x     = lerp(rKnee.rotation.x,      1.10 * sq, 0.32);
+    lAnkle.rotation.x    = lerp(lAnkle.rotation.x,     0.22 * sq, 0.32);
+    rAnkle.rotation.x    = lerp(rAnkle.rotation.x,     0.22 * sq, 0.32);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x,  0.22 * sq, 0.25);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x,  0.22 * sq, 0.25);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.09, 0.08);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.09, 0.08);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x,    -0.55 * sq - 0.12, 0.25);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x,    -0.55 * sq - 0.12, 0.25);
+    torso.position.y     = lerp(torso.position.y,  1.26 - 0.22 * sq, 0.32);
+    torso.rotation.x     = lerp(torso.rotation.x,  0.0, 0.10);
+    torso.rotation.y     = 0;
+    headJoint.rotation.x = lerp(headJoint.rotation.x, 0.0, 0.15);
+
+  // ─ HANG: dangling from a grabbed ledge, reaching up ──────────────────────
+  } else if (jumpState === JS.HANG) {
+    // Beim Hangeln greifen die Hände abwechselnd nach links/rechts (wie an
+    // einem Klettergriff): reach>0 = rechte Hand reicht gerade weiter nach
+    // vorn/außen und die linke zieht nach, reach<0 umgekehrt. Im Stand
+    // (nicht hangelnd) geht reach auf 0 zurück → exakt die kalibrierte,
+    // symmetrische Greif-Pose.
+    const reach = shimmyActive ? Math.sin(shimmyPhase) : 0;
+    const rLead = Math.max(0, reach), lLead = Math.max(0, -reach);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -2.3 + 0.45 * lLead, 0.3);
+    rShoulder.rotation.x = lerp(rShoulder.rotation.x, -2.3 + 0.45 * rLead, 0.3);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.16 - 0.32 * lLead, 0.28);
+    rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.16 + 0.32 * rLead, 0.28);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x, -0.18 - 0.55 * rLead, 0.3);
+    rElbow.rotation.x    = lerp(rElbow.rotation.x, -0.18 - 0.55 * lLead, 0.3);
+    lHip.rotation.x       = lerp(lHip.rotation.x,   0.16, 0.22);
+    rHip.rotation.x       = lerp(rHip.rotation.x,   0.22, 0.22);
+    lKnee.rotation.x      = lerp(lKnee.rotation.x,  0.28, 0.22);
+    rKnee.rotation.x      = lerp(rKnee.rotation.x,  0.34, 0.22);
+    lAnkle.rotation.x     = lerp(lAnkle.rotation.x, 0, 0.2);
+    rAnkle.rotation.x     = lerp(rAnkle.rotation.x, 0, 0.2);
+    torso.rotation.x      = lerp(torso.rotation.x,  0.12, 0.22);
+    torso.rotation.y      = 0;
+    torso.position.y      = lerp(torso.position.y, 1.26, 0.22);
+    headJoint.rotation.x  = lerp(headJoint.rotation.x, -0.25, 0.2);
+
+  // ─ CLIMB: scripted mantle — pull up, then swing legs onto the ledge ──────
+  } else if (jumpState === JS.CLIMB) {
+    const p = Math.min(1, climbT / CLIMB_DUR);
+    if (p < 0.55) {
+      const e = p / 0.55;
+      lShoulder.rotation.x = lerp(lShoulder.rotation.x, -2.3 + 1.2 * e, 0.35);
+      rShoulder.rotation.x = lerp(rShoulder.rotation.x, -2.3 + 1.2 * e, 0.35);
+      lShoulder.rotation.z = lerp(lShoulder.rotation.z, 0, 0.3);
+      rShoulder.rotation.z = lerp(rShoulder.rotation.z, 0, 0.3);
+      lElbow.rotation.x    = lerp(lElbow.rotation.x, -1.5, 0.3);
+      rElbow.rotation.x    = lerp(rElbow.rotation.x, -1.5, 0.3);
+      lHip.rotation.x      = lerp(lHip.rotation.x,  -0.55, 0.3);
+      rHip.rotation.x      = lerp(rHip.rotation.x,  -0.75, 0.3);
+      lKnee.rotation.x     = lerp(lKnee.rotation.x,   1.55, 0.3);
+      rKnee.rotation.x     = lerp(rKnee.rotation.x,   1.75, 0.3);
+      torso.rotation.x     = lerp(torso.rotation.x,   0.35, 0.3);
+      headJoint.rotation.x = lerp(headJoint.rotation.x, -0.30, 0.25);
+    } else {
+      lShoulder.rotation.x = lerp(lShoulder.rotation.x, -0.15, 0.25);
+      rShoulder.rotation.x = lerp(rShoulder.rotation.x, -0.15, 0.25);
+      lElbow.rotation.x    = lerp(lElbow.rotation.x, -0.12, 0.25);
+      rElbow.rotation.x    = lerp(rElbow.rotation.x, -0.12, 0.25);
+      lHip.rotation.x      = lerp(lHip.rotation.x,  0, 0.25);
+      rHip.rotation.x      = lerp(rHip.rotation.x,  0, 0.25);
+      lKnee.rotation.x     = lerp(lKnee.rotation.x, 0, 0.25);
+      rKnee.rotation.x     = lerp(rKnee.rotation.x, 0, 0.25);
+      torso.rotation.x     = lerp(torso.rotation.x, 0, 0.22);
+      torso.position.y     = lerp(torso.position.y, 1.26, 0.22);
+      headJoint.rotation.x = lerp(headJoint.rotation.x, 0, 0.25);
+    }
+
+  // ─ NONE: run / idle ───────────────────────────────────────────────────────
+  } else {
+    if (!doScratch) {
+      // restore right arm if not scratching
+      rShoulder.rotation.x = lerp(rShoulder.rotation.x, -rLeg * 0.68 * eff, 0.30);
+      rShoulder.rotation.z = lerp(rShoulder.rotation.z,  0.09, 0.08);
+      rElbow.rotation.x    = lerp(rElbow.rotation.x,    moving ? -1.22 : -0.12, 0.20);
+    }
+    const t = 0.30;
+    lHip.rotation.x      = lerp(lHip.rotation.x,   lLeg * 0.88 * eff, t);
+    rHip.rotation.x      = lerp(rHip.rotation.x,   rLeg * 0.88 * eff, t);
+    const lKT = (Math.max(0, lLeg)*1.00 + Math.max(0,-lLeg)*0.70) * eff;
+    const rKT = (Math.max(0, rLeg)*1.00 + Math.max(0,-rLeg)*0.70) * eff;
+    lKnee.rotation.x     = lerp(lKnee.rotation.x,  lKT, t);
+    rKnee.rotation.x     = lerp(rKnee.rotation.x,  rKT, t);
+    lAnkle.rotation.x    = lerp(lAnkle.rotation.x, -lLeg*0.38*eff, t);
+    rAnkle.rotation.x    = lerp(rAnkle.rotation.x, -rLeg*0.38*eff, t);
+    lShoulder.rotation.x = lerp(lShoulder.rotation.x, -lLeg*0.68*eff, t);
+    lShoulder.rotation.z = lerp(lShoulder.rotation.z, -0.09, 0.08);
+    lElbow.rotation.x    = lerp(lElbow.rotation.x,  moving ? -1.22 : -0.12, 0.20);
+    torso.rotation.y     = lerp(torso.rotation.y,  s*0.13*eff, 0.18);
+    torso.rotation.x     = lerp(torso.rotation.x,  moving ? -0.10 : 0.0, 0.07);
+    torso.rotation.z     = lerp(torso.rotation.z,  Math.cos(animT)*0.042*eff, 0.20);
+    torso.position.y     = lerp(torso.position.y,  1.26 + (moving ? Math.abs(s)*0.14 : 0), 0.28);
+    // head bob in sync with steps
+    headJoint.rotation.x = lerp(headJoint.rotation.x, moving ? Math.abs(s)*(-0.07) : 0, 0.18);
+    if (!doScratch) headJoint.rotation.z = lerp(headJoint.rotation.z, 0, 0.10);
+  }
+}
+
+// ── PER-STATE UPDATE FUNCTIONS ────────────────────────────────────────────────
+function updateNormal(dt) {
+  if (grabCooldown > 0) grabCooldown -= dt;
+
+  // ── Turn
+  if (keys.left)  charYaw += TURN_RATE * dt * keys.left;
+  if (keys.right) charYaw -= TURN_RATE * dt * keys.right;
+  charRoot.rotation.y = charYaw;
+
+  const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
+
+  // ── Move with smooth acceleration / deceleration
+  const wantMove = keys.up > 0.05 || keys.down > 0.05;
+  if (wantMove) moveSpeed = Math.min(moveSpeed + ACCEL_RATE * dt, SPEED_MAX);
+  else          moveSpeed = Math.max(moveSpeed - DECEL_RATE * dt, 0);
+
+  if (keys.up)   { charRoot.position.x += fwdX * moveSpeed * dt * keys.up;   charRoot.position.z += fwdZ * moveSpeed * dt * keys.up; }
+  if (keys.down) { charRoot.position.x -= fwdX * moveSpeed * dt * keys.down; charRoot.position.z -= fwdZ * moveSpeed * dt * keys.down; }
+
+  if (worldBounds) {
+    charRoot.position.x = Math.max(worldBounds.minX, Math.min(worldBounds.maxX, charRoot.position.x));
+    charRoot.position.z = Math.max(worldBounds.minZ, Math.min(worldBounds.maxZ, charRoot.position.z));
+  }
+
+  // ── Ledge grab check (mid-air only) — takes over the frame if it fires
+  if (jumpState === JS.AIR && tryGrabLedge()) return;
+  resolveWallCollisions();
+
+  // ── Jump state machine
+  if (jumpBuf && onGround && jumpState !== JS.WINDUP && jumpState !== JS.AIR) {
+    jumpState = JS.WINDUP;
+    jumpTimer = 0;
+    jumpBuf   = false;
+  }
+  if (jumpState === JS.WINDUP) {
+    jumpTimer += dt;
+    if (jumpTimer >= WINDUP_DUR) {
+      velY      = JUMP_VEL;
+      onGround  = false;
+      jumpState = JS.AIR;
+      jumpTimer = 0;
+    }
+  }
+  if (jumpState === JS.LAND) {
+    jumpTimer += dt;
+    if (jumpTimer >= LAND_DUR) jumpState = JS.NONE;
+  }
+
+  // ── Gravity + vertical position
+  velY += GRAVITY * dt;
+  charRoot.position.y += velY * dt;
+  const surfY = getSurfaceY(charRoot.position.x, charRoot.position.z);
+  if (charRoot.position.y <= surfY) {
+    if (velY < -1.5 && jumpState === JS.AIR) {
+      jumpState = JS.LAND;
+      jumpTimer = 0;
+    } else if (jumpState === JS.AIR) {
+      jumpState = JS.NONE;
+    }
+    charRoot.position.y = surfY;
+    velY     = 0;
+    onGround = true;
+  } else {
+    onGround = false;
+    if (jumpState === JS.NONE) jumpState = JS.AIR;  // walked off edge
+  }
+}
+
+// Am Ende der gegriffenen Fläche angekommen (Hangel-Limit überschritten):
+// zuerst eine Nachbarkiste versuchen, die dieselbe Wand fortsetzt (gleiche
+// Normale); sonst um die eigene Kiste herum auf die angrenzende Seite
+// wechseln (Ecke). `sign` = Richtung, in die das Limit überschritten wurde.
+function tryContinueLedge(sign, overshoot) {
+  const half = CRATE_H / 2;
+  const nCx = hangCrate.x + hangTangentX * sign * CRATE_H;
+  const nCz = hangCrate.z + hangTangentZ * sign * CRATE_H;
+  const neighbor = crateData.find(c =>
+    Math.abs(c.x - nCx) < 0.1 && Math.abs(c.z - nCz) < 0.1 && Math.abs(c.topY - hangCrate.topY) < 0.1
+  );
+  if (neighbor) {
+    hangCrate = neighbor;
+    const faceCenterX = neighbor.x + hangNormalX * half, faceCenterZ = neighbor.z + hangNormalZ * half;
+    hangTargetX = faceCenterX + hangNormalX * HAND_REACH_OUT;
+    hangTargetZ = faceCenterZ + hangNormalZ * HAND_REACH_OUT;
+    // Nur den tatsächlichen Rest-Weg dieses Frames auf die neue Fläche
+    // übertragen (nicht wieder bis zum Limit springen) — sonst würde am
+    // Übergang bei gehaltener Taste jeden Frame erneut ausgelöst.
+    shimmyOffset = -sign * shimmyMax + sign * overshoot;
+    return;
+  }
+  // Ecke: dieselbe Kiste, aber auf die Nachbarfläche im 90°-Winkel drehen.
+  // Dieselbe Flächen-Mitte-Formel wie beim Erstgreifen/Nachbarkisten-Fall
+  // (nicht der Ecken-Eckpunkt selbst) — konsistent und ohne den größeren
+  // Sprung, den eine separate Eckpunkt-Berechnung sonst verursacht.
+  const newNormalX = hangTangentX * sign, newNormalZ = hangTangentZ * sign;
+  const newTangentX = -hangNormalX * sign, newTangentZ = -hangNormalZ * sign;
+  hangNormalX = newNormalX; hangNormalZ = newNormalZ;
+  hangTangentX = newTangentX; hangTangentZ = newTangentZ;
+  const faceCenterX = hangCrate.x + newNormalX * half, faceCenterZ = hangCrate.z + newNormalZ * half;
+  hangTargetX = faceCenterX + newNormalX * HAND_REACH_OUT;
+  hangTargetZ = faceCenterZ + newNormalZ * HAND_REACH_OUT;
+  hangYaw = Math.atan2(-newNormalX, -newNormalZ);
+  shimmyOffset = -sign * shimmyMax + sign * overshoot;
+}
+
+function updateHang(dt) {
+  jumpTimer += dt;
+  grabT = Math.min(1, grabT + dt / GRAB_SETTLE);
+  const e = smooth(grabT);
+  const settleX = hangTargetX + hangTangentX * shimmyOffset;
+  const settleZ = hangTargetZ + hangTangentZ * shimmyOffset;
+  charRoot.position.x = lerp(grabFromX, settleX, e);
+  charRoot.position.y = lerp(grabFromY, hangTargetY, e);
+  charRoot.position.z = lerp(grabFromZ, settleZ, e);
+  charYaw = hangYaw;
+  charRoot.rotation.y = charYaw;
+  velY = 0; moveSpeed = 0;
+
+  if (grabT >= 1) {
+    // Seitliches Weiterhangeln an derselben Kante, parallel zur Fläche —
+    // geklemmt auf deren Breite (Würfel: ±halbe Kantenlänge abzüglich
+    // Körperbreite), am Limit geht es nahtlos auf die nächste Kiste bzw.
+    // um die Ecke weiter (tryContinueLedge).
+    const shimmyInput = (keys.left > 0.05 ? 1 : 0) - (keys.right > 0.05 ? 1 : 0);
+    shimmyActive = shimmyInput !== 0;
+    if (shimmyInput !== 0) {
+      shimmyPhase += shimmyInput * dt * 5.5;
+      const proposed = shimmyOffset + shimmyInput * SHIMMY_SPEED * dt;
+      if (proposed > shimmyMax) tryContinueLedge(1, proposed - shimmyMax);
+      else if (proposed < -shimmyMax) tryContinueLedge(-1, -shimmyMax - proposed);
+      else shimmyOffset = proposed;
+    }
+    charRoot.position.x = hangTargetX + hangTangentX * shimmyOffset;
+    charRoot.position.z = hangTargetZ + hangTangentZ * shimmyOffset;
+    charYaw = hangYaw;
+    charRoot.rotation.y = charYaw;
+
+    if (jumpBuf) {
+      jumpBuf = false;
+      climbFromX = charRoot.position.x; climbFromY = charRoot.position.y; climbFromZ = charRoot.position.z;
+      // Von der aktuellen (ggf. verschobenen) Hangel-Position aus nach
+      // innen auf die Kistenoberseite klettern, nicht zurück zur Mitte.
+      climbToX = climbFromX - hangNormalX * 1.0;
+      climbToZ = climbFromZ - hangNormalZ * 1.0;
+      climbToY = hangCrate.topY + CHAR_BASE_Y;
+      jumpState = JS.CLIMB; jumpTimer = 0; climbT = 0;
+    } else if (keys.down > 0.3) {
+      jumpState = JS.AIR; hangCrate = null; grabCooldown = 0.4; // loslassen
+    }
+  }
+}
+
+function updateClimb(dt) {
+  climbT += dt;
+  const p = Math.min(1, climbT / CLIMB_DUR);
+  const liftY = climbToY + 0.30;
+  let fx, fy, fz;
+  if (p < 0.55) {
+    fx = climbFromX; fz = climbFromZ;
+    fy = lerp(climbFromY, liftY, smooth(p / 0.55));
+  } else {
+    const e = smooth((p - 0.55) / 0.45);
+    fx = lerp(climbFromX, climbToX, e);
+    fz = lerp(climbFromZ, climbToZ, e);
+    fy = lerp(liftY, climbToY, e);
+  }
+  charRoot.position.set(fx, fy, fz);
+  charRoot.rotation.y = charYaw;
+  if (p >= 1) {
+    jumpState = JS.NONE;
+    hangCrate = null;
+    onGround  = true;
+    velY = 0;
+    charRoot.position.set(climbToX, climbToY, climbToZ);
+  }
+}
+
+// ── GAME LOOP ─────────────────────────────────────────────────────────────────
+let lastTime = performance.now();
+
+function loop() {
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  const dt  = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime  = now;
+
+  if (!frozen) {
+    keys.up    = Math.max(kb.up    ? 1 : 0, touch.up);
+    keys.down  = Math.max(kb.down  ? 1 : 0, touch.down);
+    keys.left  = Math.max(kb.left  ? 1 : 0, touch.left);
+    keys.right = Math.max(kb.right ? 1 : 0, touch.right);
+
+    if (jumpState === JS.HANG)       updateHang(dt);
+    else if (jumpState === JS.CLIMB) updateClimb(dt);
+    else                              updateNormal(dt);
+
+    animateCharacter(dt);
+  }
+
+  // ── Camera: behind character, zooms in when idle
+  const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
+  const moving = keys.up || keys.down;
+  camDist = lerp(camDist, moving ? 7.0 : 4.0, dt * 2.5);
+  const tCam = new THREE.Vector3(
+    charRoot.position.x - fwdX * camDist,
+    charRoot.position.y + 2.6,   // flacher (war 3.5)
+    charRoot.position.z - fwdZ * camDist
+  );
+  camPos.lerp(tCam, 0.08);
+  camera.position.copy(camPos);
+  camera.lookAt(charRoot.position.x, charRoot.position.y + 1.1, charRoot.position.z);
+
+  // ── Sun follows player
+  sun.target.position.copy(charRoot.position);
+  sun.position.set(charRoot.position.x + 25, 50, charRoot.position.z + 15);
+  sun.target.updateMatrixWorld();
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// Erstes Bild zeigen, solange die Level-Auswahl offen ist.
+renderer.render(scene, camera);
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+﻿kategorie;posten;wert_mio_eur;beschreibung;quelle_id;fundstelle;anmerkung
+Soziales;Rente;123821;Leistungen an die allgemeine (119.023) und knappschaftliche (4.798) Rentenversicherung;Q1;Tabelle 3 (Aufgabenbereiche);
+Soziales;Bürgergeld;51478;Arbeitsmarktpolitik: Bürgergeld 28.050, Unterkunft und Heizung 13.000, Arbeitsförderung u. a.;Q1;Tabelle 3 (Aufgabenbereiche);
+Soziales;Sozialkassen;34993;Kranken-, Pflege-, Arbeitslosenversicherung, Alterssicherung der Landwirte u. a.;Q1;Tabelle 3 (Aufgabenbereiche);Sozialversicherung ohne Rente
+Soziales;Familie u. a.;34798;Elterngeld, Grundsicherung im Alter, Kriegsfolgeleistungen u. a.;Q1;Tabelle 3 (Aufgabenbereiche);Rest bis Summe Soziales 245.090
+Verteidigung;Verteidigung;93457;Funktion Verteidigung;Q1;Tabelle 3 (Aufgabenbereiche);Einzelplan 14 laut Bundestag: 82.690 (andere Abgrenzung)
+Verwaltung;Ministerien;26003;Politische Führung und zentrale Verwaltung, inkl. Versorgung/Pensionen 12.993;Q1;Tabelle 3 (Aufgabenbereiche);
+Verwaltung;Ausland/Entw.;15351;Auswärtige Angelegenheiten, inkl. Entwicklungszusammenarbeit 9.881;Q1;Tabelle 3 (Aufgabenbereiche);
+Verwaltung;Polizei;9938;Öffentliche Sicherheit und Ordnung;Q1;Tabelle 3 (Aufgabenbereiche);
+Verwaltung;Finanzverwalt.;7502;Finanzverwaltung;Q1;Tabelle 3 (Aufgabenbereiche);
+Verwaltung;Übriges;889;Weitere allgemeine Dienste;Q1;Tabelle 3 (Aufgabenbereiche);Rest bis Summe Allgemeine Dienste 153.140 ohne Verteidigung
+Bildung;Forschung;17300;Wissenschaft, Forschung, Entwicklung außerhalb der Hochschulen;Q1;Tabelle 3 (Aufgabenbereiche);
+Bildung;Hochschulen;5491;Hochschulen;Q1;Tabelle 3 (Aufgabenbereiche);
+Bildung;BAföG u. a.;4723;Förderung für Schüler, Studierende, Weiterbildungsteilnehmende;Q1;Tabelle 3 (Aufgabenbereiche);
+Bildung;Übriges;2642;Kultur u. a.;Q1;Tabelle 3 (Aufgabenbereiche);Rest bis Summe 30.156
+Zinsen;Zinsen;30226;Zinsausgaben und Ausgaben im Zusammenhang mit der Schuldenaufnahme;Q1;Tabelle 3 (Aufgabenbereiche);
+Wirtschaft;Energie/EEG;16674;Energie- und Wasserversorgung, vor allem EEG-Finanzierung;Q1;Tabelle 3 (Aufgabenbereiche);
+Wirtschaft;Gewerbe;4750;Sonstiges im Bereich Gewerbe und Dienstleistungen;Q1;Tabelle 3 (Aufgabenbereiche);
+Wirtschaft;Regionalförd.;2333;Regionale Fördermaßnahmen;Q1;Tabelle 3 (Aufgabenbereiche);
+Wirtschaft;Übriges;1535;Weitere Posten;Q1;Tabelle 3 (Aufgabenbereiche);Rest bis Summe 25.292
+Verkehr;Straßen;7695;Straßen und Kompensationszahlungen an die Länder;Q1;Tabelle 3 (Aufgabenbereiche);
+Verkehr;Schiene/ÖPNV;5477;Eisenbahnen und öffentlicher Personennahverkehr;Q1;Tabelle 3 (Aufgabenbereiche);
+Verkehr;Luftfahrt u. a.;4279;Luftfahrt, Nachrichtenwesen, sonstiges Verkehrswesen;Q1;Tabelle 3 (Aufgabenbereiche);
+Verkehr;Wasserstraßen;2291;Wasserstraßen und Häfen, Förderung der Schifffahrt;Q1;Tabelle 3 (Aufgabenbereiche);
+Verkehr;Übriges;1661;Weitere Posten;Q1;Tabelle 3 (Aufgabenbereiche);Rest bis Summe 21.403
+Übriges;Vermögen/Fonds;7799;Grund- und Kapitalvermögen, Sondervermögen (10.618) abzüglich Globalposten (-4.272) u. a.;Q1;Tabelle 3 (Aufgabenbereiche);Finanzwirtschaft 38.025 minus Zinsen
+Übriges;Gesundheit;5104;Gesundheit, Umwelt, Sport und Erholung;Q1;Tabelle 3 (Aufgabenbereiche);
+Übriges;Wohnen;4639;Wohnungswesen, Städtebau, Raumordnung;Q1;Tabelle 3 (Aufgabenbereiche);
+Übriges;Landwirtschaft;1692;Ernährung, Landwirtschaft und Forsten;Q1;Tabelle 3 (Aufgabenbereiche);
+EU & Länder;EU-Beiträge;39938;EU-Eigenmittel: Mehrwertsteuer 5.770, BNE 32.919, Kunststoff 1.249;Q1;Tabelle 4 (Einnahmen), Abzugsbeträge;
+EU & Länder;An Länder;33092;Ergänzungszuweisungen 11.392, ÖPNV 11.908, Kfz-Steuer/Lkw-Maut 8.992, Konsolidierungshilfen 800;Q1;Tabelle 4 (Einnahmen), Abzugsbeträge;

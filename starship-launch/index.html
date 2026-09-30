@@ -1,0 +1,3756 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Starship Launch</title>
+<style>
+  html, body {
+    margin:0; width:100%; height:100%; overflow:hidden; background:#8ec9f0;
+    touch-action:none; overscroll-behavior:none;
+    -webkit-text-size-adjust:100%; text-size-adjust:100%;
+  }
+  #sky { position:fixed; inset:0; background:linear-gradient(#8ec9f0,#cfe9ff); transition:none; z-index:0; }
+  canvas { display:block; position:fixed; inset:0; width:100%; height:100%; z-index:1; }
+  #glow {
+    position:fixed; width:480px; height:480px; border-radius:50%;
+    pointer-events:none; transform:translate(-50%,-50%); opacity:0;
+    background:radial-gradient(circle, rgba(255,225,140,0.92) 0%, rgba(255,150,40,0.55) 26%, rgba(255,90,10,0) 66%);
+    mix-blend-mode:screen; filter:blur(2px); z-index:2;
+  }
+  #fade { position:fixed; inset:0; background:#000; opacity:1; pointer-events:none; z-index:4; }
+  #countdown {
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", "Courier New", monospace;
+    font-weight:800; font-style:italic;
+    font-size:min(18vw,180px); color:#ffffff;
+    text-shadow: 0 0 40px rgba(255,150,30,0.7), 0 0 90px rgba(255,120,20,0.35), 0 4px 10px rgba(0,0,0,0.4);
+    letter-spacing:10px; opacity:0; user-select:none; z-index:3;
+  }
+  #skipBtn {
+    position:fixed; right:20px; bottom:20px; z-index:5;
+    padding:10px 18px; border-radius:24px; border:2px solid rgba(255,255,255,.6);
+    background:rgba(20,20,25,.45); color:#fff; font-family:Arial,sans-serif; font-size:14px;
+    font-weight:600; letter-spacing:.3px; cursor:pointer; user-select:none;
+    -webkit-tap-highlight-color:transparent; backdrop-filter:blur(2px);
+  }
+  #skipBtn:active { background:rgba(255,255,255,.35); }
+  #skipBtn svg { vertical-align:-1px; margin-left:2px; }
+  #joystick {
+    position:fixed; bottom:26px; left:26px; z-index:5; display:none;
+    width:118px; height:118px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.45); background:rgba(20,20,25,.35);
+    touch-action:none; user-select:none; -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #joystick-knob {
+    position:absolute; top:50%; left:50%; width:50px; height:50px;
+    margin:-25px 0 0 -25px; border-radius:50%;
+    background:rgba(255,255,255,.32); border:2px solid rgba(255,255,255,.62);
+    pointer-events:none;
+  }
+  /* Jump and action share one visual family (size, border weight, opacity
+     steps, right-edge alignment) -- only their accent color differs, so
+     they read as a deliberate pair instead of two unrelated buttons. */
+  #jumpBtn, #actionBtn {
+    position:fixed; right:30px; z-index:5; display:none;
+    width:64px; height:64px; border-radius:50%;
+    align-items:center; justify-content:center;
+    border-width:2px; border-style:solid;
+    cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
+    touch-action:none;
+  }
+  #jumpBtn {
+    bottom:28px;
+    background:rgba(255,210,0,.24); border-color:rgba(255,210,0,.75);
+  }
+  #jumpBtn.on { background:rgba(255,210,0,.5); }
+  #jumpBtn .ico {
+    width:0; height:0; margin-top:-3px;
+    border-left:10px solid transparent; border-right:10px solid transparent;
+    border-bottom:16px solid #fff;
+  }
+  #actionBtn {
+    bottom:106px;
+    background:rgba(150,215,255,.24); border-color:rgba(150,215,255,.75);
+  }
+  #actionBtn.on { background:rgba(150,215,255,.5); }
+  #actionBtn .ico {
+    width:16px; height:16px; border:3px solid #fff; border-radius:3px; transform:rotate(45deg);
+  }
+  #actionBtn.holding .ico { background:#fff; }
+  #enterHint, #pickupHint {
+    position:fixed; left:50%; bottom:112px; transform:translateX(-50%);
+    z-index:5; display:none; padding:7px 16px; border-radius:16px;
+    background:rgba(20,20,25,.5); border:1px solid rgba(255,255,255,.4);
+    color:#fff; font-family:Arial,sans-serif; font-size:13px; font-weight:600;
+    letter-spacing:.2px; pointer-events:none; text-align:center;
+    max-width:min(78vw, 340px);
+  }
+  #pickupHint { border-color:rgba(150,215,255,.6); bottom:172px; }
+  @media (max-width:400px) {
+    #enterHint, #pickupHint { font-size:11px; padding:5px 10px; max-width:70vw; }
+  }
+  #speechCaption {
+    position:fixed; left:50%; top:64px; transform:translateX(-50%);
+    z-index:6; padding:8px 18px; border-radius:16px;
+    background:rgba(20,20,25,.55); border:1px solid rgba(255,255,255,.4);
+    color:#fff; font-family:Arial,sans-serif; font-size:13px; font-weight:600;
+    letter-spacing:.2px; pointer-events:none; text-align:center;
+    max-width:min(78vw, 340px);
+    opacity:0; transition:opacity .25s ease;
+  }
+  #speechCaption.show { opacity:1; }
+  @media (max-width:400px) {
+    #speechCaption { font-size:11px; padding:5px 10px; max-width:70vw; top:56px; }
+  }
+  #crystalHud {
+    position:fixed; top:16px; left:16px; z-index:5; display:none;
+    padding:7px 14px; border-radius:16px; background:rgba(20,20,25,.5);
+    border:1px solid rgba(200,140,255,.5); align-items:center; gap:8px;
+    color:#fff; font-family:Arial,sans-serif; font-size:14px; font-weight:600;
+  }
+  #crystalHud .ico {
+    width:12px; height:16px; background:#c07bff; opacity:0.95;
+    clip-path: polygon(50% 0%, 100% 30%, 78% 100%, 22% 100%, 0% 30%);
+    box-shadow: 0 0 6px 1px rgba(192,123,255,.9);
+  }
+  #minimap {
+    /* The generic canvas{inset:0} rule above also sets left/bottom on this
+       element (a <canvas>); since this rule only overrides top/right, those
+       leak through and pin it to the left edge unless reset explicitly. */
+    position:fixed; top:16px; right:16px; left:auto; bottom:auto; z-index:5; display:none;
+    width:168px; height:168px; border-radius:50%;
+    border:2px solid rgba(255,255,255,.45);
+    background:rgba(10,12,20,.5);
+  }
+  @media (max-width:768px), (pointer:coarse) { #minimap { width:122px; height:122px; } }
+  @media (max-height:340px) {
+    #minimap { width:96px; height:96px; }
+    #jumpBtn, #actionBtn { width:50px; height:50px; right:16px; }
+    #jumpBtn { bottom:14px; }
+    #actionBtn { bottom:76px; }
+  }
+  #fullscreenBtn {
+    position:fixed; top:64px; left:16px; z-index:5;
+    width:44px; height:44px; background:rgba(20,20,25,.45); border:2px solid rgba(255,255,255,.55);
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; backdrop-filter:blur(2px);
+  }
+  #fullscreenBtn:active { background:rgba(255,255,255,.25); }
+  #fullscreenBtn .ico-compress { display:none; }
+  #fullscreenBtn.on .ico-expand { display:none; }
+  #fullscreenBtn.on .ico-compress { display:inline; }
+</style>
+</head>
+<body>
+<div id="sky"></div>
+<div id="glow"></div>
+<div id="countdown"></div>
+<div id="fade"></div>
+<div id="skipBtn">Überspringen <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20"/></svg></div>
+<canvas id="minimap" width="168" height="168"></canvas>
+<div id="crystalHud"><span class="ico"></span><span id="crystalCount">0 / 10</span></div>
+<div id="enterHint">Sprung-Taste zum Einsteigen</div>
+<div id="pickupHint">Aktion-Taste zum Aufheben</div>
+<div id="speechCaption"></div>
+<div id="joystick"><div id="joystick-knob"></div></div>
+<div id="jumpBtn"><span class="ico"></span></div>
+<div id="actionBtn"><span class="ico"></span></div>
+<div id="fullscreenBtn" title="Vollbild">
+  <svg class="ico-expand" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+    <polyline points="8 3 3 3 3 8"/>
+    <polyline points="16 3 21 3 21 8"/>
+    <polyline points="8 21 3 21 3 16"/>
+    <polyline points="16 21 21 21 21 16"/>
+  </svg>
+  <svg class="ico-compress" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+    <polyline points="3 8 8 8 8 3"/>
+    <polyline points="21 8 16 8 16 3"/>
+    <polyline points="3 16 8 16 8 21"/>
+    <polyline points="21 16 16 16 16 21"/>
+  </svg>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+<script type="module">
+import * as THREE from "three";
+
+/* ---------- helpers ---------- */
+const rand = (a,b) => a + Math.random()*(b-a);
+const clamp = (x,a,b) => Math.min(b, Math.max(a,x));
+const smoothstep = (a,b,x) => { const t = clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+const lerp = (a,b,t) => a + (b-a)*t;
+
+/* ---------- renderer / scene / camera ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, powerPreference:"high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 6000);
+
+const hemi = new THREE.HemisphereLight(0xbfe0ff, 0xd6d2bf, 0.9);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff4e0, 1.15);
+sun.position.set(120, 220, 160);
+scene.add(sun);
+const fill = new THREE.AmbientLight(0x8899aa, 0.25);
+scene.add(fill);
+
+let zoomResetPending = false;
+// Defense in depth: the double-tap/pinch guards below cover every known
+// trigger, but mobile Safari's native double-tap-zoom heuristics have
+// proven to have more edge cases than any single guard reliably catches
+// (e.g. a double-tap landing partly on a button and partly just beside it).
+// Rather than chase each new trigger individually, self-correct on the
+// actual symptom -- checked continuously (not just reactively on resize/
+// scroll, which may not fire at all depending on what triggered the zoom)
+// so a drift can't persist unnoticed (resetZoom is declared further down
+// but hoisted, so it's callable from here).
+function checkZoomDrift(){
+  if (window.visualViewport && Math.abs(window.visualViewport.scale - 1) > 0.02 && !zoomResetPending){
+    zoomResetPending = true;
+    resetZoom();
+    setTimeout(() => { zoomResetPending = false; }, 400);
+  }
+}
+setInterval(checkZoomDrift, 800);
+function resize(){
+  const w = window.visualViewport ? window.visualViewport.width  : innerWidth;
+  const h = window.visualViewport ? window.visualViewport.height : innerHeight;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  checkZoomDrift();
+}
+let resizeQueued = false;
+function scheduleResize(){
+  if (resizeQueued) return;
+  resizeQueued = true;
+  requestAnimationFrame(() => { resizeQueued = false; resize(); });
+}
+addEventListener("resize", scheduleResize);
+if (window.visualViewport){
+  visualViewport.addEventListener("resize", scheduleResize);
+  visualViewport.addEventListener("scroll", scheduleResize);
+}
+resize();
+
+/* ---------- prevent browser zoom (desktop ctrl+wheel / ctrl+plus/minus) ---------- */
+addEventListener("wheel", e => { if (e.ctrlKey) e.preventDefault(); }, { passive:false });
+addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && ["+","-","=","0"].includes(e.key)) e.preventDefault();
+}, { passive:false });
+["gesturestart","gesturechange"].forEach(evt =>
+  addEventListener(evt, e => e.preventDefault(), { passive:false })
+);
+// gesturestart/gesturechange only cover pinch -- iOS Safari's double-tap-to-zoom
+// is a separate gesture that touch-action:none doesn't reliably suppress on its
+// own, so block it explicitly by swallowing the second tap of a fast double-tap.
+// UI buttons that depend on synthetic click/touchend events are excluded so
+// those keep working. jumpBtn/actionBtn/joystick are NOT excluded: all three
+// are driven entirely by pointer events (which already call preventDefault
+// themselves), so guarding them too costs nothing -- and leaving them
+// unguarded was the actual bug: repeatedly tapping jump for the jetpack
+// boost, or quick taps/drags on the joystick while steering, are exactly the
+// fast-double-tap pattern that used to trigger Safari's native page zoom,
+// leaving the whole game visibly zoomed in with no in-game way back out.
+let lastTouchEnd = 0;
+const NO_DBLTAP_GUARD = '#skipBtn,#fullscreenBtn';
+addEventListener("touchend", e => {
+  if (e.target.closest(NO_DBLTAP_GUARD)) return;
+  const now = Date.now();
+  if (now - lastTouchEnd <= 350) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive:false });
+
+/* ---------- materials ---------- */
+const MAT = {
+  metal:     new THREE.MeshStandardMaterial({ color:0xd9dde2, flatShading:true, metalness:0.35, roughness:0.5 }),
+  metalDark: new THREE.MeshStandardMaterial({ color:0x9195a0, flatShading:true, metalness:0.4,  roughness:0.5 }),
+  engineDark:new THREE.MeshStandardMaterial({ color:0x24252a, flatShading:true, roughness:0.85 }),
+  tower:     new THREE.MeshStandardMaterial({ color:0xb7bbc1, flatShading:true, roughness:0.75 }),
+  towerDark: new THREE.MeshStandardMaterial({ color:0x6b6f76, flatShading:true, roughness:0.8 }),
+  yellow:    new THREE.MeshStandardMaterial({ color:0xffcc00, flatShading:true, roughness:0.55 }),
+  red:       new THREE.MeshStandardMaterial({ color:0xe0362b, flatShading:true, roughness:0.55 }),
+  pad:       new THREE.MeshStandardMaterial({ color:0x585c62, flatShading:true, roughness:0.95 }),
+  trench:    new THREE.MeshStandardMaterial({ color:0x18181b, flatShading:true, roughness:1 }),
+  ground:    new THREE.MeshStandardMaterial({ color:0x4f9a48, flatShading:true, roughness:1 }),
+  groundDark:new THREE.MeshStandardMaterial({ color:0x3f8440, flatShading:true, roughness:1 }),
+  sea:       new THREE.MeshStandardMaterial({ color:0x1f7fae, flatShading:true, roughness:0.3, metalness:0.2 }),
+  scrub:     new THREE.MeshStandardMaterial({ color:0x3f8a3a, flatShading:true, roughness:1 }),
+  trunk:     new THREE.MeshStandardMaterial({ color:0x7a5738, flatShading:true, roughness:1 }),
+  frond:     new THREE.MeshStandardMaterial({ color:0x3f9c46, flatShading:true, roughness:1 }),
+  tank:      new THREE.MeshStandardMaterial({ color:0xe7e9ec, flatShading:true, roughness:0.6 }),
+  concrete:  new THREE.MeshStandardMaterial({ color:0xb9b9ae, flatShading:true, roughness:0.9 }),
+  asphalt:   new THREE.MeshStandardMaterial({ color:0x3a3a3e, flatShading:true, roughness:0.9 }),
+  hangarWall:new THREE.MeshStandardMaterial({ color:0xe6e8ea, flatShading:true, roughness:0.75 }),
+  hangarRoof:new THREE.MeshStandardMaterial({ color:0x8992a0, flatShading:true, roughness:0.7 }),
+  moonGround:new THREE.MeshStandardMaterial({ color:0x9a9a9a, flatShading:true, roughness:1 }),
+  moonRock:  new THREE.MeshStandardMaterial({ color:0x828282, flatShading:true, roughness:1 }),
+  moonBase:  new THREE.MeshStandardMaterial({ color:0xd6d8db, flatShading:true, roughness:0.6, metalness:0.2 }),
+  moonBaseDark: new THREE.MeshStandardMaterial({ color:0x53565c, flatShading:true, roughness:0.6, metalness:0.2 }),
+  roverBody: new THREE.MeshStandardMaterial({ color:0xe8e2d0, flatShading:true, roughness:0.7 }),
+  roverDark: new THREE.MeshStandardMaterial({ color:0x3a3a3e, flatShading:true, roughness:0.8 }),
+  roverGold: new THREE.MeshStandardMaterial({ color:0xd8a83c, flatShading:true, roughness:0.5, metalness:0.4 }),
+  stationWall:new THREE.MeshStandardMaterial({ color:0xd2d5da, flatShading:true, roughness:0.55, metalness:0.2 }),
+  stationDark:new THREE.MeshStandardMaterial({ color:0x585c64, flatShading:true, roughness:0.6, metalness:0.2 }),
+  stationDome:new THREE.MeshStandardMaterial({ color:0x8fd0e8, flatShading:true, roughness:0.15, metalness:0.1, transparent:true, opacity:0.55 }),
+  suitWhite: new THREE.MeshStandardMaterial({ color:0xf1f0ea, flatShading:true, roughness:0.65 }),
+  suitDark:  new THREE.MeshStandardMaterial({ color:0x2b2c30, flatShading:true, roughness:0.6 }),
+  visor:     new THREE.MeshStandardMaterial({ color:0x0a0c10, flatShading:true, roughness:0.25, metalness:0.6 }),
+  suitAccent:new THREE.MeshStandardMaterial({ color:0xd8362c, flatShading:true, roughness:0.55 }),
+  crystal:   new THREE.MeshStandardMaterial({ color:0xa855f7, emissive:0x9333ea, emissiveIntensity:1.4, flatShading:true, roughness:0.25, metalness:0.15, transparent:true, opacity:0.92 }),
+  solarPanel:new THREE.MeshStandardMaterial({ color:0x14213d, flatShading:true, roughness:0.25, metalness:0.55 }),
+  lampGlow:  new THREE.MeshBasicMaterial({ color:0xffe9b0, toneMapped:false }),
+  rigHull:     new THREE.MeshStandardMaterial({ color:0xd8dbe0, flatShading:true, roughness:0.45, metalness:0.3 }),
+  rigHullDark: new THREE.MeshStandardMaterial({ color:0x44474e, flatShading:true, roughness:0.5, metalness:0.3 }),
+};
+
+// A single flat MeshStandardMaterial color reads as an obviously fake,
+// perfectly uniform lawn -- paint some mottled tonal variation onto a
+// tiling canvas texture instead so the land plane looks like real grass.
+function buildGrassTexture(){
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#4f9a48';
+  ctx.fillRect(0,0,size,size);
+  const shades = ['#3f8440','#457f3f','#5aa852','#5fae57','#3a7a3d','#549b4e'];
+  for(let i=0;i<1100;i++){
+    ctx.fillStyle = shades[Math.floor(Math.random()*shades.length)];
+    ctx.globalAlpha = 0.25 + Math.random()*0.4;
+    const x = Math.random()*size, y = Math.random()*size;
+    const r = 1.5 + Math.random()*4.5;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(70, 40);
+  return tex;
+}
+MAT.ground.map = buildGrassTexture();
+MAT.ground.color.set(0xffffff);
+
+const PAD_X = 0, PAD_TOP = 6;
+const PLATFORM_H = 3;
+const ROVER_SCALE = 0.3;
+
+/* ---------- engine exhaust glow: one flame assembly per nozzle ---------- */
+function buildFlame(scale){
+  const core = new THREE.Mesh(new THREE.ConeGeometry(3.8*scale,20*scale,10), new THREE.MeshBasicMaterial({ color:0xfff6d0, toneMapped:false }));
+  core.rotation.x = Math.PI; core.position.y = -8.5*scale;
+  const mid = new THREE.Mesh(new THREE.ConeGeometry(5.6*scale,14*scale,10), new THREE.MeshBasicMaterial({ color:0xffa93c, transparent:true, opacity:0.88, blending:THREE.AdditiveBlending, toneMapped:false }));
+  mid.rotation.x = Math.PI; mid.position.y = -4.5*scale;
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(11.5*scale,12,10), new THREE.MeshBasicMaterial({ color:0xff7a1a, transparent:true, opacity:0.52, blending:THREE.AdditiveBlending, toneMapped:false }));
+  halo.position.y = -1.3*scale;
+  const outer = new THREE.Mesh(new THREE.SphereGeometry(19*scale,12,10), new THREE.MeshBasicMaterial({ color:0xff5010, transparent:true, opacity:0.25, blending:THREE.AdditiveBlending, toneMapped:false }));
+  const grp = new THREE.Group();
+  grp.add(outer, halo, mid, core);
+  return { grp, core, mid, halo, outer };
+}
+function buildEngineGlow(scale, offsets){
+  const root = new THREE.Group();
+  const flames = offsets.map(([ox,oz]) => {
+    const f = buildFlame(scale);
+    f.grp.position.set(ox,0,oz);
+    root.add(f.grp);
+    return f;
+  });
+  root.visible = false;
+  root.userData = { flames };
+  return root;
+}
+function pulseEngine(glow, tt, freq){
+  glow.userData.flames.forEach((u,idx) => {
+    const ph = idx*0.7;
+    u.core.scale.setScalar(0.85+Math.sin(tt*freq+ph)*0.15);
+    u.mid.scale.setScalar(0.9+Math.sin(tt*freq*0.8+1+ph)*0.2);
+    u.mid.material.opacity = 0.78+Math.sin(tt*freq*1.3+ph)*0.15;
+    u.halo.material.opacity = 0.46+Math.sin(tt*freq*0.9+2+ph)*0.16;
+    u.outer.material.opacity = 0.2+Math.sin(tt*freq*0.6+ph)*0.08;
+  });
+}
+
+/* ---------- rocket: booster + ship (separable stages) ---------- */
+const boosterR = 8, boosterH = 80;
+const shipRb = 7.6, shipRt = 6.4, shipH = 45, noseH = 15;
+
+function buildBoosterPart(){
+  const g = new THREE.Group();
+  let y = 0;
+  const skirt = new THREE.Mesh(new THREE.CylinderGeometry(boosterR*1.02, boosterR*1.1, 6, 8), MAT.engineDark);
+  skirt.position.y = y + 3; g.add(skirt); y += 6;
+
+  const raptors = new THREE.Group();
+  for(let i=0;i<7;i++){
+    const a = (i/7)*Math.PI*2;
+    const r = i===0?0:boosterR*0.55;
+    const m = new THREE.Mesh(new THREE.ConeGeometry(1.1,2.4,6), MAT.engineDark);
+    m.position.set(Math.cos(a)*r, 4.4, Math.sin(a)*r);
+    m.rotation.x = Math.PI;
+    raptors.add(m);
+  }
+  g.add(raptors);
+
+  const booster = new THREE.Mesh(new THREE.CylinderGeometry(boosterR, boosterR, boosterH, 8), MAT.metal);
+  booster.position.y = y + boosterH/2; g.add(booster);
+
+  for(let i=0;i<4;i++){
+    const a = (i/4)*Math.PI*2 + Math.PI/4;
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(4.5,7,0.6), MAT.metalDark);
+    fin.position.set(Math.cos(a)*(boosterR+1.6), y+boosterH-10, Math.sin(a)*(boosterR+1.6));
+    fin.rotation.y = -a;
+    fin.rotation.z = 0.18;
+    g.add(fin);
+  }
+
+  const stripe = new THREE.Mesh(new THREE.CylinderGeometry(boosterR+0.05, boosterR+0.05, 3, 8), MAT.red);
+  stripe.position.y = y + boosterH - 4; g.add(stripe);
+
+  y += boosterH;
+
+  const boosterFlameOffsets = Array.from({length:7}, (_,i) => {
+    const a = (i/7)*Math.PI*2, r = i===0?0:boosterR*0.55;
+    return [Math.cos(a)*r, Math.sin(a)*r];
+  });
+  const engineGlow = buildEngineGlow(0.95, boosterFlameOffsets);
+  engineGlow.position.y = 2;
+  g.add(engineGlow);
+
+  g.userData = { topY: y, engineGlow };
+  return g;
+}
+
+function buildShipPart(){
+  const g = new THREE.Group();
+  let y = 0;
+
+  const interstage = new THREE.Mesh(new THREE.CylinderGeometry(boosterR*0.98, boosterR, 3, 8), MAT.metalDark);
+  interstage.position.y = y + 1.5; g.add(interstage);
+  y += 3;
+
+  const ship = new THREE.Mesh(new THREE.CylinderGeometry(shipRt, shipRb, shipH, 8), MAT.metal);
+  ship.position.y = y + shipH/2; g.add(ship);
+
+  for(let i=0;i<2;i++){
+    const s = i===0?1:-1;
+    const aft = new THREE.Mesh(new THREE.BoxGeometry(0.6,14,7), MAT.metalDark);
+    aft.position.set(0, y+9, s*(shipRb+2.6));
+    aft.rotation.x = s*0.35;
+    g.add(aft);
+    const fwd = new THREE.Mesh(new THREE.BoxGeometry(0.5,9,5), MAT.metalDark);
+    fwd.position.set(0, y+shipH-6, s*(shipRt+1.8));
+    fwd.rotation.x = s*0.3;
+    g.add(fwd);
+  }
+
+  const rcsOffsets = [];
+  const rcsY = y + shipH*0.6;
+  for(let i=0;i<4;i++){
+    const a = (i/4)*Math.PI*2 + Math.PI/4;
+    const nx = Math.cos(a)*(shipRb+1), nz = Math.sin(a)*(shipRb+1);
+    const nozzle = new THREE.Mesh(new THREE.ConeGeometry(0.9,2.4,6), MAT.metalDark);
+    nozzle.position.set(nx, rcsY, nz);
+    nozzle.rotation.z = Math.PI/2;
+    nozzle.rotation.y = -a;
+    g.add(nozzle);
+    rcsOffsets.push([nx, rcsY, nz]);
+  }
+
+  y += shipH;
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(shipRt, noseH, 8), MAT.metal);
+  nose.position.y = y + noseH/2; g.add(nose);
+  y += noseH;
+
+  const shipFlameOffsets = Array.from({length:3}, (_,i) => {
+    const a = (i/3)*Math.PI*2, r = shipRb*0.42;
+    return [Math.cos(a)*r, Math.sin(a)*r];
+  });
+  const engineGlow = buildEngineGlow(0.8, shipFlameOffsets);
+  engineGlow.position.y = 3;
+  g.add(engineGlow);
+
+  // ── hatch + ramp (used after moon landing) ─────────────────────────────
+  const hatchY = 17, hatchR = 7.3, hatchW = 4.2, hatchH = 6.2;
+  const hatchOpening = new THREE.Mesh(new THREE.PlaneGeometry(hatchW,hatchH), MAT.engineDark);
+  hatchOpening.position.set(hatchR-0.08, hatchY, 0);
+  hatchOpening.rotation.y = Math.PI/2;
+  g.add(hatchOpening);
+
+  const hatchPivot = new THREE.Group();
+  hatchPivot.position.set(hatchR, hatchY, -hatchW/2);
+  g.add(hatchPivot);
+  const hatchDoor = new THREE.Mesh(new THREE.BoxGeometry(0.25, hatchH, hatchW), MAT.metal);
+  hatchDoor.position.set(0, 0, hatchW/2);
+  hatchPivot.add(hatchDoor);
+
+  const rampRun = 32;
+  g.userData = { topY: y, engineGlow, rcsOffsets, hatchPivot, hatchY, hatchR, hatchW, rampRun };
+  return g;
+}
+
+// Mobile ramp rig, used after moon landing: unlike the hatch door (which
+// stays hinged to the hull), the ramp is a separate ground vehicle/gangway
+// that drives in from a distance and docks against the hatch -- it does not
+// unfold away from the ship. Built once the ship's hatch geometry is known;
+// added to moonScene once that group exists (see below).
+function buildRampRig(hatchR, hatchY, rampRun){
+  const rampRise = hatchY + PLATFORM_H;
+  const rampLen = Math.hypot(rampRun, rampRise);
+  const angle = -Math.atan2(rampRise, rampRun);
+  const grp = new THREE.Group(); // origin = the end that docks against the hatch
+  const rampBody = new THREE.Group();
+  rampBody.rotation.z = angle;
+  const ramp = new THREE.Mesh(new THREE.BoxGeometry(rampLen, 0.5, 4.6), MAT.moonBase);
+  ramp.position.x = rampLen/2;
+  rampBody.add(ramp);
+  for(let s=-1;s<=1;s+=2){
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(rampLen, 0.9, 0.2), MAT.moonBaseDark);
+    rail.position.set(rampLen/2, 0.6, s*2.25);
+    rampBody.add(rail);
+  }
+  // Small drive wheels under the ground-contact end, so it visibly reads as
+  // a self-propelled gangway vehicle rather than a static ramp. Positioned
+  // in rampBody's local (pre-rotation) space -- rampBody's own rotation.z
+  // carries them to the correct tilted, ground-touching spot automatically.
+  for(let s=-1;s<=1;s+=2){
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,0.7,10), MAT.roverDark);
+    wheel.rotation.x = Math.PI/2;
+    wheel.position.set(rampLen-1.5, -0.6, s*2.6);
+    rampBody.add(wheel);
+  }
+  grp.add(rampBody);
+  grp.visible = false;
+  return grp;
+}
+
+const boosterPart = buildBoosterPart();
+const shipPart = buildShipPart();
+const rampRig = buildRampRig(shipPart.userData.hatchR, shipPart.userData.hatchY, shipPart.userData.rampRun);
+const SHIP_LOCAL_Y = boosterPart.userData.topY; // where the ship sits on top of the booster
+
+const rocketStack = new THREE.Group();
+
+/* ---------- launch pad, tower, ground ---------- */
+const launchScene = new THREE.Group();
+scene.add(launchScene);
+
+{
+  const land = new THREE.Mesh(new THREE.PlaneGeometry(2600, 1500), MAT.ground);
+  land.rotation.x = -Math.PI/2;
+  land.position.set(0, 0, 500);
+  launchScene.add(land);
+
+  const sea = new THREE.Mesh(new THREE.PlaneGeometry(2600, 1100), MAT.sea);
+  sea.rotation.x = -Math.PI/2;
+  sea.position.set(0, -0.4, -670);
+  launchScene.add(sea);
+
+  const landSkirt = new THREE.Mesh(new THREE.CircleGeometry(2600, 64), MAT.sea);
+  landSkirt.rotation.x = -Math.PI/2;
+  landSkirt.position.y = -0.6;
+  launchScene.add(landSkirt);
+
+  function farEnough(x,z,minD){
+    if (Math.hypot(x-PAD_X, z) < minD) return false;
+    if (Math.hypot(x-TOWER_X_PREVIEW, z) < minD) return false;
+    if (Math.hypot(x-59, z-50) < 30) return false;
+    if (Math.hypot(x-INDUSTRIAL_X, z-INDUSTRIAL_Z) < 100) return false;
+    return true;
+  }
+  const TOWER_X_PREVIEW = -46;
+  const INDUSTRIAL_X = 170, INDUSTRIAL_Z = 95;
+
+  for(let i=0;i<70;i++){
+    let x,z,ok=false,tries=0;
+    do { x = rand(-420,420); z = rand(20,340); ok = farEnough(x,z,55); tries++; } while(!ok && tries<15);
+    const s = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(1.2,3),0), MAT.scrub);
+    s.position.set(x, 1, z);
+    launchScene.add(s);
+  }
+
+  function makePalm(x,z){
+    const grp = new THREE.Group();
+    const trunkH = rand(14,22);
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1,1.6,trunkH,6), MAT.trunk);
+    trunk.position.y = trunkH/2;
+    trunk.rotation.z = rand(-0.12,0.12);
+    grp.add(trunk);
+    for(let i=0;i<6;i++){
+      const a = (i/6)*Math.PI*2;
+      const frond = new THREE.Mesh(new THREE.ConeGeometry(1.4,11,4), MAT.frond);
+      frond.position.set(Math.cos(a)*3, trunkH, Math.sin(a)*3);
+      frond.rotation.x = Math.PI/2.15;
+      frond.rotation.y = a;
+      grp.add(frond);
+    }
+    grp.position.set(x,0,z);
+    return grp;
+  }
+  for(let i=0;i<14;i++){
+    let x,z,ok=false,tries=0;
+    do { x = rand(-380,380); z = rand(30,330); ok = farEnough(x,z,65); tries++; } while(!ok && tries<15);
+    launchScene.add(makePalm(x,z));
+  }
+
+  const trench = new THREE.Mesh(new THREE.BoxGeometry(70,10,16), MAT.trench);
+  trench.position.set(PAD_X+18, -3, 0);
+  launchScene.add(trench);
+
+  const pad = new THREE.Mesh(new THREE.CylinderGeometry(30,32,PAD_TOP,8), MAT.pad);
+  pad.position.set(PAD_X, PAD_TOP/2, 0);
+  launchScene.add(pad);
+  for(let i=0;i<6;i++){
+    const a=(i/6)*Math.PI*2;
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(3,10,3), MAT.pad);
+    leg.position.set(PAD_X+Math.cos(a)*24, 1, Math.sin(a)*24);
+    launchScene.add(leg);
+  }
+
+  const tanks = new THREE.Group();
+  for(let i=0;i<5;i++){
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(4,4,14,8), MAT.tank);
+    t.position.set(48+ (i%3)*11, 7, 40 + Math.floor(i/3)*11);
+    tanks.add(t);
+  }
+  launchScene.add(tanks);
+
+  const plazaGeo = new THREE.PlaneGeometry(150, 100);
+  plazaGeo.rotateX(-Math.PI/2);
+  const plaza = new THREE.Mesh(plazaGeo, MAT.concrete);
+  plaza.position.set(15, 0.05, 20);
+  launchScene.add(plaza);
+
+  const roadDX = INDUSTRIAL_X-60, roadDZ = INDUSTRIAL_Z-50;
+  const roadLen = Math.hypot(roadDX,roadDZ)+30;
+  const roadGeo = new THREE.PlaneGeometry(roadLen, 12);
+  roadGeo.rotateX(-Math.PI/2);
+  const road = new THREE.Mesh(roadGeo, MAT.asphalt);
+  road.rotation.y = -Math.atan2(roadDZ,roadDX);
+  road.position.set((60+INDUSTRIAL_X)/2, 0.06, (50+INDUSTRIAL_Z)/2);
+  launchScene.add(road);
+
+  function makeHangar(x,z,w,d,h,ry){
+    const grp = new THREE.Group();
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), MAT.hangarWall);
+    wall.position.y = h/2;
+    grp.add(wall);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(w+2.5,1.6,d+2.5), MAT.hangarRoof);
+    roof.position.y = h+0.8;
+    grp.add(roof);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(w*0.42,h*0.62,0.7), MAT.hangarRoof);
+    door.position.set(0,h*0.31,d/2+0.4);
+    grp.add(door);
+    grp.position.set(x,0,z);
+    grp.rotation.y = ry ?? 0;
+    return grp;
+  }
+  launchScene.add(makeHangar(INDUSTRIAL_X-55, INDUSTRIAL_Z-25, 46, 32, 20, 0.15));
+  launchScene.add(makeHangar(INDUSTRIAL_X+15, INDUSTRIAL_Z-40, 34, 26, 15, -0.1));
+  launchScene.add(makeHangar(INDUSTRIAL_X+40, INDUSTRIAL_Z+25, 50, 34, 22, 0.3));
+  launchScene.add(makeHangar(INDUSTRIAL_X-30, INDUSTRIAL_Z+45, 30, 24, 14, -0.25));
+
+  const yardGeo = new THREE.PlaneGeometry(210, 170);
+  yardGeo.rotateX(-Math.PI/2);
+  const yard = new THREE.Mesh(yardGeo, MAT.concrete);
+  yard.position.set(INDUSTRIAL_X, 0.04, INDUSTRIAL_Z);
+  launchScene.add(yard);
+}
+
+const TOWER_X = -46;
+const tower = new THREE.Group();
+{
+  const legOffsets = [[-6,-6],[6,-6],[-6,6],[6,6]];
+  const towerH = 118, seg = 8;
+  legOffsets.forEach(([lx,lz])=>{
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(2.2,towerH,2.2), MAT.tower);
+    leg.position.set(lx,towerH/2,lz);
+    tower.add(leg);
+  });
+  for(let s=0;s<=towerH;s+=seg){
+    const brace = new THREE.Mesh(new THREE.BoxGeometry(15.5,1.2,1.2), MAT.towerDark);
+    brace.position.set(0,s,-6); tower.add(brace);
+    const brace2 = brace.clone(); brace2.position.z = 6; tower.add(brace2);
+    const braceX = new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,15.5), MAT.towerDark);
+    braceX.position.set(-6,s,0); tower.add(braceX);
+    const braceX2 = braceX.clone(); braceX2.position.x = 6; tower.add(braceX2);
+    if (s % (seg*2) === 0){
+      const diag = new THREE.Mesh(new THREE.BoxGeometry(21,0.9,0.9), MAT.towerDark);
+      diag.position.set(0,s+seg/2,-6); diag.rotation.z = 0.36; tower.add(diag);
+      const diag2 = diag.clone(); diag2.position.z = 6; diag2.rotation.z = -0.36; tower.add(diag2);
+    }
+  }
+  const topBlock = new THREE.Mesh(new THREE.BoxGeometry(16,6,16), MAT.tower);
+  topBlock.position.set(0,towerH+3,0); tower.add(topBlock);
+  const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,10,6), MAT.towerDark);
+  antenna.position.set(0,towerH+9,0); tower.add(antenna);
+  for(let i=0;i<6;i++){
+    const band = new THREE.Mesh(new THREE.BoxGeometry(16.4,2,16.4), i%2===0?MAT.yellow:MAT.red);
+    band.position.set(0, 10+i*16, -6.2); tower.add(band);
+  }
+
+  const armPivot = new THREE.Group();
+  armPivot.position.set(6, 76, 0);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(34,3,4), MAT.yellow);
+  arm.position.set(17,0,0);
+  armPivot.add(arm);
+  tower.userData.armPivot = armPivot;
+  tower.add(armPivot);
+
+  tower.position.set(TOWER_X,0,0);
+}
+launchScene.add(tower);
+
+rocketStack.add(boosterPart);
+boosterPart.position.set(0,0,0);
+rocketStack.add(shipPart);
+shipPart.position.set(0, SHIP_LOCAL_Y, 0);
+rocketStack.position.set(PAD_X, PAD_TOP, 0);
+launchScene.add(rocketStack);
+
+/* ---------- fluffy cloud decks (permanent, wide, never disperse) ---------- */
+/* one InstancedMesh per layer: hundreds of overlapping spheres for one draw call */
+const cloudSphereGeo = new THREE.SphereGeometry(1, 10, 8);
+function makeCloudLayer(altitude, clusterCount, spreadRadius, opacity, sizeRange){
+  const transforms = [];
+  for(let c=0;c<clusterCount;c++){
+    const cx = rand(-spreadRadius, spreadRadius);
+    const cz = rand(-spreadRadius, spreadRadius);
+    const puffs = Math.floor(rand(2,4));
+    for(let i=0;i<puffs;i++){
+      const size = rand(sizeRange[0], sizeRange[1]);
+      transforms.push({
+        x: cx+rand(-size*1.15,size*1.15),
+        y: altitude+rand(-8,8),
+        z: cz+rand(-size*1.15,size*1.15),
+        s: size,
+      });
+    }
+  }
+  const opaque = opacity >= 0.999;
+  const mat = new THREE.MeshStandardMaterial({
+    color:0xffffff, flatShading:false, roughness:0.85,
+    transparent: !opaque, opacity, depthWrite:true,
+    emissive:0x333333, emissiveIntensity:0.15,
+  });
+  const mesh = new THREE.InstancedMesh(cloudSphereGeo, mat, transforms.length);
+  const dummy = new THREE.Object3D();
+  transforms.forEach((tr,i) => {
+    dummy.position.set(tr.x, tr.y, tr.z);
+    dummy.scale.setScalar(tr.s);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  launchScene.add(mesh);
+}
+// The first two decks are deliberately dense/opaque -- the ascent should
+// read as visibly punching through two solid cloud layers, not just
+// drifting past wisps. The third, higher deck stays thin (upper-atmosphere
+// haze the ship eventually climbs above).
+makeCloudLayer(260, 34, 700, 1.0, [17,29]);
+makeCloudLayer(430, 30, 850, 1.0, [20,33]);
+makeCloudLayer(580, 12, 980, 0.55, [21,33]);
+
+/* ---------- stars ---------- */
+const starGeo = new THREE.BufferGeometry();
+const starCount = 1400;
+const starPos = new Float32Array(starCount*3);
+for(let i=0;i<starCount;i++){
+  const r = rand(1400,2600);
+  const theta = rand(0,Math.PI*2), phi = Math.acos(rand(-1,1));
+  starPos[i*3]   = r*Math.sin(phi)*Math.cos(theta);
+  starPos[i*3+1] = Math.abs(r*Math.cos(phi))*0.6 + 200;
+  starPos[i*3+2] = r*Math.sin(phi)*Math.sin(theta);
+}
+starGeo.setAttribute("position", new THREE.BufferAttribute(starPos,3));
+const starMat = new THREE.PointsMaterial({ color:0xffffff, size:2.2, sizeAttenuation:false, transparent:true, opacity:0 });
+const stars = new THREE.Points(starGeo, starMat);
+scene.add(stars);
+
+/* ---------- moon scene ---------- */
+const moonScene = new THREE.Group();
+moonScene.visible = false;
+scene.add(moonScene);
+moonScene.add(rampRig);
+const MOON_TERRAIN_SIZE = 4000, MOON_TERRAIN_SEGS = 200;
+const MOON_TERRAIN_CELL = MOON_TERRAIN_SIZE / MOON_TERRAIN_SEGS;
+const moonCraters = [];
+const moonHills = [];
+const towerPlatforms = [];  // flat climbable landings on the comms tower
+const towerStairZones = []; // linear ramps connecting them
+const moonRocksData = [];
+const pickupStones = []; // small hand-liftable stones, separate from the big climbable decorative rocks
+const moonCollidables = [];
+const vehicleOnlyCollidables = []; // blocks rover/big rig but not the astronaut (e.g. tower stairs)
+// Road network: an array of straight [ [x0,z0], [x1,z1] ] segments, populated
+// during moon-scene setup below. Declared at true top level (not inside that
+// setup's own block scope) so vehicle gameplay code later in the file can
+// also query "am I on a road" for the speed bonus.
+const ROAD_SEGMENTS = [];
+function distToSegment(px,pz, from, to){
+  const dx = to[0]-from[0], dz = to[1]-from[1];
+  const len2 = dx*dx+dz*dz;
+  const t = clamp(((px-from[0])*dx + (pz-from[1])*dz) / len2, 0, 1);
+  return Math.hypot(px-(from[0]+dx*t), pz-(from[1]+dz*t));
+}
+function distToRoad(px,pz){
+  let best = Infinity;
+  for (const seg of ROAD_SEGMENTS) best = Math.min(best, distToSegment(px,pz,seg[0],seg[1]));
+  return best;
+}
+const ROAD_HALF_WIDTH = 5; // "on the road" threshold for the vehicle speed bonus (visual road is 7 wide)
+const crystals = [];
+const CRYSTAL_COUNT = 10;
+let crystalsCollected = 0;
+let rover;
+let bigRig;
+function moonCraterY(x,z){
+  let y = 0;
+  for(const c of moonCraters){
+    const d = Math.hypot(x-c.x, z-c.z);
+    if (d < c.r){
+      const tt = d/c.r;
+      const bowl = -c.depth*(1-tt*tt);
+      if (bowl < y) y = bowl;
+    }
+  }
+  return y;
+}
+// Gentle rolling hills -- same inverted-bowl shape as craters but domed
+// upward, with a much larger radius relative to height so they read as
+// subtle terrain variation rather than climbable bumps (compare rockBumpY's
+// much smaller/steeper radius-to-height ratio).
+function moonHillY(x,z){
+  let y = 0;
+  for(const h of moonHills){
+    const d = Math.hypot(x-h.x, z-h.z);
+    if (d < h.r){
+      const tt = d/h.r;
+      const dome = h.height*(1-tt*tt);
+      if (dome > y) y = dome;
+    }
+  }
+  return y;
+}
+// A single straight ramp between two known (x,y,z) points -- returns the
+// interpolated Y if (x,z) falls within the ramp's length and half-width,
+// otherwise null. Each stair flight on the tower is offset to a different
+// side of the tower per level (see the tower-building code), so flights
+// never overlap each other in (x,z) and the height field stays single-valued
+// despite representing a multi-story structure.
+function stairZoneY(x,z,zone){
+  const dx = zone.x1-zone.x0, dz = zone.z1-zone.z0;
+  const len2 = dx*dx+dz*dz;
+  const t = ((x-zone.x0)*dx + (z-zone.z0)*dz) / len2;
+  if (t < 0 || t > 1) return null;
+  const projX = zone.x0+dx*t, projZ = zone.z0+dz*t;
+  if (Math.hypot(x-projX, z-projZ) > zone.halfWidth) return null;
+  return lerp(zone.yLow, zone.yHigh, t);
+}
+function getTowerY(x,z){
+  for (const p of towerPlatforms){
+    if (Math.abs(x-p.x) < p.half && Math.abs(z-p.z) < p.half) return p.y;
+  }
+  for (const s of towerStairZones){
+    const y = stairZoneY(x,z,s);
+    if (y !== null) return y;
+  }
+  return null;
+}
+function rockBumpY(x,z){
+  let y = 0;
+  for(const rk of moonRocksData){
+    if (rk.held) continue;
+    const d = Math.hypot(x-rk.x, z-rk.z);
+    if (d < rk.r){
+      const tt = d/rk.r;
+      const bump = rk.h*(1-tt*tt);
+      if (bump > y) y = bump;
+    }
+  }
+  return y;
+}
+function getMoonSurfaceY(x,z){
+  if (Math.hypot(x-PAD_X,z) < 27) return PLATFORM_H;
+  const towerY = getTowerY(x,z);
+  if (towerY !== null) return towerY;
+  // Bilinear-interpolate craters between the same 20-unit grid corners the
+  // rendered terrain mesh uses, instead of sampling the exact analytic bowl
+  // formula at (x,z) directly. The mesh is flat-shaded between coarse grid
+  // vertices, so on a steep crater wall the true curve dips measurably below
+  // the straight chord the GPU actually draws -- a raw analytic sample there
+  // reads as several units *underground* relative to what's on screen,
+  // causing the astronaut/rover to visibly sink. Reconstructing the same
+  // interpolation the mesh does keeps physics and visuals in agreement.
+  // Rocks are NOT baked into the terrain mesh (they're separate decorative
+  // objects) and their bump radius is smaller than one grid cell, so they're
+  // sampled directly instead -- grid-interpolating them would miss most
+  // rocks entirely and make them unclimbable.
+  const half = MOON_TERRAIN_SIZE/2;
+  const gx = (x+half)/MOON_TERRAIN_CELL, gz = (z+half)/MOON_TERRAIN_CELL;
+  const ix = Math.floor(gx), iz = Math.floor(gz);
+  const fx = gx-ix, fz = gz-iz;
+  const wx = (i) => i*MOON_TERRAIN_CELL - half;
+  const cornerY = (i,j) => moonCraterY(wx(i),wx(j)) + moonHillY(wx(i),wx(j));
+  const h00 = cornerY(ix,iz);
+  const h10 = cornerY(ix+1,iz);
+  const h01 = cornerY(ix,iz+1);
+  const h11 = cornerY(ix+1,iz+1);
+  const terrainY = lerp(lerp(h00,h10,fx), lerp(h01,h11,fx), fz);
+  return terrainY + rockBumpY(x,z);
+}
+// Approximates a long object (station module, tube) as a chain of overlapping
+// circles along its local X axis, for cheap push-out collision.
+function registerCapsuleCollider(obj, r, len, segments){
+  const n = segments || Math.max(2, Math.round(len/6));
+  const p = new THREE.Vector3();
+  for (let i=0;i<n;i++){
+    const tt = n===1 ? 0 : (i/(n-1) - 0.5);
+    p.set(tt*len, 0, 0);
+    obj.localToWorld(p);
+    moonCollidables.push({ x:p.x, z:p.z, r });
+  }
+}
+// Resolves circle-vs-circle collision for a moving entity. Naively snapping
+// the proposed new position back out to the collider's edge cancels ALL of
+// the attempted movement whenever the collider center happens to sit roughly
+// behind the new position -- feels like slamming into a dead wall even on a
+// glancing approach. Instead, only the component of the attempted movement
+// pointing INTO the collider is removed; the tangential component survives,
+// so walking/driving past a station module at an angle glides along its
+// curve instead of stopping outright.
+// A canvas-generated radial-gradient blue disc, used as a billboarded sprite
+// (always faces the camera, no per-frame lookAt needed) so Earth reads as a
+// distant sky object rather than a reachable ball sitting on the ground.
+function buildEarthSprite(){
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(size/2,size/2,0, size/2,size/2,size/2);
+  grad.addColorStop(0, 'rgba(90,160,235,1)');
+  grad.addColorStop(0.75, 'rgba(45,110,200,1)');
+  grad.addColorStop(0.92, 'rgba(30,80,170,0.9)');
+  grad.addColorStop(1, 'rgba(30,80,170,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,Math.PI*2); ctx.fill();
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent:true, depthWrite:false, toneMapped:false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(140,140,1);
+  return sprite;
+}
+
+function resolveSlide(oldX, oldZ, x, z, radius, list){
+  let rx = x, rz = z;
+  for (const c of list){
+    const dx = rx - c.x, dz = rz - c.z;
+    const minD = radius + c.r;
+    const d = Math.hypot(dx,dz);
+    if (d < minD){
+      if (d < 0.0001){ rx = oldX; rz = oldZ; continue; }
+      const nxAxis = dx/d, nzAxis = dz/d; // outward normal at the proposed position
+      const moveX = rx - oldX, moveZ = rz - oldZ;
+      const inward = -(moveX*nxAxis + moveZ*nzAxis); // >0 = moving into the collider
+      if (inward > 0){ rx += nxAxis*inward; rz += nzAxis*inward; }
+      const dx2 = rx - c.x, dz2 = rz - c.z;
+      const d2 = Math.hypot(dx2, dz2);
+      if (d2 < minD){
+        if (d2 < 0.0001){ rx = oldX; rz = oldZ; continue; }
+        const push = (minD-d2)/d2;
+        rx += dx2*push; rz += dz2*push;
+      }
+    }
+  }
+  return { x:rx, z:rz };
+}
+{
+  // Single continuous crater-displaced plane, sized well past the moon
+  // scene's fog-far distance (1900) so the edge is never visible -- no more
+  // separate flat "skirt" mesh. The skirt used to sit at a fixed y=-0.6
+  // underneath this whole plane, which worked for flat ground but was
+  // shallower than deep craters (down to y=-28), so it visually cut through
+  // crater floors like a lid. One mesh means there's nothing left to cut
+  // through anything.
+  const moonSize = MOON_TERRAIN_SIZE, segs = MOON_TERRAIN_SEGS;
+  const moonGeo = new THREE.PlaneGeometry(moonSize, moonSize, segs, segs);
+  moonGeo.rotateX(-Math.PI/2);
+
+  // Landmark placements, defined up front so terrain generation below can
+  // keep craters/hills clear of them.
+  const STATION_X = -95, STATION_Z = -55;
+  const ROAD_PAD_DIST = 30, ROAD_PLAZA_DIST = 95; // distance from pad center along the pad->station line
+  const roadAngle = Math.atan2(STATION_X, STATION_Z);
+  const roadDirX = Math.sin(roadAngle), roadDirZ = Math.cos(roadAngle);
+  const roadStart = [roadDirX*ROAD_PAD_DIST, roadDirZ*ROAD_PAD_DIST];
+  const roadEnd   = [roadDirX*ROAD_PLAZA_DIST, roadDirZ*ROAD_PLAZA_DIST];
+  const SOLAR_X = 380, SOLAR_Z = 220, SOLAR_EXCLUDE_R = 90;
+  const TOWER_X = -300, TOWER_Z = 260, TOWER_EXCLUDE_R = 55;
+  // A straight line from the plaza to the solar park happens to pass almost
+  // exactly through the launch pad's center (the pad sits geographically
+  // between them) -- sampled terrain height would jump onto the pad's flat
+  // platform for one stretch and back to ground right after, and the coarse
+  // road mesh (built from just a few straight segments) smoothed that sharp
+  // step into a long gentle ramp that visibly floated above the real, much
+  // lower ground for most of its length. Routing the solar branch through a
+  // bend point well clear of the pad's 27-unit flat radius avoids the
+  // ground-height discontinuity in the first place, not just the symptom.
+  const SOLAR_BEND_X = -35, SOLAR_BEND_Z = 61;
+  // A small network, not just one path: pad<->plaza (existing), then out to
+  // the tower and the solar park from that same plaza hub.
+  ROAD_SEGMENTS.push(
+    [roadStart, roadEnd],
+    [roadEnd, [TOWER_X, TOWER_Z]],
+    [roadEnd, [SOLAR_BEND_X, SOLAR_BEND_Z]],
+    [[SOLAR_BEND_X, SOLAR_BEND_Z], [SOLAR_X, SOLAR_Z]],
+  );
+  function nearLandmark(px,pz){
+    return distToRoad(px,pz) < 18
+      || Math.hypot(px-SOLAR_X,pz-SOLAR_Z) < SOLAR_EXCLUDE_R
+      || Math.hypot(px-TOWER_X,pz-TOWER_Z) < TOWER_EXCLUDE_R;
+  }
+
+  for(let i=0;i<52;i++){
+    let cx,cz,r,ok=false,tries=0;
+    do {
+      cx = rand(-650,650); cz = rand(-650,650); r = rand(14,62);
+      ok = Math.hypot(cx,cz) > r+50 && distToRoad(cx,cz) > r+18
+        && Math.hypot(cx-SOLAR_X,cz-SOLAR_Z) > r+SOLAR_EXCLUDE_R
+        && Math.hypot(cx-TOWER_X,cz-TOWER_Z) > r+TOWER_EXCLUDE_R;
+      tries++;
+    } while(!ok && tries<20);
+    if (ok) moonCraters.push({ x:cx, z:cz, r, depth: rand(8,28) });
+  }
+  for(let i=0;i<9;i++){
+    let cx,cz,r,ok=false,tries=0;
+    do {
+      cx = rand(-700,700); cz = rand(-700,700); r = rand(40,90);
+      ok = Math.hypot(cx,cz) > r+40 && Math.hypot(cx-STATION_X,cz-STATION_Z) > r+90
+        && distToRoad(cx,cz) > r+18
+        && Math.hypot(cx-SOLAR_X,cz-SOLAR_Z) > r+SOLAR_EXCLUDE_R
+        && Math.hypot(cx-TOWER_X,cz-TOWER_Z) > r+TOWER_EXCLUDE_R;
+      tries++;
+    } while(!ok && tries<20);
+    if (ok) moonHills.push({ x:cx, z:cz, r, height: rand(3,7) });
+  }
+  const pos = moonGeo.attributes.position;
+  for(let i=0;i<pos.count;i++){
+    pos.setY(i, moonCraterY(pos.getX(i), pos.getZ(i)) + moonHillY(pos.getX(i), pos.getZ(i)));
+  }
+  moonGeo.computeVertexNormals();
+  const surf = new THREE.Mesh(moonGeo, MAT.moonGround);
+  moonScene.add(surf);
+
+  const rocksGroup = new THREE.Group();
+  rocksGroup.userData.tapLabel = 'rock';
+  moonScene.add(rocksGroup);
+  for(let i=0;i<60;i++){
+    let a,d,rx,rz,tries=0;
+    do { a = rand(0,Math.PI*2); d = rand(60,600); rx = Math.cos(a)*d; rz = Math.sin(a)*d; tries++; }
+    while (nearLandmark(rx,rz) && tries<15);
+    const R = rand(1,4.5);
+    const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(R,0), MAT.moonRock);
+    const embed = R*0.3;
+    rock.position.set(rx, getMoonSurfaceY(rx,rz)+embed, rz);
+    rock.rotation.set(rand(0,6),rand(0,6),rand(0,6));
+    rocksGroup.add(rock);
+    // Big scenic rocks are climbable, not liftable: getMoonSurfaceY treats
+    // them as a smooth raised bump (same math as crater bowls, inverted), so
+    // walking toward one ramps you up onto it instead of colliding with a wall.
+    moonRocksData.push({ x:rx, z:rz, r:R*1.05, h: embed + R*0.8 });
+  }
+
+  // Small hand-liftable stones -- deliberately separate from the big rocks
+  // above (which range up to R=4.5 and are meant to be climbed, not carried).
+  // Every one of these is liftable, so the pick-up/drop action always works
+  // on the nearest one instead of silently failing on an oversized rock.
+  for(let i=0;i<24;i++){
+    let a,d,rx,rz,tries=0;
+    do { a = rand(0,Math.PI*2); d = rand(20,420); rx = Math.cos(a)*d; rz = Math.sin(a)*d; tries++; }
+    while (nearLandmark(rx,rz) && tries<15);
+    const R = rand(0.35,0.85);
+    const embed = R*0.35;
+    const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(R,0), MAT.moonRock);
+    mesh.position.set(rx, getMoonSurfaceY(rx,rz)+embed, rz);
+    mesh.rotation.set(rand(0,6),rand(0,6),rand(0,6));
+    mesh.userData.tapLabel = 'stone';
+    moonScene.add(mesh);
+    pickupStones.push({ x:rx, z:rz, mesh, embed, held:false });
+  }
+
+  function buildLandingBase(){
+    const grp = new THREE.Group();
+    const plat = new THREE.Mesh(new THREE.CylinderGeometry(24,26,PLATFORM_H,8), MAT.moonBase);
+    plat.position.y = PLATFORM_H/2;
+    grp.add(plat);
+    for(let i=0;i<6;i++){
+      const a = (i/6)*Math.PI*2;
+      const strut = new THREE.Mesh(new THREE.BoxGeometry(2,PLATFORM_H+3,2), MAT.moonBaseDark);
+      strut.position.set(Math.cos(a)*20, -1, Math.sin(a)*20);
+      grp.add(strut);
+    }
+    const dish = new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.2,0.6,10), MAT.moonBaseDark);
+    dish.rotation.z = 0.5;
+    dish.position.set(-16, PLATFORM_H+3, 14);
+    grp.add(dish);
+    const dishPole = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,4,6), MAT.moonBaseDark);
+    dishPole.position.set(-16, PLATFORM_H+1.5, 14);
+    grp.add(dishPole);
+    const beaconPole = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,6,6), MAT.moonBaseDark);
+    beaconPole.position.set(15,PLATFORM_H+3,-15);
+    grp.add(beaconPole);
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.9,8,8), new THREE.MeshBasicMaterial({ color:0xff3b30, toneMapped:false }));
+    beacon.position.set(15,PLATFORM_H+6.2,-15);
+    grp.add(beacon);
+    grp.userData = { beacon };
+    return grp;
+  }
+  const landingBase = buildLandingBase();
+  landingBase.position.set(PAD_X, 0, 0);
+  landingBase.userData.tapLabel = 'base';
+  moonScene.add(landingBase);
+  moonCollidables.push({ x: PAD_X-16, z: 14,  r: 1.0 }); // dish pole
+  moonCollidables.push({ x: PAD_X+15, z: -15, r: 1.0 }); // beacon pole
+
+  function buildRover(){
+    const grp = new THREE.Group();
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(8,2.2,12), MAT.roverBody);
+    chassis.position.y = 4.6; grp.add(chassis);
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(7,0.6,10), MAT.roverDark);
+    deck.position.y = 5.9; grp.add(deck);
+    for(let i=0;i<2;i++){
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(2.6,2.4,2.2), MAT.roverDark);
+      seat.position.set(i===0?-2:2, 7.3, -2.5);
+      grp.add(seat);
+    }
+    // Front wheels (z>0, "front" in local +Z = forward direction) are steerable
+    // groups; rear wheels (z<0) are fixed directly on the chassis.
+    function wheelUnit(){
+      const w = new THREE.Group();
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(3,3,1.6,10), MAT.roverDark);
+      wheel.rotation.z = Math.PI/2; w.add(wheel);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(1,1,1.8,6), MAT.roverGold);
+      hub.rotation.z = Math.PI/2; w.add(hub);
+      return w;
+    }
+    const frontWheels = [];
+    [[-4.4,3.2,4.2],[4.4,3.2,4.2]].forEach(([x,y,z]) => {
+      const w = wheelUnit(); w.position.set(x,y,z); grp.add(w); frontWheels.push(w);
+    });
+    [[-4.4,3.2,-4.2],[4.4,3.2,-4.2]].forEach(([x,y,z]) => {
+      const w = wheelUnit(); w.position.set(x,y,z); grp.add(w);
+    });
+    for(let i=0;i<4;i++){
+      const s = i<2?-1:1, e = i%2===0?-1:1;
+      const strut = new THREE.Mesh(new THREE.BoxGeometry(0.5,2.6,0.5), MAT.roverDark);
+      strut.position.set(s*4.2, 4.0, e*4.0);
+      grp.add(strut);
+    }
+    const antennaPole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,6,6), MAT.roverDark);
+    antennaPole.position.set(-3,9,-4); grp.add(antennaPole);
+    const dish = new THREE.Mesh(new THREE.CylinderGeometry(1.4,1.4,0.3,10), MAT.roverGold);
+    dish.rotation.x = 0.6; dish.position.set(-3,11.8,-4); grp.add(dish);
+    grp.userData = { frontWheels };
+    return grp;
+  }
+  rover = buildRover();
+  rover.scale.setScalar(ROVER_SCALE);
+  rover.rotation.order = 'YXZ'; // yaw first, then pitch/roll relative to heading -- avoids gimbal fighting with steering
+  rover.position.set(46, getMoonSurfaceY(46,20), 20);
+  rover.rotation.y = -0.6;
+  rover.userData.tapLabel = 'rover';
+  moonScene.add(rover);
+
+  // Big 12-wheel rig: a much larger second vehicle parked next to the rover,
+  // spaceship-hulled but wheeled, with a domed cockpit reached by a ladder.
+  function buildBigRig(){
+    const grp = new THREE.Group();
+
+    // Articulated in the middle (like a bendy bus/road train) rather than
+    // just steering the front wheels -- a frontPivot group holds everything
+    // ahead of the joint (nose/cockpit/dome/ladder/front 3 wheel-pairs) and
+    // yaws relative to the rear half, which stays fixed on `grp` directly.
+    // Purely cosmetic: the rig's actual movement/collision is still one
+    // rigid body, only this joint's rotation is layered on top for looks.
+    const rearChassis = new THREE.Mesh(new THREE.BoxGeometry(9,4,13), MAT.rigHull);
+    rearChassis.position.set(0,5.5,-6.5); grp.add(rearChassis);
+
+    const frontPivot = new THREE.Group();
+    grp.add(frontPivot);
+    const frontChassis = new THREE.Mesh(new THREE.BoxGeometry(9,4,13), MAT.rigHull);
+    frontChassis.position.set(0,5.5,6.5); frontPivot.add(frontChassis);
+    // Boot covering the joint gap so the bend reads as an articulated seam
+    // instead of a visible split in the hull.
+    const joint = new THREE.Mesh(new THREE.CylinderGeometry(3.6,3.6,2,10), MAT.rigHullDark);
+    joint.rotation.x = Math.PI/2;
+    joint.position.y = 5.5;
+    grp.add(joint);
+
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(4.5,6,8), MAT.rigHull);
+    nose.rotation.x = Math.PI/2; nose.position.set(0,5.5,16); frontPivot.add(nose);
+
+    // Cockpit is a pod that hangs DOWN off the belly of the hull instead of
+    // a dome rising off the roof -- the driver sits recessed inside it,
+    // visible from the chest up over the rim, dashboard just ahead of them.
+    // Shallow on purpose: deep enough to read as "sunken in," shallow enough
+    // that a seated astronaut's head still clears the rim.
+    const cockpitPod = new THREE.Mesh(new THREE.BoxGeometry(4.4,1.6,4.4), MAT.rigHullDark);
+    cockpitPod.position.set(0,1.8,9); frontPivot.add(cockpitPod);
+    const podWindshield = new THREE.Mesh(new THREE.BoxGeometry(3.8,1.6,0.15), MAT.stationDome);
+    podWindshield.rotation.x = -0.5;
+    podWindshield.position.set(0,2.7,11.1);
+    frontPivot.add(podWindshield);
+    const dashboard = new THREE.Mesh(new THREE.BoxGeometry(3.2,0.5,1.0), MAT.rigHull);
+    dashboard.rotation.x = -0.35;
+    dashboard.position.set(0,2.35,10.2);
+    frontPivot.add(dashboard);
+    [-1,0,1].forEach(i => {
+      const dial = new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,0.08,8), MAT.roverGold);
+      dial.rotation.x = Math.PI/2 - 0.35;
+      dial.position.set(i*0.8,2.62,10.4);
+      frontPivot.add(dial);
+    });
+
+    function bigWheelUnit(){
+      const w = new THREE.Group();
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(1.9,1.9,2.6,12), MAT.roverDark);
+      wheel.rotation.z = Math.PI/2; w.add(wheel);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.7,0.7,1.5,6), MAT.roverGold);
+      hub.rotation.z = Math.PI/2; w.add(hub);
+      return w;
+    }
+    const frontWheels = [];
+    const wheelZs = [-11,-6.6,-2.2,2.2,6.6,11]; // 6 per side, wider-spaced for the thicker tires
+    wheelZs.forEach((z,i) => {
+      const parent = z > 0 ? frontPivot : grp;
+      [-5.2,5.2].forEach(x => {
+        const w = bigWheelUnit(); w.position.set(x,2.1,z); parent.add(w);
+        if (i===wheelZs.length-1) frontWheels.push(w); // only the frontmost pair steers
+      });
+    });
+
+    // Short ladder/step up the left side to the now much lower recessed
+    // pod -- purely visual, entry itself is a quick blended transition
+    // like the rover's, not real climbing.
+    const ladderGroup = new THREE.Group();
+    ladderGroup.position.set(-4.6, 0, 8);
+    for(let i=0;i<3;i++){
+      const rung = new THREE.Mesh(new THREE.BoxGeometry(1.4,0.15,0.3), MAT.roverDark);
+      rung.position.y = 0.6 + i*0.6;
+      ladderGroup.add(rung);
+    }
+    [-0.6,0.6].forEach(rx => {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.1,2.2,0.1), MAT.roverDark);
+      rail.position.set(rx, 1.1, 0);
+      ladderGroup.add(rail);
+    });
+    frontPivot.add(ladderGroup);
+
+    // Rear-right cargo hatch + grab arm: a side lid that swings open and a
+    // long two-joint arm with a 4-prong claw. Deploys as soon as the driver
+    // gets in (stays out the whole drive) and stows again on exit; the
+    // action button only drives the further reach-out-and-back grab motion
+    // layered on top. Animated by updateBigRigArm().
+    const HATCH_X = 4.6, HATCH_Y = 3.3, HATCH_Z = -8.5;
+    const hatchPivot = new THREE.Group();
+    hatchPivot.position.set(HATCH_X, HATCH_Y, HATCH_Z);
+    grp.add(hatchPivot);
+    const hatchPanel = new THREE.Mesh(new THREE.BoxGeometry(0.25,3,3.6), MAT.rigHullDark);
+    hatchPanel.position.set(0,0,1.8); // offset so the hinge (local origin) sits at its front edge
+    hatchPivot.add(hatchPanel);
+
+    const armShoulder = new THREE.Group();
+    armShoulder.position.set(HATCH_X, HATCH_Y, HATCH_Z);
+    armShoulder.rotation.x = -2.3; // stowed: folded up against the hull
+    grp.add(armShoulder);
+    const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,4,6), MAT.roverDark);
+    upperArm.position.y = -2;
+    armShoulder.add(upperArm);
+    const armElbow = new THREE.Group();
+    armElbow.position.y = -4;
+    armElbow.rotation.x = 1.9; // stowed: folded back against the upper arm
+    armShoulder.add(armElbow);
+    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.22,3.6,6), MAT.roverDark);
+    forearm.position.y = -1.8;
+    armElbow.add(forearm);
+    const clawGroup = new THREE.Group();
+    clawGroup.position.y = -3.6;
+    armElbow.add(clawGroup);
+    // 4 prongs arranged in a cross (not just left/right) so it reads as a
+    // proper claw closing around an object from all sides.
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(([sx,sz]) => {
+      const prong = new THREE.Mesh(new THREE.BoxGeometry(sx?0.18:0.3, 0.9, sz?0.18:0.3), MAT.roverGold);
+      prong.position.set(sx*0.28,-0.4,sz*0.28);
+      if (sx) prong.rotation.z = -sx*0.3; else prong.rotation.x = sz*0.3;
+      clawGroup.add(prong);
+    });
+
+    grp.userData = { frontWheels, hatchPivot, armShoulder, armElbow, clawGroup, frontPivot };
+    return grp;
+  }
+  bigRig = buildBigRig();
+  bigRig.rotation.order = 'YXZ';
+  bigRig.position.set(72, getMoonSurfaceY(72,20), 20);
+  bigRig.rotation.y = -0.6;
+  bigRig.userData.tapLabel = 'bigrig';
+  moonScene.add(bigRig);
+
+  // Modules rest directly on the ground: local origin at the cylinder's own
+  // axis, so placing a module's group at world y = r sits its underside on y=0.
+  function buildStationModule(hasDome, r, len){
+    const grp = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,10), MAT.stationWall);
+    body.rotation.z = Math.PI/2;
+    grp.add(body);
+    for(let s=-1;s<=1;s+=2){
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(r*0.15,r*0.15,0.6,10), MAT.stationDark);
+      cap.rotation.z = Math.PI/2;
+      cap.position.x = s*(len/2+0.3);
+      grp.add(cap);
+    }
+    for(let i=0;i<3;i++){
+      const band = new THREE.Mesh(new THREE.TorusGeometry(r+0.08,0.16,6,12), MAT.stationDark);
+      band.rotation.y = Math.PI/2;
+      band.position.x = -len/2 + (i+0.5)*(len/3);
+      grp.add(band);
+    }
+    if (hasDome){
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(r*0.92,12,8,0,Math.PI*2,0,Math.PI/2), MAT.stationDome);
+      dome.position.x = len/2+0.2;
+      dome.rotation.z = -Math.PI/2;
+      grp.add(dome);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(r*0.92,0.15,6,14), MAT.stationDark);
+      ring.rotation.y = Math.PI/2;
+      ring.position.x = len/2+0.2;
+      grp.add(ring);
+    }
+    return grp;
+  }
+  function buildConnector(from,to,r){
+    const dx=to[0]-from[0], dy=to[1]-from[1], dz=to[2]-from[2];
+    const len = Math.hypot(dx,dy,dz);
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,8), MAT.stationDark);
+    tube.position.set((from[0]+to[0])/2,(from[1]+to[1])/2,(from[2]+to[2])/2);
+    tube.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), new THREE.Vector3(dx,dy,dz).normalize());
+    return tube;
+  }
+  const stationGroup = new THREE.Group();
+  stationGroup.userData.tapLabel = 'station';
+  const modDefs = [
+    { hasDome:true,  r:9,   len:32, x:0,   z:0,   rot:0 },
+    { hasDome:false, r:7.5, len:26, x:38,  z:12,  rot:0.55 },
+    { hasDome:true,  r:7,   len:22, x:-34, z:-12, rot:-0.6 },
+    { hasDome:false, r:6.5, len:20, x:64,  z:-8,  rot:0.25 },
+    { hasDome:true,  r:6,   len:18, x:-58, z:16,  rot:0.9 },
+    { hasDome:false, r:5.5, len:16, x:8,   z:-38, rot:-0.3 },
+  ];
+  const stationMods = modDefs.map(d => {
+    const m = buildStationModule(d.hasDome, d.r, d.len);
+    m.position.set(d.x, d.r, d.z);
+    m.rotation.y = d.rot;
+    stationGroup.add(m);
+    return m;
+  });
+  function modPos(i){ return [stationMods[i].position.x, stationMods[i].position.y, stationMods[i].position.z]; }
+  stationGroup.add(buildConnector(modPos(0), modPos(1), 2.6));
+  stationGroup.add(buildConnector(modPos(0), modPos(2), 2.5));
+  stationGroup.add(buildConnector(modPos(2), modPos(3), 2.2));
+  stationGroup.add(buildConnector(modPos(0), modPos(4), 2.2));
+  stationGroup.add(buildConnector(modPos(0), modPos(5), 2.0));
+  stationGroup.position.set(-95, 0, -55);
+  stationGroup.rotation.y = 0.4;
+  moonScene.add(stationGroup);
+  stationGroup.updateMatrixWorld(true);
+  stationMods.forEach((m,i) => registerCapsuleCollider(m, modDefs[i].r, modDefs[i].len));
+  // Connector tubes are NOT collidable: their vertical center sits well above
+  // both the astronaut and the rover (roughly the average of the two module
+  // radii they join, several units up), so there's real clearance to walk or
+  // drive underneath -- solid collision here would block passage the tube's
+  // own geometry doesn't actually obstruct.
+
+  /* ---------- road: launch pad to station plaza ---------- */
+  function buildRoadSegment(from, to, width, thickness){
+    const dx = to[0]-from[0], dz = to[2]-from[2];
+    const len = Math.hypot(dx,dz);
+    const seg = new THREE.Mesh(new THREE.BoxGeometry(width, thickness, len), MAT.asphalt);
+    seg.position.set((from[0]+to[0])/2, (from[1]+to[1])/2, (from[2]+to[2])/2);
+    seg.rotation.y = Math.atan2(dx, dz);
+    return seg;
+  }
+  const roadGroup = new THREE.Group();
+  roadGroup.userData.tapLabel = 'road';
+  function buildRoadPath(from, to, segCount){
+    let prevRoadPt = [from[0], getMoonSurfaceY(from[0], from[1]) + 0.08, from[1]];
+    for (let i=1;i<=segCount;i++){
+      const t = i/segCount;
+      const px = lerp(from[0], to[0], t), pz = lerp(from[1], to[1], t);
+      const py = getMoonSurfaceY(px,pz) + 0.08;
+      roadGroup.add(buildRoadSegment(prevRoadPt, [px,py,pz], 7, 0.3));
+      prevRoadPt = [px,py,pz];
+    }
+  }
+  buildRoadPath(roadStart, roadEnd, 6);
+  buildRoadPath(roadEnd, [TOWER_X, TOWER_Z], 10);
+  buildRoadPath(roadEnd, [SOLAR_BEND_X, SOLAR_BEND_Z], 5);
+  buildRoadPath([SOLAR_BEND_X, SOLAR_BEND_Z], [SOLAR_X, SOLAR_Z], 8);
+  moonScene.add(roadGroup);
+  const plaza = new THREE.Mesh(new THREE.CylinderGeometry(20,20,0.3,20), MAT.asphalt);
+  plaza.position.set(roadEnd[0], getMoonSurfaceY(roadEnd[0], roadEnd[1]) + 0.08, roadEnd[1]);
+  moonScene.add(plaza);
+
+  // Small lamps ringing the landing pad.
+  function buildLamp(){
+    const grp = new THREE.Group();
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.18,2.4,6), MAT.moonBaseDark);
+    pole.position.y = 1.2;
+    grp.add(pole);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.35,8,6), MAT.lampGlow);
+    bulb.position.y = 2.5;
+    grp.add(bulb);
+    return grp;
+  }
+  const LAMP_COUNT = 10;
+  for (let i=0;i<LAMP_COUNT;i++){
+    const a = (i/LAMP_COUNT)*Math.PI*2;
+    const lamp = buildLamp();
+    lamp.position.set(PAD_X+Math.cos(a)*25, PLATFORM_H, Math.sin(a)*25);
+    moonScene.add(lamp);
+  }
+
+  /* ---------- solar panel field ---------- */
+  function buildSolarPanel(){
+    const grp = new THREE.Group();
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.28,1.5,6), MAT.stationDark);
+    pole.position.y = 0.75;
+    grp.add(pole);
+    // Pivot group sits at the pole top; the panel mesh is offset so it
+    // hinges from its near edge instead of its center, so tilting it up
+    // doesn't dip the near edge underground.
+    const tiltGrp = new THREE.Group();
+    tiltGrp.position.y = 1.5;
+    tiltGrp.rotation.x = -0.62;
+    grp.add(tiltGrp);
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(6,0.2,6), MAT.solarPanel);
+    panel.position.z = 3;
+    tiltGrp.add(panel);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(6.2,0.12,6.2), MAT.stationDark);
+    frame.position.set(0,-0.02,3);
+    tiltGrp.add(frame);
+    return grp;
+  }
+  const SOLAR_ROWS = 7, SOLAR_COLS = 7, SOLAR_SPACING = 16;
+  const solarHalf = (SOLAR_ROWS-1)*SOLAR_SPACING/2;
+  const solarGroup = new THREE.Group();
+  solarGroup.userData.tapLabel = 'solar';
+  moonScene.add(solarGroup);
+  for (let row=0; row<SOLAR_ROWS; row++){
+    for (let col=0; col<SOLAR_COLS; col++){
+      const px = SOLAR_X + col*SOLAR_SPACING - solarHalf;
+      const pz = SOLAR_Z + row*SOLAR_SPACING - solarHalf;
+      const panel = buildSolarPanel();
+      panel.position.set(px, getMoonSurfaceY(px,pz), pz);
+      solarGroup.add(panel);
+    }
+  }
+
+  /* ---------- comms tower: taller than the rocket, climbable via a
+     rotating stair sequence -- each platform/flight is offset to a
+     different side per level (never stacking directly above each other
+     in x/z), so the single-valued height field stays unambiguous despite
+     representing a multi-story structure. Offsets are kept just large
+     enough to clear the core lattice collider below (see its reduced
+     radius further down) so platforms nestle between the corner legs
+     instead of reading as balconies bolted far off to one side. ---------- */
+  const TOWER_LEVELS = [
+    { y: 38,  ox: 11, oz: 0   },
+    { y: 78,  ox: 0,  oz: 11  },
+    { y: 118, ox: -11,oz: 0   },
+    { y: 158, ox: 0,  oz: -11 },
+  ];
+  const TOWER_PLATFORM_HALF = 5;
+  const towerGroup = new THREE.Group();
+  towerGroup.userData.tapLabel = 'tower';
+  towerGroup.position.set(TOWER_X, 0, TOWER_Z);
+  moonScene.add(towerGroup);
+
+  const towerTopY = TOWER_LEVELS[TOWER_LEVELS.length-1].y + 6;
+  [[7,7],[7,-7],[-7,7],[-7,-7]].forEach(([lx,lz]) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.7,towerTopY,6), MAT.tower);
+    leg.position.set(lx, towerTopY/2, lz);
+    towerGroup.add(leg);
+  });
+  for (let h=15; h<towerTopY; h+=20){
+    const brace = new THREE.Mesh(new THREE.TorusGeometry(9.5,0.25,5,4), MAT.towerDark);
+    brace.rotation.x = Math.PI/2;
+    brace.rotation.y = Math.PI/4;
+    brace.position.y = h;
+    towerGroup.add(brace);
+  }
+
+  function buildTowerPlatform(){
+    const grp = new THREE.Group();
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(TOWER_PLATFORM_HALF*2, 0.6, TOWER_PLATFORM_HALF*2), MAT.stationWall);
+    grp.add(deck);
+    const railH = 1.1;
+    [[TOWER_PLATFORM_HALF,0],[-TOWER_PLATFORM_HALF,0],[0,TOWER_PLATFORM_HALF],[0,-TOWER_PLATFORM_HALF]].forEach(([rx,rz]) => {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(rx?0.2:TOWER_PLATFORM_HALF*2, railH, rz?0.2:TOWER_PLATFORM_HALF*2), MAT.towerDark);
+      rail.position.set(rx, railH/2+0.3, rz);
+      grp.add(rail);
+    });
+    return grp;
+  }
+
+  // Ground-level start of the first flight, offset outside the core
+  // lattice's (shrunk) collision radius rather than the tower's true
+  // center -- otherwise the flight would begin inside a collider the
+  // player can never actually reach.
+  let prevTowerLevel = { y: 0, ox: 9, oz: 11 };
+  TOWER_LEVELS.forEach((lvl) => {
+    const platform = buildTowerPlatform();
+    platform.position.set(lvl.ox, lvl.y, lvl.oz);
+    towerGroup.add(platform);
+    towerPlatforms.push({ x: TOWER_X+lvl.ox, z: TOWER_Z+lvl.oz, y: lvl.y, half: TOWER_PLATFORM_HALF });
+
+    const fromX = TOWER_X+prevTowerLevel.ox, fromZ = TOWER_Z+prevTowerLevel.oz;
+    const toX = TOWER_X+lvl.ox, toZ = TOWER_Z+lvl.oz;
+    towerStairZones.push({ x0:fromX, z0:fromZ, x1:toX, z1:toZ, yLow: prevTowerLevel.y, yHigh: lvl.y, halfWidth: 3 });
+
+    const stepDx = toX-fromX, stepDz = toZ-fromZ, stepDy = lvl.y-prevTowerLevel.y;
+    const stepLen = Math.hypot(stepDx,stepDz,stepDy);
+    const ramp = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.4, stepLen), MAT.towerDark);
+    ramp.position.set((fromX+toX)/2, (prevTowerLevel.y+lvl.y)/2, (fromZ+toZ)/2);
+    ramp.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), new THREE.Vector3(stepDx,stepDy,stepDz).normalize());
+    moonScene.add(ramp);
+
+    prevTowerLevel = lvl;
+  });
+
+  const topLvl = TOWER_LEVELS[TOWER_LEVELS.length-1];
+  const antennaGroup = new THREE.Group();
+  antennaGroup.position.set(topLvl.ox, topLvl.y+0.3, topLvl.oz);
+  towerGroup.add(antennaGroup);
+  [[3,3],[-3,3],[3,-3],[-3,-3]].forEach(([ax,az]) => {
+    const mastH = rand(4,7);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.12,mastH,5), MAT.towerDark);
+    mast.position.set(ax, mastH/2, az);
+    antennaGroup.add(mast);
+  });
+  const bigDish = new THREE.Mesh(new THREE.CylinderGeometry(5,5,0.8,12), MAT.moonBaseDark);
+  bigDish.rotation.z = 0.55;
+  bigDish.position.set(0, 4.5, 0);
+  antennaGroup.add(bigDish);
+
+  // Small central-shaft collider -- kept well under the diagonal stairs'
+  // closest approach to the tower axis (~7.8 units, offset/sqrt2) so the
+  // spiral staircase between platforms is never blocked by it.
+  moonCollidables.push({ x: TOWER_X, z: TOWER_Z, r: 6 }); // tower core lattice
+  // Vehicles may never drive onto the tower's stairs/platforms; the astronaut
+  // still can (climbing is handled purely via getMoonSurfaceY's height field).
+  // Single enclosing circle covers the full stacked-platform/stair footprint
+  // (farthest reach is the ground-level flight start, ~14 units out).
+  vehicleOnlyCollidables.push({ x: TOWER_X, z: TOWER_Z, r: 20 });
+
+  // Glow is a cheap additive-blended unlit halo mesh, not a THREE.PointLight --
+  // adding 10 more dynamic lights forces a shader recompile for every material
+  // in the scene and tanks frame rate (same lesson as the coin lights elsewhere
+  // in this project: change intensity, never the light count, or avoid lights).
+  function buildCrystal(){
+    const grp = new THREE.Group();
+    const gem = new THREE.Mesh(new THREE.OctahedronGeometry(1.3,0), MAT.crystal);
+    gem.scale.set(1,1.7,1);
+    grp.add(gem);
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.55,0), new THREE.MeshBasicMaterial({ color:0xe6ccff, toneMapped:false }));
+    core.scale.set(1,1.7,1);
+    grp.add(core);
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(2.2,8,6), new THREE.MeshBasicMaterial({
+      color:0xb266ff, transparent:true, opacity:0.28, blending:THREE.AdditiveBlending, toneMapped:false,
+    }));
+    grp.add(halo);
+    return grp;
+  }
+  for(let i=0;i<CRYSTAL_COUNT;i++){
+    let cx=0, cz=0, ok=false, tries=0;
+    do {
+      const a = rand(0,Math.PI*2), d = rand(50,480);
+      cx = Math.cos(a)*d; cz = Math.sin(a)*d;
+      ok = Math.hypot(cx,cz) > 45 && Math.hypot(cx-(-95),cz-(-55)) > 70 && !nearLandmark(cx,cz);
+      tries++;
+    } while(!ok && tries<30);
+    const grp = buildCrystal();
+    const gy = getMoonSurfaceY(cx,cz);
+    grp.position.set(cx, gy+1.4, cz);
+    grp.userData.tapLabel = 'crystal';
+    moonScene.add(grp);
+    crystals.push({ x:cx, z:cz, group:grp, collected:false });
+  }
+
+  // A billboarded sprite instead of a lit sphere -- a 3D globe read as an
+  // object "lying on the ground" out near the horizon; a flat glowing disc,
+  // high in the sky, unambiguously reads as a distant, unreachable body.
+  const earth = buildEarthSprite();
+  earth.position.set(-420, 140, -900);
+  earth.userData.tapLabel = 'earth';
+  moonScene.add(earth);
+
+  const moonSun = new THREE.DirectionalLight(0xffffff,1.3);
+  moonSun.position.set(-150,200,120);
+  moonScene.add(moonSun);
+  const moonAmb = new THREE.HemisphereLight(0x2a2a3a,0x111111,0.35);
+  moonScene.add(moonAmb);
+}
+
+/* ---------- astronaut: rig ported from dhl-city/character.html, restyled as a spacesuit ---------- */
+function astroCyl(rT, rB, h, mat){
+  return new THREE.Mesh(new THREE.CylinderGeometry(rT, rB, h, 6), mat);
+}
+function astroIco(r, mat){
+  return new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat);
+}
+function astroBone(parent, px, py, pz, rT, rB, h, mat){
+  const j = new THREE.Group();
+  j.position.set(px, py, pz);
+  parent.add(j);
+  const b = astroCyl(rT, rB, h, mat);
+  b.position.y = -h/2;
+  j.add(b);
+  return j;
+}
+function buildAstronaut(){
+  const charRoot = new THREE.Group();
+  charRoot.position.y = 0.10;
+
+  const torso = new THREE.Group();
+  torso.position.y = 1.26;
+  charRoot.add(torso);
+  torso.add(astroCyl(0.22, 0.27, 0.62, MAT.suitWhite));
+  const chestPatch = new THREE.Mesh(new THREE.BoxGeometry(0.13,0.13,0.02), MAT.suitAccent);
+  chestPatch.position.set(0.09,0.10,0.24); torso.add(chestPatch);
+  const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.48,0.20), MAT.suitDark);
+  backpack.position.set(0,0.05,-0.25); torso.add(backpack);
+  const backpackTube = astroCyl(0.03,0.03,0.30,MAT.suitDark);
+  backpackTube.rotation.x = 0.5; backpackTube.position.set(0,0.32,-0.10); torso.add(backpackTube);
+
+  // Jetpack boost flame -- reuses the same multi-layer engine-glow look as
+  // the rocket's own engines, just scaled down to backpack size.
+  const jetFlame = buildFlame(0.022);
+  jetFlame.grp.position.set(0, -0.16, -0.25);
+  jetFlame.grp.visible = false;
+  jetFlame.grp.userData = { flames: [jetFlame] };
+  torso.add(jetFlame.grp);
+
+  const neckJoint = astroBone(torso, 0, 0.40, 0, 0.085, 0.09, 0.11, MAT.suitWhite);
+  const headJoint = new THREE.Group();
+  headJoint.position.y = 0.17;
+  neckJoint.add(headJoint);
+
+  const helmet = astroIco(0.185, MAT.suitWhite);
+  helmet.scale.set(1.0, 1.06, 1.0);
+  headJoint.add(helmet);
+  const visor = new THREE.Mesh(new THREE.SphereGeometry(0.145,10,8), MAT.visor);
+  visor.scale.set(1.0, 0.68, 0.62);
+  visor.position.set(0, -0.015, 0.105);
+  headJoint.add(visor);
+  const antenna = astroCyl(0.008,0.008,0.14,MAT.suitDark);
+  antenna.rotation.z = 0.35;
+  antenna.position.set(0.11,0.19,-0.03);
+  headJoint.add(antenna);
+
+  function makeGlove(elbowJoint){
+    const g = new THREE.Group(); g.position.y = -0.27; elbowJoint.add(g);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.072, 6, 5), MAT.suitDark);
+    m.scale.set(1.0, 0.62, 0.92); g.add(m);
+  }
+  function makeShoulderCap(shoulderJoint){
+    const cap = astroIco(0.09, MAT.suitWhite);
+    cap.scale.set(1.05, 0.90, 1.05); shoulderJoint.add(cap);
+  }
+
+  const lShoulder = astroBone(torso, -0.24, 0.22, 0, 0.075, 0.065, 0.30, MAT.suitWhite);
+  makeShoulderCap(lShoulder);
+  const lElbow = astroBone(lShoulder, 0, -0.30, 0, 0.065, 0.055, 0.27, MAT.suitWhite);
+  makeGlove(lElbow);
+
+  const rShoulder = astroBone(torso, 0.24, 0.22, 0, 0.075, 0.065, 0.30, MAT.suitWhite);
+  makeShoulderCap(rShoulder);
+  const rElbow = astroBone(rShoulder, 0, -0.30, 0, 0.065, 0.055, 0.27, MAT.suitWhite);
+  makeGlove(rElbow);
+
+  const hipsGrp = new THREE.Group();
+  hipsGrp.position.y = -0.34;
+  torso.add(hipsGrp);
+  hipsGrp.add(astroCyl(0.24, 0.22, 0.19, MAT.suitWhite));
+
+  function makeBoot(ankleJoint){
+    const fg = new THREE.Group(); fg.position.y = -0.12; ankleJoint.add(fg);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.09, 0.24), MAT.suitDark);
+    m.position.set(0,-0.04,0.075); fg.add(m);
+  }
+  const lHip   = astroBone(hipsGrp, -0.13, -0.095, 0, 0.105, 0.09, 0.38, MAT.suitWhite);
+  const lKnee  = astroBone(lHip,      0,   -0.38,  0, 0.09, 0.078, 0.35, MAT.suitWhite);
+  const lAnkle = astroBone(lKnee,     0,   -0.35,  0, 0.078, 0.068, 0.12, MAT.suitWhite);
+  makeBoot(lAnkle);
+
+  const rHip   = astroBone(hipsGrp,  0.13, -0.095, 0, 0.105, 0.09, 0.38, MAT.suitWhite);
+  const rKnee  = astroBone(rHip,      0,   -0.38,  0, 0.09, 0.078, 0.35, MAT.suitWhite);
+  const rAnkle = astroBone(rKnee,     0,   -0.35,  0, 0.078, 0.068, 0.12, MAT.suitWhite);
+  makeBoot(rAnkle);
+
+  return { charRoot, torso, headJoint, lShoulder, rShoulder, lElbow, rElbow, hipsGrp, lHip, rHip, lKnee, rKnee, lAnkle, rAnkle, jetFlame };
+}
+const astro = buildAstronaut();
+moonScene.add(astro.charRoot);
+astro.charRoot.visible = false;
+
+/* ---------- particle puffs (smoke / fire / dust) ---------- */
+const puffGeo = new THREE.SphereGeometry(1,8,6);
+const activePuffs = [];
+function spawnPuff(pos, opts, targetGroup){
+  const target = targetGroup || launchScene;
+  const mat = new THREE.MeshStandardMaterial({
+    color: opts.color, flatShading:false, roughness:1, transparent:true,
+    opacity: opts.opacity ?? 0.85,
+    emissive: opts.emissive ?? 0x000000,
+    emissiveIntensity: opts.emissiveIntensity ?? 0,
+  });
+  const mesh = new THREE.Mesh(puffGeo, mat);
+  mesh.position.copy(pos);
+  const scale0 = opts.scale0 ?? 1.2;
+  mesh.scale.setScalar(scale0);
+  mesh.userData = {
+    vel: opts.vel.clone(),
+    growth: opts.growth ?? 6,
+    life: 0, maxLife: opts.maxLife ?? 3.2,
+    fadeFrom: opts.fadeFrom ?? 0.6,
+    drag: opts.drag ?? 0.94,
+    maxScale: opts.maxScale ?? 40,
+  };
+  target.add(mesh);
+  activePuffs.push(mesh);
+}
+// Bright, additive-blended burst particle (same look as the main engine
+// flames' MeshBasicMaterial+toneMapped:false treatment) instead of the
+// matte MeshStandardMaterial smoke/dust puffs above -- for short-lived fire
+// effects like the RCS thrusters rather than billowing smoke.
+function spawnFlamePuff(pos, opts, targetGroup){
+  const target = targetGroup || launchScene;
+  const mat = new THREE.MeshBasicMaterial({
+    color: opts.color, transparent:true, opacity: opts.opacity ?? 0.9,
+    blending: THREE.AdditiveBlending, toneMapped:false,
+  });
+  const mesh = new THREE.Mesh(puffGeo, mat);
+  mesh.position.copy(pos);
+  const scale0 = opts.scale0 ?? 1.0;
+  mesh.scale.setScalar(scale0);
+  mesh.userData = {
+    vel: opts.vel.clone(),
+    growth: opts.growth ?? 2,
+    life: 0, maxLife: opts.maxLife ?? 0.3,
+    fadeFrom: opts.fadeFrom ?? 0.1,
+    drag: opts.drag ?? 0.85,
+    maxScale: opts.maxScale ?? 2,
+  };
+  target.add(mesh);
+  activePuffs.push(mesh);
+}
+function updatePuffs(dt){
+  for(let i=activePuffs.length-1;i>=0;i--){
+    const p = activePuffs[i], d = p.userData;
+    d.life += dt;
+    p.position.addScaledVector(d.vel, dt);
+    d.vel.multiplyScalar(d.drag);
+    const grown = p.scale.x + d.growth*dt;
+    p.scale.setScalar(Math.min(grown, d.maxScale));
+    const lt = d.life/d.maxLife;
+    p.material.opacity = lt < d.fadeFrom ? p.material.opacity : Math.max(0, p.material.opacity - dt*1.4);
+    if (d.life > d.maxLife || p.material.opacity<=0.01){
+      if (p.parent) p.parent.remove(p);
+      p.material.dispose();
+      activePuffs.splice(i,1);
+    }
+  }
+}
+
+let groundDustAccum = 0;
+function spawnGroundDust(dt, x, z, groundY, strength, big){
+  if (strength <= 0.02){ groundDustAccum = 0; return; }
+  groundDustAccum += dt;
+  const rate = big ? 10 : 5;
+  const interval = 1/(rate*strength + 0.5);
+  while (groundDustAccum > interval){
+    groundDustAccum -= interval;
+    const spread = big ? 1.2 : 0.35;
+    spawnPuff(new THREE.Vector3(x+rand(-spread,spread), groundY+0.1, z+rand(-spread,spread)), {
+      color: 0xb9ad95, opacity: rand(0.3,0.5) * (big?1.1:1),
+      vel: new THREE.Vector3(rand(-1,1)*(big?3:1), rand(0.6,1.6)*(big?1.6:1), rand(-1,1)*(big?3:1)),
+      growth: rand(1,1.8)*(big?1.8:1), maxLife: rand(0.5,0.9), scale0: rand(0.2,0.4)*(big?2:1),
+      fadeFrom: 0.3, drag: 0.9, maxScale: big ? 3.4 : 1.4,
+    }, moonScene);
+  }
+}
+
+const crystalCountEl = document.getElementById('crystalCount');
+function updateCrystals(dt, tt, px, pz){
+  for (const c of crystals){
+    if (c.collected) continue;
+    c.group.rotation.y += dt*0.8;
+    c.group.position.y = getMoonSurfaceY(c.x,c.z) + 1.4 + Math.sin(tt*1.6 + c.x)*0.15;
+    const dd = Math.hypot(px-c.x, pz-c.z);
+    if (dd < 3.0){
+      c.collected = true;
+      c.group.visible = false;
+      crystalsCollected++;
+      crystalCountEl.textContent = `${crystalsCollected} / ${CRYSTAL_COUNT}`;
+      playCollectChime();
+      spawnPuff(new THREE.Vector3(c.x, c.group.position.y, c.z), {
+        color: 0xc07bff, opacity: 0.9, emissive: 0xc07bff, emissiveIntensity: 1.2,
+        vel: new THREE.Vector3(0,3,0), growth: 8, maxLife: 0.5, scale0: 0.3,
+        fadeFrom: 0.2, drag: 0.9, maxScale: 3,
+      }, moonScene);
+    }
+  }
+}
+
+/* ---------- audio: procedural sound effects (Web Audio API, no external assets) ---------- */
+let audioCtx = null;
+let masterGain = null;
+function ensureAudio(){
+  if (!audioCtx){
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    audioCtx = new Ctx();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 1;
+    const compressor = audioCtx.createDynamicsCompressor();
+    masterGain.connect(compressor);
+    compressor.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq, dur, type, gainPeak, when){
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t0 = ctx.currentTime + (when||0);
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.linearRampToValueAtTime(gainPeak, t0+0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+  osc.connect(gain); gain.connect(masterGain);
+  osc.start(t0); osc.stop(t0+dur+0.02);
+}
+function playNoiseBurst(dur, gainPeak, filterFreq){
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const n = Math.max(1, Math.floor(ctx.sampleRate*dur));
+  const buffer = ctx.createBuffer(1, n, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i=0;i<n;i++) data[i] = (Math.random()*2-1) * (1 - i/n);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = filterFreq || 1200;
+  const gain = ctx.createGain();
+  gain.gain.value = gainPeak;
+  src.connect(filter); filter.connect(gain); gain.connect(masterGain);
+  src.start();
+}
+function playStep(){ playNoiseBurst(0.07, 0.14, 850); }
+function playJump(){
+  playNoiseBurst(0.18, 0.10, 700);
+  playTone(180, 0.14, 'sine', 0.07, 0.01);
+}
+function playLand(){ playNoiseBurst(0.11, 0.20, 480); }
+function playCollectChime(){
+  playTone(660, 0.14, 'sine', 0.22);
+  playTone(990, 0.16, 'sine', 0.16, 0.05);
+  playTone(1320, 0.18, 'sine', 0.12, 0.10);
+}
+function playJetBoost(){
+  playNoiseBurst(0.5, 0.22, 2200);
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t0 = ctx.currentTime;
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(160, t0);
+  osc.frequency.exponentialRampToValueAtTime(420, t0+0.45);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.linearRampToValueAtTime(0.22, t0+0.05);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0+0.5);
+  osc.connect(gain); gain.connect(masterGain);
+  osc.start(t0); osc.stop(t0+0.52);
+}
+
+// Driving no longer has an engine hum -- just a sparse, quiet crackle
+// (like a cooling chassis / static), rate rising a little with speed.
+// Shared by whichever vehicle is currently occupied (only one at a time).
+let engineActive = false, engineCrackleAccum = 0;
+function startEngineSound(){
+  engineActive = true;
+  engineCrackleAccum = 0;
+}
+function stopEngineSound(){
+  engineActive = false;
+}
+function updateEngineSound(dt, speedRatio){
+  if (!engineActive) return;
+  engineCrackleAccum += dt;
+  const rate = 2.5 + Math.abs(speedRatio)*7; // crackles per second
+  const interval = 1/rate;
+  while (engineCrackleAccum > interval){
+    engineCrackleAccum -= interval;
+    playNoiseBurst(rand(0.012,0.03), rand(0.012,0.03), rand(2200,4000));
+  }
+}
+
+// Rocket launch rumble: two detuned low sawtooths pushed through a slow LFO
+// for a "grumble" texture, plus a one-shot ignition crack -- there was no
+// audio at all for launch before this, only a camera shake.
+let rumbleNodes = null;
+function startLaunchRumble(){
+  const ctx = ensureAudio();
+  if (!ctx || rumbleNodes) return;
+  const osc1 = ctx.createOscillator(); osc1.type = 'sawtooth'; osc1.frequency.value = 45;
+  const osc2 = ctx.createOscillator(); osc2.type = 'sawtooth'; osc2.frequency.value = 62;
+  const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 5.5;
+  const lfoGain = ctx.createGain(); lfoGain.gain.value = 18;
+  lfo.connect(lfoGain); lfoGain.connect(osc1.frequency); lfoGain.connect(osc2.frequency);
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = 150;
+  const gain = ctx.createGain();
+  gain.gain.value = 0.0001;
+  osc1.connect(filter); osc2.connect(filter); filter.connect(gain); gain.connect(masterGain);
+  osc1.start(); osc2.start(); lfo.start();
+  rumbleNodes = { osc1, osc2, lfo, filter, gain };
+}
+function updateLaunchRumble(intensity){
+  if (!rumbleNodes) return;
+  const ctx = ensureAudio();
+  rumbleNodes.gain.gain.linearRampToValueAtTime(0.05 + intensity*0.22, ctx.currentTime+0.08);
+  rumbleNodes.filter.frequency.value = 150 + intensity*300;
+}
+function stopLaunchRumble(){
+  if (!rumbleNodes) return;
+  const ctx = ensureAudio();
+  rumbleNodes.gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+1.2);
+  const nodes = rumbleNodes;
+  rumbleNodes = null;
+  setTimeout(() => { nodes.osc1.stop(); nodes.osc2.stop(); nodes.lfo.stop(); }, 1300);
+}
+function playIgnitionCrack(){ playNoiseBurst(1.4, 0.3, 180); }
+
+// Faint, unobtrusive atmospheric drone -- started once gameplay begins and
+// left running (root/fifth/octave sines, each independently detuned for slow
+// movement) at a deliberately low target gain.
+let ambientNodes = null;
+function startAmbientMusic(){
+  const ctx = ensureAudio();
+  if (!ctx || ambientNodes) return;
+  const freqs = [55, 82.5, 110];
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = 500;
+  const master = ctx.createGain();
+  master.gain.value = 0.0001;
+  filter.connect(master); master.connect(masterGain);
+  const oscs = [];
+  freqs.forEach((f,i) => {
+    const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = f;
+    const detune = ctx.createOscillator(); detune.type = 'sine'; detune.frequency.value = 0.05 + i*0.02;
+    const detuneGain = ctx.createGain(); detuneGain.gain.value = 2.5;
+    detune.connect(detuneGain); detuneGain.connect(osc.detune);
+    const g = ctx.createGain(); g.gain.value = 0.28/(i+1);
+    osc.connect(g); g.connect(filter);
+    osc.start(); detune.start();
+    oscs.push(osc, detune);
+  });
+  master.gain.linearRampToValueAtTime(0.035, ctx.currentTime+3.0);
+  ambientNodes = { oscs, master, filter };
+}
+
+/* ---------- timeline / state ---------- */
+const T_COUNTDOWN = 10.0;
+const T_IGNITE = 9.4;
+const T_LIFTOFF = 10.6;
+// Ascent curve saturates well after the cut (T_BLACK) so the ship is still
+// visibly climbing at full thrust when the scene cuts. A lower exponent than
+// a "slow-start" curve would use keeps the climb rate visible early on too,
+// instead of barely moving for the first several seconds after liftoff.
+const T_ASCENT_END = 38.0;
+const T_BLACK = 34.0;
+// No fade-to-black cut anymore -- the moon scene becomes visible in the same
+// instant the launch scene is swapped out, so this equals T_BLACK exactly
+// instead of leaving a gap that used to be masked by the black overlay.
+const T_MOON_IN = T_BLACK;
+const T_MOON_TOUCHDOWN = T_MOON_IN + 10;
+const ASCENT_DIST = 700;
+const ASCENT_EXP = 1.8;
+const MOON_START_Y = 260;
+const LOW_ALT_THRESHOLD = 90;
+const SEPARATION_ALT = 320;
+const FALL_G = 14;
+
+/* post-landing cutscene: ramp out, hatch open, astronaut walks down, camera hands off */
+const T_RAMP_START = T_MOON_TOUCHDOWN + 1.2;
+const T_RAMP_END = T_RAMP_START + 2.4;
+const T_HATCH_CUT = T_RAMP_START + 0.9;
+const T_HATCH_OPEN_START = T_HATCH_CUT + 0.3;
+const T_HATCH_OPEN_END = T_HATCH_OPEN_START + 1.4;
+const T_WALK_START = T_HATCH_OPEN_END + 0.2;
+const T_WALK_END = T_WALK_START + 3.6;
+const T_HANDOFF = T_WALK_END + 2.0;
+
+function currentAltitude(tt){
+  if (tt < T_LIFTOFF) return 0;
+  const p = clamp((tt - T_LIFTOFF)/(T_ASCENT_END - T_LIFTOFF), 0, 1);
+  return ASCENT_DIST * Math.pow(p, ASCENT_EXP);
+}
+function altitudeVelocity(tt){
+  const h = 0.05;
+  return (currentAltitude(tt+h) - currentAltitude(tt-h)) / (2*h);
+}
+
+let t = 0;
+let state = null;
+function freshState(){
+  return { moonSwapped:false, separated:false, sepTime:0, sepVelY:0, sepX0:0, sepY0:0, sepZ0:0, rumbleStarted:false };
+}
+state = freshState();
+let smokeAccum = 0, trailAccum = 0, dustAccum = 0;
+
+/* ---------- sky colors ---------- */
+const skyDayTop="#8ec9f0", skyDayBot="#cfe9ff";
+const skyDuskTop="#3b3f6b", skyDuskBot="#e08a5a";
+const skyNightTop="#03040c", skyNightBot="#0c0e22";
+const skyEl = document.getElementById("sky");
+const fogColorDay = new THREE.Color(0xbfe0ff);
+const fogColorNight = new THREE.Color(0x03040c);
+scene.fog = new THREE.Fog(fogColorDay.getHex(), 500, 1900);
+
+function hexLerp(c1,c2,t){
+  const a = new THREE.Color(c1), b = new THREE.Color(c2);
+  return "#" + a.lerp(b,t).getHexString();
+}
+function updateSky(tt){
+  const p = clamp(currentAltitude(tt)/ASCENT_DIST, 0, 1);
+  let top, bot;
+  if (p < 0.5){
+    const q = p/0.5;
+    top = hexLerp(skyDayTop, skyDuskTop, q);
+    bot = hexLerp(skyDayBot, skyDuskBot, q);
+  } else {
+    const q = (p-0.5)/0.5;
+    top = hexLerp(skyDuskTop, skyNightTop, q);
+    bot = hexLerp(skyDuskBot, skyNightBot, q);
+  }
+  skyEl.style.background = `linear-gradient(${top},${bot})`;
+  scene.fog.color.copy(fogColorDay).lerp(fogColorNight, p);
+  stars.material.opacity = smoothstep(0.55,0.95,p);
+}
+
+/* ---------- countdown UI ---------- */
+const cdEl = document.getElementById("countdown");
+function updateCountdown(tt){
+  if (tt < T_COUNTDOWN){
+    const n = Math.ceil(T_COUNTDOWN - tt);
+    cdEl.textContent = String(Math.max(n,0));
+    cdEl.style.opacity = tt < 0.6 ? tt/0.6 : 1;
+  } else if (tt < T_COUNTDOWN + 0.8){
+    cdEl.textContent = "0";
+    cdEl.style.opacity = 1 - (tt - T_COUNTDOWN)/0.8;
+  } else {
+    cdEl.style.opacity = 0;
+  }
+}
+
+/* ---------- glow div (screen-space engine flare) ---------- */
+const glowEl = document.getElementById("glow");
+const projV = new THREE.Vector3();
+function updateGlow(worldPos, intensity){
+  if (intensity <= 0.01){ glowEl.style.opacity = 0; return; }
+  projV.copy(worldPos).project(camera);
+  const x = (projV.x*0.5+0.5)*innerWidth;
+  const y = (-projV.y*0.5+0.5)*innerHeight;
+  glowEl.style.left = x+"px";
+  glowEl.style.top = y+"px";
+  glowEl.style.opacity = intensity;
+}
+
+/* ---------- ignition / liftoff smoke: huge, glowing core, becomes the low cloud deck ---------- */
+function spawnLaunchSmoke(dt, centerX){
+  smokeAccum += dt;
+  const rate = 20;
+  const interval = 1/rate;
+  while (smokeAccum > interval){
+    smokeAccum -= interval;
+    const ang = rand(0,Math.PI*2);
+    const dist = Math.pow(Math.random(),0.6)*46;
+    const originX = centerX + Math.cos(ang)*dist;
+    const originZ = Math.sin(ang)*dist;
+    const fiery = dist < 15 && Math.random() < 0.55;
+    if (fiery){
+      spawnPuff(new THREE.Vector3(originX, rand(1,9), originZ), {
+        color:0xffb347, emissive:0xff5a10, emissiveIntensity:1.7,
+        opacity:0.95, vel:new THREE.Vector3((originX-centerX)*0.6+rand(-4,4), rand(9,18), (originZ)*0.6+rand(-4,4)),
+        growth:rand(9,14), maxLife:rand(0.8,1.4), scale0:rand(1.6,2.6), fadeFrom:0.3, drag:0.92, maxScale:6,
+      });
+    } else {
+      spawnPuff(new THREE.Vector3(originX, rand(1,10), originZ), {
+        color:0xf6f4ef, opacity:rand(0.78,0.94),
+        vel:new THREE.Vector3((originX-centerX)*0.45+rand(-10,10), rand(5,11), originZ*0.45+rand(-10,10)),
+        growth:rand(5,8), maxLife:rand(16,24), scale0:rand(2.6,4), fadeFrom:0.88, drag:0.986, maxScale:17,
+      });
+    }
+  }
+}
+
+function spawnEngineTrail(dt, worldPos, scale){
+  trailAccum += dt;
+  const rate = 22;
+  const interval = 1/rate;
+  while (trailAccum > interval){
+    trailAccum -= interval;
+    const fiery = Math.random() < 0.75;
+    spawnPuff(new THREE.Vector3(worldPos.x+rand(-1.5,1.5)*scale, worldPos.y+rand(-2,1)*scale, worldPos.z+rand(-1.5,1.5)*scale), {
+      color: fiery?0xffb347:0xffe4b8,
+      emissive: fiery?0xff5a10:0xffaa55,
+      emissiveIntensity: fiery?1.9:0.9,
+      opacity:0.92,
+      vel:new THREE.Vector3(rand(-4,4)*scale, rand(-16,-5)*scale, rand(-4,4)*scale),
+      growth:rand(4,7)*scale, maxLife:rand(0.35,0.65), scale0:rand(0.8,1.4)*scale, fadeFrom:0.2, drag:0.9, maxScale:6*scale,
+    });
+  }
+}
+
+function spawnMoonDust(dt, rocketWorldPos, closeness){
+  dustAccum += dt;
+  const interval = 1/(18*closeness+2);
+  while (dustAccum > interval){
+    dustAccum -= interval;
+    spawnPuff(new THREE.Vector3(rocketWorldPos.x+rand(-4,4), 0.5, rocketWorldPos.z+rand(-4,4)), {
+      color: 0xb9ad95, opacity: rand(0.5,0.75),
+      vel: new THREE.Vector3(rand(-30,30), rand(2,6), rand(-30,30)),
+      growth: rand(3,6), maxLife: rand(1.6,2.6), scale0: rand(0.8,1.4), fadeFrom:0.4, drag:0.98, maxScale:8,
+    }, moonScene);
+  }
+}
+
+let rcsAccum = 0, rcsNextFire = rand(0.6,1.4), rcsLastIdx = -1;
+const RCS_FLAME_COLORS = [0xfff2c8, 0xffa93c, 0xff7a1a];
+function spawnRCS(dt){
+  rcsAccum += dt;
+  if (rcsAccum < rcsNextFire) return;
+  rcsAccum = 0; rcsNextFire = rand(0.5,1.2);
+  const offsets = shipPart.userData.rcsOffsets;
+  // Randomized, but never the same nozzle twice in a row -- reads as the
+  // thrusters taking turns firing instead of one flickering repeatedly
+  // while its neighbors stay dark.
+  let idx = Math.floor(Math.random()*offsets.length);
+  if (offsets.length > 1 && idx === rcsLastIdx) idx = (idx+1) % offsets.length;
+  rcsLastIdx = idx;
+  const off = offsets[idx];
+  const local = new THREE.Vector3(off[0], off[1], off[2]);
+  const worldPos = shipPart.localToWorld(local.clone());
+  const outDir = new THREE.Vector3(off[0], 0, off[2]).normalize();
+  for(let i=0;i<4;i++){
+    spawnFlamePuff(worldPos.clone().addScaledVector(outDir, i*0.35), {
+      color: RCS_FLAME_COLORS[Math.min(i, RCS_FLAME_COLORS.length-1)],
+      opacity: 0.95 - i*0.12,
+      vel: new THREE.Vector3(outDir.x*rand(30,46), rand(-1.5,1.5), outDir.z*rand(30,46)),
+      growth: rand(1.5,3), maxLife: rand(0.14,0.24), scale0: rand(0.4,0.6)*(1-i*0.12),
+      fadeFrom: 0.05, drag: 0.8, maxScale: 1.1,
+    }, moonScene);
+  }
+}
+
+/* ---------- camera rig ---------- */
+const camState = { y: 70 };
+camera.position.set(215, 70, 265);
+
+// A billboarded moon, fixed in the launch sky, visible once the sky has
+// darkened. The late-ascent camera (below) holds framing on it instead of
+// endlessly chasing the ship upward, so the still-climbing upper stage
+// visibly flies up out of frame past it rather than the camera keeping it
+// perfectly centered forever.
+function buildLaunchMoonSprite(){
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(size/2,size/2,0, size/2,size/2,size/2);
+  grad.addColorStop(0, 'rgba(230,228,222,1)');
+  grad.addColorStop(0.75, 'rgba(190,188,182,1)');
+  grad.addColorStop(0.92, 'rgba(150,148,144,0.9)');
+  grad.addColorStop(1, 'rgba(150,148,144,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(size/2,size/2,size/2,0,Math.PI*2); ctx.fill();
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent:true, depthWrite:false, toneMapped:false });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(90,90,1);
+  return sprite;
+}
+const launchMoon = buildLaunchMoonSprite();
+launchMoon.position.set(PAD_X - 150, 520, -350);
+launchScene.add(launchMoon);
+const HOLD_CAM_Y = 340;
+
+function updateCameraLaunch(altitude, tt){
+  const targetY = 70 + altitude;
+  camState.y = lerp(camState.y, targetY, 0.06);
+  let shakeX=0, shakeY=0;
+  if (tt > T_IGNITE-0.4 && tt < T_LIFTOFF+1.2){
+    const amt = smoothstep(T_IGNITE-0.4,T_IGNITE+0.4,tt) * (1-smoothstep(T_LIFTOFF+0.4,T_LIFTOFF+1.2,tt));
+    shakeX = Math.sin(tt*47)*amt*1.4;
+    shakeY = Math.cos(tt*53)*amt*1.1;
+  }
+  // In the final stretch before the cut, stop chasing the ship's rise and
+  // hold on the moon instead -- the ship keeps climbing at full thrust and
+  // visibly flies up out of frame past it. There's no fade-to-black at the
+  // cut anymore, so the camera position/XZ is also blended toward the exact
+  // spot updateCameraMoon starts from (150,200) -- that way the scene swap
+  // is a hard cut only in *content*, not a visible camera teleport too.
+  const holdBlend = smoothstep(T_BLACK-8, T_BLACK-2, tt);
+  const camY = lerp(camState.y, HOLD_CAM_Y, holdBlend);
+  const camX = lerp(215, 150, holdBlend);
+  const camZ = lerp(265, 200, holdBlend);
+  const lookX = lerp(PAD_X, launchMoon.position.x, holdBlend);
+  const lookY = lerp(camState.y-5, launchMoon.position.y, holdBlend);
+  const lookZ = lerp(0, launchMoon.position.z, holdBlend);
+  camera.position.set(camX+shakeX, camY+shakeY, camZ);
+  camera.lookAt(lookX, lookY, lookZ);
+}
+function updateCameraMoon(altitude){
+  const targetY = 90 + altitude*0.55;
+  camState.y = lerp(camState.y, targetY, 0.05);
+  camera.position.set(150, camState.y, 200);
+  camera.lookAt(PAD_X, camState.y*0.6, 0);
+}
+
+/* ---------- input (keyboard + virtual joystick, ported from toy-story/gameplay/player.js) ---------- */
+const keys = { up:false, down:false, left:false, right:false };
+let jumpBuf = false;
+document.addEventListener('keydown', e => {
+  ensureAudio();
+  if (e.key==='ArrowUp'   ||e.key==='w'||e.key==='W') keys.up    = true;
+  if (e.key==='ArrowDown' ||e.key==='s'||e.key==='S') keys.down  = true;
+  if (e.key==='ArrowLeft' ||e.key==='a'||e.key==='A') keys.left  = true;
+  if (e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right = true;
+  if (e.key===' ') { jumpBuf = true; e.preventDefault(); }
+  if (e.key==='e'||e.key==='E'||e.key==='f'||e.key==='F') { actionBuf = true; }
+});
+document.addEventListener('keyup', e => {
+  if (e.key==='ArrowUp'   ||e.key==='w'||e.key==='W') keys.up    = false;
+  if (e.key==='ArrowDown' ||e.key==='s'||e.key==='S') keys.down  = false;
+  if (e.key==='ArrowLeft' ||e.key==='a'||e.key==='A') keys.left  = false;
+  if (e.key==='ArrowRight'||e.key==='d'||e.key==='D') keys.right = false;
+});
+
+// Virtual 360° joystick: analog direction, blended with keyboard each frame via curInput.
+const touchMove = { forward:0, back:0, left:0, right:0 };
+const curInput  = { fwd:0, back:0, left:0, right:0 };
+function refreshInput(){
+  curInput.fwd   = Math.max(keys.up?1:0,    touchMove.forward);
+  curInput.back  = Math.max(keys.down?1:0,  touchMove.back);
+  curInput.left  = Math.max(keys.left?1:0,  touchMove.left);
+  curInput.right = Math.max(keys.right?1:0, touchMove.right);
+}
+const joyEl = document.getElementById('joystick');
+const knobEl = document.getElementById('joystick-knob');
+const JOY_RADIUS = 50;
+let joyPointerId = null;
+function setJoyFromPoint(clientX, clientY){
+  const rect = joyEl.getBoundingClientRect();
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  let dx = clientX-cx, dy = clientY-cy;
+  const dist = Math.hypot(dx,dy);
+  if (dist > JOY_RADIUS){ dx = dx/dist*JOY_RADIUS; dy = dy/dist*JOY_RADIUS; }
+  knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+  touchMove.left    = Math.max(0, -dx/JOY_RADIUS);
+  touchMove.right   = Math.max(0,  dx/JOY_RADIUS);
+  touchMove.forward = Math.max(0, -dy/JOY_RADIUS);
+  touchMove.back    = Math.max(0,  dy/JOY_RADIUS);
+}
+function resetJoy(){
+  knobEl.style.transform = '';
+  touchMove.forward = touchMove.back = touchMove.left = touchMove.right = 0;
+  joyPointerId = null;
+}
+joyEl.addEventListener('pointerdown', e => {
+  ensureAudio();
+  joyPointerId = e.pointerId;
+  joyEl.setPointerCapture(e.pointerId);
+  setJoyFromPoint(e.clientX, e.clientY);
+  e.preventDefault();
+});
+joyEl.addEventListener('pointermove', e => {
+  if (joyPointerId !== e.pointerId) return;
+  setJoyFromPoint(e.clientX, e.clientY);
+  e.preventDefault();
+});
+['pointerup','pointercancel','pointerleave'].forEach(evt => {
+  joyEl.addEventListener(evt, e => { if (joyPointerId === e.pointerId) resetJoy(); });
+});
+
+const jumpEl = document.getElementById('jumpBtn');
+jumpEl.addEventListener('pointerdown', e => { ensureAudio(); jumpBuf=true; jumpEl.classList.add('on'); e.preventDefault(); });
+jumpEl.addEventListener('pointerup',    () => jumpEl.classList.remove('on'));
+jumpEl.addEventListener('pointerleave', () => jumpEl.classList.remove('on'));
+
+let actionBuf = false;
+const actionEl = document.getElementById('actionBtn');
+actionEl.addEventListener('pointerdown', e => { ensureAudio(); actionBuf=true; actionEl.classList.add('on'); e.preventDefault(); });
+actionEl.addEventListener('pointerup',    () => actionEl.classList.remove('on'));
+actionEl.addEventListener('pointerleave', () => actionEl.classList.remove('on'));
+
+/* ---------- fullscreen toggle ---------- */
+const fsBtn = document.getElementById('fullscreenBtn');
+function isFullscreen(){ return !!document.fullscreenElement; }
+// Forces any lingering pinch/double-tap browser zoom back to 1.0 -- rewriting
+// the viewport meta tag to the SAME value is a no-op, so this briefly swaps
+// it to a plain value and restores the original on the next frame, which is
+// enough to make mobile Safari snap the effective zoom back to normal.
+function resetZoom(){
+  const meta = document.querySelector('meta[name="viewport"]');
+  if (meta){
+    const original = meta.getAttribute('content');
+    meta.setAttribute('content', 'width=device-width, initial-scale=1.0');
+    requestAnimationFrame(() => {
+      meta.setAttribute('content', original);
+      scheduleResize();
+    });
+  }
+  window.scrollTo(0, 0);
+}
+function toggleFullscreen(){
+  resetZoom();
+  ensureAudio();
+  if (!isFullscreen()) document.documentElement.requestFullscreen?.().catch(() => {});
+  else document.exitFullscreen?.();
+}
+if (!document.documentElement.requestFullscreen){
+  fsBtn.style.display = 'none';
+} else {
+  fsBtn.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', () => fsBtn.classList.toggle('on', isFullscreen()));
+}
+
+const isMobile = matchMedia('(pointer: coarse)').matches || innerWidth < 820;
+const MOBILE_CAM_MULT = 2.0;
+
+// Mobile/tablet-only drag-to-look: dragging anywhere on the game canvas
+// (not the joystick/buttons, which are separate DOM elements layered above
+// it and get the touch first) offsets the camera's look direction without
+// touching charYaw/roverAngle/bigRigAngle -- so where you're LOOKING stays
+// independent of where you're actually WALKING/DRIVING, exactly like the
+// existing joystick already keeps movement independent of camera framing.
+let camYawOffset = 0, camPitchOffset = 0;
+
+// Tapping (as opposed to dragging) an object shows a short, context-specific
+// remark from the astronaut -- purely cosmetic flavor text, no gameplay
+// effect. Reuses the same tagged-object convention (userData.tapLabel) set
+// on every taggable group/mesh at build time.
+const speechCaptionEl = document.getElementById('speechCaption');
+const TAP_LINES = {
+  base:    ['Zurück zur Landebasis.', 'Von hier ging alles los.'],
+  station: ['Die Raumstation -- beeindruckend, wie sie hier steht.', 'Dort drüben wohnt der Rest der Crew.'],
+  road:    ['Eine ordentliche Straße, praktisch für die Anfahrt.'],
+  solar:   ['Der Solarpark versorgt die ganze Basis mit Energie.'],
+  tower:   ['Der Funkmast -- höher als die Rakete selbst.', 'Von der obersten Plattform hat man sicher einen tollen Blick.'],
+  rock:    ['Ein alter Mondfelsen. Den könnte ich hochklettern.'],
+  stone:   ['Ein kleiner Stein -- den könnte ich mitnehmen.'],
+  crystal: ['Ein leuchtender Kristall! Den sollte ich einsammeln.'],
+  earth:   ['Die Erde... so weit weg von hier.', 'Zuhause sieht von hier ganz klein aus.'],
+  rover:   ['Der Rover -- mein treuer Begleiter für kurze Strecken.'],
+  bigrig:  ['Das große Rig -- ein echtes Kraftpaket.'],
+};
+let captionTimer = null;
+function showSpeechCaption(text){
+  speechCaptionEl.textContent = text;
+  speechCaptionEl.classList.add('show');
+  clearTimeout(captionTimer);
+  captionTimer = setTimeout(() => speechCaptionEl.classList.remove('show'), 2600);
+}
+const tapRaycaster = new THREE.Raycaster();
+function handleWorldTap(clientX, clientY){
+  if (!gameMode) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+  const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
+  tapRaycaster.setFromCamera({ x: ndcX, y: ndcY }, camera);
+  const hits = tapRaycaster.intersectObjects(moonScene.children, true);
+  for (const hit of hits){
+    let obj = hit.object;
+    while (obj){
+      const label = obj.userData && obj.userData.tapLabel;
+      if (label){
+        const lines = TAP_LINES[label];
+        if (lines) showSpeechCaption(lines[Math.floor(Math.random()*lines.length)]);
+        return;
+      }
+      obj = obj.parent;
+    }
+  }
+}
+
+if (isMobile){
+  let lookPointerId = null, lookLastX = 0, lookLastY = 0, lookDragDist = 0;
+  renderer.domElement.addEventListener('pointerdown', e => {
+    lookPointerId = e.pointerId;
+    lookLastX = e.clientX; lookLastY = e.clientY;
+    lookDragDist = 0;
+    renderer.domElement.setPointerCapture(e.pointerId);
+  });
+  renderer.domElement.addEventListener('pointermove', e => {
+    if (lookPointerId !== e.pointerId) return;
+    const dx = e.clientX - lookLastX, dy = e.clientY - lookLastY;
+    lookLastX = e.clientX; lookLastY = e.clientY;
+    lookDragDist += Math.hypot(dx,dy);
+    camYawOffset -= dx * 0.006;
+    camPitchOffset = clamp(camPitchOffset + dy * 0.004, -0.5, 0.5);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(evt => {
+    renderer.domElement.addEventListener(evt, e => {
+      if (lookPointerId !== e.pointerId) return;
+      // Barely-moved pointer-up reads as a tap on an object, not a look-drag.
+      if (evt === 'pointerup' && lookDragDist < 12) handleWorldTap(e.clientX, e.clientY);
+      lookPointerId = null;
+    });
+  });
+}
+
+/* ---------- minimap (ported concept from dhl-city/index.html drawMM) ---------- */
+const mmCanvas = document.getElementById('minimap');
+const mmCtx = mmCanvas.getContext('2d');
+const STATION_MARK = { x:-95, z:-55 };
+function drawMinimap(px, pz, pAngle){
+  const w = mmCanvas.width, h = mmCanvas.height, cx = w/2, cy = h/2, sc = w/700;
+  mmCtx.clearRect(0,0,w,h);
+  mmCtx.save();
+  mmCtx.beginPath(); mmCtx.arc(cx,cy,cx-1,0,Math.PI*2); mmCtx.clip();
+  mmCtx.fillStyle = 'rgba(10,12,20,0.55)'; mmCtx.fillRect(0,0,w,h);
+  mmCtx.translate(cx,cy);
+  mmCtx.rotate(pAngle);
+  const mx = x => -(x-px)*sc, mz = z => -(z-pz)*sc;
+  mmCtx.fillStyle = '#8fd0ff';
+  mmCtx.beginPath(); mmCtx.arc(mx(PAD_X), mz(0), 5, 0, Math.PI*2); mmCtx.fill();
+  mmCtx.fillStyle = '#c9a6ff';
+  mmCtx.beginPath(); mmCtx.arc(mx(STATION_MARK.x), mz(STATION_MARK.z), 4, 0, Math.PI*2); mmCtx.fill();
+  if (!inVehicle){
+    mmCtx.fillStyle = '#ffcc55';
+    mmCtx.beginPath(); mmCtx.arc(mx(roverX), mz(roverZ), 4, 0, Math.PI*2); mmCtx.fill();
+  }
+  if (!inBigRig){
+    mmCtx.fillStyle = '#8fffb0';
+    mmCtx.beginPath(); mmCtx.arc(mx(bigRigX), mz(bigRigZ), 5, 0, Math.PI*2); mmCtx.fill();
+  }
+  mmCtx.fillStyle = '#c07bff';
+  for (const c of crystals){
+    if (c.collected) continue;
+    mmCtx.beginPath(); mmCtx.arc(mx(c.x), mz(c.z), 3, 0, Math.PI*2); mmCtx.fill();
+  }
+  mmCtx.restore();
+  mmCtx.save();
+  mmCtx.translate(cx,cy);
+  mmCtx.fillStyle = inVehicle ? '#ffcc55' : inBigRig ? '#8fffb0' : '#ffffff';
+  mmCtx.beginPath(); mmCtx.moveTo(0,-7); mmCtx.lineTo(-5,6); mmCtx.lineTo(0,3); mmCtx.lineTo(5,6); mmCtx.closePath(); mmCtx.fill();
+  mmCtx.restore();
+}
+
+/* ---------- astronaut animation (ported from dhl-city/character.html) ---------- */
+let animT = 0, charYaw = 0;
+let headYawTgt = 0;
+const JWALK = { NONE:0, WINDUP:1, AIR:2, LAND:3 };
+const WINDUP_DUR = 0.22, LAND_DUR = 0.30;
+let jumpState = JWALK.NONE, jumpTimer = 0;
+let stepSign = 0;
+
+function animateAstronaut(dt, reachStone){
+  const A = astro;
+  const moving = (curInput.fwd > 0.02 || curInput.back > 0.02) && jumpState === JWALK.NONE;
+  if (moving) animT += dt * 7.6;
+  const s = Math.sin(animT);
+  const eff = moving ? 1.0 : 0.0;
+  const lLeg =  s * 0.68, rLeg = -s * 0.68;
+
+  if (moving && onGround){
+    const sign = s > 0.02 ? 1 : (s < -0.02 ? -1 : 0);
+    if (sign !== 0 && stepSign !== 0 && sign !== stepSign) playStep();
+    if (sign !== 0) stepSign = sign;
+  } else {
+    stepSign = 0;
+  }
+
+  // Only turns arms/head toward a stone within immediate pickup range --
+  // reachStone is already null unless the player is that close.
+  let stoneRelAngle = 0;
+  const reaching = reachStone && onGround && jumpState === JWALK.NONE;
+  if (reaching){
+    const dx = reachStone.x - A.charRoot.position.x, dz = reachStone.z - A.charRoot.position.z;
+    stoneRelAngle = Math.atan2(dx, dz) - charYaw;
+    while (stoneRelAngle >  Math.PI) stoneRelAngle -= Math.PI*2;
+    while (stoneRelAngle < -Math.PI) stoneRelAngle += Math.PI*2;
+    stoneRelAngle = clamp(stoneRelAngle, -0.85, 0.85);
+  }
+
+  // On mobile, dragging to look also turns the head to visually match --
+  // camYawOffset/camPitchOffset are 0 whenever there's no active drag, so
+  // this is a no-op on desktop and whenever the player isn't looking around.
+  headYawTgt = (reaching ? stoneRelAngle*0.7 : (curInput.left - curInput.right) * 0.38) + camYawOffset*0.6;
+  A.headJoint.rotation.y = lerp(A.headJoint.rotation.y, clamp(headYawTgt, -1.1, 1.1), 0.06);
+
+  if (jumpState === JWALK.WINDUP){
+    const tt = Math.min(jumpTimer / WINDUP_DUR, 1.0);
+    const sq = Math.sin(tt * Math.PI * 0.5);
+    A.lHip.rotation.x = lerp(A.lHip.rotation.x, 0.52*sq, 0.32);
+    A.rHip.rotation.x = lerp(A.rHip.rotation.x, 0.52*sq, 0.32);
+    A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, 0.78*sq, 0.32);
+    A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, 0.78*sq, 0.32);
+    A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, 0.20*sq, 0.32);
+    A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, 0.20*sq, 0.32);
+    A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, 0.32*sq, 0.25);
+    A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, 0.32*sq, 0.25);
+    A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -0.55, 0.22);
+    A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -0.55, 0.22);
+    A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.10, 0.08);
+    A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.10, 0.08);
+    A.torso.position.y = lerp(A.torso.position.y, 1.26 - 0.14*sq, 0.32);
+    A.torso.rotation.x = lerp(A.torso.rotation.x, -0.20*sq, 0.25);
+    A.torso.rotation.y = 0;
+    A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, 0.10*sq, 0.20);
+  } else if (jumpState === JWALK.AIR){
+    A.lHip.rotation.x = lerp(A.lHip.rotation.x, -0.70, 0.17);
+    A.rHip.rotation.x = lerp(A.rHip.rotation.x, -0.70, 0.17);
+    A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, 1.45, 0.17);
+    A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, 1.45, 0.17);
+    A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, -0.45, 0.17);
+    A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, -0.45, 0.17);
+    A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -0.52, 0.14);
+    A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -0.52, 0.14);
+    A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.48, 0.10);
+    A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.48, 0.10);
+    A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -0.95, 0.15);
+    A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -0.95, 0.15);
+    A.torso.position.y = lerp(A.torso.position.y, 1.26, 0.15);
+    A.torso.rotation.x = lerp(A.torso.rotation.x, 0.0, 0.10);
+    A.torso.rotation.y = 0;
+    A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, 0.32, 0.14);
+  } else if (jumpState === JWALK.LAND){
+    const tt = Math.min(jumpTimer / LAND_DUR, 1.0);
+    const sq = 1.0 - tt;
+    A.lHip.rotation.x = lerp(A.lHip.rotation.x, 0.72*sq, 0.32);
+    A.rHip.rotation.x = lerp(A.rHip.rotation.x, 0.72*sq, 0.32);
+    A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, 1.10*sq, 0.32);
+    A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, 1.10*sq, 0.32);
+    A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, 0.22*sq, 0.32);
+    A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, 0.22*sq, 0.32);
+    A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, 0.22*sq, 0.25);
+    A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, 0.22*sq, 0.25);
+    A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.09, 0.08);
+    A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.09, 0.08);
+    A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -0.55*sq - 0.12, 0.25);
+    A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -0.55*sq - 0.12, 0.25);
+    A.torso.position.y = lerp(A.torso.position.y, 1.26 - 0.22*sq, 0.32);
+    A.torso.rotation.x = lerp(A.torso.rotation.x, 0.0, 0.10);
+    A.torso.rotation.y = 0;
+    A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, 0.0, 0.15);
+  } else {
+    if (heldRock){
+      // Both hands are occupied cradling the carried stone -- hold a fixed
+      // pose instead of the normal walk-swing, arms don't move while walking.
+      A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -0.95, 0.20);
+      A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z, 0.16, 0.15);
+      A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -1.75, 0.20);
+      A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -0.95, 0.20);
+      A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.16, 0.15);
+      A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -1.75, 0.20);
+    } else if (reaching){
+      // A liftable stone is within immediate pickup range -- reach both
+      // arms toward it instead of swinging them through the walk cycle.
+      A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -1.05, 0.18);
+      A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z, 0.18 - stoneRelAngle*0.3, 0.15);
+      A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -0.35, 0.18);
+      A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -1.05, 0.18);
+      A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.18 - stoneRelAngle*0.3, 0.15);
+      A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -0.35, 0.18);
+    } else {
+      A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -rLeg*0.68*eff, 0.30);
+      A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z,  0.09, 0.08);
+      A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, moving ? -1.22 : -0.12, 0.20);
+      A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -lLeg*0.68*eff, 0.30);
+      A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, -0.09, 0.08);
+      A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, moving ? -1.22 : -0.12, 0.20);
+    }
+    const tc = 0.30;
+    A.lHip.rotation.x = lerp(A.lHip.rotation.x, lLeg*0.88*eff, tc);
+    A.rHip.rotation.x = lerp(A.rHip.rotation.x, rLeg*0.88*eff, tc);
+    // Slightly more knee "give" (spring) than a straight-legged walk, without
+    // touching the hip swing amplitude above (range of motion stays the same).
+    const lKT = (Math.max(0, lLeg)*1.08 + Math.max(0,-lLeg)*0.78) * eff;
+    const rKT = (Math.max(0, rLeg)*1.08 + Math.max(0,-rLeg)*0.78) * eff;
+    A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, lKT, tc);
+    A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, rKT, tc);
+    A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, -lLeg*0.38*eff, tc);
+    A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, -rLeg*0.38*eff, tc);
+    A.torso.rotation.y = lerp(A.torso.rotation.y, reaching ? stoneRelAngle*0.5 : s*0.13*eff, 0.18);
+    A.torso.rotation.x = lerp(A.torso.rotation.x, moving ? -0.10 : 0.0, 0.07);
+    A.torso.rotation.z = lerp(A.torso.rotation.z, Math.cos(animT)*0.042*eff, 0.20);
+    A.torso.position.y = lerp(A.torso.position.y, 1.26 + (moving ? Math.abs(s)*0.20 : 0), 0.28);
+    A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, (moving ? Math.abs(s)*(-0.07) : 0) - camPitchOffset*0.8, 0.18);
+    A.headJoint.rotation.z = lerp(A.headJoint.rotation.z, 0, 0.10);
+  }
+}
+
+/* ---------- gameplay: free astronaut movement + third-person camera ---------- */
+const CHAR_BASE_Y = 0.10;
+// Lunar gravity: half of the original Earth-like -15, applied at all times
+// (not just during a jetpack boost) -- more thematically correct for a moon
+// walk, and it already gives the boost a noticeably higher/floatier arc for
+// free without any boost-specific special-casing.
+const GRAVITY = -7.5, JUMP_VEL = 7.0;
+const JUMP_BOOST_VEL = 9.5, JUMP_BOOST_SPEED_MULT = 1.25;
+const SPEED_MAX = 5.94, ACCEL_RATE = 14.0, DECEL_RATE = 18.0, TURN_RATE = 0.90;
+let velY = 0, onGround = true, moveSpeed = 0;
+// Extra forward-only kick from a jetpack boost, tracked separately from
+// moveSpeed so it can never leak into backward/other-direction movement --
+// it used to bump moveSpeed itself, which is shared by both the forward and
+// backward branches below, making the astronaut run faster backward too
+// (or in whatever direction was pressed next) until it decayed.
+let jetKickSpeed = 0;
+let jetBoosting = false, jetPulseT = 0;
+let gameCamPos = new THREE.Vector3();
+let gameCamDist = 7.0;
+let gameCamHeight = 2.6;
+let gameMode = false;
+
+/* ---------- rover vehicle: driving physics (adapted from dhl-city/index.html) ---------- */
+const ROVER_MAX_SPD = 18, ROVER_ACCEL = 10.5, ROVER_BRAKE = 22, ROVER_FRICTION = 5, ROVER_STEER_RATE = 2.0;
+const ROVER_REVERSE_FRAC = 0.333; // keeps reverse top speed the same as before the forward-speed bump
+const VEHICLE_ENTER_RADIUS = 4.2;
+const ROVER_COLLIDE_R = 7.2 * ROVER_SCALE + 0.3; // wheel extent (7.2, bigger than chassis half-width) scaled, plus a small buffer
+const ROVER_POP_RADIUS = ROVER_COLLIDE_R; // driving over a small stone crushes it
+const CHAR_RADIUS = 0.55;
+const SEAT_LOCAL = new THREE.Vector3(-2, 7.3, -2.5); // local to unscaled rover geometry
+const SEAT_SIT_DROP = 0.45; // charRoot sits below the seat surface so the body doesn't float above it
+let roverX = 46, roverZ = 20, roverAngle = -0.6, roverSpd = 0, roverSteerAng = 0;
+let roverPitch = 0, roverRoll = 0;
+const ROVER_HALF_LEN = 2.2, ROVER_HALF_WID = 1.4; // tilt sampling footprint, a bit past the scaled chassis
+let inVehicle = false;
+let vehicleCamPos = new THREE.Vector3();
+let vehicleCamDist = 9.0;
+let vehicleCamHeight = 5.5;
+const enterHintEl = document.getElementById('enterHint');
+const pickupHintEl = document.getElementById('pickupHint');
+const tmpSeat = new THREE.Vector3();
+
+// Enter-vehicle transition: blends the astronaut's position/pose from where
+// they were standing to the seat over ENTER_ANIM_DUR, instead of snapping.
+const ENTER_ANIM_DUR = 0.4;
+let enterT = 1;
+let enterFromPos = new THREE.Vector3();
+let enterFromYaw = 0;
+
+/* ---------- big rig: second, much larger drivable vehicle ---------- */
+// A fully parallel state block, not a generalization of the rover's --
+// the rover's own state (roverX/roverAngle/etc, enterVehicle/exitVehicle,
+// the single inVehicle boolean) is all flat module-level variables with no
+// registry, so a second vehicle needs its own copy of the same shape.
+// BIGRIG_ACCEL was 4.5 -- with BIGRIG_MAX_SPD=36 that's ~8s from a standstill
+// to top speed (vs. the rover's ~1.7s), which read as too sluggish rather
+// than just "heavier than the rover". 9.0 brings it down to ~4s.
+const BIGRIG_MAX_SPD = 36, BIGRIG_ACCEL = 9.0, BIGRIG_BRAKE = 14, BIGRIG_FRICTION = 4, BIGRIG_STEER_RATE = 1.1;
+const BIGRIG_REVERSE_FRAC = 0.3;
+const BIGRIG_COLLIDE_R = 15; // much bigger footprint than the rover
+const BIGRIG_POP_RADIUS = 7; // driving over a small stone crushes it -- deliberately smaller than
+// BIGRIG_COLLIDE_R (that one's an oversized push-out margin, not the actual wheel footprint)
+// Must exceed BIGRIG_COLLIDE_R -- otherwise the astronaut's own collision
+// with the parked rig always pushes them back out beyond the enter radius
+// before it can ever trigger, making entry impossible from any side.
+const BIGRIG_ENTER_RADIUS = BIGRIG_COLLIDE_R + 4;
+const BIGRIG_SEAT_LOCAL = new THREE.Vector3(0, 1.0, 9); // seated, recessed in the belly pod, floor height
+const BIGRIG_ENTER_ANIM_DUR = 0.18; // "der Einstieg klappt sehr schnell" -- noticeably faster than the rover's
+let bigRigX = 72, bigRigZ = 20, bigRigAngle = -0.6, bigRigSpd = 0, bigRigSteerAng = 0;
+let bigRigPitch = 0, bigRigRoll = 0;
+const BIGRIG_HALF_LEN = 13, BIGRIG_HALF_WID = 5;
+let inBigRig = false;
+let bigRigCamPos = new THREE.Vector3();
+let bigRigCamDist = 26.0;
+let bigRigCamHeight = 13.0;
+let bigRigEnterT = 1;
+let bigRigEnterFromPos = new THREE.Vector3();
+let bigRigEnterFromYaw = 0;
+
+/* ---------- action button: pick up / carry / drop a rock ---------- */
+const PICKUP_RADIUS = 3.5;
+let heldRock = null;
+
+function dropHeldRock(){
+  if (!heldRock) return;
+  const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
+  const dropDist = 1.6;
+  const dx = astro.charRoot.position.x + fwdX*dropDist;
+  const dz = astro.charRoot.position.z + fwdZ*dropDist;
+  const gy = getMoonSurfaceY(dx,dz);
+  heldRock.x = dx; heldRock.z = dz;
+  heldRock.mesh.position.set(dx, gy+heldRock.embed, dz);
+  heldRock.mesh.rotation.set(rand(0,6),rand(0,6),rand(0,6));
+  heldRock.held = false;
+  heldRock = null;
+  actionEl.classList.remove('holding');
+}
+function nearestLiftableStone(px, pz, radius){
+  radius = radius === undefined ? PICKUP_RADIUS : radius;
+  let best = null, bestD = Infinity;
+  for (const rk of pickupStones){
+    if (rk.held || rk.popped) continue;
+    const dd = Math.hypot(px-rk.x, pz-rk.z);
+    if (dd < radius && dd < bestD){ bestD = dd; best = rk; }
+  }
+  return best;
+}
+function pickUpNearestRock(){
+  if (heldRock) return;
+  const best = nearestLiftableStone(astro.charRoot.position.x, astro.charRoot.position.z);
+  if (best){ best.held = true; heldRock = best; actionEl.classList.add('holding'); }
+}
+
+// Driving over a small stone crushes it -- a burst of grey shard-like puffs
+// plus a sharp crunch, then the stone is gone for good (same permanence as
+// a collected crystal).
+function popStonesNear(x, z, radius){
+  for (const rk of pickupStones){
+    if (rk.held || rk.popped) continue;
+    if (Math.hypot(x-rk.x, z-rk.z) >= radius) continue;
+    rk.popped = true;
+    rk.mesh.visible = false;
+    spawnPuff(new THREE.Vector3(rk.mesh.position.x, rk.mesh.position.y+0.2, rk.mesh.position.z), {
+      color: 0x9a9a9a, opacity: 0.9,
+      vel: new THREE.Vector3(rand(-3,3), rand(1,3), rand(-3,3)), growth: 4, maxLife: 0.4, scale0: 0.5,
+      fadeFrom: 0.15, drag: 0.88, maxScale: 1.8,
+    }, moonScene);
+    playNoiseBurst(0.08, 0.22, 500);
+  }
+}
+
+/* ---------- big rig cargo arm: hatch + claw deploy as soon as the driver
+   gets in and stay out for the whole drive (not just during a grab), and
+   stow again on exit. The action button drives a further reach-and-back
+   "grab" motion layered on top of that deployed idle pose. ---------- */
+const BIGRIG_ARM_GRAB_RADIUS = 7;
+const BIGRIG_DEPLOY_DUR = 0.35;
+const BIGRIG_ARM_DUR = 0.9;
+const ARM_SHOULDER_STOWED = -2.3, ARM_SHOULDER_DEPLOYED = -1.2, ARM_SHOULDER_REACH = -0.5;
+const ARM_ELBOW_STOWED = 1.9, ARM_ELBOW_DEPLOYED = 1.0, ARM_ELBOW_REACH = 0.3;
+const HATCH_CLOSED = 0, HATCH_OPEN = -1.35;
+let bigRigDeployT = 0;
+let bigRigArmActive = false, bigRigArmT = 0, bigRigArmDir = 1, bigRigArmStone = null;
+function bigRigArmPoint(){
+  // World position of the hatch/claw's stowed anchor -- where the arm
+  // reaches from and the grab/search radius is centered on.
+  const local = new THREE.Vector3(4.6, 3.3, -8.5);
+  bigRig.localToWorld(local);
+  return local;
+}
+function triggerBigRigArm(){
+  if (bigRigArmActive || bigRigDeployT < 0.999) return; // wait for the arm to finish deploying first
+  if (heldRock){
+    bigRigArmStone = heldRock;
+    bigRigArmDir = -1; // release -> place back on the ground
+  } else {
+    const p = bigRigArmPoint();
+    const target = nearestLiftableStone(p.x, p.z, BIGRIG_ARM_GRAB_RADIUS);
+    if (!target) return; // nothing in reach -- silent no-op, matching on-foot pickup
+    bigRigArmStone = target;
+    bigRigArmDir = 1; // grab -> pull a stone in
+  }
+  bigRigArmActive = true;
+  bigRigArmT = 0;
+}
+function updateBigRigArm(dt){
+  const U = bigRig.userData;
+  if (!U || !U.hatchPivot) return; // called every frame regardless of mode; no-op before the rig exists
+
+  const deployTarget = inBigRig ? 1 : 0;
+  bigRigDeployT = clamp(bigRigDeployT + Math.sign(deployTarget-bigRigDeployT)*dt/BIGRIG_DEPLOY_DUR, 0, 1);
+
+  // Reach "bump" -- 0 at rest (deployed idle pose), peaks at 1 mid-grab,
+  // back to 0 once the motion completes, instead of returning all the way
+  // to fully stowed between grabs.
+  let reachAmount = 0;
+  if (bigRigArmActive){
+    bigRigArmT += dt / BIGRIG_ARM_DUR;
+    const t = Math.min(bigRigArmT, 1);
+    reachAmount = Math.sin(Math.min(t,1) * Math.PI);
+
+    if (bigRigArmStone){
+      if (bigRigArmDir === 1 && t >= 0.5 && bigRigArmStone.mesh.parent !== U.clawGroup){
+        // Snap to the claw's tip before attaching -- the stone's actual
+        // ground spot rarely lines up exactly with the reach pose, and this
+        // reads as the claw closing on it rather than an odd mid-air jump.
+        const clawTip = new THREE.Vector3();
+        U.clawGroup.getWorldPosition(clawTip);
+        bigRigArmStone.mesh.position.copy(clawTip);
+        U.clawGroup.attach(bigRigArmStone.mesh);
+        bigRigArmStone.held = true;
+        heldRock = bigRigArmStone;
+        actionEl.classList.add('holding');
+      } else if (bigRigArmDir === -1 && t < 0.5 && bigRigArmStone.mesh.parent !== U.clawGroup){
+        U.clawGroup.attach(bigRigArmStone.mesh);
+      } else if (bigRigArmDir === -1 && t >= 0.5 && bigRigArmStone.mesh.parent === U.clawGroup){
+        moonScene.attach(bigRigArmStone.mesh);
+        const gy = getMoonSurfaceY(bigRigArmStone.mesh.position.x, bigRigArmStone.mesh.position.z);
+        bigRigArmStone.x = bigRigArmStone.mesh.position.x;
+        bigRigArmStone.z = bigRigArmStone.mesh.position.z;
+        bigRigArmStone.mesh.position.y = gy + bigRigArmStone.embed;
+        bigRigArmStone.held = false;
+        heldRock = null;
+        actionEl.classList.remove('holding');
+      }
+    }
+
+    if (bigRigArmT >= 1){
+      bigRigArmActive = false;
+      bigRigArmStone = null;
+    }
+  }
+
+  U.hatchPivot.rotation.y = lerp(HATCH_CLOSED, HATCH_OPEN, bigRigDeployT);
+  U.armShoulder.rotation.x = lerp(lerp(ARM_SHOULDER_STOWED, ARM_SHOULDER_DEPLOYED, bigRigDeployT), ARM_SHOULDER_REACH, reachAmount);
+  U.armElbow.rotation.x = lerp(lerp(ARM_ELBOW_STOWED, ARM_ELBOW_DEPLOYED, bigRigDeployT), ARM_ELBOW_REACH, reachAmount);
+}
+
+function poseAstronautSeated(k){
+  const A = astro;
+  A.lHip.rotation.x = lerp(A.lHip.rotation.x, -1.35, k);
+  A.rHip.rotation.x = lerp(A.rHip.rotation.x, -1.35, k);
+  A.lKnee.rotation.x = lerp(A.lKnee.rotation.x, 1.6, k);
+  A.rKnee.rotation.x = lerp(A.rKnee.rotation.x, 1.6, k);
+  A.lAnkle.rotation.x = lerp(A.lAnkle.rotation.x, 0.35, k);
+  A.rAnkle.rotation.x = lerp(A.rAnkle.rotation.x, 0.35, k);
+  A.lShoulder.rotation.x = lerp(A.lShoulder.rotation.x, -0.35, k);
+  A.lShoulder.rotation.z = lerp(A.lShoulder.rotation.z, 0.06, k);
+  A.rShoulder.rotation.x = lerp(A.rShoulder.rotation.x, -0.35, k);
+  A.rShoulder.rotation.z = lerp(A.rShoulder.rotation.z, -0.06, k);
+  A.lElbow.rotation.x = lerp(A.lElbow.rotation.x, -1.05, k);
+  A.rElbow.rotation.x = lerp(A.rElbow.rotation.x, -1.05, k);
+  A.torso.rotation.x = lerp(A.torso.rotation.x, 0.05, k);
+  A.torso.rotation.y = lerp(A.torso.rotation.y, 0, k);
+  A.torso.rotation.z = lerp(A.torso.rotation.z, 0, k);
+  A.torso.position.y = lerp(A.torso.position.y, 1.26, k);
+  A.headJoint.rotation.x = lerp(A.headJoint.rotation.x, 0, k);
+  A.headJoint.rotation.y = lerp(A.headJoint.rotation.y, 0, k);
+  A.headJoint.rotation.z = lerp(A.headJoint.rotation.z, 0, k);
+}
+
+function enterVehicle(){
+  inVehicle = true;
+  jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0; jetKickSpeed = 0;
+  jetBoosting = false; astro.jetFlame.grp.visible = false;
+  enterHintEl.style.display = 'none';
+  pickupHintEl.style.display = 'none';
+  actionEl.style.display = 'none';
+  dropHeldRock();
+  vehicleCamPos.copy(camera.position);
+  enterT = 0;
+  enterFromPos.copy(astro.charRoot.position);
+  enterFromYaw = charYaw;
+  startEngineSound();
+}
+function exitVehicle(){
+  inVehicle = false;
+  const A = astro;
+  const sideX = Math.cos(roverAngle), sideZ = -Math.sin(roverAngle);
+  const exitDist = 3.2;
+  const ex = roverX + sideX*exitDist, ez = roverZ + sideZ*exitDist;
+  A.charRoot.position.set(ex, getMoonSurfaceY(ex,ez) + CHAR_BASE_Y, ez);
+  charYaw = roverAngle;
+  A.charRoot.rotation.y = charYaw;
+  moveSpeed = 0; jetKickSpeed = 0; velY = 0; onGround = true; jumpState = JWALK.NONE;
+  gameCamPos.copy(camera.position);
+  actionEl.style.display = 'flex';
+  stopEngineSound();
+}
+
+function enterBigRig(){
+  inBigRig = true;
+  jumpState = JWALK.NONE; jumpTimer = 0; velY = 0; onGround = true; moveSpeed = 0; jetKickSpeed = 0;
+  jetBoosting = false; astro.jetFlame.grp.visible = false;
+  enterHintEl.style.display = 'none';
+  pickupHintEl.style.display = 'none';
+  // Stays visible (unlike in the rover) -- doubles as the cargo-arm control.
+  actionEl.style.display = 'flex';
+  dropHeldRock();
+  bigRigArmActive = false; bigRigArmT = 0; bigRigArmStone = null;
+  bigRigCamPos.copy(camera.position);
+  bigRigEnterT = 0;
+  bigRigEnterFromPos.copy(astro.charRoot.position);
+  bigRigEnterFromYaw = charYaw;
+  startEngineSound();
+}
+function exitBigRig(){
+  inBigRig = false;
+  // A stone gripped by the cargo arm is still parented under the rig's own
+  // hierarchy -- leaving it there while on foot would move it in the rig's
+  // local space instead of the world, so release it onto the ground first.
+  if (heldRock && heldRock.mesh.parent !== moonScene){
+    moonScene.attach(heldRock.mesh);
+    const gy = getMoonSurfaceY(heldRock.mesh.position.x, heldRock.mesh.position.z);
+    heldRock.x = heldRock.mesh.position.x;
+    heldRock.z = heldRock.mesh.position.z;
+    heldRock.mesh.position.y = gy + heldRock.embed;
+    heldRock.held = false;
+    heldRock = null;
+    actionEl.classList.remove('holding');
+  }
+  bigRigArmActive = false; bigRigArmT = 0; bigRigArmStone = null;
+  const A = astro;
+  const sideX = Math.cos(bigRigAngle), sideZ = -Math.sin(bigRigAngle);
+  const exitDist = 8;
+  const ex = bigRigX + sideX*exitDist, ez = bigRigZ + sideZ*exitDist;
+  A.charRoot.position.set(ex, getMoonSurfaceY(ex,ez) + CHAR_BASE_Y, ez);
+  charYaw = bigRigAngle;
+  A.charRoot.rotation.y = charYaw;
+  moveSpeed = 0; jetKickSpeed = 0; velY = 0; onGround = true; jumpState = JWALK.NONE;
+  gameCamPos.copy(camera.position);
+  actionEl.style.display = 'flex';
+  stopEngineSound();
+}
+
+function updateBigRigGameplay(dt){
+  refreshInput();
+
+  if (curInput.fwd > 0.02 || curInput.back > 0.02){
+    camYawOffset = lerp(camYawOffset, 0, dt*3); camPitchOffset = lerp(camPitchOffset, 0, dt*3);
+  }
+  const onRoad = distToRoad(bigRigX, bigRigZ) < ROAD_HALF_WIDTH;
+  const roadMaxSpd = BIGRIG_MAX_SPD * (onRoad ? 1.4 : 1);
+  const gasIn = curInput.fwd, brakeIn = curInput.back;
+  if (gasIn > brakeIn)        bigRigSpd = Math.min(bigRigSpd + BIGRIG_ACCEL*dt, roadMaxSpd*gasIn);
+  else if (brakeIn > gasIn)   bigRigSpd = bigRigSpd > 0.05 ? Math.max(bigRigSpd - BIGRIG_BRAKE*dt, 0) : Math.max(bigRigSpd - BIGRIG_ACCEL*0.9*dt, -roadMaxSpd*BIGRIG_REVERSE_FRAC*brakeIn);
+  else { const f = BIGRIG_FRICTION*dt; bigRigSpd = Math.abs(bigRigSpd) < f ? 0 : bigRigSpd - Math.sign(bigRigSpd)*f; }
+
+  let steerTgt = 0;
+  if (Math.abs(bigRigSpd) > 0.05){
+    // Turning always follows the input direction, matching on-foot turning --
+    // no forward/reverse flip, since that real-car behavior read as swapped
+    // left/right to players used to the on-foot mapping.
+    const turn = curInput.left - curInput.right;
+    const sr = BIGRIG_STEER_RATE * (Math.abs(bigRigSpd)/BIGRIG_MAX_SPD);
+    bigRigAngle += sr*dt*turn;
+    steerTgt = turn*0.4;
+  }
+  bigRigSteerAng = lerp(bigRigSteerAng, steerTgt, 0.12);
+  if (bigRig.userData.frontWheels) bigRig.userData.frontWheels.forEach(w => w.rotation.y = bigRigSteerAng);
+  // Visual steering: the whole front half articulates at the middle joint
+  // (like a bendy bus), not just the front wheels turning. Unlike the wheel
+  // turn itself, the bend direction DOES flip in reverse -- pushing the
+  // front half backward with the wheels turned a given way swings it the
+  // opposite way from pulling it forward, same as a real trailer joint.
+  const bendDir = bigRigSpd < 0 ? -1 : 1;
+  if (bigRig.userData.frontPivot) bigRig.userData.frontPivot.rotation.y = clamp(bigRigSteerAng*1.6*bendDir, -0.6, 0.6);
+
+  const fwdX = Math.sin(bigRigAngle), fwdZ = Math.cos(bigRigAngle);
+  const nx = bigRigX + fwdX*bigRigSpd*dt, nz = bigRigZ + fwdZ*bigRigSpd*dt;
+  let resolved = resolveSlide(bigRigX, bigRigZ, nx, nz, BIGRIG_COLLIDE_R, moonCollidables);
+  resolved = resolveSlide(bigRigX, bigRigZ, resolved.x, resolved.z, BIGRIG_COLLIDE_R, [{ x:roverX, z:roverZ, r:ROVER_COLLIDE_R }]);
+  resolved = resolveSlide(bigRigX, bigRigZ, resolved.x, resolved.z, BIGRIG_COLLIDE_R, vehicleOnlyCollidables);
+  if (Math.hypot(resolved.x-nx, resolved.z-nz) > 0.01) bigRigSpd *= 0.35;
+  bigRigX = resolved.x; bigRigZ = resolved.z;
+  const groundY = getMoonSurfaceY(bigRigX, bigRigZ);
+  bigRig.position.set(bigRigX, groundY, bigRigZ);
+  popStonesNear(bigRigX, bigRigZ, BIGRIG_POP_RADIUS);
+
+  const rightX = Math.cos(bigRigAngle), rightZ = -Math.sin(bigRigAngle);
+  const yAhead  = getMoonSurfaceY(bigRigX+fwdX*BIGRIG_HALF_LEN,   bigRigZ+fwdZ*BIGRIG_HALF_LEN);
+  const yBehind = getMoonSurfaceY(bigRigX-fwdX*BIGRIG_HALF_LEN,   bigRigZ-fwdZ*BIGRIG_HALF_LEN);
+  const yRight  = getMoonSurfaceY(bigRigX+rightX*BIGRIG_HALF_WID, bigRigZ+rightZ*BIGRIG_HALF_WID);
+  const yLeft   = getMoonSurfaceY(bigRigX-rightX*BIGRIG_HALF_WID, bigRigZ-rightZ*BIGRIG_HALF_WID);
+  const pitchTarget = Math.atan2(yBehind-yAhead, BIGRIG_HALF_LEN*2);
+  const rollTarget  = Math.atan2(yRight-yLeft, BIGRIG_HALF_WID*2);
+  bigRigPitch = lerp(bigRigPitch, pitchTarget, 0.12);
+  bigRigRoll  = lerp(bigRigRoll, rollTarget, 0.12);
+  bigRig.rotation.set(bigRigPitch, bigRigAngle, bigRigRoll);
+  bigRig.updateMatrixWorld(true);
+
+  spawnGroundDust(dt, bigRigX - fwdX*4, bigRigZ - fwdZ*4, groundY, Math.min(1, Math.abs(bigRigSpd)/BIGRIG_MAX_SPD), true);
+  updateEngineSound(dt, bigRigSpd/BIGRIG_MAX_SPD);
+
+  if (actionBuf){ actionBuf = false; triggerBigRigArm(); }
+
+  // The cockpit/seat now lives inside frontPivot, which articulates
+  // relative to the rest of the rig while turning -- transform through it
+  // (not bigRig directly) so the seat stays put under the dome mid-turn.
+  tmpSeat.copy(BIGRIG_SEAT_LOCAL);
+  bigRig.updateMatrixWorld(true);
+  bigRig.userData.frontPivot.localToWorld(tmpSeat);
+  bigRigEnterT = Math.min(bigRigEnterT + dt/BIGRIG_ENTER_ANIM_DUR, 1);
+  const easeT = smoothstep(0, 1, bigRigEnterT);
+  astro.charRoot.position.set(
+    lerp(bigRigEnterFromPos.x, tmpSeat.x, easeT),
+    lerp(bigRigEnterFromPos.y, tmpSeat.y, easeT),
+    lerp(bigRigEnterFromPos.z, tmpSeat.z, easeT)
+  );
+  let bigYawDiff = bigRigAngle - bigRigEnterFromYaw;
+  while (bigYawDiff > Math.PI) bigYawDiff -= Math.PI*2;
+  while (bigYawDiff < -Math.PI) bigYawDiff += Math.PI*2;
+  astro.charRoot.rotation.y = bigRigEnterFromYaw + bigYawDiff*easeT;
+  poseAstronautSeated(easeT);
+
+  if (jumpBuf){ jumpBuf = false; exitBigRig(); return; }
+
+  const baseBBack = 26.0 * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseBHeight = 13.0;
+  bigRigCamDist = lerp(bigRigCamDist, baseBBack, dt*2.5);
+  bigRigCamHeight = lerp(bigRigCamHeight, baseBHeight, dt*2.5);
+  const camFwdXB = Math.sin(bigRigAngle+camYawOffset), camFwdZB = Math.cos(bigRigAngle+camYawOffset);
+  const bCam = new THREE.Vector3(
+    bigRigX - camFwdXB*bigRigCamDist,
+    groundY + bigRigCamHeight + camPitchOffset*6,
+    bigRigZ - camFwdZB*bigRigCamDist
+  );
+  bigRigCamPos.lerp(bCam, 0.08);
+  camera.position.copy(bigRigCamPos);
+  camera.lookAt(bigRigX, groundY + 5.0 - camPitchOffset*4, bigRigZ);
+}
+
+function updateRoverGameplay(dt){
+  refreshInput();
+
+  if (curInput.fwd > 0.02 || curInput.back > 0.02){
+    camYawOffset = lerp(camYawOffset, 0, dt*3); camPitchOffset = lerp(camPitchOffset, 0, dt*3);
+  }
+  const onRoad = distToRoad(roverX, roverZ) < ROAD_HALF_WIDTH;
+  const roadMaxSpd = ROVER_MAX_SPD * (onRoad ? 1.4 : 1);
+  const gasIn = curInput.fwd, brakeIn = curInput.back;
+  if (gasIn > brakeIn)        roverSpd = Math.min(roverSpd + ROVER_ACCEL*dt, roadMaxSpd*gasIn);
+  else if (brakeIn > gasIn)   roverSpd = roverSpd > 0.05 ? Math.max(roverSpd - ROVER_BRAKE*dt, 0) : Math.max(roverSpd - ROVER_ACCEL*0.9*dt, -roadMaxSpd*ROVER_REVERSE_FRAC*brakeIn);
+  else { const f = ROVER_FRICTION*dt; roverSpd = Math.abs(roverSpd) < f ? 0 : roverSpd - Math.sign(roverSpd)*f; }
+
+  let steerTgt = 0;
+  if (Math.abs(roverSpd) > 0.05){
+    // Turning always follows the input direction, matching on-foot turning --
+    // no forward/reverse flip, since that real-car behavior read as swapped
+    // left/right to players used to the on-foot mapping.
+    const turn = curInput.left - curInput.right;
+    const sr = ROVER_STEER_RATE * (Math.abs(roverSpd)/ROVER_MAX_SPD);
+    roverAngle += sr*dt*turn;
+    steerTgt = turn*0.5;
+  }
+  roverSteerAng = lerp(roverSteerAng, steerTgt, 0.15);
+  if (rover.userData.frontWheels) rover.userData.frontWheels.forEach(w => w.rotation.y = roverSteerAng);
+
+  const fwdX = Math.sin(roverAngle), fwdZ = Math.cos(roverAngle);
+  const nx = roverX + fwdX*roverSpd*dt, nz = roverZ + fwdZ*roverSpd*dt;
+  let resolved = resolveSlide(roverX, roverZ, nx, nz, ROVER_COLLIDE_R, moonCollidables);
+  resolved = resolveSlide(roverX, roverZ, resolved.x, resolved.z, ROVER_COLLIDE_R, [{ x:bigRigX, z:bigRigZ, r:BIGRIG_COLLIDE_R }]);
+  resolved = resolveSlide(roverX, roverZ, resolved.x, resolved.z, ROVER_COLLIDE_R, vehicleOnlyCollidables);
+  if (Math.hypot(resolved.x-nx, resolved.z-nz) > 0.01) roverSpd *= 0.4;
+  roverX = resolved.x; roverZ = resolved.z;
+  const groundY = getMoonSurfaceY(roverX, roverZ);
+  rover.position.set(roverX, groundY, roverZ);
+  popStonesNear(roverX, roverZ, ROVER_POP_RADIUS);
+
+  // Tilt with the slope: sample ground height at the front/back/left/right
+  // of the footprint and lean the chassis to match, instead of always
+  // sitting perfectly level regardless of terrain.
+  const rightX = Math.cos(roverAngle), rightZ = -Math.sin(roverAngle);
+  const yAhead  = getMoonSurfaceY(roverX+fwdX*ROVER_HALF_LEN,   roverZ+fwdZ*ROVER_HALF_LEN);
+  const yBehind = getMoonSurfaceY(roverX-fwdX*ROVER_HALF_LEN,   roverZ-fwdZ*ROVER_HALF_LEN);
+  const yRight  = getMoonSurfaceY(roverX+rightX*ROVER_HALF_WID, roverZ+rightZ*ROVER_HALF_WID);
+  const yLeft   = getMoonSurfaceY(roverX-rightX*ROVER_HALF_WID, roverZ-rightZ*ROVER_HALF_WID);
+  const pitchTarget = Math.atan2(yBehind-yAhead, ROVER_HALF_LEN*2);
+  const rollTarget  = Math.atan2(yRight-yLeft, ROVER_HALF_WID*2);
+  roverPitch = lerp(roverPitch, pitchTarget, 0.15);
+  roverRoll  = lerp(roverRoll, rollTarget, 0.15);
+  rover.rotation.set(roverPitch, roverAngle, roverRoll);
+  rover.updateMatrixWorld(true);
+
+  spawnGroundDust(dt, roverX - fwdX*2, roverZ - fwdZ*2, groundY, Math.min(1, Math.abs(roverSpd)/ROVER_MAX_SPD), true);
+  updateEngineSound(dt, roverSpd/ROVER_MAX_SPD);
+
+  tmpSeat.copy(SEAT_LOCAL);
+  rover.localToWorld(tmpSeat);
+  const seatY = tmpSeat.y - SEAT_SIT_DROP;
+  enterT = Math.min(enterT + dt/ENTER_ANIM_DUR, 1);
+  const easeT = smoothstep(0, 1, enterT);
+  astro.charRoot.position.set(
+    lerp(enterFromPos.x, tmpSeat.x, easeT),
+    lerp(enterFromPos.y, seatY, easeT),
+    lerp(enterFromPos.z, tmpSeat.z, easeT)
+  );
+  let yawDiff = roverAngle - enterFromYaw;
+  while (yawDiff > Math.PI) yawDiff -= Math.PI*2;
+  while (yawDiff < -Math.PI) yawDiff += Math.PI*2;
+  astro.charRoot.rotation.y = enterFromYaw + yawDiff*easeT;
+  poseAstronautSeated(easeT);
+
+  if (jumpBuf){ jumpBuf = false; exitVehicle(); return; }
+
+  const baseVBack = 11.5 * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseVHeight = 5.5;
+  vehicleCamDist = lerp(vehicleCamDist, baseVBack, dt*2.5);
+  vehicleCamHeight = lerp(vehicleCamHeight, baseVHeight, dt*2.5);
+  const camFwdXV = Math.sin(roverAngle+camYawOffset), camFwdZV = Math.cos(roverAngle+camYawOffset);
+  const tCam = new THREE.Vector3(
+    roverX - camFwdXV*vehicleCamDist,
+    groundY + vehicleCamHeight + camPitchOffset*6,
+    roverZ - camFwdZV*vehicleCamDist
+  );
+  vehicleCamPos.lerp(tCam, 0.08);
+  camera.position.copy(vehicleCamPos);
+  camera.lookAt(roverX, groundY + 2.0 - camPitchOffset*4, roverZ);
+}
+
+function updateAstronautGameplay(dt){
+  const A = astro;
+  refreshInput();
+
+  charYaw += TURN_RATE * dt * (curInput.left - curInput.right);
+  A.charRoot.rotation.y = charYaw;
+
+  const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
+  const mag = Math.max(curInput.fwd, curInput.back);
+  if (mag > 0.02) moveSpeed = Math.min(moveSpeed + ACCEL_RATE*dt, SPEED_MAX*mag);
+  else            moveSpeed = Math.max(moveSpeed - DECEL_RATE*dt, 0);
+  jetKickSpeed = Math.max(0, jetKickSpeed - DECEL_RATE*dt);
+  const oldX = A.charRoot.position.x, oldZ = A.charRoot.position.z;
+  let nx = oldX, nz = oldZ;
+  // The kick only ever adds to forward motion -- a backpack thruster
+  // propels you forward, it shouldn't also speed up walking backward.
+  if (curInput.fwd  > curInput.back) { const spd = moveSpeed+jetKickSpeed; nx += fwdX*spd*dt; nz += fwdZ*spd*dt; }
+  if (curInput.back > curInput.fwd)  { nx -= fwdX*moveSpeed*dt; nz -= fwdZ*moveSpeed*dt; }
+  let resolvedPos = resolveSlide(oldX, oldZ, nx, nz, CHAR_RADIUS, moonCollidables);
+  resolvedPos = resolveSlide(oldX, oldZ, resolvedPos.x, resolvedPos.z, CHAR_RADIUS, [{ x:roverX, z:roverZ, r:ROVER_COLLIDE_R }]);
+  resolvedPos = resolveSlide(oldX, oldZ, resolvedPos.x, resolvedPos.z, CHAR_RADIUS, [{ x:bigRigX, z:bigRigZ, r:BIGRIG_COLLIDE_R }]);
+  A.charRoot.position.x = resolvedPos.x;
+  A.charRoot.position.z = resolvedPos.z;
+
+  const distToRover = Math.hypot(A.charRoot.position.x - roverX, A.charRoot.position.z - roverZ);
+  const distToBigRig = Math.hypot(A.charRoot.position.x - bigRigX, A.charRoot.position.z - bigRigZ);
+  const nearRover = distToRover < VEHICLE_ENTER_RADIUS;
+  const nearBigRig = distToBigRig < BIGRIG_ENTER_RADIUS;
+  enterHintEl.style.display = ((nearRover || nearBigRig) && onGround) ? 'block' : 'none';
+  if (jumpBuf && onGround && (nearRover || nearBigRig)){
+    jumpBuf = false;
+    // If both are in range (unlikely given their separation), enter whichever is closer.
+    if (nearBigRig && (!nearRover || distToBigRig < distToRover)) enterBigRig();
+    else enterVehicle();
+    return;
+  }
+
+  if (actionBuf){
+    actionBuf = false;
+    if (heldRock) dropHeldRock(); else pickUpNearestRock();
+  }
+  let nearStone = null;
+  if (heldRock){
+    heldRock.mesh.position.set(
+      A.charRoot.position.x + fwdX*1.1,
+      A.charRoot.position.y + 1.15,
+      A.charRoot.position.z + fwdZ*1.1
+    );
+    pickupHintEl.style.display = 'none';
+  } else {
+    nearStone = nearestLiftableStone(A.charRoot.position.x, A.charRoot.position.z);
+    pickupHintEl.style.display = (nearStone && onGround) ? 'block' : 'none';
+  }
+
+  // Rocket boost: pressing jump again while airborne fires the backpack
+  // thruster for a higher, farther kick -- chainable, so repeated presses
+  // during ascent let you keep climbing instead of only getting one boost
+  // per jump.
+  if (jumpBuf && jumpState === JWALK.AIR){
+    jumpBuf = false;
+    jetBoosting = true;
+    jetPulseT = 0;
+    velY = JUMP_BOOST_VEL;
+    jetKickSpeed = SPEED_MAX * (JUMP_BOOST_SPEED_MULT - 1);
+    A.jetFlame.grp.visible = true;
+    playJetBoost();
+    spawnPuff(new THREE.Vector3(A.charRoot.position.x, A.charRoot.position.y+0.9, A.charRoot.position.z), {
+      color: 0xffa93c, opacity: 0.85, emissive: 0xff7a1a, emissiveIntensity: 1.4,
+      vel: new THREE.Vector3(rand(-1,1), -3, rand(-1,1)), growth: 5, maxLife: 0.4, scale0: 0.4,
+      fadeFrom: 0.15, drag: 0.9, maxScale: 2.2,
+    }, moonScene);
+  }
+
+  if (jumpBuf && onGround && jumpState !== JWALK.WINDUP && jumpState !== JWALK.AIR){
+    jumpState = JWALK.WINDUP; jumpTimer = 0; jumpBuf = false;
+  }
+  if (jumpState === JWALK.WINDUP){
+    jumpTimer += dt;
+    if (jumpTimer >= WINDUP_DUR){ velY = JUMP_VEL; onGround = false; jumpState = JWALK.AIR; jumpTimer = 0; playJump(); }
+  }
+  if (jumpState === JWALK.LAND){
+    jumpTimer += dt;
+    if (jumpTimer >= LAND_DUR) jumpState = JWALK.NONE;
+  }
+
+  if (jetBoosting){
+    jetPulseT += dt;
+    pulseEngine(A.jetFlame.grp, jetPulseT, 55);
+  }
+
+  velY += GRAVITY * dt;
+  A.charRoot.position.y += velY * dt;
+  const surfY = getMoonSurfaceY(A.charRoot.position.x, A.charRoot.position.z) + CHAR_BASE_Y;
+  if (A.charRoot.position.y <= surfY){
+    if (velY < -1.5 && jumpState === JWALK.AIR){ jumpState = JWALK.LAND; jumpTimer = 0; playLand(); }
+    else if (jumpState === JWALK.AIR){ jumpState = JWALK.NONE; }
+    A.charRoot.position.y = surfY;
+    velY = 0; onGround = true;
+    jetBoosting = false; A.jetFlame.grp.visible = false;
+  } else {
+    onGround = false;
+    if (jumpState === JWALK.NONE) jumpState = JWALK.AIR;
+  }
+
+  animateAstronaut(dt, !heldRock ? nearStone : null);
+
+  const moving = curInput.fwd > 0.02 || curInput.back > 0.02;
+  if (onGround && moving) spawnGroundDust(dt, A.charRoot.position.x, A.charRoot.position.z, surfY, 1, false);
+  // Look-drag offset auto-recenters once the player actually moves in a
+  // direction -- otherwise a stale look angle from an earlier drag would
+  // keep the camera awkwardly off-axis from where you're now heading.
+  if (moving){ camYawOffset = lerp(camYawOffset, 0, dt*3); camPitchOffset = lerp(camPitchOffset, 0, dt*3); }
+  const baseBack = (jetBoosting ? 13.0 : moving ? 7.0 : 4.0) * (isMobile ? MOBILE_CAM_MULT : 1);
+  const baseHeight = jetBoosting ? 5.0 : 2.6;
+  gameCamDist = lerp(gameCamDist, baseBack, dt*2.5);
+  gameCamHeight = lerp(gameCamHeight, baseHeight, dt*2.5);
+  const camFwdXA = Math.sin(charYaw+camYawOffset), camFwdZA = Math.cos(charYaw+camYawOffset);
+  const tCam = new THREE.Vector3(
+    A.charRoot.position.x - camFwdXA*gameCamDist,
+    A.charRoot.position.y + gameCamHeight + camPitchOffset*6,
+    A.charRoot.position.z - camFwdZA*gameCamDist
+  );
+  gameCamPos.lerp(tCam, 0.08);
+  camera.position.copy(gameCamPos);
+  camera.lookAt(A.charRoot.position.x, A.charRoot.position.y + 1.1 - camPitchOffset*4, A.charRoot.position.z);
+}
+
+function enterGameMode(){
+  gameMode = true;
+  document.getElementById('joystick').style.display = 'block';
+  document.getElementById('jumpBtn').style.display = 'flex';
+  document.getElementById('actionBtn').style.display = 'flex';
+  document.getElementById('minimap').style.display = 'block';
+  document.getElementById('crystalHud').style.display = 'flex';
+  document.getElementById('skipBtn').style.display = 'none';
+  gameCamPos.copy(camera.position);
+  startAmbientMusic();
+}
+
+/* ---------- post-landing cutscene: ramp out, hatch opens, astronaut exits ---------- */
+let walkPath = null;
+let astroRevealed = false;
+
+function computeWalkPath(){
+  const su = shipPart.userData;
+  const rampRise = su.hatchY + PLATFORM_H;
+  const p0 = shipPart.localToWorld(new THREE.Vector3(su.hatchR-0.5, su.hatchY-3.0+CHAR_BASE_Y, 0));
+  const p1 = shipPart.localToWorld(new THREE.Vector3(su.hatchR+su.rampRun, su.hatchY-rampRise+CHAR_BASE_Y, 0));
+  const p2 = p1.clone().add(new THREE.Vector3(9,0,5));
+  return [p0,p1,p2];
+}
+function scriptedWalk(wp){
+  const [a,b,c] = walkPath;
+  let from,to,localT;
+  if (wp < 0.65){ from=a; to=b; localT=wp/0.65; }
+  else { from=b; to=c; localT=(wp-0.65)/0.35; }
+  const e = smoothstep(0,1,localT);
+  astro.charRoot.position.lerpVectors(from, to, e);
+  const dir = new THREE.Vector3().subVectors(to, from);
+  if (dir.lengthSq() > 0.0001){
+    charYaw = Math.atan2(dir.x, dir.z);
+    astro.charRoot.rotation.y = charYaw;
+  }
+}
+function hatchShotPos(hatchWorld){
+  return new THREE.Vector3(hatchWorld.x+26, hatchWorld.y+9, hatchWorld.z+22);
+}
+function cameraCloseupOnHatch(){
+  const su = shipPart.userData;
+  const hatchWorld = shipPart.localToWorld(new THREE.Vector3(su.hatchR, su.hatchY, 0));
+  const pos = hatchShotPos(hatchWorld);
+  camera.position.copy(pos);
+  camera.lookAt(hatchWorld.x, hatchWorld.y-0.5, hatchWorld.z);
+}
+function cameraSwingToGameplay(tt){
+  const p = smoothstep(T_WALK_START, T_HANDOFF, tt);
+  const su = shipPart.userData;
+  const hatchWorld = shipPart.localToWorld(new THREE.Vector3(su.hatchR, su.hatchY, 0));
+  const fromPos = hatchShotPos(hatchWorld);
+  const A = astro;
+  const behindPos = new THREE.Vector3(
+    A.charRoot.position.x - Math.sin(charYaw)*7,
+    A.charRoot.position.y + 2.6,
+    A.charRoot.position.z - Math.cos(charYaw)*7
+  );
+  const pos = fromPos.clone().lerp(behindPos, p);
+  camera.position.copy(pos);
+  const lookTo = new THREE.Vector3(A.charRoot.position.x, A.charRoot.position.y+1.1, A.charRoot.position.z);
+  const look = hatchWorld.clone().lerp(lookTo, p);
+  camera.lookAt(look);
+  if (p >= 1) gameCamPos.copy(pos);
+}
+
+const rampHatchWorld = new THREE.Vector3();
+const rampStartWorld = new THREE.Vector3();
+function updateCutscene(dt){
+  const su = shipPart.userData;
+  shipPart.position.y = PLATFORM_H;
+  su.engineGlow.visible = false;
+
+  // Ramp rig drives in from outside and docks at the hatch (not a panel
+  // hinged to the hull unfolding away from the ship).
+  const rampP = smoothstep(T_RAMP_START, T_RAMP_END, t);
+  if (rampP > 0) rampRig.visible = true;
+  rampHatchWorld.set(PAD_X + su.hatchR, PLATFORM_H + su.hatchY, 0);
+  rampStartWorld.set(rampHatchWorld.x + 46, rampHatchWorld.y, rampHatchWorld.z);
+  rampRig.position.lerpVectors(rampStartWorld, rampHatchWorld, rampP);
+
+  const hatchP = smoothstep(T_HATCH_OPEN_START, T_HATCH_OPEN_END, t);
+  su.hatchPivot.rotation.y = lerp(0, -1.9, hatchP);
+
+  if (!astroRevealed && t >= T_HATCH_OPEN_START + 0.5){
+    astroRevealed = true;
+    walkPath = computeWalkPath();
+    astro.charRoot.visible = true;
+    astro.charRoot.position.copy(walkPath[0]);
+    const dir = new THREE.Vector3().subVectors(walkPath[1], walkPath[0]);
+    charYaw = Math.atan2(dir.x, dir.z);
+    astro.charRoot.rotation.y = charYaw;
+  }
+
+  if (t < T_HATCH_CUT){
+    updateCameraMoon(PLATFORM_H);
+  } else if (t < T_WALK_START){
+    cameraCloseupOnHatch();
+  } else if (t < T_HANDOFF){
+    // Start tracking as soon as the astronaut starts moving (not only after
+    // they finish walking) so they stay in frame all the way down the ramp
+    // instead of walking out of a camera that's still fixed on the hatch.
+    cameraSwingToGameplay(t);
+  }
+
+  if (astroRevealed){
+    if (t >= T_WALK_START && t < T_WALK_END){
+      scriptedWalk(clamp((t-T_WALK_START)/(T_WALK_END-T_WALK_START),0,1));
+      // animateAstronaut reads curInput (not the raw keys map) for its walk
+      // cycle since the joystick input port -- drive it directly here so the
+      // scripted walk actually plays the leg/arm animation instead of a
+      // static slide.
+      curInput.fwd = 1; curInput.back = 0; curInput.left = 0; curInput.right = 0;
+      animateAstronaut(dt);
+    } else {
+      curInput.fwd = 0; curInput.back = 0;
+      animateAstronaut(dt);
+    }
+  }
+
+  if (t >= T_HANDOFF && !gameMode) enterGameMode();
+}
+
+/* ---------- skip button: jump straight into astronaut control ---------- */
+function skipToAstronaut(){
+  stopLaunchRumble();
+  launchScene.visible = false;
+  moonScene.visible = true;
+  cdEl.style.display = 'none';
+  fadeEl.style.display = 'none';
+  glowEl.style.display = 'none';
+
+  if (boosterPart.parent) boosterPart.parent.remove(boosterPart);
+  if (shipPart.parent) shipPart.parent.remove(shipPart);
+  moonScene.add(shipPart);
+  shipPart.position.set(PAD_X, PLATFORM_H, 0);
+  shipPart.rotation.set(0,0,0);
+  shipPart.userData.engineGlow.visible = false;
+  rampRig.position.set(PAD_X + shipPart.userData.hatchR, PLATFORM_H + shipPart.userData.hatchY, 0);
+  rampRig.visible = true;
+  shipPart.userData.hatchPivot.rotation.y = -1.9;
+
+  walkPath = computeWalkPath();
+  astro.charRoot.visible = true;
+  astro.charRoot.position.copy(walkPath[2]);
+  const dir = new THREE.Vector3().subVectors(walkPath[2], walkPath[1]);
+  charYaw = Math.atan2(dir.x, dir.z);
+  astro.charRoot.rotation.y = charYaw;
+
+  const fwdX = Math.sin(charYaw), fwdZ = Math.cos(charYaw);
+  gameCamPos.set(
+    astro.charRoot.position.x - fwdX*7,
+    astro.charRoot.position.y + 2.6,
+    astro.charRoot.position.z - fwdZ*7
+  );
+  camera.position.copy(gameCamPos);
+  camera.lookAt(astro.charRoot.position.x, astro.charRoot.position.y+1.1, astro.charRoot.position.z);
+
+  stars.material.opacity = 1;
+  skyEl.style.background = "linear-gradient(#03040c,#0a0c1c)";
+
+  enterGameMode();
+}
+document.getElementById('skipBtn').addEventListener('click', () => { ensureAudio(); skipToAstronaut(); });
+
+/* ---------- main loop ---------- */
+const fadeEl = document.getElementById("fade");
+let lastNow = performance.now();
+let missionStart = lastNow;
+const tmpV = new THREE.Vector3();
+
+function overlayOpacity(tt){
+  // Only the very first fade-in from black at the start of the whole
+  // cinematic remains -- the launch-to-moon cut is a hard cut on purpose
+  // (the ship flies out of frame past the held moon instead of the scene
+  // fading to black), so there's no fade window around T_BLACK anymore.
+  if (tt < 1.2) return 1 - smoothstep(0,1.2,tt);
+  return 0;
+}
+
+/* ---------- cockpit-interior intro (astronaut checking controls, before the
+   exterior countdown view) ---------- */
+// Built far below the rest of the world so it can never be visible from any
+// other camera -- only the intro phase ever points a camera at it.
+const COCKPIT_Y = -3000;
+const T_COCKPIT_INTRO = 6.0;
+
+const cockpitIntro = new THREE.Group();
+cockpitIntro.position.set(0, COCKPIT_Y, 0);
+scene.add(cockpitIntro);
+
+// A standing, full-body astronaut (same rig as the gameplay character) that
+// the camera watches from behind/over the shoulder, rather than a close-up
+// on floating hands -- reads much more like an actual cockpit shot.
+const cockpitAstro = buildAstronaut();
+cockpitAstro.charRoot.rotation.y = Math.PI; // face -Z, toward the console/window
+cockpitIntro.add(cockpitAstro.charRoot);
+
+{
+  const cabinBack = new THREE.Mesh(new THREE.BoxGeometry(7,4.4,0.3), MAT.rigHullDark);
+  cabinBack.position.set(0, 2.1, -2.6);
+  cockpitIntro.add(cabinBack);
+
+  [-1,1].forEach(s => {
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(3.0,4.4,0.25), MAT.rigHullDark);
+    wall.position.set(s*3.2, 2.1, -0.9);
+    wall.rotation.y = -s*0.5;
+    cockpitIntro.add(wall);
+  });
+
+  const ceil = new THREE.Mesh(new THREE.BoxGeometry(6,0.2,4.6), MAT.stationDark);
+  ceil.position.set(0, 4.2, -0.8);
+  cockpitIntro.add(ceil);
+  for(let i=-1;i<=1;i+=2){
+    const light = new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6), MAT.lampGlow);
+    light.position.set(i*1.8, 4.08, -0.8);
+    cockpitIntro.add(light);
+  }
+
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(6,0.2,5), MAT.engineDark);
+  floor.position.set(0, -0.05, -0.6);
+  cockpitIntro.add(floor);
+}
+
+function buildCockpitScreenTex(){
+  const size = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#03222b'; ctx.fillRect(0,0,size,size);
+  ctx.strokeStyle = '#4be0ff'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(let i=0;i<7;i++){ ctx.moveTo(0, 8+i*17); ctx.lineTo(size, 2+i*18); }
+  ctx.stroke();
+  ctx.fillStyle = '#8ff2ff';
+  for(let i=0;i<9;i++) ctx.fillRect(6+i*13, size-28+Math.sin(i*1.3)*10, 7,7);
+  return new THREE.CanvasTexture(c);
+}
+const cockpitScreenMat = new THREE.MeshBasicMaterial({ map: buildCockpitScreenTex(), toneMapped:false });
+
+// Sichtfenster -- a window ahead of the console, above and beyond it, with a
+// faint starry-sky texture standing in for the view outside (the real pad
+// exterior isn't rendered here; this is a lightweight cinematic stand-in).
+function buildCockpitWindowTex(){
+  const size = 160;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,size);
+  grad.addColorStop(0, '#0a0e1c');
+  grad.addColorStop(1, '#141c33');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,size,size);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  for(let i=0;i<40;i++){
+    const x = Math.random()*size, y = Math.random()*size, r = Math.random()*1.4+0.3;
+    ctx.globalAlpha = 0.4+Math.random()*0.5;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  return new THREE.CanvasTexture(c);
+}
+const cockpitWindow = new THREE.Mesh(
+  new THREE.PlaneGeometry(2.6,1.5),
+  new THREE.MeshBasicMaterial({ map: buildCockpitWindowTex(), toneMapped:false })
+);
+cockpitWindow.position.set(0, 2.15, -2.44);
+cockpitIntro.add(cockpitWindow);
+const cockpitWindowFrame = new THREE.Mesh(new THREE.BoxGeometry(2.8,1.66,0.1), MAT.rigHull);
+cockpitWindowFrame.position.set(0, 2.15, -2.5);
+cockpitIntro.add(cockpitWindowFrame);
+
+// Console sits at waist/chest height in front of the astronaut, below the
+// window, within comfortable arm's reach.
+const cockpitConsole = new THREE.Group();
+cockpitConsole.position.set(0, 1.02, -1.15);
+cockpitConsole.rotation.x = -0.3;
+cockpitIntro.add(cockpitConsole);
+
+{
+  const base = new THREE.Mesh(new THREE.BoxGeometry(2.2,0.24,0.85), MAT.rigHull);
+  cockpitConsole.add(base);
+
+  [-0.6,0.6].forEach(sx => {
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.6,0.4), cockpitScreenMat);
+    screen.position.set(sx, 0.13, -0.05);
+    screen.rotation.x = -Math.PI/2 + 0.5;
+    cockpitConsole.add(screen);
+  });
+
+  for(let i=0;i<5;i++){
+    const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.04,10), i%2===0 ? MAT.yellow : MAT.red);
+    btn.position.set(-0.42+i*0.21, 0.15, 0.28);
+    cockpitConsole.add(btn);
+  }
+}
+
+// Lever mounted on the console's right side, within the astronaut's reach.
+const cockpitLeverPivot = new THREE.Group();
+cockpitLeverPivot.position.set(0.95, 0.13, 0.12);
+cockpitConsole.add(cockpitLeverPivot);
+{
+  const leverArm = new THREE.Mesh(new THREE.BoxGeometry(0.05,0.4,0.05), MAT.metalDark);
+  leverArm.position.y = 0.2;
+  cockpitLeverPivot.add(leverArm);
+  const leverKnob = new THREE.Mesh(new THREE.SphereGeometry(0.07,8,6), MAT.red);
+  leverKnob.position.y = 0.4;
+  cockpitLeverPivot.add(leverKnob);
+}
+
+function cockpitIntroOpacity(tt){
+  if (tt < 0.7) return 1 - smoothstep(0,0.7,tt);
+  if (tt > T_COCKPIT_INTRO - 0.7) return smoothstep(T_COCKPIT_INTRO-0.7, T_COCKPIT_INTRO, tt);
+  return 0;
+}
+
+function updateCockpitIntro(tt){
+  fadeEl.style.opacity = cockpitIntroOpacity(tt);
+
+  // Camera stays behind the astronaut, over his shoulder, with a slow dolly
+  // in toward the console/window and a light handheld sway.
+  const dollyT = clamp(tt/T_COCKPIT_INTRO, 0, 1);
+  const camZ = lerp(2.1, 1.35, dollyT);
+  const swayX = Math.sin(tt*0.5)*0.06;
+  const swayY = Math.sin(tt*0.7+1)*0.03;
+  camera.position.set(swayX, COCKPIT_Y+1.85+swayY, camZ);
+  camera.lookAt(swayX*0.4, COCKPIT_Y+1.55, -1.6);
+
+  // Right arm reaches down to the console to check/press buttons through
+  // most of the intro, in a slow repeating cycle.
+  const cyc = (tt*0.55) % 1;
+  const reachAmt = 0.5 - 0.5*Math.cos(cyc*Math.PI*2); // 0..1..0, eased
+  cockpitAstro.rShoulder.rotation.x = lerp(-0.15, -0.85, reachAmt);
+  cockpitAstro.rShoulder.rotation.z = 0.14;
+  cockpitAstro.rElbow.rotation.x = lerp(-0.15, -1.35, reachAmt);
+
+  // Left arm idles for the first half, then reaches to the lever on the
+  // console's right side and pulls it down through the back half.
+  const leverT = clamp((tt - T_COCKPIT_INTRO*0.55) / (T_COCKPIT_INTRO*0.3), 0, 1);
+  cockpitLeverPivot.rotation.x = -leverT*0.8;
+  if (leverT > 0.02){
+    cockpitAstro.lShoulder.rotation.x = lerp(-0.15, -0.95, leverT);
+    cockpitAstro.lShoulder.rotation.z = lerp(0, -0.35, leverT);
+    cockpitAstro.lElbow.rotation.x = lerp(-0.15, -1.5, leverT);
+  } else {
+    cockpitAstro.lShoulder.rotation.x = -0.1 + Math.sin(tt*0.6)*0.05;
+    cockpitAstro.lShoulder.rotation.z = 0;
+    cockpitAstro.lElbow.rotation.x = -0.1;
+  }
+
+  // Subtle idle head/weight shift so the pose doesn't read as frozen.
+  cockpitAstro.headJoint.rotation.x = Math.sin(tt*0.9)*0.05;
+  cockpitAstro.hipsGrp.rotation.y = Math.sin(tt*0.4)*0.04;
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const now = performance.now();
+  const dt = Math.min((now - lastNow)/1000, 0.05);
+  lastNow = now;
+
+  if (gameMode){
+    updatePuffs(dt);
+    // Runs every frame regardless of mode so the hatch/arm can finish
+    // stowing after the player exits, not just while actively driving it.
+    updateBigRigArm(dt);
+    if (inVehicle) updateRoverGameplay(dt);
+    else if (inBigRig) updateBigRigGameplay(dt);
+    else updateAstronautGameplay(dt);
+    const curX = inVehicle ? roverX : inBigRig ? bigRigX : astro.charRoot.position.x;
+    const curZ = inVehicle ? roverZ : inBigRig ? bigRigZ : astro.charRoot.position.z;
+    const curAngle = inVehicle ? roverAngle : inBigRig ? bigRigAngle : charYaw;
+    updateCrystals(dt, now/1000, curX, curZ);
+    drawMinimap(curX, curZ, curAngle);
+    renderer.render(scene, camera);
+    return;
+  }
+
+  const rawT = (now - missionStart)/1000;
+  if (rawT < T_COCKPIT_INTRO){
+    updateCockpitIntro(rawT);
+    renderer.render(scene, camera);
+    return;
+  }
+  t = rawT - T_COCKPIT_INTRO;
+
+  updateCountdown(t);
+
+  if (!state.moonSwapped){
+    updateSky(t);
+    const altitude = currentAltitude(t);
+
+    const armProg = smoothstep(T_IGNITE-0.6, T_LIFTOFF-0.2, t);
+    tower.userData.armPivot.rotation.z = -1.05*armProg;
+
+    if (!state.separated){
+      rocketStack.position.y = PAD_TOP + altitude;
+
+      const bg = boosterPart.userData.engineGlow;
+      if (t > T_IGNITE) bg.visible = true;
+      if (t > T_IGNITE && !state.rumbleStarted){
+        state.rumbleStarted = true;
+        startLaunchRumble();
+        playIgnitionCrack();
+      }
+      if (bg.visible){
+        pulseEngine(bg, t, 38);
+        bg.getWorldPosition(tmpV);
+        spawnEngineTrail(dt, tmpV, 1.15);
+      }
+
+      if (altitude < LOW_ALT_THRESHOLD){
+        spawnLaunchSmoke(dt, rocketStack.position.x);
+      }
+
+      if (altitude > SEPARATION_ALT){
+        state.separated = true;
+        state.sepTime = t;
+        state.sepVelY = altitudeVelocity(t);
+        boosterPart.getWorldPosition(tmpV);
+        state.sepX0 = tmpV.x; state.sepY0 = tmpV.y; state.sepZ0 = tmpV.z;
+        launchScene.add(boosterPart);
+        boosterPart.position.copy(tmpV);
+        shipPart.getWorldPosition(tmpV);
+        launchScene.add(shipPart);
+        shipPart.position.copy(tmpV);
+        bg.visible = false;
+        shipPart.userData.engineGlow.visible = true;
+      }
+    } else {
+      shipPart.position.y = PAD_TOP + altitude + SHIP_LOCAL_Y;
+
+      const sg = shipPart.userData.engineGlow;
+      if (t > T_ASCENT_END - 1) sg.visible = altitude < ASCENT_DIST*0.55;
+      if (sg.visible){
+        pulseEngine(sg, t, 38);
+        sg.getWorldPosition(tmpV);
+        spawnEngineTrail(dt, tmpV, 0.85);
+      }
+
+      const dtSep = t - state.sepTime;
+      boosterPart.position.y = state.sepY0 + state.sepVelY*dtSep - 0.5*FALL_G*dtSep*dtSep;
+      boosterPart.position.x = state.sepX0 + dtSep*18;
+      boosterPart.position.z = state.sepZ0 + dtSep*7;
+      boosterPart.rotation.x += dt*1.4;
+      boosterPart.rotation.z += dt*0.8;
+      if (boosterPart.position.y < -60) boosterPart.visible = false;
+    }
+
+    updatePuffs(dt);
+    updateCameraLaunch(altitude, t);
+    if (state.rumbleStarted){
+      const rumbleIntensity = smoothstep(T_IGNITE-0.3, T_IGNITE+0.5, t) * (1 - smoothstep(T_ASCENT_END-4, T_ASCENT_END, t));
+      updateLaunchRumble(rumbleIntensity);
+    }
+
+    const activeGlow = state.separated ? shipPart.userData.engineGlow : boosterPart.userData.engineGlow;
+    activeGlow.getWorldPosition(tmpV);
+    const glowStrength = activeGlow.visible ? clamp(1 - altitude/260, 0.2, 1) : 0;
+    updateGlow(tmpV, glowStrength*0.65);
+
+    if (t >= T_BLACK && !state.moonSwapped){
+      state.moonSwapped = true;
+      stopLaunchRumble();
+      launchScene.visible = false;
+      moonScene.visible = true;
+      launchScene.remove(shipPart);
+      moonScene.add(shipPart);
+      shipPart.position.set(PAD_X, MOON_START_Y, 0);
+      shipPart.rotation.set(0,0,0);
+      // Continue from the exact camera Y the launch hold-shot ended on
+      // (rather than a value picked for the old separately-timed reveal)
+      // so there's no visible pop now that there's no fade to cover one.
+      camState.y = HOLD_CAM_Y;
+    }
+  } else {
+    const q = clamp((t - T_MOON_IN)/(T_MOON_TOUCHDOWN - T_MOON_IN), 0, 1);
+    const y = MOON_START_Y * (1-q)*(1-q) + PLATFORM_H;
+    shipPart.position.y = y;
+
+    const sg = shipPart.userData.engineGlow;
+    sg.visible = q > 0.02 && q < 1.0;
+    if (sg.visible){
+      pulseEngine(sg, t, 40);
+    }
+
+    const closeness = clamp(1 - (y-PLATFORM_H)/70, 0, 1);
+    if (closeness > 0) spawnMoonDust(dt, shipPart.position, closeness);
+    if (q > 0.04 && q < 0.94) spawnRCS(dt);
+    updatePuffs(dt);
+
+    if (q >= 1 && t >= T_RAMP_START){
+      updateCutscene(dt);
+    } else {
+      updateCameraMoon(y);
+    }
+
+    sg.getWorldPosition(tmpV);
+    // Noticeably less orange screen-space glow on landing than the 0.9 used
+    // during launch -- the touchdown engine burn shouldn't wash out the moon
+    // view the way the liftoff fireball does.
+    updateGlow(tmpV, sg.visible ? 0.4 : 0);
+
+    stars.material.opacity = 1;
+    skyEl.style.background = "linear-gradient(#03040c,#0a0c1c)";
+  }
+
+  fadeEl.style.opacity = overlayOpacity(t);
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

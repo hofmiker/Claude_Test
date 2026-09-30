@@ -1,0 +1,7 @@
+﻿herkunft_gruppe;herkunft;ziel_topf;wert_mio_eur;typ;beschreibung;quelle_id;fundstelle;anmerkung
+Kredite;Kredite SV Bundeswehr;BW;25510;kredit;Kredite für das Sondervermögen Bundeswehr;Q5;Abschnitt Verteidigung;
+Kredite;Kredite SVIK;SVIK;48100;kredit;Kredite für eigene Ausgaben des SVIK;Q1;Abschnitt SVIK;Ausgaben 48,1 Mrd. ohne KTF-Zuweisung
+Kredite;Kredite über SVIK;KTF;10000;transfer;SVIK-Kredite, die als jährliche Zuweisung an den KTF gehen;Q1;Abschnitt SVIK;Wird nur einmal gezählt
+CO₂ u. a.;CO₂-Einnahmen;KTF;21000;eigen;Europäischer Emissionshandel 4,3 und nationale CO₂-Bepreisung 16,7;Q3;;Werte aus Regierungsentwurf
+CO₂ u. a.;Rücklage;KTF;2100;eigen;Entnahme aus der Rücklage;Q3;;
+CO₂ u. a.;Globale Mehreinnahme;KTF;1730;eigen;Im Haushaltsausschuss ergänzt;Q2;;

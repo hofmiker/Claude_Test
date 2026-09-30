@@ -1,0 +1,61 @@
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Stamp live deploy date and per-project stats
+        run: |
+          DEPLOY_DATE=$(date -u +'%d.%m.%Y %H:%M UTC')
+          DEPLOY_SHA=$(git rev-parse --short HEAD)
+          sed -i "s/{{DEPLOY_DATE}}/$DEPLOY_DATE/" index.html
+          # --follow on the project's index.html so renamed/restructured
+          # project folders (e.g. dhl -> dhl-city) keep their full history
+          # instead of being truncated at the rename commit.
+          for folder in $(grep -oP '(?<=\{\{UPDATED:)[^}]+' index.html | sort -u); do
+            DATE=$(git log --follow -1 --format=%ad --date=format:'%d.%m.%Y' -- "$folder/index.html" 2>/dev/null)
+            if [ -z "$DATE" ]; then DATE=$(date -u +'%d.%m.%Y'); fi
+            sed -i "s/{{UPDATED:$folder}}/$DATE/g" index.html
+          done
+          for folder in $(grep -oP '(?<=\{\{COMMITS:)[^}]+' index.html | sort -u); do
+            COUNT=$(git log --follow --oneline -- "$folder/index.html" 2>/dev/null | wc -l)
+            sed -i "s/{{COMMITS:$folder}}/$COUNT/g" index.html
+          done
+          # per-project build stamps (e.g. gta/index.html's {{DEPLOY_DATE}}/
+          # {{DEPLOY_SHA}} settings-menu line) - a project opts in just by
+          # using these placeholders somewhere in its own index.html.
+          # NOTE: `grep -q ... && sed ...` as a bare statement breaks under
+          # this shell's `bash -e` (errexit) - grep's normal "no match" exit
+          # code (1) for every project that DOESN'T use these placeholders
+          # aborts the whole step immediately. Must be a real `if`, which is
+          # an errexit-exempt context.
+          for proj_index in */index.html; do
+            if grep -q '{{DEPLOY_DATE}}' "$proj_index" 2>/dev/null; then
+              sed -i "s/{{DEPLOY_DATE}}/$DEPLOY_DATE/g" "$proj_index"
+            fi
+            if grep -q '{{DEPLOY_SHA}}' "$proj_index" 2>/dev/null; then
+              sed -i "s/{{DEPLOY_SHA}}/$DEPLOY_SHA/g" "$proj_index"
+            fi
+          done
+      - uses: actions/configure-pages@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: deployment
+        uses: actions/deploy-pages@v4

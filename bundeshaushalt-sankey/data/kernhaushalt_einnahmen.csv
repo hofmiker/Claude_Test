@@ -1,0 +1,10 @@
+﻿kategorie;posten;wert_mio_eur;beschreibung;quelle_id;fundstelle;anmerkung
+Steuern;Einkommen;197927;Lohn-, Einkommen-, Körperschaft- und Abgeltungsteuer, Mindeststeuer (Bundesanteil);Q1;Tabelle 4 (Einnahmen);
+Steuern;Umsatzsteuer;155516;Steuern vom Umsatz, Bundesanteil;Q1;Tabelle 4 (Einnahmen);
+Steuern;Energie/Strom;43350;Energiesteuer 36.500 und Stromsteuer 6.850;Q1;Tabelle 4 (Einnahmen);Summe zweier Zeilen
+Steuern;Weitere St.;63449;Versicherung, Tabak, Soli, Kfz, Luftverkehr, Alkohol u. a.;Q1;Tabelle 4 (Einnahmen);Rest der Bundessteuern (68.210) abzüglich geplanter steuerlicher Maßnahmen (-4.761)
+Sonstiges;Verwaltung;18194;Gebühren, Entgelte und Verwaltungseinnahmen;Q1;Tabelle 4 (Einnahmen);
+Sonstiges;Zuweisungen;14634;Einnahmen aus Zuweisungen und Zuschüssen, darunter 10,6 Mrd. aus dem EU-Aufbauplan;Q1;Tabelle 4 (Einnahmen);
+Sonstiges;Unternehmen;3733;Einnahmen aus wirtschaftlicher Tätigkeit;Q1;Tabelle 4 (Einnahmen);
+Sonstiges;Übrige;2656;Zinseinnahmen, Darlehensrückflüsse u. a.;Q1;Tabelle 4 (Einnahmen);Rest bis Summe Sonstige Einnahmen 39.217
+Kredite;Kredite;98110;Nettokreditaufnahme 97.965 plus Münzeinnahmen 145;Q1;Tabelle 1 (Gesamtübersicht);

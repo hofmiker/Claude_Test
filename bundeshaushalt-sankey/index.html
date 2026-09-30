@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bundesfinanzen 2026 als Geldfluss</title>
+  <link rel="preload" href="fonts/source-serif-4-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/ibm-plex-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="app">
+    <header>
+      <p class="kicker">Bundeshaushalt &amp; Sondervermögen</p>
+      <h1 id="title">Bundesfinanzen 2026 als Geldfluss</h1>
+      <div id="period" class="period"></div>
+      <div id="warn" class="warn"></div>
+    </header>
+
+    <section class="chart">
+      <div class="head">
+        <h2>Kernhaushalt</h2>
+        <span class="tag" id="kTag"></span>
+        <button type="button" class="ibtn" aria-expanded="false" aria-controls="kMore" aria-label="Informationen zum Kernhaushalt">i</button>
+      </div>
+      <div class="more" id="kMore"><div>
+        <p>Tippe auf eine Kachel mit ‹ oder ›, um sie aufzufächern. Ein Tipp neben das Diagramm führt zurück zum Anfang.</p>
+        <p class="stand" id="kStand"></p>
+        <p id="kNote"></p>
+      </div></div>
+      <div class="info" id="kInfo" aria-live="polite"></div>
+      <div class="cols"><span>Einnahmen</span><span>Ausgaben</span></div>
+      <svg id="kSvg" width="100%" role="img" aria-label="Sankey-Diagramm des Kernhaushalts"></svg>
+    </section>
+
+    <section class="chart">
+      <div class="head">
+        <h2>Sondervermögen</h2>
+        <span class="tag" id="sTag"></span>
+        <button type="button" class="ibtn" aria-expanded="false" aria-controls="sMore" aria-label="Informationen zu den Sondervermögen">i</button>
+      </div>
+      <div class="more" id="sMore"><div>
+        <p>Tippe auf ein Sondervermögen, um es aufzufächern. Ein Tipp neben das Diagramm führt zurück zum Anfang.</p>
+        <p class="stand" id="sStand"></p>
+        <p id="sNote"></p>
+      </div></div>
+      <div class="info" id="sInfo" aria-live="polite"></div>
+      <div class="cols"><span>Herkunft</span><span>Verwendung</span></div>
+      <svg id="sSvg" width="100%" role="img" aria-label="Sankey-Diagramm der Sondervermögen"></svg>
+    </section>
+
+    <section>
+      <div class="head">
+        <h2>Daten</h2>
+        <button type="button" class="ibtn" aria-expanded="false" aria-controls="dMore" aria-label="Informationen zu den Daten">i</button>
+      </div>
+      <div class="more" id="dMore"><div>
+        <p>Alle Werte stammen aus den CSV-Tabellen im Ordner <code>data/</code>. Datenabruf: <span id="abruf"></span>.</p>
+      </div></div>
+      <div id="tables"></div>
+      <h3>Quellen</h3>
+      <ul id="sources" class="sources"></ul>
+    </section>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

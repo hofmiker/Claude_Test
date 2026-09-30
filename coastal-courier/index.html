@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coastal Courier">
+<title>The Coastal Courier</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --minimap-size: clamp(96px, 26vw, 130px);
+  }
+  @font-face {
+    font-family: 'ViceDisplay';
+    src: url('./vendor/fonts/bebas-neue-400.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    background: #000;
+    font-family: "Segoe UI", Arial, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #app {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+  }
+  canvas#scene {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  #hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+    opacity: 1;
+    transition: opacity 0.4s ease;
+  }
+  body.dialog-active #hud { opacity: 0; pointer-events: none; }
+
+  /* ---- top-left: objective + distance ---- */
+  #objectivePanel {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    max-width: 46vw;
+  }
+  #objectiveText {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(14px, 4.4vw, 19px);
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    line-height: 1.25;
+    text-transform: uppercase;
+  }
+  #objectiveDistance {
+    font-size: clamp(9px, 2.6vw, 11px);
+    opacity: 0.7;
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ---- top-right: speed + clock + minimap ---- */
+  #speedWrap {
+    position: absolute;
+    top: 12px;
+    right: calc(var(--minimap-size) + 26px);
+    text-align: right;
+  }
+  #speed {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(22px, 7vw, 32px);
+    font-weight: 400;
+    line-height: 1;
+  }
+  #speedUnit {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(9px, 2.8vw, 12px);
+    opacity: 0.75;
+    letter-spacing: 3px;
+  }
+  #vehicleTag {
+    font-size: clamp(9px, 2.6vw, 11px);
+    opacity: 0.8;
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  #clockDisplay {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(14px, 4vw, 17px);
+    letter-spacing: 1px;
+    font-weight: 400;
+    color: #ffd54a;
+    text-align: right;
+  }
+  #clockDisplay .label {
+    display: block;
+    font-size: clamp(7px, 2vw, 9px);
+    opacity: 0.65;
+    letter-spacing: 2px;
+    color: #fff;
+  }
+  #minimapWrap {
+    position: absolute;
+    top: 40px;
+    right: 16px;
+    width: var(--minimap-size);
+    height: var(--minimap-size);
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.55);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.6);
+    overflow: hidden;
+    background: #111;
+  }
+  #minimap {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* ---- top-center: wanted banner + toast ---- */
+  #wantedBanner {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(18px, 6vw, 26px);
+    letter-spacing: clamp(2px, 1.4vw, 6px);
+    color: #ff3b3b;
+    background: rgba(20,0,4,0.55);
+    border: 1px solid rgba(255,59,59,0.55);
+    padding: 4px 18px 2px;
+    border-radius: 8px;
+    text-shadow: 0 0 14px rgba(255,59,59,0.9), 0 2px 3px #000;
+    box-shadow: 0 0 22px rgba(255,59,59,0.35);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  #wantedBanner.show {
+    opacity: 1;
+    animation: wantedPulse 1s ease-in-out infinite;
+  }
+  @keyframes wantedPulse {
+    0%, 100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.05); }
+  }
+
+  #subMsg {
+    position: absolute;
+    top: 54px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: min(80vw, 340px);
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(10,10,16,0.88);
+    border: 1px solid rgba(255,255,255,0.22);
+    padding: 9px 12px 9px 18px;
+    border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform-origin: top center;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+  }
+  #subMsg.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+  }
+  #subMsgText {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  #subMsgOk {
+    flex: none;
+    pointer-events: auto;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  #subMsgOk:active { background: rgba(255,255,255,0.3); }
+
+  /* ---- phone-message toast (Elaine's texts), bottom-center above hint ---- */
+  #phoneToast {
+    position: absolute;
+    left: 50%;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(10px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: min(84vw, 320px);
+    background: rgba(15,15,22,0.92);
+    border: 1px solid rgba(255,213,74,0.55);
+    border-radius: 14px;
+    padding: 8px 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    z-index: 3;
+  }
+  #phoneToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #phoneToast .pt-icon { font-size: 18px; flex: none; }
+  #phoneToast .pt-body { flex: 1 1 auto; min-width: 0; }
+  #phoneToast .pt-name {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #ffd54a;
+    text-transform: uppercase;
+  }
+  #phoneToast .pt-text { font-size: 13px; opacity: 0.9; }
+
+  /* ---- stamina bar (foot-bridge phase only) ---- */
+  #staminaWrap {
+    position: absolute;
+    left: 50%;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    width: min(58vw, 240px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  #staminaWrap.show { opacity: 1; }
+  #staminaLabel {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-align: center;
+    opacity: 0.8;
+    margin-bottom: 3px;
+  }
+  #staminaTrack {
+    height: 8px;
+    border-radius: 5px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.35);
+    overflow: hidden;
+  }
+  #staminaFill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #6be36b, #ffd54a 65%, #ff3b3b);
+    transition: width 0.1s linear;
+  }
+
+  /* ---- bottom-left: small settings gear ---- */
+  #btnSettings {
+    position: absolute;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    left: calc(14px + env(safe-area-inset-left));
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(20,20,26,0.6);
+    border: 1px solid rgba(255,255,255,0.35);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 0.1s ease, background 0.1s ease;
+  }
+  #btnSettings:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
+  #settingsMenu {
+    position: absolute;
+    bottom: calc(52px + env(safe-area-inset-bottom));
+    left: calc(14px + env(safe-area-inset-left));
+    background: rgba(10,10,14,0.94);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 12px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  #settingsMenu.show { opacity: 1; pointer-events: auto; }
+  #settingsMenu button {
+    pointer-events: auto;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-align: left;
+    transition: background 0.1s ease;
+  }
+  #settingsMenu button:active { background: rgba(255,255,255,0.25); }
+  #buildInfo {
+    pointer-events: none;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.4);
+    padding: 2px 4px 0;
+    white-space: nowrap;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    margin-top: 2px;
+    padding-top: 6px;
+  }
+
+  /* ---- dialog: chat thread, same pattern as Vice Grid ---- */
+  #dialogBox {
+    position: absolute;
+    left: 50%;
+    bottom: calc(160px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    width: min(440px, calc(100vw - 64px));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: auto;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  }
+  .dchat-row {
+    display: grid;
+    grid-template-rows: 0fr;
+    justify-items: start;
+    transition: grid-template-rows 0.35s ease;
+  }
+  .dchat-row.show { grid-template-rows: 1fr; }
+  .dchat-row.me { justify-items: end; }
+  .dchat-row.narration { justify-items: center; }
+  .dchat-bubble {
+    min-height: 0;
+    overflow: hidden;
+    max-width: 78%;
+    background: rgba(30,32,36,0.95);
+    border: 1px solid rgba(255,255,255,0.35);
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    padding: 10px 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .dchat-row.show .dchat-bubble { opacity: 1; }
+  .dchat-row.me .dchat-bubble { border-radius: 16px; border-bottom-right-radius: 4px; }
+  .dchat-row.narration .dchat-bubble {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    font-style: italic;
+    text-align: center;
+    padding: 2px 10px;
+  }
+  .dchat-speaker {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .dchat-text { font-size: 16px; line-height: 1.4; }
+  #dialogNextRow { display: flex; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+  #dialogNextRow.show { opacity: 1; pointer-events: auto; }
+  #dialogNextBtn {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,213,74,0.18);
+    border: 1px solid rgba(255,213,74,0.6);
+    cursor: pointer;
+    pointer-events: auto;
+    animation: nextPulse 1.6s ease-in-out infinite;
+  }
+  #dialogNextBtn .arrow {
+    width: 0;
+    height: 0;
+    margin-left: 2px;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 9px solid #ffe9a8;
+  }
+  @keyframes nextPulse {
+    0%, 100% { transform: scale(1); opacity: 0.88; }
+    50% { transform: scale(1.06); opacity: 1; }
+  }
+
+  /* ---- win overlay + fade-to-black ---- */
+  #endOverlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(0,0,0,0.9);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1.6s ease;
+    z-index: 6;
+  }
+  #endOverlay.show { opacity: 1; pointer-events: auto; }
+  #endTitle {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 52px;
+    letter-spacing: 5px;
+    text-align: center;
+    color: #ffd54a;
+    text-shadow: 0 0 24px rgba(255,213,74,0.6);
+  }
+  #endSubtitle {
+    font-size: 16px;
+    opacity: 0.85;
+    text-align: center;
+    max-width: 80vw;
+  }
+  #endRestartBtn {
+    margin-top: 10px;
+    padding: 12px 30px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.45);
+    border-radius: 999px;
+    color: #fff;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background 0.15s ease, transform 0.1s ease;
+  }
+  #endRestartBtn:active { background: rgba(255,255,255,0.3); transform: scale(0.96); }
+
+  #controlsHint {
+    position: absolute;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    background: rgba(0,0,0,0.45);
+    padding: 8px 14px;
+    border-radius: 8px;
+    text-align: center;
+    line-height: 1.5;
+    transition: opacity 1s ease;
+  }
+
+  #loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(4,4,8,0.6);
+    color: #fff;
+    z-index: 10;
+  }
+  #titleSplash {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+  .ts-word {
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(34px, 11vw, 84px);
+    letter-spacing: 6px;
+    line-height: 0.98;
+    text-transform: uppercase;
+    transform: skewX(-6deg);
+    opacity: 0;
+  }
+  .ts-word1 {
+    color: #ffd54a;
+    text-shadow: 0 0 18px rgba(255,213,74,0.85), 0 0 46px rgba(255,213,74,0.5), 0 4px 0 #7a5a0f;
+    animation: viceWordIn 1.5s cubic-bezier(.2,.85,.25,1) forwards;
+  }
+  .ts-word2 {
+    color: #20e3ff;
+    text-shadow: 0 0 18px rgba(32,227,255,0.85), 0 0 46px rgba(32,227,255,0.5), 0 4px 0 #0b5866;
+    animation: viceWordIn 1.5s cubic-bezier(.2,.85,.25,1) 0.16s forwards;
+  }
+  @keyframes viceWordIn {
+    0%   { opacity: 0; transform: translateX(-40px) skewX(-14deg) scale(0.7); }
+    8%   { opacity: 1; }
+    13%  { opacity: 0.3; }
+    18%  { opacity: 1; transform: translateX(0) skewX(-6deg) scale(1.08); }
+    32%  { transform: translateX(0) skewX(-6deg) scale(1); }
+    100% { opacity: 1; transform: translateX(0) skewX(-6deg) scale(1); }
+  }
+  .ts-sub {
+    margin-top: 10px;
+    font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+    font-size: clamp(12px, 2.8vw, 16px);
+    letter-spacing: 6px;
+    color: #ff2e88;
+    text-shadow: 0 0 10px rgba(255,46,136,0.6);
+    opacity: 0;
+    animation: tsSubIn 1s ease-out 0.9s forwards;
+  }
+  @keyframes tsSubIn {
+    0% { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 0.9; transform: translateY(0); }
+  }
+  .ts-hint {
+    margin-top: 26px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    max-width: 80vw;
+    color: rgba(255,255,255,0.45);
+    opacity: 0;
+    animation: tsSubIn 1s ease-out 1.3s forwards, tsPulse 1.6s ease-in-out 1.3s infinite;
+  }
+  @keyframes tsPulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.75; }
+  }
+
+  #mobileControls {
+    display: none;
+  }
+  body.dialog-active #mobileControls { opacity: 0; pointer-events: none; }
+  @media (pointer: coarse) {
+    #controlsHint {
+      display: none;
+    }
+    #mobileControls {
+      display: block;
+      position: absolute;
+      inset: 0;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    #joystick {
+      position: absolute;
+      pointer-events: auto;
+      left: calc(20px + env(safe-area-inset-left));
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      width: 116px;
+      height: 116px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.14), rgba(10,10,16,0.55) 70%);
+      border: 2px solid rgba(255,213,74,0.55);
+      box-shadow: 0 0 18px rgba(255,213,74,0.28), inset 0 0 18px rgba(0,0,0,0.5);
+      touch-action: none;
+    }
+    #joystickKnob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 50px;
+      height: 50px;
+      margin: -25px 0 0 -25px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9), rgba(32,227,255,0.55) 75%);
+      border: 2px solid rgba(255,255,255,0.85);
+      box-shadow: 0 0 14px rgba(32,227,255,0.7);
+      pointer-events: none;
+    }
+
+    #btnJump, #btnAction {
+      position: absolute;
+      pointer-events: auto;
+      right: calc(20px + env(safe-area-inset-right));
+      min-width: 64px;
+      height: 56px;
+      padding: 0 16px;
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-width: 2px;
+      border-style: solid;
+      color: #fff;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+      transition: transform 0.08s ease, background 0.1s ease;
+      font-family: 'ViceDisplay', Impact, 'Arial Narrow', sans-serif;
+      font-size: 15px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    #btnJump {
+      bottom: calc(106px + env(safe-area-inset-bottom));
+      background: radial-gradient(circle at 35% 30%, rgba(255,225,120,0.4), rgba(255,204,0,0.18));
+      border-color: rgba(255,204,0,0.75);
+      box-shadow: 0 0 14px rgba(255,204,0,0.3);
+      opacity: 0;
+      pointer-events: none;
+    }
+    #btnJump.show { opacity: 1; pointer-events: auto; }
+    #btnAction {
+      bottom: calc(20px + env(safe-area-inset-bottom));
+      background: radial-gradient(circle at 35% 30%, rgba(140,220,255,0.4), rgba(32,227,255,0.18));
+      border-color: rgba(32,227,255,0.75);
+      box-shadow: 0 0 14px rgba(32,227,255,0.3);
+    }
+    #btnJump:active, #btnAction:active { transform: scale(0.92); }
+
+    #btnSettings {
+      bottom: calc(146px + env(safe-area-inset-bottom));
+      left: calc(20px + env(safe-area-inset-left));
+    }
+    #settingsMenu {
+      bottom: calc(182px + env(safe-area-inset-bottom));
+      left: calc(20px + env(safe-area-inset-left));
+    }
+  }
+</style>
+</head>
+<body class="dialog-active">
+<div id="app">
+  <canvas id="scene"></canvas>
+
+  <div id="loading">
+    <div id="titleSplash">
+      <span class="ts-word ts-word1">COASTAL</span>
+      <span class="ts-word ts-word2">COURIER</span>
+      <span class="ts-sub" id="titleSub">Ein Vice-Grid-Auftrag</span>
+      <span class="ts-hint">Taste oder Tipp zum Überspringen</span>
+    </div>
+  </div>
+
+  <div id="hud">
+    <div id="objectivePanel">
+      <div id="objectiveText"></div>
+      <div id="objectiveDistance"></div>
+    </div>
+    <div id="wantedBanner"></div>
+    <div id="subMsg"><span id="subMsgText"></span><button id="subMsgOk" type="button">OK</button></div>
+    <div id="phoneToast"><span class="pt-icon">📱</span><span class="pt-body"><span class="pt-name">Elaine</span><span class="pt-text" id="phoneToastText"></span></span></div>
+    <div id="clockDisplay"><span class="label">UHR</span><span id="clockText">13:30</span></div>
+    <div id="minimapWrap"><canvas id="minimap"></canvas></div>
+
+    <div id="speedWrap">
+      <div id="speed">0</div>
+      <div id="speedUnit">KM/H</div>
+      <div id="vehicleTag"></div>
+    </div>
+    <div id="staminaWrap">
+      <div id="staminaLabel">AUSDAUER</div>
+      <div id="staminaTrack"><div id="staminaFill"></div></div>
+    </div>
+    <div id="btnSettings">⚙</div>
+    <div id="settingsMenu">
+      <button id="btnCameraToggle">🎥 Kamera: Oben</button>
+      <button id="btnFullscreen">⛶ Vollbild</button>
+      <div id="buildInfo">Build {{DEPLOY_DATE}} · {{DEPLOY_SHA}}</div>
+    </div>
+
+    <div id="endOverlay">
+      <div id="endTitle"></div>
+      <div id="endSubtitle"></div>
+      <div id="endRestartBtn"></div>
+    </div>
+
+    <div id="controlsHint">
+      <b>W/↑</b> Gas &nbsp; <b>S/↓</b> Bremse/Rückwärts &nbsp; <b>A/D ←/→</b> Lenken/Drehen &nbsp; <b>Shift</b> Sprint (zu Fuß) &nbsp; <b>F</b> Aktion &nbsp; <b>C</b> Kamera
+    </div>
+  </div>
+
+  <div id="dialogBox">
+    <div id="dialogNextRow"><div id="dialogNextBtn" aria-label="Weiter"><span class="arrow"></span></div></div>
+  </div>
+
+  <div id="mobileControls">
+    <div id="joystick"><div id="joystickKnob"></div></div>
+    <div id="btnJump">Sprint</div>
+    <div id="btnAction">F</div>
+  </div>
+</div>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>
