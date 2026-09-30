@@ -1,0 +1,11 @@
+﻿schluessel;wert
+titel;Bundesfinanzen 2026 als Geldfluss
+haushaltsjahr;2026
+zeitraum;01.01.2026 bis 31.12.2026
+wertart;Soll (Planwerte), keine Ist-Werte
+einheit;Mio. Euro
+stand_kernhaushalt;"Haushaltsgesetz 2026, verkündet am 22.12.2025; Aufbereitung im BMF-Sollbericht vom 20.02.2026"
+stand_sondervermoegen;Wirtschaftspläne 2026 (SV Bundeswehr, SVIK, KTF), beschlossen mit dem Haushalt am 28.11.2025
+datenabruf;30.09.2026
+hinweis_kernhaushalt;Ausgaben nach Aufgabenbereichen (Funktionenplan), nicht nach Ministeriums-Einzelplänen. Schuldentilgung am Kreditmarkt ist nicht enthalten, da Anschlussfinanzierung.
+hinweis_sondervermoegen;Die 10 Mrd. Zuweisung vom SVIK an den KTF sind nur einmal gezählt (als Kredit über das SVIK direkt beim KTF).

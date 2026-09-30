@@ -1,0 +1,4 @@
+﻿topf_id;name;langname;beschreibung;farbe;reihenfolge;quelle_id
+BW;Bundeswehr;Sondervermögen Bundeswehr;100 Mrd. Euro Kreditrahmen aus 2022, von der Schuldenbremse ausgenommen;bw;1;Q5
+SVIK;Infrastruktur;Sondervermögen Infrastruktur und Klimaneutralität;500 Mrd. Euro Kreditrahmen über 12 Jahre. 2026 insgesamt 58,1 Mrd., davon 10 Mrd. an den KTF;sv;2;Q1
+KTF;Klimafonds;Klima- und Transformationsfonds;"Kein eigener Kredit; finanziert aus CO₂-Preisen, Rücklage und einer Zuweisung aus dem SVIK";kt;3;Q2

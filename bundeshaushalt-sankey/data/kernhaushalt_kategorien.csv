@@ -1,0 +1,13 @@
+﻿seite;kategorie;beschreibung;farbe;reihenfolge
+einnahmen;Steuern;Bundesanteil an den Steuern, bevor EU und Länder ihren Teil bekommen;tax;1
+einnahmen;Sonstiges;Einnahmen, die keine Steuern sind;oth;2
+einnahmen;Kredite;Nettokreditaufnahme des Kernhaushalts;debt;3
+ausgaben;Soziales;Soziale Sicherung, Familie und Jugend, Arbeitsmarktpolitik;soc;1
+ausgaben;Verteidigung;Regulärer Wehretat, ohne Sondervermögen;oth;2
+ausgaben;Verwaltung;Allgemeine Dienste ohne Verteidigung;oth;3
+ausgaben;Bildung;Bildungswesen, Wissenschaft, Forschung, Kultur;oth;4
+ausgaben;Zinsen;Zinsausgaben und Ausgaben im Zusammenhang mit der Schuldenaufnahme;debt;5
+ausgaben;Wirtschaft;Energie- und Wasserwirtschaft, Gewerbe, Dienstleistungen;oth;6
+ausgaben;Verkehr;Verkehrs- und Nachrichtenwesen;oth;7
+ausgaben;Übriges;Kleinere Aufgabenbereiche;oth;8
+ausgaben;EU & Länder;Wird vorab von den Steuereinnahmen abgezogen (Abzugsbeträge);tr;9

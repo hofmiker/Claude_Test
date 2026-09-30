@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bundesfinanzen 2026 als Geldfluss</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="app">
+    <header>
+      <h1 id="title">Bundesfinanzen 2026 als Geldfluss</h1>
+      <div id="period" class="period"></div>
+      <div id="warn" class="warn"></div>
+    </header>
+
+    <section class="chart">
+      <h2>Kernhaushalt</h2>
+      <p class="stand" id="kStand"></p>
+      <div class="cols"><span>Einnahmen</span><span>Ausgaben</span></div>
+      <div class="info" id="kInfo">Tippe auf eine Kachel mit ‹ oder ›, um sie aufzufächern</div>
+      <svg id="kSvg" width="100%" role="img" aria-label="Sankey-Diagramm des Kernhaushalts"></svg>
+      <p class="note" id="kNote"></p>
+    </section>
+
+    <section class="chart">
+      <h2>Sondervermögen</h2>
+      <p class="stand" id="sStand"></p>
+      <div class="cols"><span>Herkunft</span><span>Verwendung</span></div>
+      <div class="info" id="sInfo">Tippe auf ein Sondervermögen, um es aufzufächern</div>
+      <svg id="sSvg" width="100%" role="img" aria-label="Sankey-Diagramm der Sondervermögen"></svg>
+      <p class="note" id="sNote"></p>
+    </section>
+
+    <section>
+      <h2>Daten</h2>
+      <p class="note">Alle Werte stammen aus den CSV-Tabellen im Ordner <code>data/</code>. Datenabruf: <span id="abruf"></span>.</p>
+      <div id="tables"></div>
+      <h3>Quellen</h3>
+      <ul id="sources" class="sources"></ul>
+    </section>
+  </main>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

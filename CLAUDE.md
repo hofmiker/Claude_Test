@@ -24,6 +24,7 @@
 | `phase-dancer/` | Phase Dancer Lab — Browser-Sound-Lab zur Klangmanipulation | `.../phase-dancer/` |
 | `chroma-ladder/` | Chroma Ladder — vierstufiger Farbkombinations-Builder (OKLCH, Light/Dark, Harmonielehre) | `.../chroma-ladder/` |
 | `lueckenfinder/` | Baulückenfinder — Baulücken-Karte für Herne, Bochum, Gelsenkirchen & Dortmund aus ALKIS-Katasterdaten (Python-Pipeline + Canvas-Karte) | `.../lueckenfinder/` |
+| `bundeshaushalt-sankey/` | Bundesfinanzen 2026 — Bundeshaushalt & Sondervermögen als interaktive Sankey-Diagramme (CSV-Daten, Vanilla JS) | `.../bundeshaushalt-sankey/` |
 | `archive/` | Veraltete Versionen | nicht verlinkt |
 
 **Base-URL:** https://hofmiker.github.io/Claude_Test/

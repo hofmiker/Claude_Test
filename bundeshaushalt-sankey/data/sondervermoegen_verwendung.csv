@@ -1,0 +1,12 @@
+﻿topf_id;posten;wert_mio_eur;beschreibung;quelle_id;fundstelle;anmerkung
+BW;Verteidigung;25510;Vor allem große Rüstungsprojekte, zusätzlich zum regulären Wehretat;Q5;;
+SVIK;Schiene;18800;Erhalt (16,3) und Digitalisierung (2,5) des Bahnnetzes, DB InfraGO;Q1;Abschnitt SVIK;
+SVIK;Brücken/Tunnel;3250;Autobahn GmbH, Erhalt im Bestandsnetz;Q1;Abschnitt SVIK;
+SVIK;Krankenhäuser;6000;Krankenhausfinanzierung, inkl. 1,0 Mrd. Entlastung der Länder;Q1;Abschnitt SVIK;
+SVIK;Übrige Invest.;11650;Übrige Investitionen der Bundessäule, z. B. Digitales, Kitas, Hochschulbau;Q1;Abschnitt SVIK;Rest: Bundessäule 39,7 minus Verkehr 22,05 und Krankenhäuser 6,0
+SVIK;Länder/Komm.;8400;Infrastrukturmittel für Länder und Kommunen;Q1;Abschnitt SVIK;"Rest 48,1 minus 39,7; BMF nennt an anderer Stelle 8,3"
+KTF;Gebäude;12000;Bundesförderung energieeffizienter Gebäude;Q1;Abschnitt KTF;
+KTF;Netzentgelte;6500;Zuschuss zu den Übertragungsnetzkosten;Q1;Abschnitt KTF;
+KTF;Strompreishilfe;4000;Strompreiskompensation für stromintensive Unternehmen;Q1;Abschnitt KTF;
+KTF;Wasserstoff;3000;Hochlauf der Wasserstoffwirtschaft;Q1;Abschnitt KTF;
+KTF;Weitere Klima;9330;Ladeinfrastruktur 1,7 und übrige Programme;Q1;Abschnitt KTF;"Rest bis KTF-Summe 34,83 laut Bundestag; BMF nennt Programmausgaben von 37,4 Mrd."
