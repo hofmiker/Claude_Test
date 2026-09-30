@@ -15,18 +15,28 @@ function place(hs, gap, minC) {
   return o;
 }
 const spanOf = a => (a.length ? a[a.length - 1].y + a[a.length - 1].h : 0);
-const WHITE = '#FFFFFF', TP = 'var(--text-primary)', TS = 'var(--text-secondary)';
+const DW = 8, WHITE = '#FFFFFF', TP = 'var(--text-primary)', TS = 'var(--text-secondary)';
 
-// Detail-Knoten (dünner Balken + zweizeilige Beschriftung) inkl. Band vom Elternknoten
+// Detail-Knoten (dünner Balken + zweizeilige Beschriftung) inkl. Band vom Elternknoten.
+// en = eingeklappt am Elternknoten, mid = ausgefahren, aber noch nicht aufgefächert (Engine animiert en → mid → p).
 function detail(els, { id, side, edge, dx, ty, dy, dh, col, on, name, value }) {
-  const lm = dy + dh / 2, R = side === 'R', tx = R ? dx + 14 : dx - 6, anchor = R ? 'start' : 'end';
+  const lm = dy + dh / 2, tm = ty + dh / 2, R = side === 'R', tx = R ? dx + DW + 6 : dx - 6, anchor = R ? 'start' : 'end';
   const band = R
-    ? { p: { x0: edge, a0: ty, b0: ty + dh, x1: dx, a1: dy, b1: dy + dh }, en: { x1: edge, a1: ty, b1: ty + dh } }
-    : { p: { x0: dx + 8, a0: dy, b0: dy + dh, x1: edge, a1: ty, b1: ty + dh }, en: { x0: edge, a0: ty, b0: ty + dh } };
-  els.push({ id: id + 'b', cid: id, k: 'b', z: 0, fill: col[1], p: { ...band.p, op: on ? 0.42 : 0.08 }, en: band.en });
-  els.push({ id: id + 'r', cid: id, k: 'r', z: 1, fill: col[0], p: { x: dx, y: dy, w: 8, h: dh, op: on ? 1 : 0.3 }, en: { x: edge, w: 0, y: ty } });
-  els.push({ id: id + 'n', cid: id, k: 't', z: 2, fill: TP, anchor, size: 12, txt: name, p: { x: tx, y: lm - 7, op: on ? 1 : 0.35 }, en: { x: edge, y: ty } });
-  els.push({ id: id + 'v', k: 't', z: 2, fill: TS, anchor, size: 11, txt: value, p: { x: tx, y: lm + 8, op: on ? 1 : 0.35 }, en: { x: edge, y: ty } });
+    ? { p: { x0: edge, a0: ty, b0: ty + dh, x1: dx, a1: dy, b1: dy + dh }, en: { x1: edge, a1: ty, b1: ty + dh }, mid: { a1: ty, b1: ty + dh } }
+    : { p: { x0: dx + DW, a0: dy, b0: dy + dh, x1: edge, a1: ty, b1: ty + dh }, en: { x0: edge, a0: ty, b0: ty + dh }, mid: { a0: ty, b0: ty + dh } };
+  const op = on ? 1 : 0.35;
+  els.push({ id: id + 'b', cid: id, k: 'b', z: 0, fill: col[1], p: { ...band.p, op: on ? 0.42 : 0.08 }, en: band.en, mid: band.mid });
+  els.push({ id: id + 'r', cid: id, k: 'r', z: 1, fill: col[0], p: { x: dx, y: dy, w: DW, h: dh, op: on ? 1 : 0.3 }, en: { x: edge, w: 0, y: ty }, mid: { y: ty } });
+  els.push({ id: id + 'n', cid: id, k: 't', z: 2, fill: TP, anchor, size: 12.5, weight: 600, txt: name, p: { x: tx, y: lm - 7, op }, en: { x: edge, y: tm }, mid: { y: tm - 7, op: 0 } });
+  els.push({ id: id + 'v', k: 't', z: 2, fill: TS, anchor, size: 11, num: 1, txt: value, p: { x: tx, y: lm + 8, op }, en: { x: edge, y: tm }, mid: { y: tm + 8, op: 0 } });
+}
+
+// Verteilt Spalten fester Breite mit gleich großen Abständen zwischen a und b (Abstand höchstens gMax, dann zentriert)
+function columns(a, b, widths, gMax = Infinity) {
+  const sum = widths.reduce((s, w) => s + w, 0), n = widths.length - 1;
+  const g = Math.min(gMax, (b - a - sum) / n), off = (b - a - sum - g * n) / 2;
+  let x = a + off;
+  return widths.map(w => { const r = x; x += w + g; return r; });
 }
 
 // Kachel mit Beschriftung im Inneren
@@ -34,20 +44,22 @@ function tile(els, { id, x, y, w, h, col, on, name, value }) {
   els.push({ id, cid: id, k: 'r', z: 1, fill: col, p: { x, y, w, h, op: on ? 1 : 0.45 } });
   const cx = x + w / 2, m = y + h / 2, op = on ? 1 : 0.75;
   if (h >= 30) {
-    els.push({ id: id + 'a', k: 't', z: 2, fill: WHITE, anchor: 'middle', size: 12, weight: 500, txt: name, p: { x: cx, y: m - 8, op } });
-    els.push({ id: id + 'v', k: 't', z: 2, fill: WHITE, anchor: 'middle', size: 11, txt: value, p: { x: cx, y: m + 8, op } });
+    els.push({ id: id + 'a', k: 't', z: 2, fill: WHITE, anchor: 'middle', size: 12.5, weight: 600, txt: name, p: { x: cx, y: m - 8, op } });
+    els.push({ id: id + 'v', k: 't', z: 2, fill: WHITE, anchor: 'middle', size: 11, num: 1, txt: value, p: { x: cx, y: m + 8, op } });
   } else {
-    els.push({ id: id + 'a', k: 't', z: 2, fill: WHITE, anchor: 'middle', size: 11, weight: 500, txt: `${name} ${value}`, p: { x: cx, y: m, op } });
+    els.push({ id: id + 'a', k: 't', z: 2, fill: WHITE, anchor: 'middle', size: 11, weight: 600, txt: `${name} ${value}`, p: { x: cx, y: m, op } });
   }
 }
 
 export function buildKern(kern, st, W) {
-  const k = 0.8, TW = 96, CW = 12, T = 10, G = 6, wide = W >= 640, gB = wide ? 56 : 26;
-  const dl = st.eL.size > 0, dr = st.eR.size > 0;
-  const dL = 100, dR = W - 116;
-  const tL = dl || wide ? dL + 8 + gB : (dr ? 4 : 16);
-  const tR = dr || wide ? dR - gB - TW : W - (dl ? 10 : 16) - TW;
-  const c = (tL + TW + tR) / 2 - CW / 2;
+  const k = 0.8, TW = 96, CW = 12, T = 10, G = 12, wide = W >= 640;
+  const showL = wide || st.eL.size > 0, showR = wide || st.eR.size > 0;
+  // Ebenen: [Details links] Kacheln links | Summe | Kacheln rechts [Details rechts], alle mit gleichem Abstand
+  const LL = 100, LR = 116, ws = [...(showL ? [DW] : []), TW, CW, TW, ...(showR ? [DW] : [])];
+  const xs = columns(showL ? LL : 12, showR ? W - LR + DW : W - 12, ws);
+  if (!showL) xs.unshift(LL);
+  if (!showR) xs.push(W - LR);
+  const [dL, tL, c, tR, dR] = xs;
   const stack = gs => { let y = 0; return gs.map(g => { const h = g.v * k, r = { y, h }; y += h + G; return r; }); };
   const sl = stack(kern.L), sr = stack(kern.R), Ch = Math.max(kern.totL, kern.totR) * k;
   const H0 = Math.max(spanOf(sl), spanOf(sr), Ch);
@@ -70,8 +82,8 @@ export function buildKern(kern, st, W) {
       const ar = !multi ? '' : S === 'L' ? (open ? ' ›' : ' ‹') : (open ? ' ‹' : ' ›');
       tile(els, { id: `${S}t${gi}`, x: tx, y, w: TW, h, col: col[0], on, name: g.n + ar, value: fmt(g.v) + (h >= 30 ? ' Mrd' : '') });
       if (!open) return;
-      const ps = place(g.k.map(a => a.v * k), 3, 28), m = y + h / 2;
-      const start = Math.max(pb + 12, m - spanOf(ps) / 2, T), edge = S === 'R' ? tx + TW : tx;
+      const ps = place(g.k.map(a => a.v * k), 6, 28), m = y + h / 2;
+      const start = Math.max(pb + 24, m - spanOf(ps) / 2, T), edge = S === 'R' ? tx + TW : tx;
       let ty = y;
       g.k.forEach((a, ci) => {
         const id = `${S}d${gi}_${ci}`, dh = a.v * k, dy = start + ps[ci].y;
@@ -84,9 +96,10 @@ export function buildKern(kern, st, W) {
 }
 
 export function buildSV(sv, st, W) {
-  const k = 1.55, T = 10, wide = W >= 640, extra = wide ? (W - 380) * 0.12 : 0;
-  const X1 = 86 + extra, XP = X1 + 42 + extra, WP = 92, X3 = W - 118;
-  const p1 = place(sv.S.map(a => a.v * k), 24, 30), p2 = place(sv.P.map(a => a.v * k), 16, 0);
+  const k = 1.55, T = 10, WP = 92;
+  // Ebenen: Herkunft | Töpfe | Verwendung, mit gleichem Abstand
+  const [X1, XP, X3] = columns(86, W - 118 + DW, [DW, WP, DW], 160);
+  const p1 = place(sv.S.map(a => a.v * k), 48, 30), p2 = place(sv.P.map(a => a.v * k), 32, 0);
   const H0 = Math.max(spanOf(p1), spanOf(p2));
   const o1 = T + (H0 - spanOf(p1)) / 2, o2 = T + (H0 - spanOf(p2)) / 2;
   const lit = g => !st.sel || g.includes(st.sel), els = [];
@@ -95,15 +108,15 @@ export function buildSV(sv, st, W) {
 
   sv.F.forEach(([a, b, v, , c], j) => {
     const h = v * k, id = 'F' + j, on = lit(['S' + a, 'P' + b, id]);
-    els.push({ id, cid: id, k: 'b', z: 0, fill: colOf(c)[1], p: { x0: X1 + 8, a0: out1[a], b0: out1[a] + h, x1: XP, a1: in2[b], b1: in2[b] + h, op: on ? 0.45 : 0.08 } });
+    els.push({ id, cid: id, k: 'b', z: 0, fill: colOf(c)[1], p: { x0: X1 + DW, a0: out1[a], b0: out1[a] + h, x1: XP, a1: in2[b], b1: in2[b] + h, op: on ? 0.45 : 0.08 } });
     out1[a] += h; in2[b] += h;
   });
   sv.S.forEach((a, i) => {
     const y = p1[i].y + o1, h = a.v * k, id = 'S' + i, m = y + h / 2;
     const on = lit([id, ...sv.F.map((f, j) => (f[0] === i ? 'F' + j : ''))]);
-    els.push({ id, cid: id, k: 'r', z: 1, fill: colOf(a.c)[0], p: { x: X1, y, w: 8, h, op: on ? 1 : 0.3 } });
-    els.push({ id: id + 'n', cid: id, k: 't', z: 2, fill: TP, anchor: 'end', size: 12, txt: a.n, p: { x: X1 - 6, y: m - 7, op: on ? 1 : 0.35 } });
-    els.push({ id: id + 'v', k: 't', z: 2, fill: TS, anchor: 'end', size: 11, txt: fmt(a.v) + ' Mrd', p: { x: X1 - 6, y: m + 8, op: on ? 1 : 0.35 } });
+    els.push({ id, cid: id, k: 'r', z: 1, fill: colOf(a.c)[0], p: { x: X1, y, w: DW, h, op: on ? 1 : 0.3 } });
+    els.push({ id: id + 'n', cid: id, k: 't', z: 2, fill: TP, anchor: 'end', size: 12.5, weight: 600, txt: a.n, p: { x: X1 - 6, y: m - 7, op: on ? 1 : 0.35 } });
+    els.push({ id: id + 'v', k: 't', z: 2, fill: TS, anchor: 'end', size: 11, num: 1, txt: fmt(a.v) + ' Mrd', p: { x: X1 - 6, y: m + 8, op: on ? 1 : 0.35 } });
   });
   let pb = -1e9;
   sv.P.forEach((a, i) => {
@@ -112,7 +125,7 @@ export function buildSV(sv, st, W) {
     const on = lit([id, ...kids.map(ui => 'U' + ui), ...sv.F.map((f, j) => (f[1] === i ? 'F' + j : ''))]);
     tile(els, { id, x: XP, y, w: WP, h, col: col[0], on, name: a.n + (kids.length ? (open ? ' ‹' : ' ›') : ''), value: fmt(a.v) + ' Mrd' });
     if (!open) return;
-    const ps = place(kids.map(ui => sv.U[ui][2] * k), 4, 30), start = Math.max(pb + 12, y + h / 2 - spanOf(ps) / 2, T);
+    const ps = place(kids.map(ui => sv.U[ui][2] * k), 8, 30), start = Math.max(pb + 24, y + h / 2 - spanOf(ps) / 2, T);
     kids.forEach((ui, j) => {
       const u = sv.U[ui], uid = 'U' + ui, dh = u[2] * k, dy = start + ps[j].y;
       detail(els, { id: uid, side: 'R', edge: XP + WP, dx: X3, ty: out2[i], dy, dh, col, on: lit([id, uid]), name: u[1], value: fmt(u[2]) + ' Mrd' });

@@ -12,7 +12,7 @@ Statische Website (Vanilla JS, ES-Module, kein Build), die den Bundeshaushalt 20
 
 - **Zahlen nur in `data/*.csv`.** Nie Werte im JS hart codieren. Die Website liest alles zur Laufzeit.
 - **Jede Datenzeile braucht eine `quelle_id`**, die in `quellen.csv` existiert. Abgeleitete Werte (Restposten, Summen mehrerer Zeilen) in `anmerkung` erklären.
-- **Zeitraum immer sichtbar halten:** Haushaltsjahr, Zeitraum und Wertart (Soll/Plan) kommen aus `meta.csv` und stehen oben sowie je Diagramm.
+- **Zeitraum immer sichtbar halten:** Haushaltsjahr, Zeitraum und Wertart (Soll/Plan) kommen aus `meta.csv` und stehen oben; je Diagramm steht ein Kennzeichen „Plan <Jahr>“ neben der Überschrift, der ausführliche Stand hinter dem Info-Knopf.
 - Nach Datenänderungen `python3 scripts/check_data.py` ausführen, es muss "Alles konsistent" melden.
 - Keine negativen Werte in Sankey-Flüssen. Negative Korrekturen (z. B. Globalposten, steuerliche Maßnahmen) werden mit einem benachbarten Posten verrechnet und in `anmerkung` dokumentiert.
 
@@ -27,15 +27,19 @@ Statische Website (Vanilla JS, ES-Module, kein Build), die den Bundeshaushalt 20
 
 ## Interaktion (vom Nutzer so gewünscht)
 
-- Start: nur Ebene 1 und 2. Tipp auf eine Kachel fächert die nächste Ebene auf, zweiter Tipp klappt zu. Kein separater Zurück-Knopf.
+- Start: nur Ebene 1 und 2. Tipp auf eine Kachel fächert die nächste Ebene auf, zweiter Tipp klappt zu. Es ist je Diagramm immer nur **ein** Ast aufgefächert: Tipp auf eine andere Kachel klappt alle übrigen Äste ein. Tipp neben das Diagramm (irgendwo außerhalb von Kacheln/Bändern, Links, Knöpfen, Infotexten, Tabellen) setzt beide Diagramme auf den Ausgangszustand zurück. Kein separater Zurück-Knopf.
+- Auffächern in zwei Phasen: Äste fahren erst geschlossen (aneinanderliegend) aus, dann fächern sie auf. Zuklappen umgekehrt.
+- Vertikale Abstände: Kacheln 12 px, Detailäste 6 px (Kernhaushalt); SV-Herkunft 48, Töpfe 32, Verwendung 8. Horizontal haben alle Ebenen eines Diagramms den gleichen Abstand (`columns()` in `charts.js`).
+- Zusatztexte (Bedienhinweis, Stand, Hinweise, Datenabruf) stecken hinter runden Info-Knöpfen (ⓘ) neben den Überschriften. Die Info-Box über dem Diagramm zeigt standardmäßig die Gesamtsumme, nach einem Tipp Name, Wert, Anteil und Beschreibung.
 - Kacheln ohne abgerundete Ecken.
 - Alles animiert (Auffächern und Hervorheben), `prefers-reduced-motion` wird respektiert.
-- Mobil (< 640 px) kann im Kernhaushalt nur eine Seite gleichzeitig offen sein; ab 640 px beide.
+- Mobil (< 640 px) wird im Kernhaushalt nur die Detailspalte der offenen Seite eingeblendet.
+- Typografie: Google Fonts **Source Serif 4** (600, Überschriften und große Zahlen) und **IBM Plex Sans** (400/600, Text und Diagramm), selbst gehostet in `fonts/` (kein Abruf bei Google, DSGVO). Kleine Labels in Versalien mit Sperrung, Zahlen tabellarisch.
 - Mobile first: muss auf ~380 px Breite gut lesbar sein.
 
 ## Technik
 
-- `js/engine.js`: Elemente mit stabiler `id` und numerischen Props `p`, Interpolation per requestAnimationFrame. Neue Elemente starten in ihrer `en`-Geometrie (eingeklappt am Elternknoten), entfernte fahren dorthin zurück.
+- `js/engine.js`: Elemente mit stabiler `id` und numerischen Props `p`, Interpolation per requestAnimationFrame. Neue Elemente starten in ihrer `en`-Geometrie (eingeklappt am Elternknoten), entfernte fahren dorthin zurück. Elemente mit `mid`-Geometrie (Detailäste) laufen zweiphasig en → mid → p; alles andere ist nach 60 % der Dauer fertig.
 - `js/charts.js`: `buildKern` und `buildSV` liefern `{ els, H }` für eine gegebene Breite `W`. Layout-Konstanten stehen dort.
 - Klick-Handling per Event-Delegation über `data-id`. Präfixe: Kernhaushalt `Lt/Rt` Kachel, `Lb/Rb` Band, `Ld/Rd` Detail; Sondervermögen `S` Herkunft, `F` Fluss, `P` Topf, `U` Verwendung.
 - Lokaler Test: `python3 -m http.server 8000`.
